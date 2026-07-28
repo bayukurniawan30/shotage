@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm run build",
+  "installCommand": "pnpm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.ts"
+    }
+  ],
+  "functions": {
+    "index.ts": {
+      "includeFiles": "dist/**"
+    }
+  }
+}

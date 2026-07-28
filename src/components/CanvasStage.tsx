@@ -1,0 +1,162 @@
+import React from 'react';
+import { useStudioStore } from '../store/useStudioStore';
+import { BrowserFrame } from './frames/BrowserFrame';
+import { DeviceFrame } from './frames/DeviceFrame';
+
+interface CanvasStageProps {
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+}
+
+export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef }) => {
+  const state = useStudioStore();
+  // Calculate aspect ratio styling
+  const getAspectRatioStyle = () => {
+    switch (state.aspectRatio) {
+      case '16:9':
+        return 'aspect-[16/9]';
+      case '1:1':
+        return 'aspect-square';
+      case '9:16':
+        return 'aspect-[9/16] max-w-[450px]';
+      case '4:3':
+        return 'aspect-[4/3]';
+      case '1.91:1':
+        return 'aspect-[1.91/1]';
+      default:
+        return 'w-auto h-auto min-h-[400px]';
+    }
+  };
+
+  // Background style construction
+  const getBackgroundStyle = () => {
+    if (state.backgroundType === 'transparent') {
+      return {
+        backgroundImage:
+          'radial-gradient(#334155 1px, transparent 1px), radial-gradient(#334155 1px, #0f172a 1px)',
+        backgroundSize: '20px 20px',
+        backgroundPosition: '0 0, 10px 10px',
+      };
+    }
+    if (state.backgroundType === 'solid') {
+      return { backgroundColor: state.backgroundColor };
+    }
+    if (state.backgroundType === 'gradient') {
+      return {
+        backgroundImage: `linear-gradient(${state.gradient.angle}deg, ${state.gradient.color1}, ${state.gradient.color2})`,
+      };
+    }
+    if (state.backgroundType === 'image' && state.bgImageUrl) {
+      return {
+        backgroundImage: `url(${state.bgImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: `blur(${state.bgBlur}px)`,
+      };
+    }
+    return { backgroundColor: '#0f172a' };
+  };
+
+  // Shadow class mappings
+  const getShadowClass = () => {
+    switch (state.shadow) {
+      case 'soft':
+        return 'shadow-lg shadow-black/30';
+      case 'medium':
+        return 'shadow-2xl shadow-black/50';
+      case 'hard':
+        return 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]';
+      case 'floating':
+        return 'shadow-[0_35px_60px_-15px_rgba(0,0,0,0.9)]';
+      default:
+        return '';
+    }
+  };
+
+  // 3D Transform style matrix
+  const transformStyle: React.CSSProperties = {
+    transform: `perspective(${state.perspective}px) rotateX(${state.rotateX}deg) rotateY(${state.rotateY}deg)`,
+    transformStyle: 'preserve-3d',
+    transition: 'transform 0.15s ease-out',
+  };
+
+  const imageContent = (
+    <div
+      className={`overflow-hidden transition-all duration-200 ${getShadowClass()}`}
+      style={{
+        borderRadius: state.frameType === 'frameless' ? `${state.borderRadius}px` : undefined,
+      }}
+    >
+      {state.imageSrc ? (
+        <img
+          src={state.imageSrc}
+          alt={state.imageName}
+          className="w-full h-auto object-cover transition-transform duration-200 block"
+          style={{
+            transform: `scale(${state.zoom / 100})`,
+            transformOrigin:
+              state.alignment === 'top'
+                ? 'top center'
+                : state.alignment === 'bottom'
+                  ? 'bottom center'
+                  : 'center center',
+          }}
+        />
+      ) : (
+        <div className="w-[600px] h-[360px] bg-slate-800/80 border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center mb-3">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-slate-200">Upload or Drag & Drop a Screenshot</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Supports PNG, JPG, WebP, SVG or Paste (`Cmd+V` / `Ctrl+V`)
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderFrameContent = () => {
+    if (state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') {
+      return (
+        <BrowserFrame type={state.frameType as any} urlText={state.urlText}>
+          {imageContent}
+        </BrowserFrame>
+      );
+    }
+    if (
+      state.frameType === 'macbook' ||
+      state.frameType === 'iphone' ||
+      state.frameType === 'tablet'
+    ) {
+      return <DeviceFrame type={state.frameType}>{imageContent}</DeviceFrame>;
+    }
+    return imageContent;
+  };
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-4 md:p-8 overflow-auto">
+      {/* Exportable Canvas Container */}
+      <div
+        ref={canvasRef}
+        id="shotage-canvas"
+        className={`relative flex items-center justify-center transition-all duration-300 rounded-2xl overflow-hidden shadow-2xl ${getAspectRatioStyle()}`}
+        style={{
+          ...getBackgroundStyle(),
+          padding: `${state.padding}px`,
+        }}
+      >
+        {/* 3D Transform Wrapper */}
+        <div className="w-full max-w-full flex items-center justify-center" style={transformStyle}>
+          {renderFrameContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
