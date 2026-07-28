@@ -2,13 +2,21 @@ import React from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
+import { ImageUp } from '@untitledui/icons';
 
 interface CanvasStageProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
+  onImageUpload?: (file: File) => void;
 }
 
-export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef }) => {
+export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUpload }) => {
   const state = useStudioStore();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImageUpload) {
+      onImageUpload(e.target.files[0]);
+    }
+  };
   // Calculate aspect ratio styling
   const getAspectRatioStyle = () => {
     switch (state.aspectRatio) {
@@ -58,6 +66,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef }) => {
 
   // Shadow class mappings
   const getShadowClass = () => {
+    if (['iphone', 'macbook', 'tablet'].includes(state.frameType)) {
+      return '';
+    }
+
     switch (state.shadow) {
       case 'soft':
         return 'shadow-lg shadow-black/30';
@@ -79,74 +91,88 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef }) => {
     transition: 'transform 0.15s ease-out',
   };
 
-  const imageContent = (
-    <div
-      className={`overflow-hidden transition-all duration-200 ${getShadowClass()}`}
-      style={{
-        borderRadius: state.frameType === 'frameless' ? `${state.borderRadius}px` : undefined,
-      }}
-    >
-      {state.imageSrc ? (
-        <img
-          src={state.imageSrc}
-          alt={state.imageName}
-          className="w-full h-auto object-cover transition-transform duration-200 block"
-          style={{
-            transform: `scale(${state.zoom / 100})`,
-            transformOrigin:
-              state.alignment === 'top'
-                ? 'top center'
-                : state.alignment === 'bottom'
-                  ? 'bottom center'
-                  : 'center center',
-          }}
-        />
-      ) : (
-        <div className="w-[600px] h-[360px] bg-slate-800/80 border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center mb-3">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-          <p className="text-sm font-semibold text-slate-200">Upload or Drag & Drop a Screenshot</p>
-          <p className="text-xs text-slate-400 mt-1">
-            Supports PNG, JPG, WebP, SVG or Paste (`Cmd+V` / `Ctrl+V`)
-          </p>
+  const imageContent = state.imageSrc ? (
+    <div className="relative group cursor-pointer overflow-hidden w-full h-full">
+      <img
+        src={state.imageSrc}
+        alt={state.imageName}
+        className="w-full h-full object-cover block transition-all group-hover:brightness-75"
+      />
+      <label className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer backdrop-blur-[2px]">
+        <div className="w-12 h-12 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+          <ImageUp className="w-6 h-6 text-brand-400" />
         </div>
-      )}
+        <span className="text-xs font-semibold tracking-wide text-slate-100 drop-shadow-md">
+          Replace Image
+        </span>
+        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+      </label>
+    </div>
+  ) : (
+    <div className="w-[600px] h-[360px] bg-slate-800/80 border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center p-8 text-center">
+      <div className="w-12 h-12 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center mb-3">
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+      <p className="text-sm font-semibold text-slate-200">Upload or Drag & Drop a Screenshot</p>
+      <p className="text-xs text-slate-400 mt-1">
+        Supports PNG, JPG, WebP, SVG or Paste (`Cmd+V` / `Ctrl+V`)
+      </p>
     </div>
   );
 
   const renderFrameContent = () => {
+    let frameElement: React.ReactNode;
     if (state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') {
-      return (
+      frameElement = (
         <BrowserFrame type={state.frameType as any} urlText={state.urlText}>
           {imageContent}
         </BrowserFrame>
       );
-    }
-    if (
+    } else if (
       state.frameType === 'macbook' ||
       state.frameType === 'iphone' ||
       state.frameType === 'tablet'
     ) {
-      return <DeviceFrame type={state.frameType}>{imageContent}</DeviceFrame>;
+      frameElement = <DeviceFrame type={state.frameType}>{imageContent}</DeviceFrame>;
+    } else {
+      frameElement = imageContent;
     }
-    return imageContent;
+
+    return (
+      <div
+        className={`transition-all duration-200 overflow-hidden ${getShadowClass()}`}
+        style={{
+          transform: `scale(${state.zoom / 100})`,
+          transformOrigin:
+            state.alignment === 'top'
+              ? 'top center'
+              : state.alignment === 'bottom'
+                ? 'bottom center'
+                : 'center center',
+          borderRadius: state.frameType === 'frameless' ? `${state.borderRadius}px` : undefined,
+        }}
+      >
+        {frameElement}
+      </div>
+    );
   };
 
   return (
-    <div className="w-full h-full flex items-center justify-center p-4 md:p-8 overflow-auto">
+    <div className="w-full h-full flex items-center justify-center p-6 md:p-12 overflow-auto transition-all duration-300">
       {/* Exportable Canvas Container */}
       <div
         ref={canvasRef}
         id="shotage-canvas"
-        className={`relative flex items-center justify-center transition-all duration-300 rounded-2xl overflow-hidden shadow-2xl ${getAspectRatioStyle()}`}
+        className={`relative flex items-center justify-center transition-all duration-300 rounded-2xl overflow-hidden shadow-2xl ${getAspectRatioStyle()} ${
+          state.isPreviewMode ? 'scale-[0.7] shadow-2xl' : 'scale-100'
+        }`}
         style={{
           ...getBackgroundStyle(),
           padding: `${state.padding}px`,

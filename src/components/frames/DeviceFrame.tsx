@@ -8,7 +8,7 @@ interface DeviceFrameProps {
 export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
   if (type === 'macbook') {
     return (
-      <div className="w-full flex flex-col items-center">
+      <div className="w-full flex flex-col items-center select-none">
         {/* MacBook Display Lid */}
         <div className="w-full bg-slate-900 border-[10px] border-slate-800 rounded-t-2xl shadow-2xl relative">
           {/* Camera notch/dot */}
@@ -27,19 +27,25 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
 
   if (type === 'iphone') {
     return (
-      <div className="mx-auto max-w-[340px] bg-slate-950 border-[12px] border-slate-900 rounded-[48px] shadow-2xl relative p-1 ring-1 ring-slate-800">
-        {/* Dynamic Island Notch */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full z-20 flex items-center justify-between px-3">
-          <div className="w-2.5 h-2.5 bg-slate-900 rounded-full"></div>
-          <div className="w-2 h-2 bg-blue-950 rounded-full"></div>
+      <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
+        {/* Screen Content Wrapper placed precisely inside bezel bounds */}
+        <div className="absolute inset-0 top-[2.8%] bottom-[2.8%] left-[4.2%] right-[4.2%] z-0 overflow-hidden rounded-[48px]">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black">
+            {children}
+          </div>
         </div>
-        {/* Screen container */}
-        <div className="overflow-hidden rounded-[36px] pt-4">{children}</div>
+
+        {/* Real iPhone 15 Frame Overlay PNG */}
+        <img
+          src="/mockup/apple-iphone-15-black-portrait.png"
+          alt="iPhone 15 Frame Mockup"
+          className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
+        />
       </div>
     );
   }
 
-  // Tablet
+  // Tablet Mockup
   return (
     <div className="mx-auto w-full max-w-[640px] bg-slate-900 border-[14px] border-slate-800 rounded-[32px] shadow-2xl relative p-1 ring-1 ring-slate-700/50">
       {/* Front camera */}
