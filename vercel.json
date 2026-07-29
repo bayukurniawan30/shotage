@@ -1,11 +1,16 @@
 {
   "version": 2,
   "buildCommand": "pnpm run build",
-  "outputDirectory": "dist",
+  "installCommand": "pnpm install",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api/index.ts"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "dist/**"
+    }
+  }
 }
