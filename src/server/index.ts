@@ -1,8 +1,45 @@
 import { Hono } from 'hono';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const app = new Hono();
+
+// Serve static files from public or dist folders first (matches heylookatme architecture)
+app.get('/*', async (c, next) => {
+  const reqPath = c.req.path;
+
+  // Skip rendering routes and API proxy routes
+  if (reqPath === '/' || reqPath === '/studio' || reqPath.startsWith('/api/')) {
+    return await next();
+  }
+
+  const publicPath = path.join(process.cwd(), 'public', reqPath);
+  const distPath = path.join(process.cwd(), 'dist', reqPath);
+
+  let targetPath: string | null = null;
+  if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
+    targetPath = publicPath;
+  } else if (fs.existsSync(distPath) && fs.statSync(distPath).isFile()) {
+    targetPath = distPath;
+  }
+
+  if (targetPath) {
+    const content = fs.readFileSync(targetPath);
+    const ext = path.extname(targetPath);
+    let mime = 'application/octet-stream';
+    if (ext === '.png') mime = 'image/png';
+    else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+    else if (ext === '.gif') mime = 'image/gif';
+    else if (ext === '.svg') mime = 'image/svg+xml';
+    else if (ext === '.ico') mime = 'image/x-icon';
+    else if (ext === '.js') mime = 'application/javascript';
+    else if (ext === '.css') mime = 'text/css';
+
+    return c.body(content, 200, { 'Content-Type': mime });
+  }
+
+  await next();
+});
 
 // Inertia HTML Page Renderer
 const renderInertiaPage = (componentName: string, props = {}) => {
@@ -14,9 +51,9 @@ const renderInertiaPage = (componentName: string, props = {}) => {
   });
 
   // Inject into index.html
-  const indexPath = join(process.cwd(), 'dist', 'index.html');
-  if (existsSync(indexPath)) {
-    let html = readFileSync(indexPath, 'utf-8');
+  const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    let html = fs.readFileSync(indexPath, 'utf-8');
     return html.replace(
       '<div id="app"></div>',
       `<div id="app" data-page='${pageData.replace(/'/g, '&apos;')}'></div>`
