@@ -199,7 +199,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         ref={canvasRef}
         id="shotage-canvas"
-        className={`relative flex items-center justify-center transition-all duration-300 rounded-2xl overflow-hidden shadow-2xl ${getAspectRatioStyle()} ${
+        className={`relative flex items-center justify-center transition-all duration-300 overflow-hidden shadow-2xl ${getAspectRatioStyle()} ${
           state.isPreviewMode ? 'scale-[0.7] shadow-2xl' : 'scale-100'
         }`}
         style={{

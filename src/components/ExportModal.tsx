@@ -20,16 +20,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     if (!canvasRef.current) return;
     setIsExporting(true);
 
-    // Save original border radius styling
-    const originalBorderRadius = canvasRef.current.style.borderRadius;
-    const isNonPng = format !== 'png';
-
     try {
-      if (isNonPng) {
-        canvasRef.current.style.borderRadius = '0px';
-        canvasRef.current.classList.remove('rounded-2xl');
-      }
-
       const options = {
         pixelRatio: state.exportScale,
         quality: 0.95,
@@ -63,10 +54,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       console.error('Export error:', err);
       alert('Failed to export canvas image. Please try again.');
     } finally {
-      if (isNonPng && canvasRef.current) {
-        canvasRef.current.style.borderRadius = originalBorderRadius;
-        canvasRef.current.classList.add('rounded-2xl');
-      }
       setIsExporting(false);
     }
   };
