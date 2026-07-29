@@ -1,13 +1,8 @@
-import { serve } from '@hono/node-server';
-import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const app = new Hono();
-
-// Serve static assets from dist
-app.use('/*', serveStatic({ root: './dist' }));
 
 // Inertia HTML Page Renderer
 const renderInertiaPage = (componentName: string, props = {}) => {
@@ -87,11 +82,3 @@ app.get('/studio', (c) => {
 
 // Export default Hono app for Vercel & Vite dev server
 export default app;
-
-const port = Number(process.env.PORT) || 3000;
-console.log(`Shotage server running at http://localhost:${port}`);
-
-serve({
-  fetch: app.fetch,
-  port,
-});
