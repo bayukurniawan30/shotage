@@ -19,6 +19,8 @@ export const Studio: React.FC = () => {
   const resetAll = useStudioStore((state) => state.resetAll);
   const isPreviewMode = useStudioStore((state) => state.isPreviewMode);
   const togglePreviewMode = useStudioStore((state) => state.togglePreviewMode);
+  const previewCanvasZoom = useStudioStore((state) => state.previewCanvasZoom);
+  const updateState = useStudioStore((state) => state.updateState);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isStartOverModalOpen, setIsStartOverModalOpen] = useState(false);
@@ -141,7 +143,8 @@ export const Studio: React.FC = () => {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = 'Are you sure you want to leave? Your unsaved work in Shotage Studio will be lost.';
+      e.returnValue =
+        'Are you sure you want to leave? Your unsaved work in Shotage Studio will be lost.';
       return e.returnValue;
     };
 
@@ -152,26 +155,27 @@ export const Studio: React.FC = () => {
   // Handle Brand / Home navigation with confirmation prompt
   const handleNavHome = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (window.confirm('Are you sure you want to leave Shotage Studio? Any unsaved edits will be lost.')) {
+    if (
+      window.confirm(
+        'Are you sure you want to leave Shotage Studio? Any unsaved edits will be lost.'
+      )
+    ) {
       window.location.href = '/';
     }
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-100 flex flex-col font-sans overflow-hidden">
+    <div className="h-screen w-screen bg-neutral-950 text-slate-100 flex flex-col font-sans overflow-hidden">
       {/* Studio Header Bar */}
-      <header className="h-14 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-40 relative">
+      <header className="h-14 border-b border-neutral-800 bg-neutral-900/90 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-40 relative">
         {/* Left Section: Brand Logo */}
         <div className="flex items-center gap-4">
-          <a href="/" onClick={handleNavHome} className="flex items-center gap-2 group">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-slate-950 shadow-md text-xs group-hover:scale-105 transition-transform"
-              style={{
-                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
-              }}
-            >
-              S
-            </div>
+          <a href="/" onClick={handleNavHome} className="flex items-center gap-2.5 group">
+            <img
+              src="/shotage-logo-small.png"
+              alt="Shotage Logo"
+              className="h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
             <span className="font-bold text-base tracking-tight text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
               Shotage
             </span>
@@ -179,15 +183,15 @@ export const Studio: React.FC = () => {
         </div>
 
         {/* Center Section: Toolbar (Undo -> Redo -> Start Over -> Preview -> Feedback) */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 shadow-inner">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-950/90 p-1 rounded-xl border border-neutral-800 shadow-inner">
           {/* 1. Undo Button */}
           <button
             onClick={() => temporalStore.getState().undo()}
             disabled={!canUndo}
             className={`p-1.5 rounded-lg border transition-all ${
               canUndo
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 cursor-pointer'
-                : 'bg-slate-900/50 text-slate-600 border-slate-800/50 cursor-not-allowed'
+                ? 'bg-neutral-800 hover:bg-neutral-700 text-slate-200 border-neutral-700 cursor-pointer'
+                : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
             }`}
             title={canUndo ? 'Undo (Cmd+Z)' : 'Nothing to undo'}
           >
@@ -200,27 +204,27 @@ export const Studio: React.FC = () => {
             disabled={!canRedo}
             className={`p-1.5 rounded-lg border transition-all ${
               canRedo
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 cursor-pointer'
-                : 'bg-slate-900/50 text-slate-600 border-slate-800/50 cursor-not-allowed'
+                ? 'bg-neutral-800 hover:bg-neutral-700 text-slate-200 border-neutral-700 cursor-pointer'
+                : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
             }`}
             title={canRedo ? 'Redo (Cmd+Shift+Z)' : 'Nothing to redo'}
           >
             <FlipForward className="w-4 h-4" />
           </button>
 
-          <div className="h-4 w-px bg-slate-800 my-auto mx-0.5"></div>
+          <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
 
           {/* 3. Start Over Button */}
           <button
             onClick={() => setIsStartOverModalOpen(true)}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white rounded-lg transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-800 border border-neutral-700 text-xs font-semibold text-slate-200 hover:text-white rounded-lg transition-all flex items-center gap-1.5 shadow-sm"
             title="Reset canvas and settings to initial state"
           >
             <RefreshCcw01 className="w-3.5 h-3.5 text-[#cdb4db]" />
             Start Over
           </button>
 
-          <div className="h-4 w-px bg-slate-800 my-auto mx-0.5"></div>
+          <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
 
           {/* 4. Preview Toggle Button (Expand03 icon) */}
           <button
@@ -228,7 +232,7 @@ export const Studio: React.FC = () => {
             className={`p-1.5 rounded-lg border transition-all ${
               isPreviewMode
                 ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
             }`}
             title={isPreviewMode ? 'Exit Full Preview' : 'Full Preview Mode (Expand Canvas)'}
           >
@@ -238,7 +242,7 @@ export const Studio: React.FC = () => {
           {/* 5. Feedback Button (message-text-square-01 icon) */}
           <button
             onClick={() => alert('Feedback feature coming soon!')}
-            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all"
+            className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 hover:text-white rounded-lg border border-neutral-700 transition-all"
             title="Feedback (Coming Soon)"
           >
             <MessageTextSquare01 className="w-4 h-4" />
@@ -266,8 +270,24 @@ export const Studio: React.FC = () => {
         {!isPreviewMode && <LeftSidebar onImageUpload={handleImageUpload} />}
 
         {/* Center Stage: Interactive Canvas Workspace */}
-        <div className="flex-1 bg-slate-950 relative overflow-hidden flex items-center justify-center">
+        <div className="flex-1 bg-neutral-950 relative overflow-hidden flex items-center justify-center">
           <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
+
+          {/* Floating Bottom Zoom Slider in Full Preview Mode */}
+          {isPreviewMode && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/90 border border-neutral-800 backdrop-blur-md px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+              <span className="text-xs font-semibold text-slate-300">Canvas Zoom</span>
+              <input
+                type="range"
+                min="50"
+                max="150"
+                value={previewCanvasZoom}
+                onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
+                className="w-36 bg-neutral-800 rounded-lg cursor-pointer"
+              />
+              <span className="text-xs font-mono text-slate-400 w-9">{previewCanvasZoom}%</span>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar (Hidden in Preview Mode) */}

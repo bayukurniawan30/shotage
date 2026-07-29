@@ -7,14 +7,11 @@ export const Home: React.FC = () => {
       <header className="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5 group">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-slate-950 shadow-md text-sm group-hover:scale-105 group-hover:shadow-pastel-pink/30 transition-all duration-200"
-              style={{
-                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
-              }}
-            >
-              S
-            </div>
+            <img
+              src="/shotage-logo-small.png"
+              alt="Shotage Logo"
+              className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
             <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-pastel-pinkLight transition-colors">
               Shotage
             </span>

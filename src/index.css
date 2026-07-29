@@ -1,10 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  * {
+    font-family: 'Exo 2', sans-serif;
+  }
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Exo 2', sans-serif !important;
     overflow-x: hidden;
   }
 }
@@ -20,12 +25,12 @@ input[type='range'] {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #171717;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cdb4db;
+  background: #404040;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #ffafcc;
+  background: #525252;
 }

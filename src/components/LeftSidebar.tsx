@@ -99,65 +99,127 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
   };
 
   return (
-    <div className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
+    <div className="w-80 bg-neutral-900 border-r border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {/* 1. Image & Scaling Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4 shadow-sm">
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
         <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
-            Image & Scaling
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Image & Layout
           </h3>
         </div>
+
+        {/* Layout & Media Count Selector */}
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            Layout Count (1 or 2 Images)
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[1, 2].map((count) => {
+              const isSelected = state.layoutCount === count;
+              return (
+                <button
+                  key={count}
+                  onClick={() => onChange({ layoutCount: count as 1 | 2 })}
+                  className={`py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                  }`}
+                >
+                  {count === 1 ? 'Single Image' : '2 Images'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2-Image Layout Presets */}
+        {state.layoutCount === 2 && (
+          <div className="pt-2 border-t border-neutral-800/80">
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Layout Presets
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { id: 'side-by-side', label: 'Side by Side' },
+                { id: 'overlap-right', label: 'Overlap Right' },
+                { id: 'overlap-left', label: 'Overlap Left' },
+                { id: 'stacked', label: 'Stacked' },
+              ].map((preset) => {
+                const isSelected = state.layoutPreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => onChange({ layoutPreset: preset.id as any })}
+                    className={`py-1.5 px-2 text-[11px] font-medium rounded-lg border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Upload Box */}
         <div>
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-            Image Upload
+            Primary Image Upload (Slot 1)
           </label>
           <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all text-center">
             <UploadCloud01 className="w-5 h-5 text-pastel-pink mb-1" />
-            <span className="text-xs font-medium text-slate-200">Choose file or drop here</span>
+            <span className="text-xs font-medium text-slate-200">
+              {state.imageSrc ? 'Replace Slot 1 Image' : 'Choose file or drop here'}
+            </span>
             <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WebP, SVG</span>
             <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </label>
         </div>
 
-        {/* Zoom / Scale */}
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Zoom</span>
-            <span className="font-mono text-slate-400">{state.zoom}%</span>
+        {/* Second Image Upload (Slot 2) */}
+        {state.layoutCount === 2 && (
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Secondary Image Upload (Slot 2)
+            </label>
+            <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all text-center">
+              <UploadCloud01 className="w-5 h-5 text-[#a2d2ff] mb-1" />
+              <span className="text-xs font-medium text-slate-200">
+                {state.secondImageSrc ? 'Replace Slot 2 Image' : 'Choose Slot 2 image'}
+              </span>
+              <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WebP, SVG</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      if (ev.target?.result) {
+                        useStudioStore
+                          .getState()
+                          .setSecondImage(ev.target.result as string, file.name);
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="hidden"
+              />
+            </label>
           </div>
-          <input
-            type="range"
-            min="50"
-            max="150"
-            value={state.zoom}
-            onChange={(e) => onChange({ zoom: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
-        </div>
-
-        {/* Canvas Outer Padding */}
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Padding</span>
-            <span className="font-mono text-slate-400">{state.padding}px</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="120"
-            value={state.padding}
-            onChange={(e) => onChange({ padding: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
-        </div>
+        )}
       </div>
 
       {/* 2. Aspect Ratio Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-3 shadow-sm relative">
-        <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm relative">
+        <div className="border-b border-neutral-800/80 pb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
             Aspect Ratio
           </h3>
         </div>
@@ -166,7 +228,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
         <div className="relative" ref={aspectDropdownRef}>
           <button
             onClick={() => setIsAspectDropdownOpen(!isAspectDropdownOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 bg-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
+            className="w-full flex items-center justify-between px-3 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
           >
             <div className="flex items-center gap-2 truncate">
               <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
@@ -185,7 +247,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
 
           {/* Dropdown Popover */}
           {isAspectDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900 border border-slate-700/90 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[320px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+            <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-900 border border-neutral-800 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[320px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
               {/* Group A: General */}
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
@@ -204,7 +266,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                         className={`px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
                             ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                            : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
                         }`}
                       >
                         <span>{ratio}</span>
@@ -245,7 +307,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                         className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
                             ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                            : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
                         }`}
                       >
                         <span>{item.label}</span>
@@ -257,7 +319,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
               </div>
 
               {/* Group C: YouTube */}
-              <div className="pt-2 border-t border-slate-800/60">
+              <div className="pt-2 border-t border-neutral-800/80">
                 <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
                   <svg
                     className="w-3.5 h-3.5 fill-current text-red-500"
@@ -286,7 +348,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                         className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
                             ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                            : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
                         }`}
                       >
                         <span>{item.label}</span>
@@ -302,9 +364,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
       </div>
 
       {/* 3. Frame Mockups Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-3 shadow-sm relative">
-        <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm relative">
+        <div className="border-b border-neutral-800/80 pb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
             Frame Mockups
           </h3>
         </div>
@@ -313,11 +375,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
         <div className="relative" ref={frameDropdownRef}>
           <button
             onClick={() => setIsFrameDropdownOpen(!isFrameDropdownOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 bg-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
+            className="w-full flex items-center justify-between px-3 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
           >
             <div className="flex items-center gap-2 truncate">
               {state.frameType !== 'frameless' ? (
-                <div className="w-6 h-6 rounded-md bg-slate-950 border border-slate-700/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden">
+                <div className="w-6 h-6 rounded-md bg-neutral-950 border border-neutral-800 flex items-center justify-center p-0.5 shrink-0 overflow-hidden">
                   <img
                     src={
                       state.frameType === 'iphone'
@@ -351,7 +413,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
 
           {/* Dropdown Popover */}
           {isFrameDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900 border border-slate-700/90 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[320px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+            <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-900 border border-neutral-800 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[320px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
               {/* Group A: Frameless */}
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
@@ -368,7 +430,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                   className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                     state.frameType === 'frameless'
                       ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
                   }`}
                 >
                   <span>Frameless</span>
@@ -377,7 +439,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
               </div>
 
               {/* Group B: Browser */}
-              <div className="pt-2 border-t border-slate-800/60">
+              <div className="pt-2 border-t border-neutral-800/80">
                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
                   Browser
                 </label>
@@ -401,10 +463,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                         className="flex flex-col items-center gap-1 cursor-pointer group"
                       >
                         <div
-                          className={`w-full aspect-square rounded-xl border p-1 flex items-center justify-center transition-all bg-slate-950 overflow-hidden relative ${
+                          className={`w-full aspect-square rounded-xl border p-1 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
                             isSelected
-                              ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-slate-800/80 shadow-md scale-102'
-                              : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:scale-102'
+                              ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
+                              : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
                           }`}
                         >
                           <img
@@ -429,7 +491,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
               </div>
 
               {/* Group C: Device */}
-              <div className="pt-2 border-t border-slate-800/60">
+              <div className="pt-2 border-t border-neutral-800/80">
                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
                   Device
                 </label>
@@ -454,10 +516,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                         className="flex flex-col items-center gap-1 cursor-pointer group"
                       >
                         <div
-                          className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-slate-950 overflow-hidden relative ${
+                          className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
                             isSelected
-                              ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-slate-800/80 shadow-md scale-102'
-                              : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:scale-102'
+                              ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
+                              : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
                           }`}
                         >
                           <img
@@ -486,17 +548,34 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
 
         {/* URL String for Browsers */}
         {(state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') && (
-          <div className="pt-1">
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Browser Address URL
-            </label>
-            <input
-              type="text"
-              value={state.urlText}
-              onChange={(e) => onChange({ urlText: e.target.value })}
-              placeholder="shotage.app/preview"
-              className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink"
-            />
+          <div className="pt-1 space-y-2">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                {state.layoutCount === 2 ? 'Browser Address URL (Slot 1)' : 'Browser Address URL'}
+              </label>
+              <input
+                type="text"
+                value={state.urlText}
+                onChange={(e) => onChange({ urlText: e.target.value })}
+                placeholder="shotage.app/preview"
+                className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink"
+              />
+            </div>
+
+            {state.layoutCount === 2 && (
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Browser Address URL (Slot 2)
+                </label>
+                <input
+                  type="text"
+                  value={state.secondUrlText}
+                  onChange={(e) => onChange({ secondUrlText: e.target.value })}
+                  placeholder="shotage.app/demo"
+                  className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -519,13 +598,64 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
         )}
       </div>
 
+      {/* 3.5. Frameless Style Section (Only when Frameless is selected) */}
+      {state.frameType === 'frameless' && (
+        <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
+          <div className="border-b border-neutral-800/80 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Style</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { id: 'default', label: 'Default' },
+              { id: 'glass-light', label: 'Glass Light' },
+              { id: 'glass-dark', label: 'Glass Dark' },
+              { id: 'inset-light', label: 'Inset Light' },
+              { id: 'inset-dark', label: 'Inset Dark' },
+              { id: 'card', label: 'Card' },
+            ].map((st) => {
+              const isSelected = (state.framelessStyle || 'default') === st.id;
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => onChange({ framelessStyle: st.id as any })}
+                  className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div
+                    className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
+                      isSelected
+                        ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
+                        : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
+                    }`}
+                  >
+                    <img
+                      src={`/style/style-${st.id}.png`}
+                      alt={`${st.label} style preview`}
+                      className="w-full h-full rounded-lg object-contain pointer-events-none"
+                    />
+                  </div>
+                  <span
+                    className={`text-[11px] text-center capitalize transition-colors ${
+                      isSelected
+                        ? 'text-[#a2d2ff] font-bold'
+                        : 'text-slate-400 group-hover:text-slate-200'
+                    }`}
+                  >
+                    {st.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 4. Shadow Elevation Box (Only for frameless and browser frames) */}
       {!['iphone', 'iphone14pro', 'macbook', 'macbookair13', 'samsung-s21', 'tablet'].includes(
         state.frameType
       ) && (
-        <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-3 shadow-sm">
-          <div className="border-b border-slate-800/80 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
+        <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
+          <div className="border-b border-neutral-800/80 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
               Shadow Elevation
             </h3>
           </div>
@@ -539,16 +669,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload }) => {
                   className="flex flex-col items-center gap-1.5 cursor-pointer group"
                 >
                   <div
-                    className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-slate-900 overflow-hidden relative ${
+                    className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
                       isSelected
-                        ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-slate-800/80 shadow-md scale-102'
-                        : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:scale-102'
+                        ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
+                        : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
                     }`}
                   >
                     <img
                       src={`/shadow/shadow-${sh}.png`}
                       alt={`${sh} shadow preview`}
-                      className="w-full h-full object-contain pointer-events-none"
+                      className="w-full h-full rounded-lg object-contain pointer-events-none"
                     />
                   </div>
                   <span

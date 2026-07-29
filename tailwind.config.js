@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Exo 2', 'Inter', 'sans-serif'],
       },
       colors: {
         pastel: {

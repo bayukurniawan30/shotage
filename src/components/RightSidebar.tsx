@@ -7,6 +7,7 @@ export const RightSidebar: React.FC = () => {
   const onChange = state.updateState;
   const reset3DPerspective = state.reset3DPerspective;
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
 
   const gradientPresets = [
     { name: 'Pastel Sunset', c1: '#ffafcc', c2: '#ffc8dd' },
@@ -62,105 +63,231 @@ export const RightSidebar: React.FC = () => {
   const visibleGradients = showAllGradients ? gradientPresets : gradientPresets.slice(0, 4);
 
   return (
-    <div className="w-80 bg-slate-900 border-l border-slate-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
+    <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {/* 1. 3D Perspective Tilt Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4 shadow-sm">
-        <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
-            3D Perspective Tilt
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            3D Perspective & Canvas
           </h3>
         </div>
 
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
-            <span className="font-mono text-slate-400">{state.rotateX}°</span>
-          </div>
-          <input
-            type="range"
-            min="-30"
-            max="30"
-            value={state.rotateX}
-            onChange={(e) => onChange({ rotateX: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
+        {/* 3 Tabs Header: Scaling | Tilt | Position */}
+        <div className="grid grid-cols-3 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
+          {(['scaling', 'tilt', 'position'] as const).map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-1 text-[11px] font-semibold capitalize rounded-lg transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-neutral-800 text-pastel-pink border border-neutral-700 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900/50'
+                }`}
+              >
+                {tab === 'scaling' ? 'Scaling' : tab === 'tilt' ? 'Tilt' : 'Position'}
+              </button>
+            );
+          })}
         </div>
 
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-            <span className="font-mono text-slate-400">{state.rotateY}°</span>
-          </div>
-          <input
-            type="range"
-            min="-30"
-            max="30"
-            value={state.rotateY}
-            onChange={(e) => onChange({ rotateY: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
-        </div>
+        {/* Tab 1: Scaling (Zoom & Padding) */}
+        {activeTab === 'scaling' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Zoom / Scale (Slot 1) */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">
+                  {state.layoutCount === 2 ? 'Slot 1 Zoom' : 'Zoom'}
+                </span>
+                <span className="font-mono text-slate-400">{state.zoom}%</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="150"
+                value={state.zoom}
+                onChange={(e) => onChange({ zoom: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
 
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Perspective Depth</span>
-            <span className="font-mono text-slate-400">{state.perspective}px</span>
-          </div>
-          <input
-            type="range"
-            min="500"
-            max="2000"
-            step="50"
-            value={state.perspective}
-            onChange={(e) => onChange({ perspective: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
-        </div>
+            {/* Zoom / Scale (Slot 2) */}
+            {state.layoutCount === 2 && (
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-[#a2d2ff]">Slot 2 Zoom</span>
+                  <span className="font-mono text-slate-400">{state.slot2Zoom}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="150"
+                  value={state.slot2Zoom}
+                  onChange={(e) => onChange({ slot2Zoom: Number(e.target.value) })}
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+            )}
 
-        {/* Horizontal Position (X) */}
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Horizontal Position (X)</span>
-            <span className="font-mono text-slate-400">{state.offsetX}px</span>
+            {/* Canvas Outer Padding */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Padding</span>
+                <span className="font-mono text-slate-400">{state.padding}px</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="120"
+                value={state.padding}
+                onChange={(e) => onChange({ padding: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
           </div>
-          <input
-            type="range"
-            min="-200"
-            max="200"
-            value={state.offsetX}
-            onChange={(e) => onChange({ offsetX: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
-        </div>
+        )}
 
-        {/* Vertical Position (Y) */}
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-slate-300">Vertical Position (Y)</span>
-            <span className="font-mono text-slate-400">{state.offsetY}px</span>
+        {/* Tab 2: Tilt (Pitch, Yaw, Perspective) */}
+        {activeTab === 'tilt' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
+                <span className="font-mono text-slate-400">{state.rotateX}°</span>
+              </div>
+              <input
+                type="range"
+                min="-30"
+                max="30"
+                value={state.rotateX}
+                onChange={(e) => onChange({ rotateX: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
+                <span className="font-mono text-slate-400">{state.rotateY}°</span>
+              </div>
+              <input
+                type="range"
+                min="-30"
+                max="30"
+                value={state.rotateY}
+                onChange={(e) => onChange({ rotateY: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Perspective Depth</span>
+                <span className="font-mono text-slate-400">{state.perspective}px</span>
+              </div>
+              <input
+                type="range"
+                min="500"
+                max="2000"
+                step="50"
+                value={state.perspective}
+                onChange={(e) => onChange({ perspective: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
           </div>
-          <input
-            type="range"
-            min="-200"
-            max="200"
-            value={state.offsetY}
-            onChange={(e) => onChange({ offsetY: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
-          />
-        </div>
+        )}
+
+        {/* Tab 3: Position (X & Y Offset) */}
+        {activeTab === 'position' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Horizontal Position (X) */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">
+                  {state.layoutCount === 2 ? 'Slot 1 Horizontal (X)' : 'Horizontal Position (X)'}
+                </span>
+                <span className="font-mono text-slate-400">{state.offsetX}px</span>
+              </div>
+              <input
+                type="range"
+                min="-200"
+                max="200"
+                value={state.offsetX}
+                onChange={(e) => onChange({ offsetX: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            {/* Vertical Position (Y) */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">
+                  {state.layoutCount === 2 ? 'Slot 1 Vertical (Y)' : 'Vertical Position (Y)'}
+                </span>
+                <span className="font-mono text-slate-400">{state.offsetY}px</span>
+              </div>
+              <input
+                type="range"
+                min="-200"
+                max="200"
+                value={state.offsetY}
+                onChange={(e) => onChange({ offsetY: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            {/* Slot 2 Independent Controls */}
+            {state.layoutCount === 2 && (
+              <div className="pt-2 border-t border-neutral-800/80 space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-[#a2d2ff]">Slot 2 Horizontal (X)</span>
+                    <span className="font-mono text-slate-400">{state.slot2OffsetX}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-200"
+                    max="200"
+                    value={state.slot2OffsetX}
+                    onChange={(e) => onChange({ slot2OffsetX: Number(e.target.value) })}
+                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-[#a2d2ff]">Slot 2 Vertical (Y)</span>
+                    <span className="font-mono text-slate-400">{state.slot2OffsetY}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-200"
+                    max="200"
+                    value={state.slot2OffsetY}
+                    onChange={(e) => onChange({ slot2OffsetY: Number(e.target.value) })}
+                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           onClick={reset3DPerspective}
-          className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 rounded-lg border border-slate-700 transition-all"
+          className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 rounded-lg border border-slate-700 transition-all cursor-pointer"
         >
           Reset 3D & Position
         </button>
       </div>
 
       {/* 2. Background Style Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4 shadow-sm">
-        <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        <div className="border-b border-neutral-800/80 pb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
             Background Style
           </h3>
         </div>
