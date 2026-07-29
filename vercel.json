@@ -4,7 +4,7 @@
   "installCommand": "pnpm install",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|mockup/|frame/|shadow/|favicon\\.ico).*)",
       "destination": "/api/index.ts"
     }
   ],
