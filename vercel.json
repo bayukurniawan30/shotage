@@ -5,11 +5,11 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.ts"
+      "destination": "/api/index.ts"
     }
   ],
   "functions": {
-    "index.ts": {
+    "api/index.ts": {
       "includeFiles": "dist/**"
     }
   }
