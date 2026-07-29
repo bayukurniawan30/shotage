@@ -6,18 +6,26 @@ export const Home: React.FC = () => {
       {/* Header / Nav */}
       <header className="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">
+          <a href="/" className="flex items-center gap-2.5 group">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-slate-950 shadow-md text-sm group-hover:scale-105 group-hover:shadow-pastel-pink/30 transition-all duration-200"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+              }}
+            >
               S
             </div>
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-pastel-pinkLight transition-colors">
               Shotage
             </span>
-          </div>
+          </a>
 
           <a
             href="/studio"
-            className="px-4 py-2 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow-lg shadow-brand-500/25 transition-all flex items-center gap-2"
+            className="px-4 py-2 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
+            style={{
+              backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+            }}
           >
             Launch Studio
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -36,16 +44,21 @@ export const Home: React.FC = () => {
       <main className="flex-1 flex flex-col justify-center">
         <section className="relative pt-20 pb-16 px-6 text-center max-w-5xl mx-auto overflow-hidden">
           {/* Subtle Ambient Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brand-500/10 blur-[120px] rounded-full -z-10 pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-[#ffafcc]/20 blur-[120px] rounded-full -z-10 pointer-events-none"></div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs mb-8">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-[#ffafcc] animate-pulse"></span>
             100% Client-Side & High Resolution Export
           </div>
 
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight mb-6">
             Transform Plain Screenshots into <br className="hidden md:block" />
-            <span className="bg-gradient-to-r from-brand-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+              }}
+            >
               Stunning 3D Mockups
             </span>
           </h1>
@@ -58,7 +71,10 @@ export const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="/studio"
-              className="w-full sm:w-auto px-8 py-3.5 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-semibold text-sm rounded-xl shadow-xl shadow-brand-500/25 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3.5 text-slate-950 font-extrabold text-sm rounded-xl shadow-xl shadow-[#ffafcc]/30 transition-all flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+              }}
             >
               Open Studio Editor
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,7 +91,7 @@ export const Home: React.FC = () => {
           {/* Interactive Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left">
             <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-pastel-purple/20 text-pastel-purple flex items-center justify-center mb-4">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -95,7 +111,7 @@ export const Home: React.FC = () => {
             </div>
 
             <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-pastel-pink/20 text-pastel-pink flex items-center justify-center mb-4">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -115,7 +131,7 @@ export const Home: React.FC = () => {
             </div>
 
             <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-pastel-blue/20 text-pastel-blue flex items-center justify-center mb-4">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -137,7 +153,7 @@ export const Home: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        Shotage — High-Resolution Screenshot Studio. Built with Hono, Inertia.js & React.
+        © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights reserved.
       </footer>
     </div>
   );

@@ -21,6 +21,13 @@ export const Studio: React.FC = () => {
   const togglePreviewMode = useStudioStore((state) => state.togglePreviewMode);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isStartOverModalOpen, setIsStartOverModalOpen] = useState(false);
+
+  const confirmStartOver = () => {
+    resetAll();
+    temporalStore.getState().clear();
+    setIsStartOverModalOpen(false);
+  };
 
   // Access temporal store for undo / redo
   const temporalStore = useStudioStore.temporal;
@@ -157,10 +164,15 @@ export const Studio: React.FC = () => {
         {/* Left Section: Brand Logo */}
         <div className="flex items-center gap-4">
           <a href="/" onClick={handleNavHome} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center font-bold text-white shadow-md text-xs group-hover:scale-105 transition-transform">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-slate-950 shadow-md text-xs group-hover:scale-105 transition-transform"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+              }}
+            >
               S
             </div>
-            <span className="font-bold text-base tracking-tight text-slate-200 group-hover:text-white transition-colors">
+            <span className="font-bold text-base tracking-tight text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
               Shotage
             </span>
           </a>
@@ -200,14 +212,11 @@ export const Studio: React.FC = () => {
 
           {/* 3. Start Over Button */}
           <button
-            onClick={() => {
-              resetAll();
-              temporalStore.getState().clear();
-            }}
+            onClick={() => setIsStartOverModalOpen(true)}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white rounded-lg transition-all flex items-center gap-1.5 shadow-sm"
             title="Reset canvas and settings to initial state"
           >
-            <RefreshCcw01 className="w-3.5 h-3.5 text-brand-400" />
+            <RefreshCcw01 className="w-3.5 h-3.5 text-[#cdb4db]" />
             Start Over
           </button>
 
@@ -218,7 +227,7 @@ export const Studio: React.FC = () => {
             onClick={togglePreviewMode}
             className={`p-1.5 rounded-lg border transition-all ${
               isPreviewMode
-                ? 'bg-brand-500 text-white border-brand-400 shadow-md shadow-brand-500/25'
+                ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
             }`}
             title={isPreviewMode ? 'Exit Full Preview' : 'Full Preview Mode (Expand Canvas)'}
@@ -240,7 +249,10 @@ export const Studio: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="px-4 py-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-1.5 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98]"
+            style={{
+              backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+            }}
           >
             <Download01 className="w-3.5 h-3.5" />
             Export
@@ -273,6 +285,48 @@ export const Studio: React.FC = () => {
             <p className="text-sm text-slate-400 font-mono">
               Supported formats: .png, .jpg, .jpeg, .webp, .svg
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Start Over Confirmation Modal */}
+      {isStartOverModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-bold shrink-0 shadow-md"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                }}
+              >
+                <RefreshCcw01 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">Start Over?</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Reset canvas and clear edit history to initial state.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                onClick={() => setIsStartOverModalOpen(false)}
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmStartOver}
+                className="flex-1 py-2 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                }}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

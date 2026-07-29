@@ -9,6 +9,11 @@ export const RightSidebar: React.FC = () => {
   const [showAllGradients, setShowAllGradients] = useState(false);
 
   const gradientPresets = [
+    { name: 'Pastel Sunset', c1: '#ffafcc', c2: '#ffc8dd' },
+    { name: 'Pastel Sky', c1: '#a2d2ff', c2: '#bde0fe' },
+    { name: 'Lavender Dream', c1: '#cdb4db', c2: '#ffc8dd' },
+    { name: 'Cotton Candy', c1: '#cdb4db', c2: '#a2d2ff' },
+    { name: 'Pastel Glow', c1: '#ffafcc', c2: '#bde0fe' },
     { name: 'Indigo Cyan', c1: '#4f46e5', c2: '#06b6d4' },
     { name: 'Sunset Amber', c1: '#f43f5e', c2: '#fbbf24' },
     { name: 'Emerald Teal', c1: '#059669', c2: '#34d399' },
@@ -36,11 +41,22 @@ export const RightSidebar: React.FC = () => {
     { name: 'Aqua Splash', c1: '#136a8a', c2: '#267871' },
     { name: 'Royal Velvet', c1: '#4e54c8', c2: '#8f94fb' },
     { name: 'Mint Fresh', c1: '#00b09b', c2: '#96c93d' },
-    { name: 'Dusk Glow', c1: '#2c3e50', c2: '#fd746c' },
-    { name: 'Borealis Teal', c1: '#1a2a6c', c2: '#b21f1f' },
-    { name: 'Crimson Tide', c1: '#642b73', c2: '#c6426e' },
-    { name: 'Tropical Island', c1: '#00f2fe', c2: '#4facfe' },
-    { name: 'Dark Monochrome', c1: '#111827', c2: '#374151' },
+    { name: 'Twilight Haze', c1: '#3a1c71', c2: '#d76d77' },
+    { name: 'Coral Flare', c1: '#ff5e62', c2: '#ff9966' },
+    { name: 'Soft Peach', c1: '#fcd5ce', c2: '#ffb5a7' },
+    { name: 'Frozen Berry', c1: '#e0c3fc', c2: '#8ec5fc' },
+    { name: 'Sublime Blue', c1: '#00c6fb', c2: '#005bea' },
+    { name: 'Velvet Midnight', c1: '#200122', c2: '#6f0000' },
+    { name: 'Neon Coral', c1: '#f857a6', c2: '#ff5858' },
+    { name: 'Laguna Breeze', c1: '#43e97b', c2: '#38f9d7' },
+    { name: 'Apricot Dream', c1: '#f6d365', c2: '#fda085' },
+    { name: 'Mystic Indigo', c1: '#614385', c2: '#516395' },
+    { name: 'Sunkissed Citrus', c1: '#f12711', c2: '#f5af19' },
+    { name: 'Pastel Lilac', c1: '#e2d1f9', c2: '#d0bdf4' },
+    { name: 'Deep Nebula', c1: '#020024', c2: '#090979' },
+    { name: 'Emerald Isle', c1: '#0ba360', c2: '#3cba92' },
+    { name: 'Candy Floss', c1: '#fbc2eb', c2: '#a6c1ee' },
+    { name: 'Zenith Blue', c1: '#1a2a6c', c2: '#b21f1f' },
   ];
 
   const visibleGradients = showAllGradients ? gradientPresets : gradientPresets.slice(0, 4);
@@ -48,9 +64,9 @@ export const RightSidebar: React.FC = () => {
   return (
     <div className="w-80 bg-slate-900 border-l border-slate-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {/* 1. 3D Perspective Tilt Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4">
+      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4 shadow-sm">
         <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-brand-400">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
             3D Perspective Tilt
           </h3>
         </div>
@@ -66,7 +82,7 @@ export const RightSidebar: React.FC = () => {
             max="30"
             value={state.rotateX}
             onChange={(e) => onChange({ rotateX: Number(e.target.value) })}
-            className="w-full accent-brand-500 bg-slate-800 rounded-lg"
+            className="w-full bg-slate-800 rounded-lg"
           />
         </div>
 
@@ -81,7 +97,7 @@ export const RightSidebar: React.FC = () => {
             max="30"
             value={state.rotateY}
             onChange={(e) => onChange({ rotateY: Number(e.target.value) })}
-            className="w-full accent-brand-500 bg-slate-800 rounded-lg"
+            className="w-full bg-slate-800 rounded-lg"
           />
         </div>
 
@@ -97,7 +113,39 @@ export const RightSidebar: React.FC = () => {
             step="50"
             value={state.perspective}
             onChange={(e) => onChange({ perspective: Number(e.target.value) })}
-            className="w-full accent-brand-500 bg-slate-800 rounded-lg"
+            className="w-full bg-slate-800 rounded-lg"
+          />
+        </div>
+
+        {/* Horizontal Position (X) */}
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium text-slate-300">Horizontal Position (X)</span>
+            <span className="font-mono text-slate-400">{state.offsetX}px</span>
+          </div>
+          <input
+            type="range"
+            min="-200"
+            max="200"
+            value={state.offsetX}
+            onChange={(e) => onChange({ offsetX: Number(e.target.value) })}
+            className="w-full bg-slate-800 rounded-lg"
+          />
+        </div>
+
+        {/* Vertical Position (Y) */}
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium text-slate-300">Vertical Position (Y)</span>
+            <span className="font-mono text-slate-400">{state.offsetY}px</span>
+          </div>
+          <input
+            type="range"
+            min="-200"
+            max="200"
+            value={state.offsetY}
+            onChange={(e) => onChange({ offsetY: Number(e.target.value) })}
+            className="w-full bg-slate-800 rounded-lg"
           />
         </div>
 
@@ -105,14 +153,14 @@ export const RightSidebar: React.FC = () => {
           onClick={reset3DPerspective}
           className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 rounded-lg border border-slate-700 transition-all"
         >
-          Reset 3D Perspective
+          Reset 3D & Position
         </button>
       </div>
 
       {/* 2. Background Style Box */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4">
+      <div className="border border-slate-800 rounded-xl bg-slate-950/40 p-4 space-y-4 shadow-sm">
         <div className="border-b border-slate-800/80 pb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-brand-400">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
             Background Style
           </h3>
         </div>
@@ -124,7 +172,7 @@ export const RightSidebar: React.FC = () => {
               onClick={() => onChange({ backgroundType: bg })}
               className={`py-1.5 px-0.5 text-[10px] sm:text-[11px] font-medium capitalize rounded-lg border transition-all truncate text-center ${
                 state.backgroundType === bg
-                  ? 'bg-brand-500/20 border-brand-500 text-brand-300 font-bold'
+                  ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
                   : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
               }`}
               title={bg === 'transparent' ? 'No BG' : bg}
@@ -142,7 +190,7 @@ export const RightSidebar: React.FC = () => {
               </span>
               <button
                 onClick={() => setShowAllGradients(!showAllGradients)}
-                className="text-[11px] text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <ChevronDown
                   className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
@@ -168,7 +216,7 @@ export const RightSidebar: React.FC = () => {
                     }
                     className={`h-8 rounded-lg border shadow-sm transition-all flex items-center justify-center cursor-pointer relative ${
                       isSelected
-                        ? 'border-white ring-2 ring-brand-500 scale-105 shadow-md shadow-brand-500/30'
+                        ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
                         : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
                     }`}
                     style={{
@@ -178,7 +226,7 @@ export const RightSidebar: React.FC = () => {
                   >
                     {isSelected && (
                       <div className="w-4 h-4 rounded-full bg-slate-950/70 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
-                        <Check className="w-3 h-3" />
+                        <Check className="w-3 h-3 text-pastel-pink" />
                       </div>
                     )}
                   </button>
@@ -199,23 +247,133 @@ export const RightSidebar: React.FC = () => {
                 onChange={(e) =>
                   onChange({ gradient: { ...state.gradient, angle: Number(e.target.value) } })
                 }
-                className="w-full accent-brand-500 bg-slate-800 rounded-lg"
+                className="w-full bg-slate-800 rounded-lg"
               />
             </div>
           </div>
         )}
 
         {state.backgroundType === 'solid' && (
-          <div className="pt-1 border-t border-slate-800/60">
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Solid Color
-            </label>
-            <input
-              type="color"
-              value={state.backgroundColor}
-              onChange={(e) => onChange({ backgroundColor: e.target.value })}
-              className="w-full h-9 rounded-lg cursor-pointer bg-slate-950 border border-slate-700 p-1"
-            />
+          <div className="pt-2 border-t border-slate-800/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Solid Color
+              </label>
+              <span className="font-mono text-xs text-slate-300 uppercase">
+                {state.backgroundColor}
+              </span>
+            </div>
+
+            {/* Untitled UI Style Color Picker Input */}
+            <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-700/80 rounded-xl shadow-inner group hover:border-slate-600 transition-colors">
+              <label
+                className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative"
+                style={{ backgroundColor: state.backgroundColor }}
+                title="Choose custom color"
+              >
+                <input
+                  type="color"
+                  value={state.backgroundColor}
+                  onChange={(e) => onChange({ backgroundColor: e.target.value })}
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                />
+              </label>
+              <div className="flex-1 flex items-center gap-1.5 px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono">
+                <span className="text-slate-500">#</span>
+                <input
+                  type="text"
+                  value={state.backgroundColor.replace('#', '')}
+                  onChange={(e) => {
+                    const hex = e.target.value.trim();
+                    onChange({ backgroundColor: `#${hex}` });
+                  }}
+                  className="w-full bg-transparent text-slate-200 focus:outline-none uppercase font-mono"
+                  maxLength={6}
+                />
+              </div>
+            </div>
+
+            {/* Untitled UI Preset Color Swatches */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                Swatches
+              </span>
+              <div className="grid grid-cols-6 gap-1.5">
+                {[
+                  '#cdb4db',
+                  '#ffc8dd',
+                  '#ffafcc',
+                  '#bde0fe',
+                  '#a2d2ff',
+                  '#0f172a',
+                  '#1e293b',
+                  '#334155',
+                  '#0284c7',
+                  '#7c3aed',
+                  '#db2777',
+                  '#059669',
+                ].map((color) => {
+                  const isSelected = state.backgroundColor.toLowerCase() === color.toLowerCase();
+                  return (
+                    <button
+                      key={color}
+                      onClick={() => onChange({ backgroundColor: color })}
+                      className={`h-6 rounded-md border shadow-xs transition-all cursor-pointer flex items-center justify-center relative ${
+                        isSelected
+                          ? 'border-white ring-2 ring-pastel-pink scale-110'
+                          : 'border-slate-700/70 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {isSelected && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+        {state.backgroundType === 'image' && (
+          <div className="pt-2 border-t border-slate-800/60 space-y-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Image URL
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={state.bgImageUrl || ''}
+                  onChange={(e) => onChange({ bgImageUrl: e.target.value })}
+                  placeholder="https://example.com/background.jpg"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink transition-colors"
+                />
+                {state.bgImageUrl && (
+                  <button
+                    onClick={() => onChange({ bgImageUrl: null })}
+                    className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors shrink-0"
+                    title="Clear Image URL"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Background Blur</span>
+                <span className="font-mono text-slate-400">{state.bgBlur}px</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                value={state.bgBlur}
+                onChange={(e) => onChange({ bgBlur: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg"
+              />
+            </div>
           </div>
         )}
       </div>

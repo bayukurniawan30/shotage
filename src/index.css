@@ -9,6 +9,11 @@
   }
 }
 
+/* Custom range sliders styling with pastel accent */
+input[type='range'] {
+  accent-color: #ffafcc;
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
@@ -18,9 +23,9 @@
   background: #0f172a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cdb4db;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #ffafcc;
 }

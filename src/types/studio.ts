@@ -7,7 +7,16 @@ export interface StudioState {
   borderRadius: number; // 0 to 32
   shadow: 'none' | 'soft' | 'medium' | 'hard' | 'floating';
   frameType:
-    'frameless' | 'safari-light' | 'safari-dark' | 'chrome-dark' | 'macbook' | 'iphone' | 'tablet';
+    | 'frameless'
+    | 'safari-light'
+    | 'safari-dark'
+    | 'chrome-dark'
+    | 'macbook'
+    | 'macbookair13'
+    | 'iphone'
+    | 'iphone14pro'
+    | 'samsung-s21'
+    | 'tablet';
   urlText: string;
   backgroundType: 'solid' | 'gradient' | 'image' | 'transparent';
   backgroundColor: string;
@@ -18,10 +27,24 @@ export interface StudioState {
   };
   bgImageUrl: string | null;
   bgBlur: number; // 0 to 20
-  aspectRatio: 'auto' | '16:9' | '1:1' | '9:16' | '4:3' | '1.91:1';
+  aspectRatio:
+    | 'auto'
+    | '16:9'
+    | '1:1'
+    | '9:16'
+    | '4:3'
+    | '1.91:1'
+    | 'ig-post'
+    | 'ig-portrait'
+    | 'ig-story'
+    | 'yt-banner'
+    | 'yt-thumbnail'
+    | 'yt-video';
   rotateX: number; // -30 to 30
   rotateY: number; // -30 to 30
   perspective: number; // 500 to 2000
+  offsetX: number; // -200 to 200
+  offsetY: number; // -200 to 200
   exportFormat: 'png' | 'jpeg' | 'webp';
   exportScale: 1 | 2 | 3;
 }
@@ -34,13 +57,13 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   padding: 48,
   borderRadius: 16,
   shadow: 'floating',
-  frameType: 'safari-dark',
+  frameType: 'frameless',
   urlText: 'shotage.app/demo',
   backgroundType: 'gradient',
   backgroundColor: '#0f172a',
   gradient: {
-    color1: '#4f46e5',
-    color2: '#06b6d4',
+    color1: '#ffafcc',
+    color2: '#ffc8dd',
     angle: 135,
   },
   bgImageUrl: null,
@@ -49,6 +72,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   rotateX: 0,
   rotateY: 0,
   perspective: 1000,
+  offsetX: 0,
+  offsetY: 0,
   exportFormat: 'png',
   exportScale: 2,
 };

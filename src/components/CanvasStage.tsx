@@ -21,17 +21,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const getAspectRatioStyle = () => {
     switch (state.aspectRatio) {
       case '16:9':
-        return 'aspect-[16/9]';
+      case 'yt-banner':
+      case 'yt-thumbnail':
+      case 'yt-video':
+        return 'aspect-[16/9] w-full max-w-[800px]';
       case '1:1':
-        return 'aspect-square';
+      case 'ig-post':
+        return 'aspect-square h-full max-h-[520px] max-w-[520px]';
       case '9:16':
-        return 'aspect-[9/16] max-w-[450px]';
+      case 'ig-story':
+        return 'aspect-[9/16] h-full max-h-[580px] max-w-[340px]';
       case '4:3':
-        return 'aspect-[4/3]';
+        return 'aspect-[4/3] w-full max-w-[700px]';
       case '1.91:1':
-        return 'aspect-[1.91/1]';
+        return 'aspect-[1.91/1] w-full max-w-[800px]';
+      case 'ig-portrait':
+        return 'aspect-[4/5] h-full max-h-[560px] max-w-[448px]';
       default:
-        return 'w-auto h-auto min-h-[400px]';
+        return 'w-auto h-auto min-h-[360px]';
     }
   };
 
@@ -53,20 +60,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         backgroundImage: `linear-gradient(${state.gradient.angle}deg, ${state.gradient.color1}, ${state.gradient.color2})`,
       };
     }
-    if (state.backgroundType === 'image' && state.bgImageUrl) {
-      return {
-        backgroundImage: `url(${state.bgImageUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: `blur(${state.bgBlur}px)`,
-      };
-    }
     return { backgroundColor: '#0f172a' };
   };
 
   // Shadow class mappings
   const getShadowClass = () => {
-    if (['iphone', 'macbook', 'tablet'].includes(state.frameType)) {
+    if (
+      [
+        'iphone',
+        'iphone14pro',
+        'macbook',
+        'macbookair13',
+        'samsung-s21',
+        'tablet',
+      ].includes(state.frameType)
+    ) {
       return '';
     }
 
@@ -91,12 +99,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     transition: 'transform 0.15s ease-out',
   };
 
+  const isFrameless = state.frameType === 'frameless';
+  const imageStyle: React.CSSProperties = {
+    borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
+  };
+
   const imageContent = state.imageSrc ? (
-    <div className="relative group cursor-pointer overflow-hidden w-full h-full">
+    <div
+      className={`relative group cursor-pointer overflow-hidden w-full h-full transition-all duration-200 ${
+        isFrameless ? '' : 'rounded-none'
+      }`}
+      style={imageStyle}
+    >
       <img
         src={state.imageSrc}
         alt={state.imageName}
-        className="w-full h-full object-cover block transition-all group-hover:brightness-75"
+        className={`w-full h-full object-cover block transition-all group-hover:brightness-75 ${
+          isFrameless ? '' : 'rounded-none'
+        }`}
+        style={imageStyle}
       />
       <label className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer backdrop-blur-[2px]">
         <div className="w-12 h-12 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
@@ -109,7 +130,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       </label>
     </div>
   ) : (
-    <div className="w-[600px] h-[360px] bg-slate-800/80 border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center p-8 text-center">
+    <div
+      className={`w-full max-w-[480px] aspect-[16/10] bg-slate-800/80 border-2 border-dashed border-slate-600 flex flex-col items-center justify-center p-6 text-center shadow-lg ${
+        isFrameless ? 'rounded-xl' : 'rounded-none'
+      }`}
+      style={imageStyle}
+    >
       <div className="w-12 h-12 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center mb-3">
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -137,7 +163,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       );
     } else if (
       state.frameType === 'macbook' ||
+      state.frameType === 'macbookair13' ||
       state.frameType === 'iphone' ||
+      state.frameType === 'iphone14pro' ||
+      state.frameType === 'samsung-s21' ||
       state.frameType === 'tablet'
     ) {
       frameElement = <DeviceFrame type={state.frameType}>{imageContent}</DeviceFrame>;
@@ -149,7 +178,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className={`transition-all duration-200 overflow-hidden ${getShadowClass()}`}
         style={{
-          transform: `scale(${state.zoom / 100})`,
+          transform: `scale(${state.zoom / 100}) translate(${state.offsetX}px, ${state.offsetY}px)`,
           transformOrigin:
             state.alignment === 'top'
               ? 'top center'
@@ -178,8 +207,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           padding: `${state.padding}px`,
         }}
       >
+        {/* Background Image Layer (Scope blur strictly to background image) */}
+        {state.backgroundType === 'image' && state.bgImageUrl && (
+          <div
+            className="absolute inset-0 bg-cover bg-center pointer-events-none scale-105"
+            style={{
+              backgroundImage: `url(${state.bgImageUrl})`,
+              filter: `blur(${state.bgBlur}px)`,
+            }}
+          />
+        )}
+
         {/* 3D Transform Wrapper */}
-        <div className="w-full max-w-full flex items-center justify-center" style={transformStyle}>
+        <div className="w-full max-w-full flex items-center justify-center relative z-10" style={transformStyle}>
           {renderFrameContent()}
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { toPng, toJpeg, toBlob } from 'html-to-image';
-import { Download01, XClose } from '@untitledui/icons';
+import { Download01, XClose, LinkExternal01 } from '@untitledui/icons';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -76,7 +76,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold shadow-md">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-950 font-bold shadow-md"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+              }}
+            >
               <Download01 className="w-4 h-4" />
             </div>
             <div>
@@ -104,7 +109,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 onClick={() => onChange({ exportFormat: fmt })}
                 className={`py-2 text-xs font-mono uppercase rounded-xl border transition-all ${
                   state.exportFormat === fmt
-                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-indigo-500 text-indigo-300 font-bold shadow-sm'
+                    ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
                     : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
                 }`}
               >
@@ -126,7 +131,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 onClick={() => onChange({ exportScale: scale })}
                 className={`py-2 text-xs font-mono rounded-xl border transition-all ${
                   state.exportScale === scale
-                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-indigo-500 text-indigo-300 font-bold shadow-sm'
+                    ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
                     : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
                 }`}
               >
@@ -141,7 +146,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           <button
             disabled={isExporting}
             onClick={() => handleExport(state.exportFormat, false)}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xl shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.99] cursor-pointer"
+            style={{
+              backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+            }}
           >
             {isExporting
               ? 'Generating Image...'
@@ -155,6 +163,38 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           >
             Copy PNG to Clipboard
           </button>
+        </div>
+
+        {/* Sponsorer Box */}
+        <div className="pt-3 border-t border-slate-800/80">
+          <a
+            href="https://morphic-cms.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block p-3 bg-slate-950/60 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl transition-all shadow-inner"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Sponsored
+              </span>
+              <LinkExternal01 className="w-3 h-3 text-slate-500 group-hover:text-pastel-pink transition-colors" />
+            </div>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="https://morphic-cms.com/favicon.png"
+                alt="Morphic CMS Logo"
+                className="w-6 h-6 rounded-md shrink-0 object-contain"
+              />
+              <div className="overflow-hidden">
+                <h4 className="text-xs font-bold text-slate-200 group-hover:text-pastel-pink transition-colors leading-tight">
+                  Morphic CMS
+                </h4>
+                <p className="text-[11px] text-slate-400 truncate leading-tight mt-0.5">
+                  Modern, Edge-Ready Headless CMS.
+                </p>
+              </div>
+            </div>
+          </a>
         </div>
       </div>
     </div>

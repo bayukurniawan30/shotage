@@ -18,7 +18,8 @@ export const useStudioStore = create<StudioStore>()(
       isPreviewMode: false,
       updateState: (updates) => set((state) => ({ ...state, ...updates })),
       setImage: (src, name) => set({ imageSrc: src, imageName: name }),
-      reset3DPerspective: () => set({ rotateX: 0, rotateY: 0, perspective: 1000 }),
+      reset3DPerspective: () =>
+        set({ rotateX: 0, rotateY: 0, perspective: 1000, offsetX: 0, offsetY: 0 }),
       resetAll: () => set({ ...DEFAULT_STUDIO_STATE }),
       togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode })),
     }),
