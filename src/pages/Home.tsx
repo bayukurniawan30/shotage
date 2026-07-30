@@ -1,6 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { DownloadCloud01 } from '@untitledui/icons';
+import { InstallPwaModal } from '../components/InstallPwaModal';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 export const Home: React.FC = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+
+  useEffect(() => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsIOS(/iphone|ipad|ipod/.test(userAgent));
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleHeaderAction = async (e: React.MouseEvent) => {
+    // If on mobile and prompt/iOS available, trigger install instead of nav
+    if (window.innerWidth < 640 && (deferredPrompt || isIOS)) {
+      e.preventDefault();
+      if (deferredPrompt) {
+        await deferredPrompt.prompt();
+        setDeferredPrompt(null);
+      } else if (isIOS) {
+        setShowIosGuide(true);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
       {/* Animated Background Marquee Columns (4 Columns) */}
@@ -56,13 +93,16 @@ export const Home: React.FC = () => {
 
           <a
             href="/studio"
-            className="px-4 py-2 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
+            onClick={handleHeaderAction}
+            className="px-3.5 sm:px-4 py-2 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
             style={{
               backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
             }}
           >
-            Launch Studio
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="sm:hidden">Install Shotage</span>
+            <span className="hidden sm:inline">Launch Studio</span>
+            <DownloadCloud01 className="w-3.5 h-3.5 sm:hidden text-slate-950 stroke-[2.5]" />
+            <svg className="w-3.5 h-3.5 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -190,6 +230,9 @@ export const Home: React.FC = () => {
         © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
         reserved.
       </footer>
+
+      {/* Mobile Install App Modal (Triggered by Header Button) */}
+      <InstallPwaModal showFloatingButton={false} />
     </div>
   );
 };

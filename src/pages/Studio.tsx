@@ -5,6 +5,7 @@ import { LeftSidebar } from '../components/LeftSidebar';
 import { RightSidebar } from '../components/RightSidebar';
 import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
 import { ExportModal } from '../components/ExportModal';
+import { InstallPwaModal } from '../components/InstallPwaModal';
 import {
   FlipBackward,
   FlipForward,
@@ -426,6 +427,9 @@ export const Studio: React.FC = () => {
         onClose={() => setIsExportModalOpen(false)}
         canvasRef={canvasRef}
       />
+
+      {/* Mobile Install App Button */}
+      <InstallPwaModal />
     </div>
   );
 };

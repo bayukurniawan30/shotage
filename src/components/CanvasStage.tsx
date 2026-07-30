@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
@@ -398,13 +398,47 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     );
   };
 
+  // Touch / Mouse Panning State for Mobile & Desktop
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only pan if clicking on empty stage area or dragging
+    if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'BUTTON') return;
+    setIsPanning(true);
+    startPosRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isPanning) return;
+    setPan({
+      x: e.clientX - startPosRef.current.x,
+      y: e.clientY - startPosRef.current.y,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsPanning(false);
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+
   return (
-    <div className="w-full h-full flex items-center justify-center p-6 md:p-12 overflow-auto transition-all duration-300">
-      {/* Canvas Viewport Scaling Wrapper */}
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className={`w-full h-full max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
+        isPanning ? 'cursor-grabbing select-none' : 'cursor-grab'
+      }`}
+    >
+      {/* Canvas Viewport Scaling & Drag Pan Wrapper */}
       <div
-        className="transition-transform duration-150 flex items-center justify-center"
+        className="transition-transform duration-75 flex items-center justify-center touch-none"
         style={{
-          transform: `scale(${state.previewCanvasZoom / 100})`,
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${state.previewCanvasZoom / 100})`,
         }}
       >
         {/* Exportable Canvas Container */}
