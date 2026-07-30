@@ -239,14 +239,14 @@ export const Studio: React.FC = () => {
             <Expand03 className="w-4 h-4" />
           </button>
 
-          {/* 5. Feedback Button (message-text-square-01 icon) */}
-          <button
-            onClick={() => alert('Feedback feature coming soon!')}
-            className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 hover:text-white rounded-lg border border-neutral-700 transition-all"
-            title="Feedback (Coming Soon)"
+          {/* 5. Feedback Button (mailto link) */}
+          <a
+            href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
+            className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 hover:text-white rounded-lg border border-neutral-700 transition-all flex items-center justify-center"
+            title="Send Feedback"
           >
             <MessageTextSquare01 className="w-4 h-4" />
-          </button>
+          </a>
         </div>
 
         {/* Right Section: Special Eye-Catching Export Button */}
