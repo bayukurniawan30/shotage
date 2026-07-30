@@ -2,6 +2,10 @@ import React, { useState, useRef } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
+import { WaveBackground } from './WaveBackground';
+import { MeshBackground } from './MeshBackground';
+import { ConfettiBackground } from './ConfettiBackground';
+import { RadiantBackground } from './RadiantBackground';
 import { ImageUp } from '@untitledui/icons';
 
 interface CanvasStageProps {
@@ -451,6 +455,26 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             padding: `${state.padding}px`,
           }}
         >
+          {/* SVG Wave Background Layer */}
+          {state.backgroundType === 'wave' && (
+            <WaveBackground presetId={state.wavePreset || 'wave-1'} />
+          )}
+
+          {/* Dynamic Mesh Background Layer */}
+          {state.backgroundType === 'mesh' && (
+            <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
+          )}
+
+          {/* Confetti Shapes Background Layer */}
+          {state.backgroundType === 'confetti' && (
+            <ConfettiBackground presetId={state.confettiPreset || 'confetti-1'} />
+          )}
+
+          {/* Radiant Glow Background Layer */}
+          {state.backgroundType === 'radiant' && (
+            <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
+          )}
+
           {/* Background Image Layer (Scope blur strictly to background image) */}
           {state.backgroundType === 'image' && state.bgImageUrl && (
             <div

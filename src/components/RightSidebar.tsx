@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { ChevronDown, Check, Brush03 } from '@untitledui/icons';
 import { extractDominantColors, generateGradientVariations } from '../utils/colorExtractor';
+import { WAVE_PRESETS } from '../utils/wavePresets';
+import { MESH_PRESETS } from '../utils/meshPresets';
+import { CONFETTI_PRESETS } from '../utils/confettiPresets';
+import { RADIANT_PRESETS } from '../utils/radiantPresets';
+import { WaveBackground } from './WaveBackground';
+import { MeshBackground } from './MeshBackground';
+import { ConfettiBackground } from './ConfettiBackground';
+import { RadiantBackground } from './RadiantBackground';
 
 interface RightSidebarProps {
   mobileSection?: 'perspective' | 'background';
@@ -12,6 +20,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const onChange = state.updateState;
   const reset3DPerspective = state.reset3DPerspective;
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [showAllWaves, setShowAllWaves] = useState(false);
+  const [showAllMeshes, setShowAllMeshes] = useState(false);
+  const [showAllConfetti, setShowAllConfetti] = useState(false);
+  const [showAllRadiant, setShowAllRadiant] = useState(false);
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
   const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
     []
@@ -86,6 +98,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   ];
 
   const visibleGradients = showAllGradients ? gradientPresets : gradientPresets.slice(0, 4);
+  const visibleWaves = showAllWaves ? WAVE_PRESETS : WAVE_PRESETS.slice(0, 4);
+  const visibleMeshes = showAllMeshes ? MESH_PRESETS : MESH_PRESETS.slice(0, 4);
+  const visibleConfetti = showAllConfetti ? CONFETTI_PRESETS : CONFETTI_PRESETS.slice(0, 4);
+  const visibleRadiant = showAllRadiant ? RADIANT_PRESETS : RADIANT_PRESETS.slice(0, 4);
 
   const renderPerspectiveSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
@@ -338,7 +354,18 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       </div>
 
       <div className="grid grid-cols-4 gap-1.5">
-        {(['gradient', 'solid', 'transparent', 'image'] as const).map((bg) => (
+        {(
+          [
+            'gradient',
+            'wave',
+            'mesh',
+            'radiant',
+            'confetti',
+            'solid',
+            'transparent',
+            'image',
+          ] as const
+        ).map((bg) => (
           <button
             key={bg}
             onClick={() => onChange({ backgroundType: bg })}
@@ -353,6 +380,190 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           </button>
         ))}
       </div>
+
+      {state.backgroundType === 'radiant' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Radiant Styles ({RADIANT_PRESETS.length})
+            </span>
+            <button
+              onClick={() => setShowAllRadiant(!showAllRadiant)}
+              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                  showAllRadiant ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {visibleRadiant.map((radiant) => {
+              const isSelected = (state.radiantPreset || 'radiant-1') === radiant.id;
+
+              return (
+                <button
+                  key={radiant.id}
+                  onClick={() => onChange({ radiantPreset: radiant.id })}
+                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={radiant.name}
+                >
+                  <RadiantBackground presetId={radiant.id} />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'confetti' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Confetti Styles ({CONFETTI_PRESETS.length})
+            </span>
+            <button
+              onClick={() => setShowAllConfetti(!showAllConfetti)}
+              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                  showAllConfetti ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {visibleConfetti.map((confetti) => {
+              const isSelected = (state.confettiPreset || 'confetti-1') === confetti.id;
+
+              return (
+                <button
+                  key={confetti.id}
+                  onClick={() => onChange({ confettiPreset: confetti.id })}
+                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={confetti.name}
+                >
+                  <ConfettiBackground presetId={confetti.id} />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'mesh' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Mesh Styles ({MESH_PRESETS.length})
+            </span>
+            <button
+              onClick={() => setShowAllMeshes(!showAllMeshes)}
+              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                  showAllMeshes ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {visibleMeshes.map((mesh) => {
+              const isSelected = (state.meshPreset || 'mesh-1') === mesh.id;
+
+              return (
+                <button
+                  key={mesh.id}
+                  onClick={() => onChange({ meshPreset: mesh.id })}
+                  className={`h-9 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={mesh.name}
+                >
+                  <MeshBackground presetId={mesh.id} />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'wave' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Wave Styles ({WAVE_PRESETS.length})
+            </span>
+            <button
+              onClick={() => setShowAllWaves(!showAllWaves)}
+              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                  showAllWaves ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {visibleWaves.map((wave) => {
+              const isSelected = (state.wavePreset || 'wave-1') === wave.id;
+
+              return (
+                <button
+                  key={wave.id}
+                  onClick={() => onChange({ wavePreset: wave.id })}
+                  className={`h-9 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={wave.name}
+                >
+                  <WaveBackground presetId={wave.id} />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {state.backgroundType === 'gradient' && (
         <div className="space-y-3 pt-1 border-t border-slate-800/60">

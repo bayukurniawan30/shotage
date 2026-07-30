@@ -22,7 +22,19 @@ export interface StudioState {
     | 'tablet';
   urlText: string;
   secondUrlText: string;
-  backgroundType: 'solid' | 'gradient' | 'image' | 'transparent';
+  backgroundType:
+    | 'solid'
+    | 'gradient'
+    | 'image'
+    | 'transparent'
+    | 'wave'
+    | 'mesh'
+    | 'confetti'
+    | 'radiant';
+  wavePreset: string;
+  meshPreset: string;
+  confettiPreset: string;
+  radiantPreset: string;
   backgroundColor: string;
   gradient: {
     color1: string;
@@ -78,6 +90,10 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   urlText: 'shotage.app/preview',
   secondUrlText: 'shotage.app/demo',
   backgroundType: 'gradient',
+  wavePreset: 'wave-1',
+  meshPreset: 'mesh-1',
+  confettiPreset: 'confetti-1',
+  radiantPreset: 'radiant-1',
   backgroundColor: '#0f172a',
   gradient: {
     color1: '#cdb4db',
