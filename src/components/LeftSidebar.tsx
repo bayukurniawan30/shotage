@@ -420,7 +420,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'macbook', label: 'MacBook Pro', file: 'macbook' },
                   { id: 'iphone', label: 'iPhone 15', file: 'iphone-15' },
                   { id: 'iphone14pro', label: 'iPhone 14 Pro', file: 'iphone-14-pro' },
                   { id: 'samsung-s21', label: 'Samsung S21', file: 'samsung-s21' },
