@@ -8,6 +8,7 @@ import {
   Copy07,
   IntersectSquare,
   Brush03,
+  Bookmark,
   XClose,
 } from '@untitledui/icons';
 import { LeftSidebar } from './LeftSidebar';
@@ -18,7 +19,14 @@ interface MobileStudioNavbarProps {
 }
 
 export type MobileTab =
-  'image' | 'aspect' | 'frame' | 'style' | 'shadow' | 'perspective' | 'background';
+  | 'image'
+  | 'aspect'
+  | 'frame'
+  | 'style'
+  | 'shadow'
+  | 'perspective'
+  | 'watermark'
+  | 'background';
 
 export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageUpload }) => {
   const [activeTab, setActiveTab] = useState<MobileTab | null>(null);
@@ -33,6 +41,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       : []),
     { id: 'shadow', label: 'Shadow', icon: Copy07 },
     { id: 'perspective', label: '3D & Canvas', icon: IntersectSquare },
+    { id: 'watermark', label: 'Watermark', icon: Bookmark },
     { id: 'background', label: 'Background', icon: Brush03 },
   ];
 
@@ -95,6 +104,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
               <LeftSidebar onImageUpload={onImageUpload} mobileSection="shadow" />
             )}
             {activeTab === 'perspective' && <RightSidebar mobileSection="perspective" />}
+            {activeTab === 'watermark' && <RightSidebar mobileSection="watermark" />}
             {activeTab === 'background' && <RightSidebar mobileSection="background" />}
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { ChevronDown, Check, Brush03 } from '@untitledui/icons';
+import { ChevronDown, Check, Brush03, Stars02 } from '@untitledui/icons';
 import { extractDominantColors, generateGradientVariations } from '../utils/colorExtractor';
 import { WAVE_PRESETS } from '../utils/wavePresets';
 import { MESH_PRESETS } from '../utils/meshPresets';
@@ -12,7 +12,7 @@ import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
 
 interface RightSidebarProps {
-  mobileSection?: 'perspective' | 'background';
+  mobileSection?: 'perspective' | 'watermark' | 'background';
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
@@ -242,29 +242,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       {/* Tab 3: Position Offset & Alignment */}
       {activeTab === 'position' && (
         <div className="space-y-3.5 pt-1">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Vertical Alignment
-            </label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {(['top', 'center', 'bottom'] as const).map((align) => {
-                const isSelected = state.alignment === align;
-                return (
-                  <button
-                    key={align}
-                    onClick={() => onChange({ alignment: align })}
-                    className={`py-1.5 text-xs font-semibold capitalize rounded-lg border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                        : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
-                    }`}
-                  >
-                    {align}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           <div>
             <div className="flex justify-between text-xs mb-1">
@@ -279,6 +256,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               max="200"
               value={state.offsetX}
               onChange={(e) => onChange({ offsetX: Number(e.target.value) })}
+              onPointerDown={() => onChange({ isPositionDragging: true })}
+              onPointerUp={() => onChange({ isPositionDragging: false })}
+              onPointerCancel={() => onChange({ isPositionDragging: false })}
               className="w-full bg-slate-800 rounded-lg cursor-pointer"
             />
           </div>
@@ -296,6 +276,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               max="200"
               value={state.offsetY}
               onChange={(e) => onChange({ offsetY: Number(e.target.value) })}
+              onPointerDown={() => onChange({ isPositionDragging: true })}
+              onPointerUp={() => onChange({ isPositionDragging: false })}
+              onPointerCancel={() => onChange({ isPositionDragging: false })}
               className="w-full bg-slate-800 rounded-lg cursor-pointer"
             />
           </div>
@@ -313,6 +296,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   max="200"
                   value={state.slot2OffsetX}
                   onChange={(e) => onChange({ slot2OffsetX: Number(e.target.value) })}
+                  onPointerDown={() => onChange({ isPositionDragging: true })}
+                  onPointerUp={() => onChange({ isPositionDragging: false })}
+                  onPointerCancel={() => onChange({ isPositionDragging: false })}
                   className="w-full bg-slate-800 rounded-lg cursor-pointer"
                 />
               </div>
@@ -328,6 +314,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   max="200"
                   value={state.slot2OffsetY}
                   onChange={(e) => onChange({ slot2OffsetY: Number(e.target.value) })}
+                  onPointerDown={() => onChange({ isPositionDragging: true })}
+                  onPointerUp={() => onChange({ isPositionDragging: false })}
+                  onPointerCancel={() => onChange({ isPositionDragging: false })}
                   className="w-full bg-slate-800 rounded-lg cursor-pointer"
                 />
               </div>
@@ -571,6 +560,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           {autoGradients.length > 0 && (
             <div className="space-y-2 pb-2 border-b border-neutral-800/60">
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                <Stars02 className="w-3.5 h-3.5 text-pastel-pink" />
                 <span className="uppercase tracking-wider text-[11px]">Auto Color Match</span>
               </div>
               <div className="grid grid-cols-5 gap-1.5">
@@ -828,8 +818,137 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     </div>
   );
 
+  const renderWatermarkSection = () => (
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+      <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Watermark</h3>
+      </div>
+
+      {/* Watermark Variant Options */}
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          Style Variant
+        </label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { id: 'none', label: 'None' },
+            { id: 'default', label: 'Default' },
+            { id: 'glass', label: 'Glass' },
+            { id: 'badge', label: 'Badge' },
+            { id: 'dark-badge', label: 'Dark Badge' },
+          ].map((wt) => {
+            const isSelected = (state.watermarkType || 'none') === wt.id;
+            return (
+              <button
+                key={wt.id}
+                onClick={() => onChange({ watermarkType: wt.id as any })}
+                className={`py-1.5 px-2 text-[11px] font-medium rounded-lg border transition-all truncate text-center cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                }`}
+              >
+                {wt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Position and Size options (Only shown if watermarkType !== 'none') */}
+      {state.watermarkType !== 'none' && (
+        <div className="space-y-3.5 pt-2 border-t border-neutral-800/80 animate-in fade-in duration-150">
+          {/* Watermark Position */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Position
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'top-left', label: 'Top Left', dotPos: 'top-1 left-1' },
+                {
+                  id: 'top-center',
+                  label: 'Top Center',
+                  dotPos: 'top-1 left-1/2 -translate-x-1/2',
+                },
+                { id: 'top-right', label: 'Top Right', dotPos: 'top-1 right-1' },
+                { id: 'bottom-left', label: 'Bottom Left', dotPos: 'bottom-1 left-1' },
+                {
+                  id: 'bottom-center',
+                  label: 'Bottom Center',
+                  dotPos: 'bottom-1 left-1/2 -translate-x-1/2',
+                },
+                { id: 'bottom-right', label: 'Bottom Right', dotPos: 'bottom-1 right-1' },
+              ].map((pos) => {
+                const isSelected = (state.watermarkPosition || 'bottom-right') === pos.id;
+                return (
+                  <button
+                    key={pos.id}
+                    onClick={() => onChange({ watermarkPosition: pos.id as any })}
+                    className={`h-11 rounded-lg border transition-all flex flex-col items-center justify-center cursor-pointer relative overflow-hidden ${
+                      isSelected
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs ring-1 ring-pastel-pink'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                    }`}
+                    title={pos.label}
+                  >
+                    {/* Outer Canvas Representation Box */}
+                    <div
+                      className={`w-8 h-6 rounded border relative transition-colors ${
+                        isSelected
+                          ? 'border-pastel-pink bg-pastel-pink/10'
+                          : 'border-slate-700 bg-slate-900/60'
+                      }`}
+                    >
+                      {/* Inner Watermark Location Box Indicator */}
+                      <div
+                        className={`absolute w-1.5 h-1 rounded-xs transition-colors ${pos.dotPos} ${
+                          isSelected ? 'bg-pastel-pink' : 'bg-slate-400'
+                        }`}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Watermark Size */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Size
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: 'sm', label: 'Small' },
+                { id: 'md', label: 'Medium' },
+                { id: 'lg', label: 'Large' },
+              ].map((sz) => {
+                const isSelected = (state.watermarkSize || 'md') === sz.id;
+                return (
+                  <button
+                    key={sz.id}
+                    onClick={() => onChange({ watermarkSize: sz.id as any })}
+                    className={`py-1.5 text-xs font-semibold rounded-lg border transition-all text-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                    }`}
+                  >
+                    {sz.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   if (mobileSection) {
     if (mobileSection === 'perspective') return renderPerspectiveSection();
+    if (mobileSection === 'watermark') return renderWatermarkSection();
     if (mobileSection === 'background') return renderBackgroundSection();
     return null;
   }
@@ -838,6 +957,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {renderPerspectiveSection()}
       {renderBackgroundSection()}
+      {renderWatermarkSection()}
     </div>
   );
 };

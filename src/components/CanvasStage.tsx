@@ -6,6 +6,7 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import { WatermarkOverlay } from './WatermarkOverlay';
 import { ImageUp } from '@untitledui/icons';
 
 interface CanvasStageProps {
@@ -197,10 +198,27 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       state.frameType === 'macbookair13' ||
       state.frameType === 'iphone' ||
       state.frameType === 'iphone14pro' ||
-      state.frameType === 'samsung-s21' ||
-      state.frameType === 'tablet'
+      state.frameType === 'samsung-s21'
     ) {
       frameElement = <DeviceFrame type={state.frameType}>{content}</DeviceFrame>;
+    } else if (state.frameType === 'polaroid' || state.frameType === 'polaroid-dark') {
+      const isDark = state.frameType === 'polaroid-dark';
+      frameElement = (
+        <div
+          className={`p-4 pb-12 shadow-2xl transition-all border flex flex-col items-center gap-2 ${
+            isDark
+              ? 'bg-neutral-950 border-neutral-800 text-slate-200'
+              : 'bg-white border-slate-200/90 text-slate-800'
+          }`}
+          style={{
+            borderRadius: '6px',
+          }}
+        >
+          <div className="overflow-hidden rounded-xs border border-black/10 shadow-inner">
+            {content}
+          </div>
+        </div>
+      );
     } else {
       // Frameless styles implementation
       const fStyle = state.framelessStyle || 'default';
@@ -409,7 +427,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const handlePointerDown = (e: React.PointerEvent) => {
     // Only pan if clicking on empty stage area or dragging
-    if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'BUTTON') return;
+    if (
+      (e.target as HTMLElement).tagName === 'INPUT' ||
+      (e.target as HTMLElement).tagName === 'BUTTON'
+    )
+      return;
     setIsPanning(true);
     startPosRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -493,6 +515,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           >
             {renderFrameContent()}
           </div>
+
+          {/* Center Alignment Guide Lines (Shown while dragging position sliders) */}
+          {state.isPositionDragging && (
+            <div className="absolute inset-0 pointer-events-none z-20 animate-in fade-in duration-100">
+              {/* Vertical Center Alignment Line */}
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-[#a2d2ff]/80 shadow-[0_0_8px_#a2d2ff]" />
+              {/* Horizontal Center Alignment Line */}
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#a2d2ff]/80 shadow-[0_0_8px_#a2d2ff]" />
+            </div>
+          )}
+
+          {/* Watermark Overlay Layer */}
+          <WatermarkOverlay />
         </div>
       </div>
     </div>

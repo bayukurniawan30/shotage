@@ -326,9 +326,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
             <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
               {state.frameType === 'frameless'
                 ? 'Frameless'
-                : state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
-                  ? 'Browser'
-                  : 'Device'}
+                : state.frameType.startsWith('polaroid')
+                  ? 'Polaroid'
+                  : state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
+                    ? 'Browser'
+                    : 'Device'}
             </span>
             <span className="text-slate-300 font-medium truncate capitalize">
               {state.frameType.replace('-', ' ')}
@@ -465,6 +467,61 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                 })}
               </div>
             </div>
+
+            <div className="pt-2 border-t border-neutral-800/80">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                Polaroid
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'polaroid', label: 'Polaroid', isDark: false },
+                  { id: 'polaroid-dark', label: 'Polaroid Dark', isDark: true },
+                ].map((item) => {
+                  const isSelected = state.frameType === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onChange({
+                          frameType: item.id as any,
+                          borderRadius: 0,
+                        });
+                        setIsFrameDropdownOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-1 cursor-pointer group"
+                    >
+                      <div
+                        className={`w-full aspect-square rounded-xl border p-2 flex flex-col items-center justify-between transition-all overflow-hidden relative ${
+                          item.isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-slate-100 border-slate-300'
+                        } ${
+                          isSelected
+                            ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
+                            : 'hover:scale-102'
+                        }`}
+                      >
+                        {/* Polaroid Inner Photo Box */}
+                        <div
+                          className={`w-full h-[65%] rounded-md border ${
+                            item.isDark ? 'bg-neutral-900 border-neutral-700' : 'bg-slate-200 border-slate-300'
+                          }`}
+                        />
+                        {/* Polaroid Bottom Border Accent */}
+                        <div className="w-8 h-1 rounded-full bg-slate-400/40" />
+                      </div>
+                      <span
+                        className={`text-[10px] transition-colors text-center truncate w-full ${
+                          isSelected
+                            ? 'text-[#a2d2ff] font-bold'
+                            : 'text-slate-400 group-hover:text-slate-200'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -502,18 +559,62 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       )}
 
       {state.frameType === 'frameless' && (
-        <div className="pt-1">
-          <div className="flex justify-between text-xs mb-1">
+        <div className="pt-1 space-y-2.5">
+          <div className="flex justify-between text-xs items-center">
             <span className="font-medium text-slate-300">Corner Radius</span>
-            <span className="font-mono text-slate-400">{state.borderRadius}px</span>
+            <span className="font-mono text-slate-400 text-[11px] bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+              {state.borderRadius}px
+            </span>
           </div>
+
+          {/* 3 Box Illustration Presets focusing on Top-Right Corner (0px, 16px, 32px) */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { value: 0, trRadius: 'rounded-tr-none' },
+              { value: 16, trRadius: 'rounded-tr-md' },
+              { value: 32, trRadius: 'rounded-tr-xl' },
+            ].map((preset) => {
+              const isSelected = state.borderRadius === preset.value;
+              return (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => onChange({ borderRadius: preset.value })}
+                  className={`h-11 rounded-xl border transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'bg-[#a2d2ff]/15 border-[#a2d2ff] ring-1 ring-[#a2d2ff] shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/60'
+                  }`}
+                  title={`${preset.value}px Corner Radius`}
+                >
+                  {/* Focus Box: Bottom and Left borders straight, Top-Right corner demonstrates radius */}
+                  <div
+                    className={`w-6 h-6 border-t-2 border-r-2 border-slate-700 transition-all relative ${preset.trRadius} ${
+                      isSelected
+                        ? 'border-t-[#a2d2ff] border-r-[#a2d2ff] bg-[#a2d2ff]/20'
+                        : 'border-t-slate-300 border-r-slate-300 bg-slate-800/40'
+                    }`}
+                  >
+                    {/* Inner accent dot emphasizing top-right corner curve */}
+                    <div
+                      className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full -translate-x-0.5 translate-y-0.5 ${
+                        isSelected ? 'bg-[#a2d2ff]' : 'bg-slate-400'
+                      }`}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Continuous Corner Radius Slider */}
           <input
             type="range"
             min="0"
             max="32"
             value={state.borderRadius}
             onChange={(e) => onChange({ borderRadius: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg"
+            className="w-full bg-slate-800 rounded-lg cursor-pointer"
           />
         </div>
       )}

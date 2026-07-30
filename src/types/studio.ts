@@ -1,3 +1,13 @@
+export type WatermarkType = 'none' | 'default' | 'glass' | 'badge' | 'dark-badge';
+export type WatermarkPosition =
+  | 'bottom-right'
+  | 'bottom-left'
+  | 'top-right'
+  | 'top-left'
+  | 'bottom-center'
+  | 'top-center';
+export type WatermarkSize = 'sm' | 'md' | 'lg';
+
 export interface StudioState {
   imageSrc: string | null;
   imageName: string;
@@ -19,7 +29,9 @@ export interface StudioState {
     | 'iphone'
     | 'iphone14pro'
     | 'samsung-s21'
-    | 'tablet';
+    | 'tablet'
+    | 'polaroid'
+    | 'polaroid-dark';
   urlText: string;
   secondUrlText: string;
   backgroundType:
@@ -43,6 +55,10 @@ export interface StudioState {
   };
   bgImageUrl: string | null;
   bgBlur: number; // 0 to 20
+  isPositionDragging: boolean;
+  watermarkType: WatermarkType;
+  watermarkPosition: WatermarkPosition;
+  watermarkSize: WatermarkSize;
   aspectRatio:
     | 'auto'
     | '16:9'
@@ -102,6 +118,10 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   },
   bgImageUrl: null,
   bgBlur: 0,
+  isPositionDragging: false,
+  watermarkType: 'none',
+  watermarkPosition: 'bottom-right',
+  watermarkSize: 'md',
   aspectRatio: '16:9',
   rotateX: 0,
   rotateY: 0,
