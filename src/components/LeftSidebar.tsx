@@ -189,9 +189,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
   const renderAspectSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm relative">
       <div className="border-b border-neutral-800/80 pb-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-          Aspect Ratio
-        </h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Aspect Ratio</h3>
       </div>
 
       <div className="relative" ref={aspectDropdownRef}>
@@ -316,9 +314,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
   const renderFrameSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm relative">
       <div className="border-b border-neutral-800/80 pb-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-          Frame Mockups
-        </h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Frame Mockups</h3>
       </div>
 
       <div className="relative" ref={frameDropdownRef}>
@@ -530,7 +526,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       <div className="border-b border-neutral-800/80 pb-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Style</h3>
       </div>
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="flex md:grid md:grid-cols-3 gap-2.5 overflow-x-auto p-1 no-scrollbar scroll-smooth">
         {[
           { id: 'default', label: 'Default' },
           { id: 'glass-light', label: 'Glass Light' },
@@ -544,10 +540,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
             <button
               key={st.id}
               onClick={() => onChange({ framelessStyle: st.id as any })}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+              className="flex flex-col items-center gap-1 cursor-pointer group shrink-0 w-20 md:w-auto"
             >
               <div
-                className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
+                className={`w-16 h-16 md:w-full md:aspect-square rounded-xl border p-1 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
                   isSelected
                     ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
                     : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
@@ -560,7 +556,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                 />
               </div>
               <span
-                className={`text-[11px] text-center capitalize transition-colors ${
+                className={`text-[10px] md:text-[11px] text-center capitalize transition-colors truncate w-full ${
                   isSelected
                     ? 'text-[#a2d2ff] font-bold'
                     : 'text-slate-400 group-hover:text-slate-200'
@@ -582,17 +578,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           Shadow Elevation
         </h3>
       </div>
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="flex md:grid md:grid-cols-3 gap-2.5 overflow-x-auto p-1 no-scrollbar scroll-smooth">
         {(['none', 'soft', 'medium', 'hard', 'floating'] as const).map((sh) => {
           const isSelected = state.shadow === sh;
           return (
             <button
               key={sh}
               onClick={() => onChange({ shadow: sh })}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+              className="flex flex-col items-center gap-1 cursor-pointer group shrink-0 w-20 md:w-auto"
             >
               <div
-                className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
+                className={`w-16 h-16 md:w-full md:aspect-square rounded-xl border p-1 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
                   isSelected
                     ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
                     : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
@@ -605,7 +601,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                 />
               </div>
               <span
-                className={`text-[11px] capitalize transition-colors ${
+                className={`text-[10px] md:text-[11px] text-center capitalize transition-colors truncate w-full ${
                   isSelected
                     ? 'text-[#a2d2ff] font-bold'
                     : 'text-slate-400 group-hover:text-slate-200'
