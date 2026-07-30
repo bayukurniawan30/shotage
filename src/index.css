@@ -34,3 +34,30 @@ input[type='range'] {
 ::-webkit-scrollbar-thumb:hover {
   background: #525252;
 }
+
+/* Infinite Marquee Animations for Home Background */
+@keyframes marquee-up {
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes marquee-down {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
+}
+
+.animate-marquee-up {
+  animation: marquee-up 25s linear infinite;
+}
+
+.animate-marquee-down {
+  animation: marquee-down 25s linear infinite;
+}

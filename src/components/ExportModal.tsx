@@ -24,6 +24,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       const options = {
         pixelRatio: state.exportScale,
         quality: 0.95,
+        cacheBust: true,
+        skipFonts: true,
       };
 
       if (isCopy) {

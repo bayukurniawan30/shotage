@@ -2,7 +2,44 @@ import React from 'react';
 
 export const Home: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
+      {/* Animated Background Marquee Columns (4 Columns) */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-50 overflow-hidden flex justify-center gap-6 md:gap-10 -rotate-6 scale-110">
+        {[
+          ['/animated-example-1.png', '/animated-example-2.png', '/animated-example-3.png'],
+          ['/animated-example-2.png', '/animated-example-3.png', '/animated-example-1.png'],
+          ['/animated-example-3.png', '/animated-example-1.png', '/animated-example-2.png'],
+          ['/animated-example-1.png', '/animated-example-3.png', '/animated-example-2.png'],
+        ].map((colImages, colIndex) => {
+          const isUp = colIndex % 2 === 0;
+          return (
+            <div
+              key={colIndex}
+              className={`w-64 shrink-0 flex flex-col gap-6 ${
+                isUp ? 'animate-marquee-up' : 'animate-marquee-down'
+              }`}
+            >
+              {/* Duplicate image sequence twice for infinite seamless loop */}
+              {[...colImages, ...colImages].map((imgSrc, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl overflow-hidden border border-slate-700/50 shadow-2xl bg-slate-900/80 shrink-0"
+                >
+                  <img
+                    src={imgSrc}
+                    alt={`Animated background sample ${colIndex}-${i}`}
+                    className="w-full h-auto object-cover block"
+                  />
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Dark Gradient Backdrop Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90 backdrop-blur-[2px]" />
+
       {/* Header / Nav */}
       <header className="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -149,8 +186,9 @@ export const Home: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights reserved.
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-8 text-center text-xs font-medium text-slate-300">
+        © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
+        reserved.
       </footer>
     </div>
   );

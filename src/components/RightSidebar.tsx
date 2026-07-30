@@ -465,25 +465,50 @@ export const RightSidebar: React.FC = () => {
           <div className="pt-2 border-t border-slate-800/60 space-y-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Image URL
+                Background Image (Upload or URL)
               </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={state.bgImageUrl || ''}
-                  onChange={(e) => onChange({ bgImageUrl: e.target.value })}
-                  placeholder="https://example.com/background.jpg"
-                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink transition-colors"
-                />
-                {state.bgImageUrl && (
-                  <button
-                    onClick={() => onChange({ bgImageUrl: null })}
-                    className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors shrink-0"
-                    title="Clear Image URL"
-                  >
-                    Clear
-                  </button>
-                )}
+              <div className="space-y-2">
+                <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
+                  <span className="text-xs font-medium text-slate-300">
+                    {state.bgImageUrl ? 'Change Background File' : 'Upload Background Image File'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            onChange({ bgImageUrl: ev.target.result as string });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={state.bgImageUrl || ''}
+                    onChange={(e) => onChange({ bgImageUrl: e.target.value })}
+                    placeholder="Or paste image URL (https://...)"
+                    className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink transition-colors"
+                  />
+                  {state.bgImageUrl && (
+                    <button
+                      onClick={() => onChange({ bgImageUrl: null })}
+                      className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-lg border border-neutral-700 transition-colors shrink-0"
+                      title="Clear Image URL"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
