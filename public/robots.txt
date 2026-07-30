@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://shotage.app/sitemap.xml
+Sitemap: https://shotage.studio/sitemap.xml
