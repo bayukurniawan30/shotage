@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { ChevronDown, Check } from '@untitledui/icons';
+import { ChevronDown, Check, Brush03 } from '@untitledui/icons';
+import { extractDominantColors, generateGradientVariations } from '../utils/colorExtractor';
 
 interface RightSidebarProps {
   mobileSection?: 'perspective' | 'background';
@@ -12,6 +13,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const reset3DPerspective = state.reset3DPerspective;
   const [showAllGradients, setShowAllGradients] = useState(false);
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
+  const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
+    []
+  );
+
+  // Automatically extract primary image colors when imageSrc changes
+  useEffect(() => {
+    if (!state.imageSrc) {
+      setAutoGradients([]);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const colors = extractDominantColors(img, 3);
+      const variations = generateGradientVariations(colors);
+      setAutoGradients(variations);
+    };
+    img.src = state.imageSrc;
+  }, [state.imageSrc]);
 
   const gradientPresets = [
     { name: 'Pastel Sunset', c1: '#ffafcc', c2: '#ffc8dd' },
@@ -317,241 +338,282 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       </div>
 
       <div className="grid grid-cols-4 gap-1.5">
-          {(['gradient', 'solid', 'transparent', 'image'] as const).map((bg) => (
-            <button
-              key={bg}
-              onClick={() => onChange({ backgroundType: bg })}
-              className={`py-1.5 px-0.5 text-[10px] sm:text-[11px] font-medium capitalize rounded-lg border transition-all truncate text-center ${
-                state.backgroundType === bg
-                  ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
-              }`}
-              title={bg === 'transparent' ? 'No BG' : bg}
-            >
-              {bg === 'transparent' ? 'No BG' : bg}
-            </button>
-          ))}
-        </div>
+        {(['gradient', 'solid', 'transparent', 'image'] as const).map((bg) => (
+          <button
+            key={bg}
+            onClick={() => onChange({ backgroundType: bg })}
+            className={`py-1.5 px-0.5 text-[10px] sm:text-[11px] font-medium capitalize rounded-lg border transition-all truncate text-center ${
+              state.backgroundType === bg
+                ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+            }`}
+            title={bg === 'transparent' ? 'No BG' : bg}
+          >
+            {bg === 'transparent' ? 'No BG' : bg}
+          </button>
+        ))}
+      </div>
 
-        {state.backgroundType === 'gradient' && (
-          <div className="space-y-3 pt-1 border-t border-slate-800/60">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
-                Gradient Palettes ({gradientPresets.length})
-              </span>
-              <button
-                onClick={() => setShowAllGradients(!showAllGradients)}
-                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                    showAllGradients ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-4 gap-2">
-              {visibleGradients.map((preset) => {
-                const isSelected =
-                  state.gradient.color1.toLowerCase() === preset.c1.toLowerCase() &&
-                  state.gradient.color2.toLowerCase() === preset.c2.toLowerCase();
-
-                return (
-                  <button
-                    key={preset.name}
-                    onClick={() =>
-                      onChange({
-                        gradient: { ...state.gradient, color1: preset.c1, color2: preset.c2 },
-                      })
-                    }
-                    className={`h-8 rounded-lg border shadow-sm transition-all flex items-center justify-center cursor-pointer relative ${
-                      isSelected
-                        ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
-                        : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
-                    }`}
-                    style={{
-                      backgroundImage: `linear-gradient(135deg, ${preset.c1}, ${preset.c2})`,
-                    }}
-                    title={preset.name}
-                  >
-                    {isSelected && (
-                      <div className="w-4 h-4 rounded-full bg-slate-950/70 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
-                        <Check className="w-3 h-3 text-pastel-pink" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Angle</span>
-                <span className="font-mono text-slate-400">{state.gradient.angle}°</span>
+      {state.backgroundType === 'gradient' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          {/* Dynamic Colors Extracted from Uploaded Image */}
+          {autoGradients.length > 0 && (
+            <div className="space-y-2 pb-2 border-b border-neutral-800/60">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                <span className="uppercase tracking-wider text-[11px]">Auto Color Match</span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="360"
-                value={state.gradient.angle}
-                onChange={(e) =>
-                  onChange({ gradient: { ...state.gradient, angle: Number(e.target.value) } })
-                }
-                className="w-full bg-slate-800 rounded-lg"
-              />
-            </div>
-          </div>
-        )}
-
-        {state.backgroundType === 'solid' && (
-          <div className="pt-2 border-t border-slate-800/60 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Solid Color
-              </label>
-              <span className="font-mono text-xs text-slate-300 uppercase">
-                {state.backgroundColor}
-              </span>
-            </div>
-
-            {/* Untitled UI Style Color Picker Input */}
-            <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-700/80 rounded-xl shadow-inner group hover:border-slate-600 transition-colors">
-              <label
-                className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative"
-                style={{ backgroundColor: state.backgroundColor }}
-                title="Choose custom color"
-              >
-                <input
-                  type="color"
-                  value={state.backgroundColor}
-                  onChange={(e) => onChange({ backgroundColor: e.target.value })}
-                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                />
-              </label>
-              <div className="flex-1 flex items-center gap-1.5 px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono">
-                <span className="text-slate-500">#</span>
-                <input
-                  type="text"
-                  value={state.backgroundColor.replace('#', '')}
-                  onChange={(e) => {
-                    const hex = e.target.value.trim();
-                    onChange({ backgroundColor: `#${hex}` });
-                  }}
-                  className="w-full bg-transparent text-slate-200 focus:outline-none uppercase font-mono"
-                  maxLength={6}
-                />
-              </div>
-            </div>
-
-            {/* Untitled UI Preset Color Swatches */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                Swatches
-              </span>
-              <div className="grid grid-cols-6 gap-1.5">
-                {[
-                  '#cdb4db',
-                  '#ffc8dd',
-                  '#ffafcc',
-                  '#bde0fe',
-                  '#a2d2ff',
-                  '#0f172a',
-                  '#1e293b',
-                  '#334155',
-                  '#0284c7',
-                  '#7c3aed',
-                  '#db2777',
-                  '#059669',
-                ].map((color) => {
-                  const isSelected = state.backgroundColor.toLowerCase() === color.toLowerCase();
+              <div className="grid grid-cols-5 gap-1.5">
+                {autoGradients.map((preset) => {
+                  const isSelected =
+                    state.gradient.color1.toLowerCase() === preset.c1.toLowerCase() &&
+                    state.gradient.color2.toLowerCase() === preset.c2.toLowerCase();
                   return (
                     <button
-                      key={color}
-                      onClick={() => onChange({ backgroundColor: color })}
-                      className={`h-6 rounded-md border shadow-xs transition-all cursor-pointer flex items-center justify-center relative ${
+                      key={preset.name}
+                      onClick={() =>
+                        onChange({
+                          gradient: { ...state.gradient, color1: preset.c1, color2: preset.c2 },
+                        })
+                      }
+                      className={`h-8 rounded-lg border shadow-sm transition-all flex items-center justify-center cursor-pointer relative ${
                         isSelected
-                          ? 'border-white ring-2 ring-pastel-pink scale-110'
-                          : 'border-slate-700/70 hover:scale-105'
+                          ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                          : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
                       }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
+                      style={{
+                        backgroundImage: `linear-gradient(135deg, ${preset.c1}, ${preset.c2})`,
+                      }}
+                      title={`Extracted: ${preset.name}`}
                     >
-                      {isSelected && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                      {isSelected && (
+                        <div className="w-3.5 h-3.5 rounded-full bg-slate-950/70 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
+                          <Check className="w-2.5 h-2.5 text-pastel-pink" />
+                        </div>
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
+          )}
+
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Gradient Palettes ({gradientPresets.length})
+            </span>
+            <button
+              onClick={() => setShowAllGradients(!showAllGradients)}
+              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                  showAllGradients ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
           </div>
-        )}
-        {state.backgroundType === 'image' && (
-          <div className="pt-2 border-t border-slate-800/60 space-y-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Background Image (Upload or URL)
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
-                  <span className="text-xs font-medium text-slate-300">
-                    {state.bgImageUrl ? 'Change Background File' : 'Upload Background Image File'}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        const file = e.target.files[0];
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          if (ev.target?.result) {
-                            onChange({ bgImageUrl: ev.target.result as string });
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="hidden"
-                  />
-                </label>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={state.bgImageUrl || ''}
-                    onChange={(e) => onChange({ bgImageUrl: e.target.value })}
-                    placeholder="Or paste image URL (https://...)"
-                    className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink transition-colors"
-                  />
-                  {state.bgImageUrl && (
-                    <button
-                      onClick={() => onChange({ bgImageUrl: null })}
-                      className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-lg border border-neutral-700 transition-colors shrink-0"
-                      title="Clear Image URL"
-                    >
-                      Clear
-                    </button>
+          <div className="grid grid-cols-4 gap-2">
+            {visibleGradients.map((preset) => {
+              const isSelected =
+                state.gradient.color1.toLowerCase() === preset.c1.toLowerCase() &&
+                state.gradient.color2.toLowerCase() === preset.c2.toLowerCase();
+
+              return (
+                <button
+                  key={preset.name}
+                  onClick={() =>
+                    onChange({
+                      gradient: { ...state.gradient, color1: preset.c1, color2: preset.c2 },
+                    })
+                  }
+                  className={`h-8 rounded-lg border shadow-sm transition-all flex items-center justify-center cursor-pointer relative ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${preset.c1}, ${preset.c2})`,
+                  }}
+                  title={preset.name}
+                >
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/70 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
                   )}
-                </div>
-              </div>
-            </div>
+                </button>
+              );
+            })}
+          </div>
 
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Background Blur</span>
-                <span className="font-mono text-slate-400">{state.bgBlur}px</span>
-              </div>
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="font-medium text-slate-300">Angle</span>
+              <span className="font-mono text-slate-400">{state.gradient.angle}°</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              value={state.gradient.angle}
+              onChange={(e) =>
+                onChange({ gradient: { ...state.gradient, angle: Number(e.target.value) } })
+              }
+              className="w-full bg-slate-800 rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'solid' && (
+        <div className="pt-2 border-t border-slate-800/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Solid Color
+            </label>
+            <span className="font-mono text-xs text-slate-300 uppercase">
+              {state.backgroundColor}
+            </span>
+          </div>
+
+          {/* Untitled UI Style Color Picker Input */}
+          <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-700/80 rounded-xl shadow-inner group hover:border-slate-600 transition-colors">
+            <label
+              className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative"
+              style={{ backgroundColor: state.backgroundColor }}
+              title="Choose custom color"
+            >
               <input
-                type="range"
-                min="0"
-                max="20"
-                value={state.bgBlur}
-                onChange={(e) => onChange({ bgBlur: Number(e.target.value) })}
-                className="w-full bg-slate-800 rounded-lg"
+                type="color"
+                value={state.backgroundColor}
+                onChange={(e) => onChange({ backgroundColor: e.target.value })}
+                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+              />
+            </label>
+            <div className="flex-1 flex items-center gap-1.5 px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono">
+              <span className="text-slate-500">#</span>
+              <input
+                type="text"
+                value={state.backgroundColor.replace('#', '')}
+                onChange={(e) => {
+                  const hex = e.target.value.trim();
+                  onChange({ backgroundColor: `#${hex}` });
+                }}
+                className="w-full bg-transparent text-slate-200 focus:outline-none uppercase font-mono"
+                maxLength={6}
               />
             </div>
           </div>
-        )}
+
+          {/* Untitled UI Preset Color Swatches */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+              Swatches
+            </span>
+            <div className="grid grid-cols-6 gap-1.5">
+              {[
+                '#cdb4db',
+                '#ffc8dd',
+                '#ffafcc',
+                '#bde0fe',
+                '#a2d2ff',
+                '#0f172a',
+                '#1e293b',
+                '#334155',
+                '#0284c7',
+                '#7c3aed',
+                '#db2777',
+                '#059669',
+              ].map((color) => {
+                const isSelected = state.backgroundColor.toLowerCase() === color.toLowerCase();
+                return (
+                  <button
+                    key={color}
+                    onClick={() => onChange({ backgroundColor: color })}
+                    className={`h-6 rounded-md border shadow-xs transition-all cursor-pointer flex items-center justify-center relative ${
+                      isSelected
+                        ? 'border-white ring-2 ring-pastel-pink scale-110'
+                        : 'border-slate-700/70 hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  >
+                    {isSelected && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      {state.backgroundType === 'image' && (
+        <div className="pt-2 border-t border-slate-800/60 space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Background Image (Upload or URL)
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
+                <span className="text-xs font-medium text-slate-300">
+                  {state.bgImageUrl ? 'Change Background File' : 'Upload Background Image File'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        if (ev.target?.result) {
+                          onChange({ bgImageUrl: ev.target.result as string });
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={state.bgImageUrl || ''}
+                  onChange={(e) => onChange({ bgImageUrl: e.target.value })}
+                  placeholder="Or paste image URL (https://...)"
+                  className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink transition-colors"
+                />
+                {state.bgImageUrl && (
+                  <button
+                    onClick={() => onChange({ bgImageUrl: null })}
+                    className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-lg border border-neutral-700 transition-colors shrink-0"
+                    title="Clear Image URL"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="font-medium text-slate-300">Background Blur</span>
+              <span className="font-mono text-slate-400">{state.bgBlur}px</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              value={state.bgBlur}
+              onChange={(e) => onChange({ bgBlur: Number(e.target.value) })}
+              className="w-full bg-slate-800 rounded-lg"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 
