@@ -404,7 +404,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className="transition-transform duration-150 flex items-center justify-center"
         style={{
-          transform: state.isPreviewMode ? `scale(${state.previewCanvasZoom / 100})` : 'none',
+          transform: `scale(${state.previewCanvasZoom / 100})`,
         }}
       >
         {/* Exportable Canvas Container */}

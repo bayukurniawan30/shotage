@@ -3,6 +3,7 @@ import { useStudioStore } from '../store/useStudioStore';
 import { CanvasStage } from '../components/CanvasStage';
 import { LeftSidebar } from '../components/LeftSidebar';
 import { RightSidebar } from '../components/RightSidebar';
+import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
 import { ExportModal } from '../components/ExportModal';
 import {
   FlipBackward,
@@ -167,7 +168,8 @@ export const Studio: React.FC = () => {
   return (
     <div className="h-screen w-screen bg-neutral-950 text-slate-100 flex flex-col font-sans overflow-hidden">
       {/* Studio Header Bar */}
-      <header className="h-14 border-b border-neutral-800 bg-neutral-900/90 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-40 relative">
+      {/* Studio Header Bar */}
+      <header className="h-14 border-b border-neutral-800 bg-neutral-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between shrink-0 z-40 relative">
         {/* Left Section: Brand Logo */}
         <div className="flex items-center gap-4">
           <a href="/" onClick={handleNavHome} className="flex items-center gap-2.5 group">
@@ -176,14 +178,14 @@ export const Studio: React.FC = () => {
               alt="Shotage Logo"
               className="h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
-            <span className="font-bold text-base tracking-tight text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
+            <span className="hidden sm:inline font-bold text-base tracking-tight text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
               Shotage
             </span>
           </a>
         </div>
 
-        {/* Center Section: Toolbar (Undo -> Redo -> Start Over -> Preview -> Feedback) */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-950/90 p-1 rounded-xl border border-neutral-800 shadow-inner">
+        {/* Center Section: Desktop Toolbar */}
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-1.5 bg-neutral-950/90 p-1 rounded-xl border border-neutral-800 shadow-inner">
           {/* 1. Undo Button */}
           <button
             onClick={() => temporalStore.getState().undo()}
@@ -249,49 +251,116 @@ export const Studio: React.FC = () => {
           </a>
         </div>
 
-        {/* Right Section: Special Eye-Catching Export Button */}
-        <div className="flex items-center gap-3">
+        {/* Right Section: Mobile Controls + Export Button */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* Mobile-Only Toolbar Actions */}
+          <div className="flex md:hidden items-center gap-1 bg-neutral-950/90 p-1 rounded-xl border border-neutral-800">
+            <button
+              onClick={() => temporalStore.getState().undo()}
+              disabled={!canUndo}
+              className={`p-1.5 rounded-lg border transition-all ${
+                canUndo
+                  ? 'bg-neutral-800 text-slate-200 border-neutral-700'
+                  : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
+              }`}
+              title="Undo"
+            >
+              <FlipBackward className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => temporalStore.getState().redo()}
+              disabled={!canRedo}
+              className={`p-1.5 rounded-lg border transition-all ${
+                canRedo
+                  ? 'bg-neutral-800 text-slate-200 border-neutral-700'
+                  : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
+              }`}
+              title="Redo"
+            >
+              <FlipForward className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setIsStartOverModalOpen(true)}
+              className="p-1.5 bg-neutral-800 border border-neutral-700 text-slate-200 rounded-lg"
+              title="Start Over"
+            >
+              <RefreshCcw01 className="w-3.5 h-3.5 text-[#cdb4db]" />
+            </button>
+            <button
+              onClick={togglePreviewMode}
+              className={`p-1.5 rounded-lg border transition-all ${
+                isPreviewMode
+                  ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
+                  : 'bg-neutral-800 text-slate-300 border-neutral-700'
+              }`}
+              title={isPreviewMode ? 'Exit Full Preview' : 'Full Preview Mode'}
+            >
+              <Expand03 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="px-4 py-1.5 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98]"
+            className="px-3 sm:px-4 py-1.5 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98]"
             style={{
               backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
             }}
           >
             <Download01 className="w-3.5 h-3.5" />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </button>
         </div>
       </header>
 
       {/* 3-Column Studio Workspace */}
-      <div className="flex-1 flex h-[calc(100vh-3.5rem)] min-h-0 overflow-hidden relative">
-        {/* Left Sidebar (Hidden in Preview Mode) */}
-        {!isPreviewMode && <LeftSidebar onImageUpload={handleImageUpload} />}
+      <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] min-h-0 overflow-hidden relative">
+        {/* Left Sidebar (Desktop Only, Hidden in Preview Mode) */}
+        {!isPreviewMode && (
+          <div className="hidden md:block h-full">
+            <LeftSidebar onImageUpload={handleImageUpload} />
+          </div>
+        )}
 
         {/* Center Stage: Interactive Canvas Workspace */}
         <div className="flex-1 bg-neutral-950 relative overflow-hidden flex items-center justify-center">
           <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
 
-          {/* Floating Bottom Zoom Slider in Full Preview Mode */}
-          {isPreviewMode && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/90 border border-neutral-800 backdrop-blur-md px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
-              <span className="text-xs font-semibold text-slate-300">Canvas Zoom</span>
+          {/* Floating Bottom Zoom Slider (Full Preview Mode OR Mobile Normal Mode) */}
+          {(isPreviewMode || true) && (
+            <div
+              className={`absolute left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
+                isPreviewMode
+                  ? 'bottom-4 sm:bottom-6'
+                  : 'bottom-3 flex md:hidden'
+              }`}
+            >
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
+                Canvas Zoom
+              </span>
               <input
                 type="range"
-                min="50"
+                min="25"
                 max="150"
                 value={previewCanvasZoom}
                 onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
-                className="w-36 bg-neutral-800 rounded-lg cursor-pointer"
+                className="w-24 sm:w-36 bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
               />
-              <span className="text-xs font-mono text-slate-400 w-9">{previewCanvasZoom}%</span>
+              <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
+                {previewCanvasZoom}%
+              </span>
             </div>
           )}
         </div>
 
-        {/* Right Sidebar (Hidden in Preview Mode) */}
-        {!isPreviewMode && <RightSidebar />}
+        {/* Right Sidebar (Desktop Only, Hidden in Preview Mode) */}
+        {!isPreviewMode && (
+          <div className="hidden md:block h-full">
+            <RightSidebar />
+          </div>
+        )}
+
+        {/* Mobile Bottom Scrollable Navbar Drawer */}
+        {!isPreviewMode && <MobileStudioNavbar onImageUpload={handleImageUpload} />}
       </div>
 
       {/* Fullscreen Drag & Drop Overlay */}
