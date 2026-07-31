@@ -1,6 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { Play, PauseSquare, Plus, Trash01, Film01, RefreshCw01 } from '@untitledui/icons';
+import {
+  Play,
+  PauseSquare,
+  Plus,
+  Trash01,
+  Film01,
+  RefreshCw01,
+  ChevronDown,
+  ChevronUp,
+} from '@untitledui/icons';
 import { ANIMATION_PRESETS, AnimationKeyframe } from '../types/animationTypes';
 
 export const AnimationTimeline: React.FC = () => {
@@ -12,6 +21,7 @@ export const AnimationTimeline: React.FC = () => {
 
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Initialize default keyframes with Start (0s) and End (10s) keyframes capturing current canvas pose
   useEffect(() => {
@@ -76,6 +86,30 @@ export const AnimationTimeline: React.FC = () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
   }, [state.isPlaying, state.currentTimeSec, state.durationSec, onChange]);
+
+  // Global Keyboard Shortcut: Spacebar toggles Play/Pause in Animation Mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        onChange({ isPlaying: !state.isPlaying });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.isPlaying, onChange]);
 
   // Load animation preset template
   const applyPreset = (presetId: string) => {
@@ -161,29 +195,124 @@ export const AnimationTimeline: React.FC = () => {
     }
   };
 
-  return (
-    <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4 space-y-2.5 z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200">
-      {/* Header Bar: Presets & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-800/80 pb-2.5">
+  const handleDurationChange = (newDur: number) => {
+    const targetDur = Math.min(20, Math.max(2, newDur));
+    const oldDur = state.durationSec;
+    let updatedKf = state.keyframes
+      .map((kf) => {
+        if (Math.abs(kf.timeSec - oldDur) < 0.1) {
+          return { ...kf, timeSec: targetDur };
+        }
+        return kf;
+      })
+      .filter((kf) => kf.timeSec <= targetDur);
+
+    const hasEndKf = updatedKf.some((kf) => Math.abs(kf.timeSec - targetDur) < 0.1);
+    if (!hasEndKf && updatedKf.length > 0) {
+      const lastPose = updatedKf[updatedKf.length - 1];
+      updatedKf.push({
+        ...lastPose,
+        id: `kf-end-${Date.now()}`,
+        timeSec: targetDur,
+      });
+    }
+
+    updatedKf.sort((a, b) => a.timeSec - b.timeSec);
+
+    onChange({
+      durationSec: targetDur,
+      keyframes: updatedKf,
+      currentTimeSec: Math.min(state.currentTimeSec, targetDur),
+    });
+  };
+
+  if (isCollapsed) {
+    return (
+      <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl px-3 py-2 flex items-center justify-between z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-pastel-pink/20 text-pastel-pink flex items-center justify-center">
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="w-7 h-7 rounded-lg bg-pastel-pink/20 text-pastel-pink flex items-center justify-center hover:bg-pastel-pink/30 transition-all cursor-pointer shrink-0"
+            title="Expand Animation Timeline"
+          >
             <Film01 className="w-4 h-4" />
-          </div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-            Animation Timeline
-          </h3>
+          </button>
+
+          <button
+            onClick={() => onChange({ isPlaying: !state.isPlaying })}
+            className="p-1 hover:bg-neutral-800 text-pastel-pink rounded-lg transition-all cursor-pointer shrink-0"
+            title={state.isPlaying ? 'Pause' : 'Play'}
+          >
+            {state.isPlaying ? (
+              <PauseSquare className="w-5 h-5 fill-pastel-pink text-pastel-pink" />
+            ) : (
+              <Play className="w-5 h-5 fill-pastel-pink text-pastel-pink ml-0.5" />
+            )}
+          </button>
+
+          <span className="font-mono text-xs font-bold text-slate-200">
+            {state.currentTimeSec.toFixed(1)}s / {state.durationSec}s
+          </span>
         </div>
 
-        {/* Preset Animation Selector Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
-          <span className="text-[10px] uppercase font-semibold text-slate-400 mr-1">Presets:</span>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={addCurrentStateKeyframe}
+            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 text-pastel-pink" />
+            <span className="hidden sm:inline">Add Keyframe</span>
+          </button>
+
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 rounded-lg border border-neutral-700 transition-all cursor-pointer flex items-center gap-1 text-xs font-medium"
+            title="Expand Timeline Track"
+          >
+            <ChevronUp className="w-4 h-4 text-pastel-pink" />
+            <span className="text-[11px] text-slate-300 hidden xs:inline">Expand</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4 space-y-2.5 z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200">
+      {/* Header Bar: Title Row + Presets Row */}
+      <div className="border-b border-neutral-800/80 pb-2.5 space-y-2">
+        {/* Row 1: Title on left, Arrow collapse btn on right */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-pastel-pink/20 text-pastel-pink flex items-center justify-center">
+              <Film01 className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              Animation Timeline
+            </h3>
+          </div>
+
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-1.5 bg-neutral-900 hover:bg-neutral-800 text-slate-400 hover:text-white rounded-lg border border-neutral-800 transition-all cursor-pointer"
+            title="Minimize Timeline"
+          >
+            <ChevronDown className="w-4 h-4 text-pastel-pink" />
+          </button>
+        </div>
+
+        {/* Row 2: Preset Animation Selector Buttons */}
+        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar">
+          <span className="text-[10px] uppercase font-semibold text-slate-400 mr-1 shrink-0">
+            Presets:
+          </span>
           {ANIMATION_PRESETS.map((preset) => {
             const isSelected = state.activePresetId === preset.id;
             return (
               <button
                 key={preset.id}
                 onClick={() => applyPreset(preset.id)}
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   isSelected
                     ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold shadow-xs'
                     : 'bg-neutral-900 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
@@ -203,12 +332,13 @@ export const AnimationTimeline: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => onChange({ isPlaying: !state.isPlaying })}
-              className="w-8 h-8 rounded-xl bg-pastel-pink hover:bg-pastel-pinkLight text-slate-950 font-bold flex items-center justify-center transition-all shadow-md cursor-pointer"
+              className="p-1 hover:bg-neutral-800 text-pastel-pink rounded-lg transition-all cursor-pointer shrink-0"
+              title={state.isPlaying ? 'Pause' : 'Play'}
             >
               {state.isPlaying ? (
-                <PauseSquare className="w-4 h-4 fill-slate-950" />
+                <PauseSquare className="w-5 h-5 fill-pastel-pink text-pastel-pink" />
               ) : (
-                <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
+                <Play className="w-5 h-5 fill-pastel-pink text-pastel-pink ml-0.5" />
               )}
             </button>
             <span className="font-mono text-xs font-bold text-slate-200">
@@ -216,8 +346,41 @@ export const AnimationTimeline: React.FC = () => {
             </span>
           </div>
 
-          {/* Keyframe Action Buttons */}
+          {/* Keyframe Action Buttons & Duration Selector */}
           <div className="flex items-center gap-2">
+            <div className="w-14 md:w-auto flex items-center justify-between md:justify-start gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-2 py-1 text-xs text-slate-300 shrink-0">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase hidden md:inline">
+                Length:
+              </span>
+              <select
+                value={state.durationSec}
+                onChange={(e) => handleDurationChange(Number(e.target.value))}
+                className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer w-full md:w-auto"
+              >
+                <option value={3} className="bg-neutral-900 text-white">
+                  3s
+                </option>
+                <option value={5} className="bg-neutral-900 text-white">
+                  5s
+                </option>
+                <option value={8} className="bg-neutral-900 text-white">
+                  8s
+                </option>
+                <option value={10} className="bg-neutral-900 text-white">
+                  10s
+                </option>
+                <option value={12} className="bg-neutral-900 text-white">
+                  12s
+                </option>
+                <option value={15} className="bg-neutral-900 text-white">
+                  15s
+                </option>
+                <option value={20} className="bg-neutral-900 text-white">
+                  20s (Max)
+                </option>
+              </select>
+            </div>
+
             <button
               onClick={addCurrentStateKeyframe}
               className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
@@ -246,6 +409,13 @@ export const AnimationTimeline: React.FC = () => {
               const isSelected = selectedKfId === kf.id;
               const isDragging = draggingKfId === kf.id;
 
+              let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
+              if (posPercent < 18) {
+                tooltipAlignClass = 'left-0 translate-x-0';
+              } else if (posPercent > 82) {
+                tooltipAlignClass = 'right-0 left-auto translate-x-0';
+              }
+
               return (
                 <div
                   key={kf.id}
@@ -260,20 +430,20 @@ export const AnimationTimeline: React.FC = () => {
                   <div
                     className={`w-3 h-3 rotate-45 border transition-all ${
                       isActive || isSelected || isDragging
-                        ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/50'
+                        ? 'bg-pastel-blue border-white scale-125 shadow-md shadow-pastel-blue/50'
                         : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
                     }`}
                   />
 
                   {/* Tooltip & Delete Keyframe Popover with hover bridge */}
                   <div
-                    className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                    className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
                       isActive || isSelected || isDragging
                         ? 'opacity-100 pointer-events-auto'
                         : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
                     }`}
                   >
-                    <span className="font-mono text-pastel-pink font-semibold">
+                    <span className="font-mono text-pastel-blue font-semibold">
                       {kf.timeSec.toFixed(1)}s
                     </span>
                     <button

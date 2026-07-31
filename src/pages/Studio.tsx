@@ -381,7 +381,7 @@ export const Studio: React.FC = () => {
 
           {/* Animation Keyframe Timeline Dock */}
           {useStudioStore((s) => s.isAnimationMode) && (
-            <div className="absolute bottom-1 md:bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-4xl z-50">
+            <div className="absolute bottom-[20px] md:bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-4xl z-30 pointer-events-auto">
               <AnimationTimeline />
             </div>
           )}
