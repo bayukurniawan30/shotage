@@ -4,8 +4,13 @@ export interface AnimationKeyframe {
   rotateX: number;
   rotateY: number;
   zoom: number;
+  slot2Zoom?: number;
   offsetX: number;
   offsetY: number;
+  slot2OffsetX?: number;
+  slot2OffsetY?: number;
+  slot1Rotate?: number;
+  slot2Rotate?: number;
 }
 
 export interface AnimationPresetTemplate {

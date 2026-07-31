@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { Play, PauseSquare, Plus, Trash01, Film01, RefreshCw01 } from '@untitledui/icons';
 import { ANIMATION_PRESETS, AnimationKeyframe } from '../types/animationTypes';
@@ -8,19 +8,47 @@ export const AnimationTimeline: React.FC = () => {
   const onChange = state.updateState;
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
-  // Initialize default keyframes from active preset if empty
+  const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
+  const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
+
+  // Initialize default keyframes with Start (0s) and End (10s) keyframes capturing current canvas pose
   useEffect(() => {
     if (state.keyframes.length === 0) {
-      const preset =
-        ANIMATION_PRESETS.find((p) => p.id === state.activePresetId) || ANIMATION_PRESETS[0];
-      const initialKeyframes: AnimationKeyframe[] = preset.keyframes.map((kf, i) => ({
-        ...kf,
-        id: `kf-${i}-${Date.now()}`,
-      }));
-      onChange({ keyframes: initialKeyframes });
+      const startKf: AnimationKeyframe = {
+        id: `kf-start-${Date.now()}`,
+        timeSec: 0,
+        rotateX: state.rotateX,
+        rotateY: state.rotateY,
+        zoom: state.zoom,
+        slot2Zoom: state.slot2Zoom ?? state.zoom,
+        offsetX: state.offsetX,
+        offsetY: state.offsetY,
+        slot2OffsetX: state.slot2OffsetX ?? 0,
+        slot2OffsetY: state.slot2OffsetY ?? 0,
+        slot1Rotate: state.slot1Rotate || 0,
+        slot2Rotate: state.slot2Rotate || 0,
+      };
+
+      const endKf: AnimationKeyframe = {
+        id: `kf-end-${Date.now() + 1}`,
+        timeSec: state.durationSec || 10,
+        rotateX: state.rotateX,
+        rotateY: state.rotateY,
+        zoom: state.zoom,
+        slot2Zoom: state.slot2Zoom ?? state.zoom,
+        offsetX: state.offsetX,
+        offsetY: state.offsetY,
+        slot2OffsetX: state.slot2OffsetX ?? 0,
+        slot2OffsetY: state.slot2OffsetY ?? 0,
+        slot1Rotate: state.slot1Rotate || 0,
+        slot2Rotate: state.slot2Rotate || 0,
+      };
+
+      onChange({ keyframes: [startKf, endKf], activePresetId: '' });
     }
-  }, [state.activePresetId, state.keyframes.length, onChange]);
+  }, [state.keyframes.length, onChange]);
 
   // Playback Loop
   useEffect(() => {
@@ -76,8 +104,13 @@ export const AnimationTimeline: React.FC = () => {
       rotateX: state.rotateX,
       rotateY: state.rotateY,
       zoom: state.zoom,
+      slot2Zoom: state.slot2Zoom ?? state.zoom,
       offsetX: state.offsetX,
       offsetY: state.offsetY,
+      slot2OffsetX: state.slot2OffsetX ?? 0,
+      slot2OffsetY: state.slot2OffsetY ?? 0,
+      slot1Rotate: state.slot1Rotate || 0,
+      slot2Rotate: state.slot2Rotate || 0,
     };
 
     let updatedKf = [...state.keyframes];
@@ -88,12 +121,44 @@ export const AnimationTimeline: React.FC = () => {
       updatedKf.sort((a, b) => a.timeSec - b.timeSec);
     }
     onChange({ keyframes: updatedKf });
+    setSelectedKfId(newKf.id);
   };
 
   // Remove keyframe at index
   const deleteKeyframe = (id: string) => {
     if (state.keyframes.length <= 1) return;
     onChange({ keyframes: state.keyframes.filter((kf) => kf.id !== id) });
+    if (selectedKfId === id) setSelectedKfId(null);
+  };
+
+  // Keyframe Dragging Pointer Handlers
+  const handleMarkerPointerDown = (e: React.PointerEvent, kf: AnimationKeyframe) => {
+    e.stopPropagation();
+    setDraggingKfId(kf.id);
+    setSelectedKfId(kf.id);
+    onChange({ currentTimeSec: kf.timeSec, isPlaying: false });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleMarkerPointerMove = (e: React.PointerEvent, kfId: string) => {
+    if (draggingKfId !== kfId || !trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
+    const newTime = Math.round(percentage * state.durationSec * 10) / 10;
+
+    const updatedKeyframes = state.keyframes
+      .map((kf) => (kf.id === kfId ? { ...kf, timeSec: newTime } : kf))
+      .sort((a, b) => a.timeSec - b.timeSec);
+
+    onChange({ keyframes: updatedKeyframes, currentTimeSec: newTime });
+  };
+
+  const handleMarkerPointerUp = (e: React.PointerEvent) => {
+    if (draggingKfId) {
+      setDraggingKfId(null);
+      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    }
   };
 
   return (
@@ -173,37 +238,55 @@ export const AnimationTimeline: React.FC = () => {
 
         {/* Scrubber Range Input & Keyframe Marker Track */}
         <div className="relative pt-2">
-          {/* Keyframe Marker Nodes Track (Placed above slider for clear visibility) */}
-          <div className="relative w-full h-4 mb-1">
+          {/* Keyframe Marker Nodes Track */}
+          <div ref={trackRef} className="relative w-full h-5 mb-1 select-none">
             {state.keyframes.map((kf) => {
               const posPercent = (kf.timeSec / state.durationSec) * 100;
               const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
+              const isSelected = selectedKfId === kf.id;
+              const isDragging = draggingKfId === kf.id;
 
               return (
                 <div
                   key={kf.id}
                   style={{ left: `${posPercent}%` }}
-                  className="absolute -translate-x-1/2 group cursor-pointer top-0.5"
-                  onClick={() => onChange({ currentTimeSec: kf.timeSec })}
+                  onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
+                  onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
+                  onPointerUp={handleMarkerPointerUp}
+                  className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-0.5 pt-2 -mt-2 ${
+                    isDragging ? 'z-50' : 'z-20'
+                  }`}
                 >
                   <div
-                    className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                      isActive
+                    className={`w-3 h-3 rotate-45 border transition-all ${
+                      isActive || isSelected || isDragging
                         ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/50'
-                        : 'bg-slate-700 border-slate-500 group-hover:bg-slate-300'
+                        : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
                     }`}
                   />
-                  {/* Tooltip & Delete Keyframe Button */}
-                  <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-md px-2 py-1 text-[10px] text-slate-200 shadow-xl whitespace-nowrap z-50">
-                    <span>{kf.timeSec.toFixed(1)}s</span>
+
+                  {/* Tooltip & Delete Keyframe Popover with hover bridge */}
+                  <div
+                    className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                      isActive || isSelected || isDragging
+                        ? 'opacity-100 pointer-events-auto'
+                        : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+                    }`}
+                  >
+                    <span className="font-mono text-pastel-pink font-semibold">
+                      {kf.timeSec.toFixed(1)}s
+                    </span>
                     <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteKeyframe(kf.id);
                       }}
-                      className="text-rose-400 hover:text-rose-300"
+                      className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
+                      title="Delete Keyframe"
                     >
-                      <Trash01 className="w-3 h-3" />
+                      <Trash01 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

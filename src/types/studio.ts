@@ -78,6 +78,8 @@ export interface StudioState {
     | 'custom';
   rotateX: number; // -30 to 30
   rotateY: number; // -30 to 30
+  slot1Rotate: number; // -180 to 180
+  slot2Rotate: number; // -180 to 180
   perspective: number; // 500 to 2000
   offsetX: number; // -200 to 200
   offsetY: number; // -200 to 200
@@ -139,6 +141,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   aspectRatio: '16:9',
   rotateX: 0,
   rotateY: 0,
+  slot1Rotate: 0,
+  slot2Rotate: 0,
   perspective: 1000,
   offsetX: 0,
   offsetY: 0,
@@ -152,5 +156,5 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   currentTimeSec: 0,
   durationSec: 10,
   keyframes: [],
-  activePresetId: 'preset-tilt-zoom',
+  activePresetId: '',
 };

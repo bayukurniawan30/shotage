@@ -221,6 +221,42 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             />
           </div>
 
+          {/* Slot 1 Rotation */}
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="font-medium text-slate-300">
+                {state.layoutCount === 2 ? 'Rotation (Slot 1)' : 'Rotation'}
+              </span>
+              <span className="font-mono text-slate-400">{state.slot1Rotate || 0}°</span>
+            </div>
+            <input
+              type="range"
+              min="-180"
+              max="180"
+              value={state.slot1Rotate || 0}
+              onChange={(e) => onChange({ slot1Rotate: Number(e.target.value) })}
+              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            />
+          </div>
+
+          {/* Slot 2 Rotation (Only if 2 images selected) */}
+          {state.layoutCount === 2 && (
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Rotation (Slot 2)</span>
+                <span className="font-mono text-slate-400">{state.slot2Rotate || 0}°</span>
+              </div>
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                value={state.slot2Rotate || 0}
+                onChange={(e) => onChange({ slot2Rotate: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
+          )}
+
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="font-medium text-slate-300">Perspective Depth</span>

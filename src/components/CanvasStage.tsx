@@ -103,21 +103,39 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         rotateX: state.rotateX,
         rotateY: state.rotateY,
         zoom: state.zoom,
+        slot2Zoom: state.slot2Zoom,
         offsetX: state.offsetX,
         offsetY: state.offsetY,
+        slot2OffsetX: state.slot2OffsetX,
+        slot2OffsetY: state.slot2OffsetY,
+        slot1Rotate: state.slot1Rotate || 0,
+        slot2Rotate: state.slot2Rotate || 0,
       };
     }
 
     const keyframes = state.keyframes;
     const t = state.currentTimeSec;
 
+    const formatKf = (kf: (typeof keyframes)[0]) => ({
+      rotateX: kf.rotateX,
+      rotateY: kf.rotateY,
+      zoom: kf.zoom,
+      slot2Zoom: kf.slot2Zoom ?? kf.zoom,
+      offsetX: kf.offsetX,
+      offsetY: kf.offsetY,
+      slot2OffsetX: kf.slot2OffsetX ?? 0,
+      slot2OffsetY: kf.slot2OffsetY ?? 0,
+      slot1Rotate: kf.slot1Rotate ?? 0,
+      slot2Rotate: kf.slot2Rotate ?? 0,
+    });
+
     // Before first keyframe
     if (t <= keyframes[0].timeSec) {
-      return keyframes[0];
+      return formatKf(keyframes[0]);
     }
     // After last keyframe
     if (t >= keyframes[keyframes.length - 1].timeSec) {
-      return keyframes[keyframes.length - 1];
+      return formatKf(keyframes[keyframes.length - 1]);
     }
 
     // Find bounding keyframes
@@ -138,20 +156,45 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const ease = (p: number) => (p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p);
     const factor = ease(progress);
 
+    const z1_1 = kf1.zoom;
+    const z1_2 = kf2.zoom;
+    const z2_1 = kf1.slot2Zoom ?? kf1.zoom;
+    const z2_2 = kf2.slot2Zoom ?? kf2.zoom;
+
+    const x1_1 = kf1.offsetX;
+    const x1_2 = kf2.offsetX;
+    const x2_1 = kf1.slot2OffsetX ?? 0;
+    const x2_2 = kf2.slot2OffsetX ?? 0;
+
+    const y1_1 = kf1.offsetY;
+    const y1_2 = kf2.offsetY;
+    const y2_1 = kf1.slot2OffsetY ?? 0;
+    const y2_2 = kf2.slot2OffsetY ?? 0;
+
+    const r1_1 = kf1.slot1Rotate ?? 0;
+    const r1_2 = kf2.slot1Rotate ?? 0;
+    const r2_1 = kf1.slot2Rotate ?? 0;
+    const r2_2 = kf2.slot2Rotate ?? 0;
+
     return {
       rotateX: kf1.rotateX + (kf2.rotateX - kf1.rotateX) * factor,
       rotateY: kf1.rotateY + (kf2.rotateY - kf1.rotateY) * factor,
-      zoom: kf1.zoom + (kf2.zoom - kf1.zoom) * factor,
-      offsetX: kf1.offsetX + (kf2.offsetX - kf1.offsetX) * factor,
-      offsetY: kf1.offsetY + (kf2.offsetY - kf1.offsetY) * factor,
+      zoom: z1_1 + (z1_2 - z1_1) * factor,
+      slot2Zoom: z2_1 + (z2_2 - z2_1) * factor,
+      offsetX: x1_1 + (x1_2 - x1_1) * factor,
+      offsetY: y1_1 + (y1_2 - y1_1) * factor,
+      slot2OffsetX: x2_1 + (x2_2 - x2_1) * factor,
+      slot2OffsetY: y2_1 + (y2_2 - y2_1) * factor,
+      slot1Rotate: r1_1 + (r1_2 - r1_1) * factor,
+      slot2Rotate: r2_1 + (r2_2 - r2_1) * factor,
     };
   };
 
   const animTransform = getAnimatedTransforms();
 
-  // 3D Transform style matrix
+  // 3D Perspective & Tilt transform matrix for the stage
   const transformStyle: React.CSSProperties = {
-    transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) scale(${animTransform.zoom / 100}) translate(${animTransform.offsetX}px, ${animTransform.offsetY}px)`,
+    transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg)`,
     transformStyle: 'preserve-3d',
     transition: state.isPlaying ? 'none' : 'transform 0.15s ease-out',
   };
@@ -390,7 +433,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className="transition-all duration-200"
         style={{
-          transform: `scale(${state.zoom / 100}) translate(${state.offsetX}px, ${state.offsetY}px)`,
+          transform: `scale(${state.isAnimationMode ? animTransform.zoom / 100 : state.zoom / 100}) translate(${state.isAnimationMode ? animTransform.offsetX : state.offsetX}px, ${state.isAnimationMode ? animTransform.offsetY : state.offsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot1Rotate ?? 0) : state.slot1Rotate || 0}deg)`,
         }}
       >
         {firstFrame}
@@ -401,7 +444,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className="transition-all duration-200"
         style={{
-          transform: `scale(${state.slot2Zoom / 100}) translate(${state.slot2OffsetX}px, ${state.slot2OffsetY}px)`,
+          transform: `scale(${state.isAnimationMode ? animTransform.slot2Zoom / 100 : state.slot2Zoom / 100}) translate(${state.isAnimationMode ? animTransform.slot2OffsetX : state.slot2OffsetX}px, ${state.isAnimationMode ? animTransform.slot2OffsetY : state.slot2OffsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot2Rotate ?? 0) : state.slot2Rotate || 0}deg)`,
         }}
       >
         {secondFrame}
