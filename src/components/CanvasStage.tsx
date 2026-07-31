@@ -96,11 +96,64 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     }
   };
 
+  // Interpolate keyframe parameters during animation playback
+  const getAnimatedTransforms = () => {
+    if (!state.isAnimationMode || !state.keyframes || state.keyframes.length === 0) {
+      return {
+        rotateX: state.rotateX,
+        rotateY: state.rotateY,
+        zoom: state.zoom,
+        offsetX: state.offsetX,
+        offsetY: state.offsetY,
+      };
+    }
+
+    const keyframes = state.keyframes;
+    const t = state.currentTimeSec;
+
+    // Before first keyframe
+    if (t <= keyframes[0].timeSec) {
+      return keyframes[0];
+    }
+    // After last keyframe
+    if (t >= keyframes[keyframes.length - 1].timeSec) {
+      return keyframes[keyframes.length - 1];
+    }
+
+    // Find bounding keyframes
+    let prevIndex = 0;
+    for (let i = 0; i < keyframes.length - 1; i++) {
+      if (t >= keyframes[i].timeSec && t <= keyframes[i + 1].timeSec) {
+        prevIndex = i;
+        break;
+      }
+    }
+
+    const kf1 = keyframes[prevIndex];
+    const kf2 = keyframes[prevIndex + 1];
+    const duration = kf2.timeSec - kf1.timeSec;
+    const progress = duration > 0 ? (t - kf1.timeSec) / duration : 0;
+
+    // Smooth cubic ease-in-out easing interpolation
+    const ease = (p: number) => (p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p);
+    const factor = ease(progress);
+
+    return {
+      rotateX: kf1.rotateX + (kf2.rotateX - kf1.rotateX) * factor,
+      rotateY: kf1.rotateY + (kf2.rotateY - kf1.rotateY) * factor,
+      zoom: kf1.zoom + (kf2.zoom - kf1.zoom) * factor,
+      offsetX: kf1.offsetX + (kf2.offsetX - kf1.offsetX) * factor,
+      offsetY: kf1.offsetY + (kf2.offsetY - kf1.offsetY) * factor,
+    };
+  };
+
+  const animTransform = getAnimatedTransforms();
+
   // 3D Transform style matrix
   const transformStyle: React.CSSProperties = {
-    transform: `perspective(${state.perspective}px) rotateX(${state.rotateX}deg) rotateY(${state.rotateY}deg)`,
+    transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) scale(${animTransform.zoom / 100}) translate(${animTransform.offsetX}px, ${animTransform.offsetY}px)`,
     transformStyle: 'preserve-3d',
-    transition: 'transform 0.15s ease-out',
+    transition: state.isPlaying ? 'none' : 'transform 0.15s ease-out',
   };
 
   const renderSingleFrame = (

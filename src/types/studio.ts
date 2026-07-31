@@ -89,6 +89,13 @@ export interface StudioState {
   secondImageName: string;
   exportFormat: 'png' | 'jpeg' | 'webp';
   exportScale: 1 | 2 | 3;
+  // Animation System State
+  isAnimationMode: boolean;
+  isPlaying: boolean;
+  currentTimeSec: number;
+  durationSec: number;
+  keyframes: import('./animationTypes').AnimationKeyframe[];
+  activePresetId: string;
 }
 
 export const DEFAULT_STUDIO_STATE: StudioState = {
@@ -139,4 +146,11 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   slot2OffsetY: 0,
   exportFormat: 'png',
   exportScale: 2,
+  // Animation System Defaults
+  isAnimationMode: false,
+  isPlaying: false,
+  currentTimeSec: 0,
+  durationSec: 10,
+  keyframes: [],
+  activePresetId: 'preset-tilt-zoom',
 };

@@ -6,6 +6,7 @@ import { RightSidebar } from '../components/RightSidebar';
 import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
 import { ExportModal } from '../components/ExportModal';
 import { InstallPwaModal } from '../components/InstallPwaModal';
+import { AnimationTimeline } from '../components/AnimationTimeline';
 import {
   FlipBackward,
   FlipForward,
@@ -14,6 +15,7 @@ import {
   MessageTextSquare01,
   Download01,
   UploadCloud01,
+  Play,
 } from '@untitledui/icons';
 
 export const Studio: React.FC = () => {
@@ -22,6 +24,7 @@ export const Studio: React.FC = () => {
   const isPreviewMode = useStudioStore((state) => state.isPreviewMode);
   const togglePreviewMode = useStudioStore((state) => state.togglePreviewMode);
   const previewCanvasZoom = useStudioStore((state) => state.previewCanvasZoom);
+  const isAnimationMode = useStudioStore((state) => state.isAnimationMode);
   const updateState = useStudioStore((state) => state.updateState);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -226,9 +229,23 @@ export const Studio: React.FC = () => {
             Start Over
           </button>
 
+          {/* 4. Animate Timeline Toggle Button */}
+          <button
+            onClick={() => updateState({ isAnimationMode: !isAnimationMode })}
+            className={`px-2.5 py-1.5 rounded-lg border transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
+              isAnimationMode
+                ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
+                : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
+            }`}
+            title="Toggle Keyframe Timeline Animation Mode"
+          >
+            <Play className="w-3.5 h-3.5" />
+            <span>Animate</span>
+          </button>
+
           <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
 
-          {/* 4. Preview Toggle Button (Expand03 icon) */}
+          {/* 5. Preview Toggle Button (Expand03 icon) */}
           <button
             onClick={togglePreviewMode}
             className={`p-1.5 rounded-lg border transition-all ${
@@ -241,7 +258,7 @@ export const Studio: React.FC = () => {
             <Expand03 className="w-4 h-4" />
           </button>
 
-          {/* 5. Feedback Button (mailto link) */}
+          {/* 6. Feedback Button (mailto link) */}
           <a
             href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
             className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 hover:text-white rounded-lg border border-neutral-700 transition-all flex items-center justify-center"
@@ -287,6 +304,17 @@ export const Studio: React.FC = () => {
               <RefreshCcw01 className="w-3.5 h-3.5 text-[#cdb4db]" />
             </button>
             <button
+              onClick={() => updateState({ isAnimationMode: !isAnimationMode })}
+              className={`p-1.5 rounded-lg border transition-all ${
+                isAnimationMode
+                  ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
+                  : 'bg-neutral-800 text-slate-300 border-neutral-700'
+              }`}
+              title="Toggle Keyframe Timeline Animation Mode"
+            >
+              <Play className="w-3.5 h-3.5" />
+            </button>
+            <button
               onClick={togglePreviewMode}
               className={`p-1.5 rounded-lg border transition-all ${
                 isPreviewMode
@@ -322,32 +350,39 @@ export const Studio: React.FC = () => {
         )}
 
         {/* Center Stage: Interactive Canvas Workspace */}
-        <div className="flex-1 bg-neutral-950 relative overflow-hidden flex items-center justify-center">
-          <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
+        <div className="flex-1 bg-neutral-950 relative overflow-hidden flex flex-col items-center justify-between">
+          <div className="flex-1 w-full flex items-center justify-center relative">
+            <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
 
-          {/* Floating Bottom Zoom Slider (Full Preview Mode OR Mobile Normal Mode) */}
-          {(isPreviewMode || true) && (
-            <div
-              className={`absolute left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
-                isPreviewMode
-                  ? 'bottom-4 sm:bottom-6'
-                  : 'bottom-3 flex md:hidden'
-              }`}
-            >
-              <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
-                Canvas Zoom
-              </span>
-              <input
-                type="range"
-                min="25"
-                max="150"
-                value={previewCanvasZoom}
-                onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
-                className="w-24 sm:w-36 bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
-              />
-              <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
-                {previewCanvasZoom}%
-              </span>
+            {/* Floating Bottom Zoom Slider (Full Preview Mode OR Mobile Normal Mode) */}
+            {(isPreviewMode || true) && !useStudioStore((s) => s.isAnimationMode) && (
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
+                  isPreviewMode ? 'bottom-4 sm:bottom-6' : 'bottom-3 flex md:hidden'
+                }`}
+              >
+                <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
+                  Canvas Zoom
+                </span>
+                <input
+                  type="range"
+                  min="25"
+                  max="150"
+                  value={previewCanvasZoom}
+                  onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
+                  className="w-24 sm:w-36 bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
+                />
+                <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
+                  {previewCanvasZoom}%
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Animation Keyframe Timeline Dock */}
+          {useStudioStore((s) => s.isAnimationMode) && (
+            <div className="absolute bottom-1 md:bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-4xl z-50">
+              <AnimationTimeline />
             </div>
           )}
         </div>

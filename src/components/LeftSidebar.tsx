@@ -87,6 +87,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     else if (aspectRatio === 'custom' && customW && customH) ratioNum = customW / customH;
 
     // Tall vertical ratios (like 9:16 or 4:5) need smaller zoom so placeholder fits within frame
+    if (ratioNum < 0.6) return 60;
     if (ratioNum < 0.7) return 50;
     if (ratioNum < 0.95) return 60;
     if (ratioNum <= 1.1) return 70;
