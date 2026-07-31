@@ -46,6 +46,7 @@ export interface StudioState {
   wavePreset: string;
   meshPreset: string;
   confettiPreset: string;
+  customConfettiObj: any | null;
   radiantPreset: string;
   backgroundColor: string;
   gradient: {
@@ -59,6 +60,8 @@ export interface StudioState {
   watermarkType: WatermarkType;
   watermarkPosition: WatermarkPosition;
   watermarkSize: WatermarkSize;
+  customWidth: number;
+  customHeight: number;
   aspectRatio:
     | 'auto'
     | '16:9'
@@ -71,7 +74,8 @@ export interface StudioState {
     | 'ig-story'
     | 'yt-banner'
     | 'yt-thumbnail'
-    | 'yt-video';
+    | 'yt-video'
+    | 'custom';
   rotateX: number; // -30 to 30
   rotateY: number; // -30 to 30
   perspective: number; // 500 to 2000
@@ -109,6 +113,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   wavePreset: 'wave-1',
   meshPreset: 'mesh-1',
   confettiPreset: 'confetti-1',
+  customConfettiObj: null,
   radiantPreset: 'radiant-1',
   backgroundColor: '#0f172a',
   gradient: {
@@ -122,6 +127,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   watermarkType: 'none',
   watermarkPosition: 'bottom-right',
   watermarkSize: 'md',
+  customWidth: 1280,
+  customHeight: 720,
   aspectRatio: '16:9',
   rotateX: 0,
   rotateY: 0,

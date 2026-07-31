@@ -3,12 +3,14 @@ import { CONFETTI_PRESETS } from '../utils/confettiPresets';
 
 interface ConfettiBackgroundProps {
   presetId?: string;
+  customPreset?: any;
 }
 
 export const ConfettiBackground: React.FC<ConfettiBackgroundProps> = ({
   presetId = 'confetti-1',
+  customPreset,
 }) => {
-  const preset = CONFETTI_PRESETS.find((c) => c.id === presetId) || CONFETTI_PRESETS[0];
+  const preset = customPreset || CONFETTI_PRESETS.find((c) => c.id === presetId) || CONFETTI_PRESETS[0];
 
   const renderShape = (shape: (typeof preset.shapes)[0], index: number) => {
     const { type, x, y, size, color, rotation, opacity } = shape;
@@ -78,7 +80,7 @@ export const ConfettiBackground: React.FC<ConfettiBackgroundProps> = ({
       className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"
       style={{ backgroundColor: preset.bgColor }}
     >
-      {preset.shapes.map((shape, i) => renderShape(shape, i))}
+      {preset.shapes?.map((shape: any, i: number) => renderShape(shape, i))}
     </div>
   );
 };

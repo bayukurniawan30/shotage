@@ -44,6 +44,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         return isDual ? 'aspect-[1.91/1] w-[640px]' : 'aspect-[1.91/1] w-[520px]';
       case 'ig-portrait':
         return 'aspect-[4/5] h-[380px] w-[304px]';
+      case 'custom':
+        return '';
       default:
         return 'w-auto h-auto min-h-[260px]';
     }
@@ -475,6 +477,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           style={{
             ...getBackgroundStyle(),
             padding: `${state.padding}px`,
+            ...(state.aspectRatio === 'custom'
+              ? {
+                  width: `${Math.max(160, state.customWidth || 1280) * 0.45}px`,
+                  height: `${Math.max(160, state.customHeight || 720) * 0.45}px`,
+                  aspectRatio: `${state.customWidth || 1280} / ${state.customHeight || 720}`,
+                }
+              : {}),
           }}
         >
           {/* SVG Wave Background Layer */}
@@ -489,7 +498,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
           {/* Confetti Shapes Background Layer */}
           {state.backgroundType === 'confetti' && (
-            <ConfettiBackground presetId={state.confettiPreset || 'confetti-1'} />
+            <ConfettiBackground
+              presetId={state.confettiPreset || 'confetti-1'}
+              customPreset={state.customConfettiObj}
+            />
           )}
 
           {/* Radiant Glow Background Layer */}

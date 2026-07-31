@@ -36,6 +36,49 @@ const generateDenseConfetti = (
   return shapes;
 };
 
+// Generate fully dynamic random confetti preset with random light or dark bg
+export const generateRandomConfettiPreset = (): ConfettiPreset => {
+  const isDark = Math.random() > 0.5;
+  const darkBgs = ['#0f172a', '#090514', '#180e04', '#030712', '#1e1b4b', '#022c22', '#18181b'];
+  const lightBgs = ['#f8fafc', '#fff1f2', '#fefce8', '#f0fdf4', '#f0f9ff', '#fffbf0', '#fdf4ff'];
+  const bgColor = isDark
+    ? darkBgs[Math.floor(Math.random() * darkBgs.length)]
+    : lightBgs[Math.floor(Math.random() * lightBgs.length)];
+
+  const colorPalettes = [
+    ['#ffafcc', '#cdb4db', '#a2d2ff', '#ffc8dd', '#bde0fe'],
+    ['#f43f5e', '#38bdf8', '#a855f7', '#a3e635', '#fbbf24'],
+    ['#ffe000', '#fbbf24', '#f59e0b', '#d97706', '#fef08a'],
+    ['#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#60a5fa'],
+    ['#059669', '#0284c7', '#7c3aed', '#db2777', '#ea580c'],
+    ['#e11d48', '#7c3aed', '#2563eb', '#059669', '#d97706'],
+  ];
+  const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+
+  const types: ('circle' | 'rect' | 'triangle' | 'star')[] = ['circle', 'rect', 'triangle', 'star'];
+  const shapes: ConfettiPreset['shapes'] = [];
+  const particleCount = 40 + Math.floor(Math.random() * 20);
+
+  for (let i = 0; i < particleCount; i++) {
+    shapes.push({
+      type: types[Math.floor(Math.random() * types.length)],
+      x: Math.floor(Math.random() * 92) + 4,
+      y: Math.floor(Math.random() * 92) + 4,
+      size: Math.floor(Math.random() * 6) + 4, // 4-9px
+      color: palette[Math.floor(Math.random() * palette.length)],
+      rotation: Math.floor(Math.random() * 360),
+      opacity: 0.6 + Math.random() * 0.35,
+    });
+  }
+
+  return {
+    id: `confetti-random-${Date.now()}`,
+    name: isDark ? 'Random Confetti (Dark)' : 'Random Confetti (Light)',
+    bgColor,
+    shapes,
+  };
+};
+
 export const CONFETTI_PRESETS: ConfettiPreset[] = [
   // 4 Dark Background Confetti Presets
   {

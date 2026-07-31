@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { ChevronDown, Check, Brush03, Stars02 } from '@untitledui/icons';
+import { ChevronDown, Check, Brush03, Stars02, RefreshCw01 } from '@untitledui/icons';
 import { extractDominantColors, generateGradientVariations } from '../utils/colorExtractor';
 import { WAVE_PRESETS } from '../utils/wavePresets';
 import { MESH_PRESETS } from '../utils/meshPresets';
-import { CONFETTI_PRESETS } from '../utils/confettiPresets';
+import { CONFETTI_PRESETS, generateRandomConfettiPreset } from '../utils/confettiPresets';
 import { RADIANT_PRESETS } from '../utils/radiantPresets';
 import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
@@ -418,9 +418,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
       {state.backgroundType === 'confetti' && (
         <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          {/* Randomize Confetti Generator Button */}
+          <button
+            onClick={() => {
+              const randomPreset = generateRandomConfettiPreset();
+              onChange({
+                confettiPreset: randomPreset.id,
+                customConfettiObj: randomPreset,
+              });
+            }}
+            className="w-full py-2 px-3 bg-gradient-to-r from-pastel-pink/20 to-[#a2d2ff]/20 hover:from-pastel-pink/30 hover:to-[#a2d2ff]/30 border border-pastel-pink/40 hover:border-pastel-pink rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer group"
+          >
+            <RefreshCw01 className="w-3.5 h-3.5 text-pastel-pink group-hover:rotate-180 transition-transform duration-500" />
+            <span>Randomize Confetti</span>
+          </button>
+
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
-              Confetti Styles ({CONFETTI_PRESETS.length})
+              Preset Styles ({CONFETTI_PRESETS.length})
             </span>
             <button
               onClick={() => setShowAllConfetti(!showAllConfetti)}
@@ -436,12 +451,18 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
           <div className="grid grid-cols-4 gap-2">
             {visibleConfetti.map((confetti) => {
-              const isSelected = (state.confettiPreset || 'confetti-1') === confetti.id;
+              const isSelected =
+                !state.customConfettiObj && (state.confettiPreset || 'confetti-1') === confetti.id;
 
               return (
                 <button
                   key={confetti.id}
-                  onClick={() => onChange({ confettiPreset: confetti.id })}
+                  onClick={() =>
+                    onChange({
+                      confettiPreset: confetti.id,
+                      customConfettiObj: null,
+                    })
+                  }
                   className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
                     isSelected
                       ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'

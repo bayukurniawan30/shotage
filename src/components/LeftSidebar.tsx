@@ -13,6 +13,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
   const [isAspectDropdownOpen, setIsAspectDropdownOpen] = useState(false);
   const [isFrameDropdownOpen, setIsFrameDropdownOpen] = useState(false);
+  const [customWidthInput, setCustomWidthInput] = useState<string>(
+    String(state.customWidth || 1280)
+  );
+  const [customHeightInput, setCustomHeightInput] = useState<string>(
+    String(state.customHeight || 720)
+  );
+  const [customDimensionError, setCustomDimensionError] = useState<string | null>(null);
   const aspectDropdownRef = useRef<HTMLDivElement>(null);
   const frameDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -30,6 +37,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
   }, []);
 
   const getAspectRatioCategory = (aspectRatio: string) => {
+    if (aspectRatio === 'custom') return 'Custom';
     if (['auto', '16:9', '1:1', '9:16', '4:3', '1.91:1'].includes(aspectRatio)) return 'General';
     if (aspectRatio.startsWith('ig-')) return 'Instagram';
     if (aspectRatio.startsWith('yt-')) return 'YouTube';
@@ -38,6 +46,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
   const getAspectRatioLabel = (aspectRatio: string) => {
     switch (aspectRatio) {
+      case 'custom':
+        return `Custom (${state.customWidth}x${state.customHeight}px)`;
       case 'auto':
         return 'Auto Fit';
       case 'ig-post':
@@ -65,6 +75,23 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       default:
         return 'Original Ratio';
     }
+  };
+
+  const getRecommendedZoomForAspect = (aspectRatio: string, customW?: number, customH?: number) => {
+    let ratioNum = 16 / 9;
+    if (aspectRatio === '1:1' || aspectRatio === 'ig-post') ratioNum = 1;
+    else if (aspectRatio === '9:16' || aspectRatio === 'ig-story') ratioNum = 9 / 16;
+    else if (aspectRatio === '4:3') ratioNum = 4 / 3;
+    else if (aspectRatio === '1.91:1') ratioNum = 1.91;
+    else if (aspectRatio === 'ig-portrait') ratioNum = 4 / 5;
+    else if (aspectRatio === 'custom' && customW && customH) ratioNum = customW / customH;
+
+    // Tall vertical ratios (like 9:16 or 4:5) need smaller zoom so placeholder fits within frame
+    if (ratioNum < 0.7) return 50;
+    if (ratioNum < 0.95) return 60;
+    if (ratioNum <= 1.1) return 70;
+    if (ratioNum > 1.6) return 80;
+    return 80;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,7 +240,74 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
         </button>
 
         {isAspectDropdownOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-900 border border-neutral-800 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[320px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+          <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-900 border border-neutral-800 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[360px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+            {/* Custom Pixel Dimensions Input */}
+            <div className="pb-2 border-b border-neutral-800/80 space-y-2">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">
+                Custom Dimensions (Px)
+              </label>
+              <div className="flex items-center gap-1.5">
+                <div className="flex-1">
+                  <span className="block text-[9px] text-slate-400 mb-0.5 px-0.5">Width</span>
+                  <input
+                    type="number"
+                    min="160"
+                    placeholder="1280"
+                    value={customWidthInput}
+                    onChange={(e) => {
+                      setCustomWidthInput(e.target.value);
+                      setCustomDimensionError(null);
+                    }}
+                    className="w-full px-2 py-1 bg-neutral-950 border border-neutral-800 focus:border-pastel-pink rounded-lg text-xs font-mono text-slate-200 outline-none"
+                  />
+                </div>
+                <span className="text-slate-500 font-bold text-xs pt-3">×</span>
+                <div className="flex-1">
+                  <span className="block text-[9px] text-slate-400 mb-0.5 px-0.5">Height</span>
+                  <input
+                    type="number"
+                    min="160"
+                    placeholder="720"
+                    value={customHeightInput}
+                    onChange={(e) => {
+                      setCustomHeightInput(e.target.value);
+                      setCustomDimensionError(null);
+                    }}
+                    className="w-full px-2 py-1 bg-neutral-950 border border-neutral-800 focus:border-pastel-pink rounded-lg text-xs font-mono text-slate-200 outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const w = parseInt(customWidthInput, 10);
+                    const h = parseInt(customHeightInput, 10);
+                    if (isNaN(w) || isNaN(h) || w < 160 || h < 160) {
+                      setCustomDimensionError('Min size 160 × 160 px');
+                      return;
+                    }
+                    setCustomDimensionError(null);
+                    const recZoom = getRecommendedZoomForAspect('custom', w, h);
+                    onChange({
+                      aspectRatio: 'custom',
+                      customWidth: w,
+                      customHeight: h,
+                      zoom: recZoom,
+                      slot2Zoom: recZoom,
+                    });
+                    setIsAspectDropdownOpen(false);
+                  }}
+                  className="mt-3.5 px-3 py-1 bg-pastel-pink hover:bg-pastel-pinkLight text-slate-950 font-bold text-xs rounded-lg transition-all shadow-xs cursor-pointer shrink-0"
+                >
+                  Apply
+                </button>
+              </div>
+              {customDimensionError && (
+                <span className="block text-[10px] font-semibold text-rose-400 px-1 animate-in fade-in">
+                  {customDimensionError}
+                </span>
+              )}
+            </div>
+
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
                 General
@@ -225,7 +319,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                     <button
                       key={ratio}
                       onClick={() => {
-                        onChange({ aspectRatio: ratio });
+                        const recZoom = getRecommendedZoomForAspect(ratio);
+                        onChange({
+                          aspectRatio: ratio,
+                          zoom: recZoom,
+                          slot2Zoom: recZoom,
+                        });
                         setIsAspectDropdownOpen(false);
                       }}
                       className={`px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
@@ -257,7 +356,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                     <button
                       key={item.id}
                       onClick={() => {
-                        onChange({ aspectRatio: item.id as any });
+                        const recZoom = getRecommendedZoomForAspect(item.id);
+                        onChange({
+                          aspectRatio: item.id as any,
+                          zoom: recZoom,
+                          slot2Zoom: recZoom,
+                        });
                         setIsAspectDropdownOpen(false);
                       }}
                       className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
@@ -289,7 +393,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                     <button
                       key={item.id}
                       onClick={() => {
-                        onChange({ aspectRatio: item.id as any });
+                        const recZoom = getRecommendedZoomForAspect(item.id);
+                        onChange({
+                          aspectRatio: item.id as any,
+                          zoom: recZoom,
+                          slot2Zoom: recZoom,
+                        });
                         setIsAspectDropdownOpen(false);
                       }}
                       className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
@@ -492,7 +601,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                     >
                       <div
                         className={`w-full aspect-square rounded-xl border p-2 flex flex-col items-center justify-between transition-all overflow-hidden relative ${
-                          item.isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-slate-100 border-slate-300'
+                          item.isDark
+                            ? 'bg-neutral-950 border-neutral-800'
+                            : 'bg-slate-100 border-slate-300'
                         } ${
                           isSelected
                             ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
@@ -502,7 +613,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         {/* Polaroid Inner Photo Box */}
                         <div
                           className={`w-full h-[65%] rounded-md border ${
-                            item.isDark ? 'bg-neutral-900 border-neutral-700' : 'bg-slate-200 border-slate-300'
+                            item.isDark
+                              ? 'bg-neutral-900 border-neutral-700'
+                              : 'bg-slate-200 border-slate-300'
                           }`}
                         />
                         {/* Polaroid Bottom Border Accent */}
