@@ -52,6 +52,8 @@ export const WatermarkOverlay: React.FC = () => {
 
   const getVariantStyle = () => {
     switch (watermarkType) {
+      case 'dark':
+        return 'text-slate-950 font-extrabold';
       case 'glass':
         return 'bg-slate-900/40 backdrop-blur-md border border-white/20 text-white shadow-lg rounded-full font-bold';
       case 'badge':

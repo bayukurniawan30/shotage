@@ -1,4 +1,4 @@
-export type WatermarkType = 'none' | 'default' | 'glass' | 'badge' | 'dark-badge';
+export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
 export type WatermarkPosition =
   | 'bottom-right'
   | 'bottom-left'

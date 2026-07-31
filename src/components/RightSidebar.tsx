@@ -854,6 +854,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           {[
             { id: 'none', label: 'None' },
             { id: 'default', label: 'Default' },
+            { id: 'dark', label: 'Dark' },
             { id: 'glass', label: 'Glass' },
             { id: 'badge', label: 'Badge' },
             { id: 'dark-badge', label: 'Dark Badge' },

@@ -735,6 +735,23 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     </div>
   );
 
+  const getMiniCanvasBgStyle = (): React.CSSProperties => {
+    const bgType = state.backgroundType || 'gradient';
+
+    if (bgType === 'solid') {
+      return { backgroundColor: state.backgroundColor || '#0f172a' };
+    }
+    if (bgType === 'gradient') {
+      const angle = state.gradient?.angle ?? 135;
+      const c1 = state.gradient?.color1 || '#ffafcc';
+      const c2 = state.gradient?.color2 || '#a2d2ff';
+      return { backgroundImage: `linear-gradient(${angle}deg, ${c1}, ${c2})` };
+    }
+
+    // Default to pastel pink for all non-solid/gradient background types (mesh, wave, confetti, radiant, image, transparent)
+    return { backgroundColor: '#ffafcc' };
+  };
+
   const renderStyleSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
       <div className="border-b border-neutral-800/80 pb-2">
@@ -757,17 +774,52 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               className="flex flex-col items-center gap-1 cursor-pointer group shrink-0 w-20 md:w-auto"
             >
               <div
-                className={`w-16 h-16 md:w-full md:aspect-square rounded-xl border p-1 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
+                className={`w-16 h-16 md:w-full md:aspect-square rounded-xl border p-0 flex items-end justify-start transition-all overflow-hidden relative ${
                   isSelected
-                    ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
-                    : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
+                    ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
+                    : 'border-neutral-800 hover:border-neutral-700 hover:scale-102'
                 }`}
+                style={getMiniCanvasBgStyle()}
               >
-                <img
-                  src={`/style/style-${st.id}.png`}
-                  alt={`${st.label} style preview`}
-                  className="w-full h-full rounded-lg object-contain pointer-events-none"
-                />
+                {/* Masked Top-Right Corner Style Illustration Preview Diagrams */}
+                {st.id === 'default' && (
+                  <div className="absolute top-5 -left-3 w-14 h-14 rounded-xl bg-slate-900 border border-slate-700/80 shadow-md">
+                    <div className="w-full h-full rounded-lg bg-slate-800 border border-slate-700/50" />
+                  </div>
+                )}
+
+                {st.id === 'glass-light' && (
+                  <div className="absolute top-5 -left-3 w-14 h-14 p-1 rounded-xl bg-white/40 backdrop-blur-xs border border-white/70 shadow-lg">
+                    <div className="w-full h-full rounded-lg bg-slate-900/90 border border-slate-700/60" />
+                  </div>
+                )}
+
+                {st.id === 'glass-dark' && (
+                  <div className="absolute top-5 -left-3 w-14 h-14 p-1 rounded-xl bg-black/60 backdrop-blur-xs border border-white/25 shadow-xl">
+                    <div className="w-full h-full rounded-lg bg-slate-900 border border-slate-700/60" />
+                  </div>
+                )}
+
+                {st.id === 'inset-light' && (
+                  <div className="absolute top-5 -left-3 w-14 h-14 p-1 rounded-xl bg-slate-200/95 border border-slate-300 shadow-inner">
+                    <div className="w-full h-full rounded-lg bg-slate-900 border border-slate-800" />
+                  </div>
+                )}
+
+                {st.id === 'inset-dark' && (
+                  <div className="absolute top-5 -left-3 w-14 h-14 p-1 rounded-xl bg-slate-900/95 border border-slate-800 shadow-inner">
+                    <div className="w-full h-full rounded-lg bg-slate-950 border border-slate-800" />
+                  </div>
+                )}
+
+                {st.id === 'card' && (
+                  <div className="absolute top-5 -left-3 w-14 h-14">
+                    {/* Tilted background card */}
+                    <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                    {/* Foreground main card */}
+                    <div className="relative z-10 w-full h-full rounded-xl bg-slate-900 border border-slate-700 shadow-md" />
+                  </div>
+                )}
               </div>
               <span
                 className={`text-[10px] md:text-[11px] text-center capitalize transition-colors truncate w-full ${
@@ -795,6 +847,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       <div className="flex md:grid md:grid-cols-3 gap-2.5 overflow-x-auto p-1 no-scrollbar scroll-smooth">
         {(['none', 'soft', 'medium', 'hard', 'floating'] as const).map((sh) => {
           const isSelected = state.shadow === sh;
+          const getShadowPreviewClass = () => {
+            switch (sh) {
+              case 'soft':
+                return 'shadow-md shadow-black/60';
+              case 'medium':
+                return 'shadow-lg shadow-black/80';
+              case 'hard':
+                return 'shadow-2xl shadow-black/95';
+              case 'floating':
+                return 'shadow-[0_25px_40px_-5px_rgba(0,0,0,0.95)] -translate-y-1';
+              case 'none':
+              default:
+                return 'shadow-none';
+            }
+          };
+
           return (
             <button
               key={sh}
@@ -802,17 +870,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               className="flex flex-col items-center gap-1 cursor-pointer group shrink-0 w-20 md:w-auto"
             >
               <div
-                className={`w-16 h-16 md:w-full md:aspect-square rounded-xl border p-1 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
+                className={`w-16 h-16 md:w-full md:aspect-square rounded-xl border p-0 transition-all overflow-hidden relative ${
                   isSelected
-                    ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
-                    : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
+                    ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
+                    : 'border-neutral-800 hover:border-neutral-700 hover:scale-102'
                 }`}
+                style={getMiniCanvasBgStyle()}
               >
-                <img
-                  src={`/shadow/shadow-${sh}.png`}
-                  alt={`${sh} shadow preview`}
-                  className="w-full h-full rounded-lg object-contain pointer-events-none"
-                />
+                {/* Masked Bottom-Left Corner Screenshot Box with Elevation Shadow */}
+                <div
+                  className={`absolute -top-3 -right-3 w-14 h-14 rounded-xl bg-slate-900 transition-all ${getShadowPreviewClass()}`}
+                >
+                  <div className="w-full h-full rounded-lg bg-white" />
+                </div>
               </div>
               <span
                 className={`text-[10px] md:text-[11px] text-center capitalize transition-colors truncate w-full ${

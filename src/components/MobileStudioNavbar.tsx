@@ -19,14 +19,7 @@ interface MobileStudioNavbarProps {
 }
 
 export type MobileTab =
-  | 'image'
-  | 'aspect'
-  | 'frame'
-  | 'style'
-  | 'shadow'
-  | 'perspective'
-  | 'watermark'
-  | 'background';
+  'image' | 'aspect' | 'frame' | 'style' | 'shadow' | 'perspective' | 'watermark' | 'background';
 
 export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageUpload }) => {
   const [activeTab, setActiveTab] = useState<MobileTab | null>(null);
@@ -73,7 +66,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
 
       {/* Expandable Mobile Panel Drawer */}
       {activeTab && (
-        <div className="fixed inset-x-0 bottom-[64px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl p-4 max-h-[45vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl p-4 max-h-[45vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-neutral-800">
             <span className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
               {tabs.find((t) => t.id === activeTab)?.label}
