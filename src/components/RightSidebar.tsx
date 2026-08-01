@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { ChevronDown, Check, Brush03, Stars02, RefreshCw01 } from '@untitledui/icons';
+import {
+  ChevronDown,
+  Check,
+  Brush03,
+  Stars02,
+  RefreshCw01,
+  Plus,
+  Trash01,
+  Copy01,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Type01,
+} from '@untitledui/icons';
 import { extractDominantColors, generateGradientVariations } from '../utils/colorExtractor';
 import { WAVE_PRESETS } from '../utils/wavePresets';
 import { MESH_PRESETS } from '../utils/meshPresets';
@@ -11,8 +24,21 @@ import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
 
+export const GOOGLE_FONTS = [
+  { name: 'Inter', family: 'Inter, sans-serif' },
+  { name: 'Roboto', family: 'Roboto, sans-serif' },
+  { name: 'Poppins', family: 'Poppins, sans-serif' },
+  { name: 'Montserrat', family: 'Montserrat, sans-serif' },
+  { name: 'Playfair Display', family: "'Playfair Display', serif" },
+  { name: 'Lora', family: 'Lora, serif' },
+  { name: 'Oswald', family: 'Oswald, sans-serif' },
+  { name: 'Outfit', family: 'Outfit, sans-serif' },
+  { name: 'Pacifico', family: 'Pacifico, cursive' },
+  { name: 'Fira Code', family: "'Fira Code', monospace" },
+];
+
 interface RightSidebarProps {
-  mobileSection?: 'perspective' | 'watermark' | 'background';
+  mobileSection?: 'perspective' | 'watermark' | 'background' | 'text';
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
@@ -1004,8 +1030,338 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     </div>
   );
 
+  const renderTextSection = () => {
+    const selectedLayer = state.textLayers.find((l) => l.id === state.selectedTextLayerId);
+
+    const presetColors = [
+      '#ffffff',
+      '#000000',
+      '#ffafcc',
+      '#a2d2ff',
+      '#cdb4db',
+      '#fef08a',
+      '#4ade80',
+      '#f87171',
+      '#38bdf8',
+    ];
+
+    return (
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Type01 className="w-4 h-4 text-pastel-blue" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Text Layers
+            </h3>
+          </div>
+          <button
+            onClick={() => state.addTextLayer()}
+            className="px-2.5 py-1 bg-pastel-blue/20 hover:bg-pastel-blue/30 text-pastel-blue border border-pastel-blue/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Text</span>
+          </button>
+        </div>
+
+        {/* Text Layers List */}
+        {state.textLayers.length === 0 ? (
+          <div className="text-center py-6 px-3 bg-neutral-950/80 rounded-xl border border-dashed border-neutral-800 space-y-1.5">
+            <p className="text-xs font-medium text-slate-400">No text layers added yet</p>
+            <p className="text-[11px] text-slate-500">
+              Click "+ Add Text" to overlay headlines, captions, or badges.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              Layers ({state.textLayers.length}):
+            </span>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {state.textLayers.map((layer, index) => {
+                const isSelected = layer.id === state.selectedTextLayerId;
+                return (
+                  <div
+                    key={layer.id}
+                    onClick={() => state.selectTextLayer(layer.id)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-pastel-blue/15 border-pastel-blue text-white shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-900 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate pr-2">
+                      <span className="font-mono text-[10px] text-slate-500 font-semibold shrink-0">
+                        #{index + 1}
+                      </span>
+                      <span
+                        className="truncate font-medium"
+                        style={{ fontFamily: layer.fontFamily }}
+                      >
+                        {layer.text || 'Empty Text'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.duplicateTextLayer(layer.id);
+                        }}
+                        className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                        title="Duplicate Layer"
+                      >
+                        <Copy01 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.removeTextLayer(layer.id);
+                        }}
+                        className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors"
+                        title="Delete Layer"
+                      >
+                        <Trash01 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Layer Inspector */}
+        {selectedLayer && (
+          <div className="pt-3 border-t border-neutral-800/80 space-y-3.5 animate-in fade-in duration-150">
+            {/* Text Content Input */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Text Content
+              </label>
+              <textarea
+                rows={2}
+                value={selectedLayer.text}
+                onChange={(e) => state.updateTextLayer(selectedLayer.id, { text: e.target.value })}
+                placeholder="Enter text..."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-2 text-xs text-white outline-none focus:border-pastel-blue transition-colors resize-none"
+              />
+            </div>
+
+            {/* Font Family Selector (10 Google Fonts) */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Font Family (Google Fonts)
+              </label>
+              <select
+                value={selectedLayer.fontFamily}
+                onChange={(e) =>
+                  state.updateTextLayer(selectedLayer.id, { fontFamily: e.target.value })
+                }
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs text-pastel-blue font-bold outline-none cursor-pointer focus:border-pastel-blue transition-colors"
+              >
+                {GOOGLE_FONTS.map((font) => (
+                  <option
+                    key={font.name}
+                    value={font.name}
+                    className="bg-neutral-900 text-white font-normal"
+                    style={{ fontFamily: font.family }}
+                  >
+                    {font.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Font Size & Weight */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Size</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.fontSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="12"
+                  max="120"
+                  value={selectedLayer.fontSize}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { fontSize: Number(e.target.value) })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Weight
+                </label>
+                <select
+                  value={selectedLayer.fontWeight}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      fontWeight: e.target.value as any,
+                    })
+                  }
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-xs text-white outline-none cursor-pointer"
+                >
+                  <option value="300">Light (300)</option>
+                  <option value="400">Regular (400)</option>
+                  <option value="600">SemiBold (600)</option>
+                  <option value="700">Bold (700)</option>
+                  <option value="800">ExtraBold (800)</option>
+                  <option value="900">Black (900)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Alignment & Style Options */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Alignment
+                </label>
+                <div className="grid grid-cols-3 gap-1 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                  {(
+                    [
+                      { id: 'left', icon: AlignLeft },
+                      { id: 'center', icon: AlignCenter },
+                      { id: 'right', icon: AlignRight },
+                    ] as const
+                  ).map((align) => {
+                    const Icon = align.icon;
+                    const isSelected = selectedLayer.textAlign === align.id;
+                    return (
+                      <button
+                        key={align.id}
+                        onClick={() =>
+                          state.updateTextLayer(selectedLayer.id, { textAlign: align.id })
+                        }
+                        className={`py-1 flex items-center justify-center rounded transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-pastel-blue/20 text-pastel-blue'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Style</label>
+                <button
+                  onClick={() =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      fontStyle: selectedLayer.fontStyle === 'italic' ? 'normal' : 'italic',
+                    })
+                  }
+                  className={`w-full py-1 text-xs font-semibold italic rounded-lg border transition-all cursor-pointer ${
+                    selectedLayer.fontStyle === 'italic'
+                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Italic
+                </button>
+              </div>
+            </div>
+
+            {/* Text Color Selection */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Text Color
+              </label>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {presetColors.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => state.updateTextLayer(selectedLayer.id, { color: c })}
+                    style={{ backgroundColor: c }}
+                    className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
+                      selectedLayer.color === c
+                        ? 'border-white scale-110 shadow-md ring-2 ring-pastel-blue/50'
+                        : 'border-slate-700/60 hover:scale-105'
+                    }`}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={selectedLayer.color}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { color: e.target.value })
+                  }
+                  className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
+                  title="Custom Color"
+                />
+              </div>
+            </div>
+
+            {/* Position Offsets X / Y */}
+            <div className="space-y-2 pt-1 border-t border-neutral-800/60">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position X</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="-300"
+                  max="300"
+                  value={selectedLayer.x}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { x: Number(e.target.value) })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position Y</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="-300"
+                  max="300"
+                  value={selectedLayer.y}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { y: Number(e.target.value) })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Text Shadow Toggle */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-xs font-medium text-slate-300">Drop Shadow</span>
+              <button
+                onClick={() =>
+                  state.updateTextLayer(selectedLayer.id, { shadow: !selectedLayer.shadow })
+                }
+                className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                  selectedLayer.shadow ? 'bg-pastel-blue' : 'bg-slate-800'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                    selectedLayer.shadow ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (mobileSection) {
     if (mobileSection === 'perspective') return renderPerspectiveSection();
+    if (mobileSection === 'text') return renderTextSection();
     if (mobileSection === 'watermark') return renderWatermarkSection();
     if (mobileSection === 'background') return renderBackgroundSection();
     return null;
@@ -1014,6 +1370,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   return (
     <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {renderPerspectiveSection()}
+      {renderTextSection()}
       {renderBackgroundSection()}
       {renderWatermarkSection()}
     </div>

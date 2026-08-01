@@ -7,6 +7,7 @@ import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
 import { WatermarkOverlay } from './WatermarkOverlay';
+import { GOOGLE_FONTS } from './RightSidebar';
 import { ImageUp } from '@untitledui/icons';
 
 interface CanvasStageProps {
@@ -524,15 +525,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const startPosRef = useRef({ x: 0, y: 0 });
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only pan if clicking on empty stage area or dragging
+    const target = e.target as HTMLElement;
     if (
-      (e.target as HTMLElement).tagName === 'INPUT' ||
-      (e.target as HTMLElement).tagName === 'BUTTON'
-    )
+      target.tagName === 'INPUT' ||
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT'
+    ) {
       return;
+    }
+
+    if (state.selectedTextLayerId && !target.closest('.text-layer-item')) {
+      state.selectTextLayer(null);
+    }
+
     setIsPanning(true);
     startPosRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    target.setPointerCapture?.(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -633,6 +642,46 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#a2d2ff]/80 shadow-[0_0_8px_#a2d2ff]" />
             </div>
           )}
+
+          {/* Static Text Layers Overlay */}
+          {state.textLayers.map((layer) => {
+            const isSelected = layer.id === state.selectedTextLayerId;
+            const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
+            const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
+
+            return (
+              <div
+                key={layer.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  state.selectTextLayer(layer.id);
+                }}
+                className={`text-layer-item absolute z-30 transition-all cursor-pointer select-none px-1 py-0.5 rounded-sm ${
+                  isSelected
+                    ? 'ring-2 ring-pastel-blue ring-offset-2 ring-offset-neutral-950/40'
+                    : 'hover:outline-1 hover:outline-dashed hover:outline-slate-400'
+                }`}
+                style={{
+                  transform: `translate(${layer.x}px, ${layer.y}px)`,
+                  fontFamily: fontFamilyCss,
+                  fontSize: `${layer.fontSize}px`,
+                  fontWeight: layer.fontWeight,
+                  fontStyle: layer.fontStyle,
+                  color: layer.color,
+                  textAlign: layer.textAlign,
+                  opacity: layer.opacity / 100,
+                  textShadow: layer.shadow
+                    ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
+                    : 'none',
+                  whiteSpace: layer.text.includes('\n') ? 'pre-wrap' : 'nowrap',
+                  width: 'max-content',
+                  maxWidth: 'none',
+                }}
+              >
+                {layer.text}
+              </div>
+            );
+          })}
 
           {/* Watermark Overlay Layer */}
           <WatermarkOverlay />

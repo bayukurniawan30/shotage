@@ -102,7 +102,12 @@ export const Home: React.FC = () => {
             <span className="sm:hidden">Install Shotage</span>
             <span className="hidden sm:inline">Launch Studio</span>
             <DownloadCloud01 className="w-3.5 h-3.5 sm:hidden text-slate-950 stroke-[2.5]" />
-            <svg className="w-3.5 h-3.5 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="w-3.5 h-3.5 hidden sm:block"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -179,8 +184,8 @@ export const Home: React.FC = () => {
                 Device & Browser Frames
               </h3>
               <p className="text-slate-400 text-xs leading-relaxed">
-                Choose between Safari, Chrome dark mode, MacBook Pro, iPhone, and Tablet mockups to
-                frame your work seamlessly.
+                Choose between Safari, Chrome dark mode, MacBook Air, iPhone, and Android phone
+                mockups to frame your work seamlessly.
               </p>
             </div>
 
@@ -226,9 +231,20 @@ export const Home: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-8 text-center text-xs font-medium text-slate-300">
-        © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
-        reserved.
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-8 text-xs font-medium text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <a
+            href="/terms"
+            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
+          >
+            Terms of Service
+          </a>
+        </div>
+
+        <div className="text-center sm:text-right">
+          © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
+          reserved.
+        </div>
       </footer>
 
       {/* Mobile Install App Modal (Triggered by Header Button) */}

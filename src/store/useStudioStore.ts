@@ -10,6 +10,11 @@ interface StudioStore extends StudioState {
   reset3DPerspective: () => void;
   resetAll: () => void;
   togglePreviewMode: () => void;
+  addTextLayer: (text?: string) => void;
+  updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
+  removeTextLayer: (id: string) => void;
+  duplicateTextLayer: (id: string) => void;
+  selectTextLayer: (id: string | null) => void;
 }
 
 export const useStudioStore = create<StudioStore>()(
@@ -179,6 +184,52 @@ export const useStudioStore = create<StudioStore>()(
         }),
       resetAll: () => set({ ...DEFAULT_STUDIO_STATE }),
       togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode })),
+      addTextLayer: (initialText) =>
+        set((state) => {
+          const newLayer: import('../types/studio').TextLayer = {
+            id: `text-${Date.now()}`,
+            text: initialText || `Text ${state.textLayers.length + 1}`,
+            fontFamily: 'Inter',
+            fontSize: 32,
+            fontWeight: '700',
+            fontStyle: 'normal',
+            color: '#ffffff',
+            textAlign: 'center',
+            x: 0,
+            y: 0,
+            shadow: true,
+            opacity: 100,
+          };
+          return {
+            textLayers: [...state.textLayers, newLayer],
+            selectedTextLayerId: newLayer.id,
+          };
+        }),
+      updateTextLayer: (id, updates) =>
+        set((state) => ({
+          textLayers: state.textLayers.map((l) => (l.id === id ? { ...l, ...updates } : l)),
+        })),
+      removeTextLayer: (id) =>
+        set((state) => ({
+          textLayers: state.textLayers.filter((l) => l.id !== id),
+          selectedTextLayerId: state.selectedTextLayerId === id ? null : state.selectedTextLayerId,
+        })),
+      duplicateTextLayer: (id) =>
+        set((state) => {
+          const layerToDup = state.textLayers.find((l) => l.id === id);
+          if (!layerToDup) return state;
+          const dup: import('../types/studio').TextLayer = {
+            ...layerToDup,
+            id: `text-${Date.now()}`,
+            text: `${layerToDup.text} (Copy)`,
+            y: layerToDup.y + 20,
+          };
+          return {
+            textLayers: [...state.textLayers, dup],
+            selectedTextLayerId: dup.id,
+          };
+        }),
+      selectTextLayer: (id) => set({ selectedTextLayerId: id }),
     }),
     {
       limit: 50, // Keep last 50 history steps

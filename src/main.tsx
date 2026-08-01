@@ -13,7 +13,10 @@ const getInitialPage = () => {
     }
   }
   const currentPath = window.location.pathname;
-  const componentName = currentPath === '/studio' ? 'Studio' : 'Home';
+  let componentName = 'Home';
+  if (currentPath === '/studio') componentName = 'Studio';
+  if (currentPath === '/terms') componentName = 'Terms';
+
   return {
     component: componentName,
     props: {},

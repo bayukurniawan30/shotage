@@ -1,3 +1,18 @@
+export interface TextLayer {
+  id: string;
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  fontStyle: 'normal' | 'italic';
+  color: string;
+  textAlign: 'left' | 'center' | 'right';
+  x: number;
+  y: number;
+  shadow: boolean;
+  opacity: number;
+}
+
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
 export type WatermarkPosition =
   | 'bottom-right'
@@ -98,6 +113,9 @@ export interface StudioState {
   durationSec: number;
   keyframes: import('./animationTypes').AnimationKeyframe[];
   activePresetId: string;
+  // Text Layers
+  textLayers: TextLayer[];
+  selectedTextLayerId: string | null;
 }
 
 export const DEFAULT_STUDIO_STATE: StudioState = {
@@ -157,4 +175,6 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   durationSec: 10,
   keyframes: [],
   activePresetId: '',
+  textLayers: [],
+  selectedTextLayerId: null,
 };

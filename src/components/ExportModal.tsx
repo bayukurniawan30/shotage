@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { toPng, toJpeg, toBlob } from 'html-to-image';
-import { Download01, XClose, LinkExternal01, Film01, Loading01 } from '@untitledui/icons';
+import { toPng, toJpeg, toBlob, toCanvas } from 'html-to-image';
+import { Download01, XClose, LinkExternal01, Film01, Loading01, Check } from '@untitledui/icons';
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
 
@@ -15,6 +15,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const state = useStudioStore();
   const onChange = state.updateState;
   const [isExporting, setIsExporting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [exportingType, setExportingType] = useState<'image' | 'video' | null>(null);
   const [videoFormat, setVideoFormat] = useState<'mp4' | 'webm'>('mp4');
   const [activeTab, setActiveTab] = useState<'image' | 'video'>(
@@ -26,6 +27,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
   const handleExport = async (format: 'png' | 'jpeg' | 'webp', isCopy = false) => {
     if (!canvasRef.current) return;
+    state.selectTextLayer(null);
     setIsExporting(true);
     setExportingType('image');
 
@@ -78,6 +80,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setExportProgress(0);
 
     try {
+      state.selectTextLayer(null);
       const durationSec = state.durationSec || 10;
       const fps = 30; // 30 FPS for crisp frame delivery
       const totalFrames = Math.floor(durationSec * fps);
@@ -160,32 +163,28 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       // Pause live player during frame rendering
       onChange({ isPlaying: false, currentTimeSec: 0 });
 
-      // Frame-by-Frame Exact Timestamp Pipeline
+      // Ensure all loaded web fonts are ready in browser cache before recording
+      if ('fonts' in document) {
+        await document.fonts.ready;
+      }
+
+      // Frame-by-Frame High Speed Pipeline using direct canvas capture
       for (let frame = 0; frame <= totalFrames; frame++) {
         const targetTimeSec = (frame / totalFrames) * durationSec;
         onChange({ currentTimeSec: targetTimeSec });
 
-        await new Promise((r) => setTimeout(r, 20));
-
         try {
-          const dataUrl = await toPng(canvasRef.current, {
+          const renderedCanvas = await toCanvas(canvasRef.current, {
             pixelRatio: scale,
-            quality: 0.95,
-            skipFonts: true,
             cacheBust: false,
+            skipFonts: true,
           });
 
-          await new Promise<void>((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-              ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-              ctx.drawImage(img, 0, 0, exportCanvas.width, exportCanvas.height);
-              resolve();
-            };
-            img.src = dataUrl;
-          });
+          // Draw directly to even-dimension exportCanvas
+          ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+          ctx.drawImage(renderedCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
-          // Compute exact timestamp in microseconds for exact 10.00s video output
+          // Compute exact timestamp in microseconds for video output
           const timestampMicros = Math.round((frame / fps) * 1_000_000);
           const videoFrame = new VideoFrame(exportCanvas, { timestamp: timestampMicros });
           videoEncoder.encode(videoFrame, { keyFrame: frame % (fps * 2) === 0 });
@@ -208,10 +207,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       link.href = url;
       link.click();
 
-      setIsExporting(false);
-      setExportingType(null);
-      setExportProgress(0);
-      onClose();
+      // Trigger 3D Success State
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        setIsExporting(false);
+        setExportingType(null);
+        setExportProgress(0);
+      }, 2500);
     } catch (err) {
       console.error('Video Export error:', err);
       alert('Failed to encode video animation. Please try again.');
@@ -235,8 +238,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               <Download01 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-100">Export High-Res Graphics</h3>
-              <p className="text-xs text-slate-400">Select file format and scale multiplier</p>
+              <h3 className="text-sm font-bold text-slate-100">
+                {activeTab === 'video' ? 'Export Video Animation' : 'Export High-Res Graphics'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {activeTab === 'video'
+                  ? 'Record 3D motion animation as video'
+                  : 'Select file format and scale multiplier'}
+              </p>
             </div>
           </div>
           <button
@@ -405,26 +414,68 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                disabled={isExporting}
-                onClick={handleExportVideo}
-                className={`w-full py-3 bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg ${
-                  isExporting ? 'opacity-60 cursor-not-allowed' : 'hover:brightness-110 cursor-pointer'
-                }`}
+            <div className="pt-2 w-full" style={{ perspective: '1000px' }}>
+              <div
+                className="relative w-full h-11"
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform:
+                    isExporting && exportingType === 'video'
+                      ? 'rotateX(-90deg)'
+                      : 'rotateX(0deg)',
+                }}
               >
-                {exportingType === 'video' ? (
-                  <>
-                    <Loading01 className="w-4 h-4 text-slate-950 animate-spin" />
-                    <span>Recording {videoFormat.toUpperCase()} Video ({exportProgress}%)...</span>
-                  </>
-                ) : (
-                  <>
-                    <Film01 className="w-4 h-4 text-slate-950" />
-                    <span>Record & Export {videoFormat.toUpperCase()} Video</span>
-                  </>
-                )}
-              </button>
+                {/* 1. FRONT FACE: Idle or Success State */}
+                <button
+                  disabled={isExporting}
+                  onClick={handleExportVideo}
+                  className={`absolute inset-0 w-full h-full rounded-xl transition-all flex items-center justify-center gap-2 font-extrabold text-xs shadow-lg ${
+                    isSuccess
+                      ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30 font-black'
+                      : 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 hover:brightness-110 cursor-pointer'
+                  }`}
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    transform: 'rotateX(0deg) translateZ(22px)',
+                  }}
+                >
+                  {isSuccess ? (
+                    <>
+                      <Check className="w-4 h-4 text-slate-950 stroke-[3]" />
+                      <span>Export Complete!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Film01 className="w-4 h-4 text-slate-950" />
+                      <span>Record & Export {videoFormat.toUpperCase()} Video</span>
+                    </>
+                  )}
+                </button>
+
+                {/* 2. BOTTOM/PROGRESS FACE: 3D Side-Down Progress Track (Rotated 90deg down - NO TEXT) */}
+                <div
+                  className="absolute inset-0 w-full h-full bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden shadow-inner flex items-center justify-between p-1.5"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    transform: 'rotateX(90deg) translateZ(22px)',
+                  }}
+                >
+                  {/* Clean 3D Progress Track */}
+                  <div className="relative flex-1 h-full bg-neutral-900 rounded-lg overflow-hidden border border-neutral-800/80 flex items-center">
+                    {/* Glowing Progress Fill Bar */}
+                    <div
+                      className="h-full bg-gradient-to-r from-pastel-pink via-[#bde0fe] to-[#a2d2ff] transition-all duration-150 ease-out shadow-[0_0_15px_#a2d2ff]"
+                      style={{ width: `${exportProgress}%` }}
+                    />
+                  </div>
+
+                  {/* Percentage Indicator Badge */}
+                  <span className="font-mono text-xs font-bold text-pastel-pink px-2.5 shrink-0">
+                    {exportProgress}%
+                  </span>
+                </div>
+              </div>
             </div>
           </>
         )}
