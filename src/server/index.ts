@@ -9,7 +9,7 @@ app.get('/*', async (c, next) => {
   const reqPath = c.req.path;
 
   // Skip rendering routes and API proxy routes
-  if (reqPath === '/' || reqPath === '/studio' || reqPath.startsWith('/api/')) {
+  if (reqPath === '/' || reqPath === '/studio' || reqPath === '/terms' || reqPath.startsWith('/api/')) {
     return await next();
   }
 
@@ -46,7 +46,7 @@ const renderInertiaPage = (componentName: string, props = {}) => {
   const pageData = JSON.stringify({
     component: componentName,
     props,
-    url: componentName === 'Home' ? '/' : '/studio',
+    url: componentName === 'Home' ? '/' : componentName === 'Studio' ? '/studio' : '/terms',
     version: null,
   });
 
@@ -115,6 +115,14 @@ app.get('/studio', (c) => {
     return c.json({ component: 'Studio', props: {}, url: '/studio' });
   }
   return c.html(renderInertiaPage('Studio'));
+});
+
+app.get('/terms', (c) => {
+  if (c.req.header('X-Inertia')) {
+    c.header('X-Inertia', 'true');
+    return c.json({ component: 'Terms', props: {}, url: '/terms' });
+  }
+  return c.html(renderInertiaPage('Terms'));
 });
 
 // Export default Hono app for Vercel & Vite dev server
