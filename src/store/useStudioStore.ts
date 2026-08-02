@@ -199,6 +199,7 @@ export const useStudioStore = create<StudioStore>()(
             y: 0,
             shadow: true,
             opacity: 100,
+            position: 'above',
           };
           return {
             textLayers: [...state.textLayers, newLayer],

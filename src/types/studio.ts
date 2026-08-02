@@ -10,7 +10,8 @@ export interface TextLayer {
   x: number;
   y: number;
   shadow: boolean;
-  opacity: number;
+  opacity: number; // 0 to 100
+  position: 'above' | 'underneath'; // 'above' (front overlay) or 'underneath' (behind mockup)
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
@@ -101,6 +102,7 @@ export interface StudioState {
   slot2OffsetX: number; // -200 to 200
   slot2OffsetY: number; // -200 to 200
   layoutCount: 1 | 2;
+  mediaType: 'image' | 'video';
   layoutPreset: 'side-by-side' | 'overlap-right' | 'overlap-left' | 'stacked';
   secondImageSrc: string | null;
   secondImageName: string;
@@ -124,6 +126,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   secondImageSrc: null,
   secondImageName: 'screenshot-2.png',
   layoutCount: 1,
+  mediaType: 'image',
   layoutPreset: 'side-by-side',
   zoom: 100,
   slot2Zoom: 100,

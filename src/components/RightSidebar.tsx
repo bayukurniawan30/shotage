@@ -1182,7 +1182,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 <input
                   type="range"
                   min="12"
-                  max="120"
+                  max="200"
                   value={selectedLayer.fontSize}
                   onChange={(e) =>
                     state.updateTextLayer(selectedLayer.id, { fontSize: Number(e.target.value) })
@@ -1333,10 +1333,62 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   className="w-full bg-slate-800 rounded-lg cursor-pointer"
                 />
               </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Opacity</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.opacity ?? 100}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedLayer.opacity ?? 100}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { opacity: Number(e.target.value) })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Layer Depth Position (Above vs Behind Mockup) */}
+            <div className="space-y-1.5 pt-1 border-t border-neutral-800/60">
+              <label className="block text-[11px] font-semibold text-slate-300">
+                Layer Layering Depth
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateTextLayer(selectedLayer.id, { position: 'above' })
+                  }
+                  className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    (selectedLayer.position || 'above') === 'above'
+                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Above Mockup
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateTextLayer(selectedLayer.id, { position: 'underneath' })
+                  }
+                  className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    selectedLayer.position === 'underneath'
+                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Behind Mockup
+                </button>
+              </div>
             </div>
 
             {/* Text Shadow Toggle */}
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60">
               <span className="text-xs font-medium text-slate-300">Drop Shadow</span>
               <button
                 onClick={() =>
