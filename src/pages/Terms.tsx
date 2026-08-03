@@ -23,14 +23,6 @@ const Terms: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <a
-            href="/"
-            className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition-all flex items-center gap-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Home</span>
-          </a>
-
-          <a
             href="/studio"
             className="px-3.5 sm:px-4 py-2 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
             style={{
@@ -39,12 +31,7 @@ const Terms: React.FC = () => {
           >
             <span className="hidden sm:inline">Launch Studio</span>
             <span className="sm:hidden">Launch Studio</span>
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -74,9 +61,7 @@ const Terms: React.FC = () => {
             with complete data privacy.
           </p>
 
-          <div className="pt-2 text-xs font-mono text-slate-400">
-            Last Updated: August 2026
-          </div>
+          <div className="pt-2 text-xs font-mono text-slate-400">Last Updated: August 2026</div>
         </div>
 
         {/* 3 Core Pillars Cards Grid */}
@@ -88,7 +73,8 @@ const Terms: React.FC = () => {
             </div>
             <h3 className="font-bold text-slate-100 text-base">100% Free to Use</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
-              Shotage is completely free to use for both personal and commercial projects. No subscription, no paywalls, and no mandatory watermarks.
+              Shotage is completely free to use for both personal and commercial projects. No
+              subscription, no paywalls, and no mandatory watermarks.
             </p>
           </div>
 
@@ -99,7 +85,8 @@ const Terms: React.FC = () => {
             </div>
             <h3 className="font-bold text-slate-100 text-base">100% User Ownership</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
-              All exported images, 3D graphics, and video animation mockups remain 100% owned by you. You retain full copyright and commercial rights.
+              All exported images, 3D graphics, and video animation mockups remain 100% owned by
+              you. You retain full copyright and commercial rights.
             </p>
           </div>
 
@@ -110,7 +97,8 @@ const Terms: React.FC = () => {
             </div>
             <h3 className="font-bold text-slate-100 text-base">100% Local & Private</h3>
             <p className="text-slate-400 text-xs leading-relaxed">
-              Processing is performed locally in your browser. No screenshots, images, or media files are ever uploaded to external servers.
+              Processing is performed locally in your browser. No screenshots, images, or media
+              files are ever uploaded to external servers.
             </p>
           </div>
         </div>
@@ -120,28 +108,39 @@ const Terms: React.FC = () => {
           <section className="space-y-2">
             <h2 className="text-base font-bold text-slate-100">1. Commercial & Personal License</h2>
             <p className="text-slate-400">
-              Shotage grants you a worldwide, royalty-free, non-exclusive license to use the application to generate static graphics, social media banners, app store screenshots, and video animations for any commercial or personal purpose.
+              Shotage grants you a worldwide, royalty-free, non-exclusive license to use the
+              application to generate static graphics, social media banners, app store screenshots,
+              and video animations for any commercial or personal purpose.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-slate-100">2. Intellectual Property & Content Ownership</h2>
+            <h2 className="text-base font-bold text-slate-100">
+              2. Intellectual Property & Content Ownership
+            </h2>
             <p className="text-slate-400">
-              You maintain exclusive ownership of all uploaded artwork, screenshots, text overlays, and exported media files created with Shotage. Shotage claims zero ownership or copyright over content produced using our tools.
+              You maintain exclusive ownership of all uploaded artwork, screenshots, text overlays,
+              and exported media files created with Shotage. Shotage claims zero ownership or
+              copyright over content produced using our tools.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-slate-100">3. Privacy & Zero-Server Data Guarantee</h2>
+            <h2 className="text-base font-bold text-slate-100">
+              3. Privacy & Zero-Server Data Guarantee
+            </h2>
             <p className="text-slate-400">
-              Your privacy is fundamental. All canvas manipulations, 3D perspective transforms, custom font styling, and video encoding loops execute strictly client-side on your local device. We do not store, inspect, or transmit your media.
+              Your privacy is fundamental. All canvas manipulations, 3D perspective transforms,
+              custom font styling, and video encoding loops execute strictly client-side on your
+              local device. We do not store, inspect, or transmit your media.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-base font-bold text-slate-100">4. Service Availability</h2>
             <p className="text-slate-400">
-              Shotage is provided "as is" with maximum browser compatibility and Progressive Web App (PWA) support for offline usage.
+              Shotage is provided "as is" with maximum browser compatibility and Progressive Web App
+              (PWA) support for offline usage.
             </p>
           </section>
         </div>
@@ -150,7 +149,8 @@ const Terms: React.FC = () => {
         <div className="p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 text-center space-y-4 shadow-xl">
           <h2 className="text-xl font-bold text-white">Ready to create stunning 3D mockups?</h2>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Transform plain screenshots into eye-catching graphics and video animations right in your browser.
+            Transform plain screenshots into eye-catching graphics and video animations right in
+            your browser.
           </p>
           <div className="pt-2">
             <a
@@ -176,7 +176,8 @@ const Terms: React.FC = () => {
         </div>
 
         <div className="text-center sm:text-right">
-          © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights reserved.
+          © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
+          reserved.
         </div>
       </footer>
     </div>

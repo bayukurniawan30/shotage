@@ -76,21 +76,21 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
 
       {/* Expandable Mobile Panel Drawer */}
       {activeTab && (
-        <div className="fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl p-4 max-h-[45vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-neutral-800">
+        <div className="fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl max-h-[45vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
+          <div className="sticky top-0 z-[60] bg-neutral-900/95 backdrop-blur-xl px-4 pt-4 pb-2 border-b border-neutral-800 flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
               {tabs.find((t) => t.id === activeTab)?.label}
             </span>
             <button
               onClick={() => setActiveTab(null)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white bg-neutral-800"
+              className="p-1 rounded-lg text-slate-400 hover:text-white bg-neutral-800 cursor-pointer"
             >
               <XClose className="w-4 h-4" />
             </button>
           </div>
 
           {/* Panel Content per selected section */}
-          <div className="mobile-drawer-content">
+          <div className="mobile-drawer-content p-4">
             {activeTab === 'image' && (
               <LeftSidebar onImageUpload={onImageUpload} mobileSection="image" />
             )}

@@ -168,6 +168,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
         <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
           Primary Image Upload (Slot 1)
         </label>
+        {state.imageSrc && (
+          <div className="mb-2 p-1.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+              <img src={state.imageSrc} alt="Slot 1 Preview" className="max-w-full max-h-full object-contain" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-slate-200 truncate">
+                {state.imageName || 'Slot 1 Image'}
+              </p>
+              <p className="text-[10px] text-pastel-pink font-medium">Uploaded & Active</p>
+            </div>
+          </div>
+        )}
         <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all text-center">
           <UploadCloud01 className="w-5 h-5 text-pastel-pink mb-1" />
           <span className="text-xs font-medium text-slate-200">
@@ -183,6 +196,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
             Secondary Image Upload (Slot 2)
           </label>
+          {state.secondImageSrc && (
+            <div className="mb-2 p-1.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                <img src={state.secondImageSrc} alt="Slot 2 Preview" className="max-w-full max-h-full object-contain" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-slate-200 truncate">
+                  {state.secondImageName || 'Slot 2 Image'}
+                </p>
+                <p className="text-[10px] text-[#a2d2ff] font-medium">Uploaded & Active</p>
+              </div>
+            </div>
+          )}
           <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all text-center">
             <UploadCloud01 className="w-5 h-5 text-[#a2d2ff] mb-1" />
             <span className="text-xs font-medium text-slate-200">
