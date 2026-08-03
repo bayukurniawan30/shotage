@@ -2,6 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { UploadCloud01, ChevronDown, Check } from '@untitledui/icons';
 
+const FRAME_LABELS: Record<string, string> = {
+  frameless: 'No Frame',
+  'safari-light': 'Safari Light',
+  'safari-dark': 'Safari Dark',
+  'chrome-dark': 'Chrome Dark',
+  iphone: 'iPhone 15',
+  iphone14pro: 'iPhone 14 Pro',
+  'samsung-s21': 'Samsung S21',
+  macbookair13: 'MacBook Air 13"',
+  macbook: 'MacBook Pro',
+  tablet: 'Tablet',
+  polaroid: 'Polaroid',
+  'polaroid-dark': 'Polaroid Dark',
+  instagram: 'Instagram Light',
+  'instagram-dark': 'Instagram Dark',
+};
+
 interface LeftSidebarProps {
   onImageUpload: (file: File) => void;
   mobileSection?: 'image' | 'aspect' | 'frame' | 'style' | 'shadow';
@@ -171,7 +188,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
         {state.imageSrc && (
           <div className="mb-2 p-1.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
-              <img src={state.imageSrc} alt="Slot 1 Preview" className="max-w-full max-h-full object-contain" />
+              <img
+                src={state.imageSrc}
+                alt="Slot 1 Preview"
+                className="max-w-full max-h-full object-contain"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-slate-200 truncate">
@@ -199,7 +220,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           {state.secondImageSrc && (
             <div className="mb-2 p-1.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
-                <img src={state.secondImageSrc} alt="Slot 2 Preview" className="max-w-full max-h-full object-contain" />
+                <img
+                  src={state.secondImageSrc}
+                  alt="Slot 2 Preview"
+                  className="max-w-full max-h-full object-contain"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-slate-200 truncate">
@@ -462,14 +487,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
             <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
               {state.frameType === 'frameless'
                 ? 'Frameless'
-                : state.frameType.startsWith('polaroid')
-                  ? 'Polaroid'
-                  : state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
-                    ? 'Browser'
-                    : 'Device'}
+                : state.frameType.startsWith('instagram')
+                  ? 'Instagram'
+                  : state.frameType.startsWith('polaroid')
+                    ? 'Polaroid'
+                    : state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
+                      ? 'Browser'
+                      : 'Device'}
             </span>
-            <span className="text-slate-300 font-medium truncate capitalize">
-              {state.frameType.replace('-', ' ')}
+            <span className="text-slate-300 font-medium truncate">
+              {FRAME_LABELS[state.frameType] || state.frameType.replace('-', ' ')}
             </span>
           </div>
           <ChevronDown
@@ -662,9 +689,160 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                 })}
               </div>
             </div>
+
+            <div className="pt-2 border-t border-neutral-800/80">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                Instagram
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'instagram', label: 'Instagram Light', isDark: false },
+                  { id: 'instagram-dark', label: 'Instagram Dark', isDark: true },
+                ].map((item) => {
+                  const isSelected = state.frameType === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onChange({
+                          frameType: item.id as any,
+                          borderRadius: 0,
+                        });
+                        setIsFrameDropdownOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-1 cursor-pointer group"
+                    >
+                      <div
+                        className={`w-full aspect-square rounded-xl border p-2 flex flex-col justify-between transition-all overflow-hidden relative ${
+                          item.isDark
+                            ? 'bg-neutral-950 border-neutral-800'
+                            : 'bg-slate-100 border-slate-300'
+                        } ${
+                          isSelected
+                            ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
+                            : 'hover:scale-102'
+                        }`}
+                      >
+                        {/* Header Skeleton */}
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              item.isDark ? 'bg-neutral-800' : 'bg-slate-300'
+                            }`}
+                          />
+                          <div
+                            className={`w-8 h-1 rounded-full ${
+                              item.isDark ? 'bg-neutral-800' : 'bg-slate-300'
+                            }`}
+                          />
+                        </div>
+                        {/* Image Box */}
+                        <div
+                          className={`w-full h-[50%] rounded border ${
+                            item.isDark
+                              ? 'bg-neutral-900 border-neutral-800'
+                              : 'bg-slate-200 border-slate-300'
+                          }`}
+                        />
+                        {/* Bottom Actions Skeleton */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                item.isDark ? 'bg-neutral-700' : 'bg-slate-400'
+                              }`}
+                            />
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                item.isDark ? 'bg-neutral-700' : 'bg-slate-400'
+                              }`}
+                            />
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                item.isDark ? 'bg-neutral-700' : 'bg-slate-400'
+                              }`}
+                            />
+                          </div>
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              item.isDark ? 'bg-neutral-700' : 'bg-slate-400'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] transition-colors text-center truncate w-full ${
+                          isSelected
+                            ? 'text-[#a2d2ff] font-bold'
+                            : 'text-slate-400 group-hover:text-slate-200'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* option to show system status bar for Samsung S21 */}
+      {state.frameType === 'samsung-s21' && (
+        <div className="pt-2 space-y-2 border-t border-neutral-800/80">
+          <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            System Status & Navigation Bar
+          </label>
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+            {[
+              { id: 'none', label: 'Hidden' },
+              { id: 'light', label: 'Light' },
+              { id: 'dark', label: 'Dark' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onChange({ samsungStatusBar: item.id as any })}
+                className={`py-1.5 text-xs font-medium rounded-lg transition-all text-center cursor-pointer ${
+                  (state.samsungStatusBar || 'none') === item.id
+                    ? 'bg-[#a2d2ff]/20 border border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* option to show system status bar for iPhone */}
+      {(state.frameType === 'iphone' || state.frameType === 'iphone14pro') && (
+        <div className="pt-2 space-y-2 border-t border-neutral-800/80">
+          <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            System Status Bar
+          </label>
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+            {[
+              { id: 'none', label: 'Hidden' },
+              { id: 'light', label: 'Light' },
+              { id: 'dark', label: 'Dark' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onChange({ iphoneStatusBar: item.id as any })}
+                className={`py-1.5 text-xs font-medium rounded-lg transition-all text-center cursor-pointer ${
+                  (state.iphoneStatusBar || 'none') === item.id
+                    ? 'bg-[#a2d2ff]/20 border border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {(state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') && (
         <div className="pt-1 space-y-2">

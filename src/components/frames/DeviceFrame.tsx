@@ -1,4 +1,6 @@
 import React from 'react';
+import { Menu01, Square, ChevronLeft, Wifi, BarChart05, BatteryMid } from '@untitledui/icons';
+import { useStudioStore } from '../../store/useStudioStore';
 
 interface DeviceFrameProps {
   type: 'macbook' | 'macbookair13' | 'iphone' | 'iphone14pro' | 'samsung-s21' | 'tablet';
@@ -27,11 +29,34 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
   }
 
   if (type === 'iphone14pro') {
+    const iphoneStatusBar = useStudioStore((state) => state.iphoneStatusBar || 'none');
+    const isStatusBarActive = iphoneStatusBar !== 'none';
+    const isLightBar = iphoneStatusBar === 'light';
+
     return (
       <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper for iPhone 14 Pro */}
         <div className="absolute inset-0 top-[2.6%] bottom-[2.6%] left-[4.4%] right-[4.4%] z-0 overflow-hidden rounded-[36px]">
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+            {/* Top Status Bar (Transparent Overlay) */}
+            {isStatusBarActive && (
+              <div
+                className={`absolute top-0 left-0 right-0 z-20 px-5 pt-3 flex items-center justify-between pointer-events-none ${
+                  isLightBar ? 'text-white' : 'text-slate-900'
+                }`}
+              >
+                {/* Time (Left) */}
+                <span className="text-[9px] font-semibold tracking-tight font-sans ml-1">9:41</span>
+
+                {/* Right Status Icons */}
+                <div className="flex items-center gap-1 mr-1">
+                  <BarChart05 className="w-2.5 h-2.5" />
+                  <Wifi className="w-2.5 h-2.5" />
+                  <BatteryMid className="w-3 h-3" />
+                </div>
+              </div>
+            )}
+
             {children}
           </div>
         </div>
@@ -47,11 +72,34 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
   }
 
   if (type === 'iphone') {
+    const iphoneStatusBar = useStudioStore((state) => state.iphoneStatusBar || 'none');
+    const isStatusBarActive = iphoneStatusBar !== 'none';
+    const isLightBar = iphoneStatusBar === 'light';
+
     return (
       <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper placed precisely inside bezel bounds */}
         <div className="absolute inset-0 top-[2.8%] bottom-[2.8%] left-[4.2%] right-[4.2%] z-0 overflow-hidden rounded-[48px]">
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+            {/* Top Status Bar (Transparent Overlay) */}
+            {isStatusBarActive && (
+              <div
+                className={`absolute top-0 left-0 right-0 z-20 px-6 pt-3 flex items-center justify-between pointer-events-none ${
+                  isLightBar ? 'text-white' : 'text-slate-900'
+                }`}
+              >
+                {/* Time (Left) */}
+                <span className="text-[9px] font-semibold tracking-tight font-sans ml-1">9:41</span>
+
+                {/* Right Status Icons */}
+                <div className="flex items-center gap-1 mr-1">
+                  <BarChart05 className="w-2.5 h-2.5" />
+                  <Wifi className="w-2.5 h-2.5" />
+                  <BatteryMid className="w-3 h-3" />
+                </div>
+              </div>
+            )}
+
             {children}
           </div>
         </div>
@@ -67,12 +115,53 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
   }
 
   if (type === 'samsung-s21') {
+    const samsungStatusBar = useStudioStore((state) => state.samsungStatusBar || 'none');
+    const isStatusBarActive = samsungStatusBar !== 'none';
+    const isDarkBar = samsungStatusBar === 'dark';
+
     return (
       <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper for Samsung Galaxy S21 */}
         <div className="absolute inset-0 top-[6%] bottom-[6%] left-[11%] right-[11%] z-0 overflow-hidden rounded-[22px]">
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black">
-            {children}
+          <div className="w-full h-full overflow-hidden flex flex-col bg-black">
+            {/* Top Status Bar */}
+            {isStatusBarActive && (
+              <div
+                className={`w-full px-3.5 pt-2.5 pb-1 flex items-center justify-between shrink-0 ${
+                  isDarkBar ? 'bg-black text-white' : 'bg-white text-slate-900'
+                }`}
+              >
+                {/* Time (Left) */}
+                <span className="text-[8px] tracking-tight font-sans opacity-70">12:45</span>
+
+                {/* Right Status Icons */}
+                <div className="flex items-center gap-1">
+                  <BarChart05 className="w-2 h-2 opacity-70" />
+                  <BarChart05 className="w-2 h-2 opacity-70" />
+                  <Wifi className="w-2 h-2 opacity-70" />
+                  <BatteryMid className="w-3 h-3 opacity-70" />
+                </div>
+              </div>
+            )}
+
+            {/* Screen Content */}
+            <div className="w-full flex-1 overflow-hidden flex items-center justify-center min-h-0 [&_img]:object-contain">
+              {children}
+            </div>
+
+            {/* Bottom Navigation Bar */}
+            {isStatusBarActive && (
+              <div
+                className={`w-full px-8 pt-1.5 pb-2.5 flex items-center justify-between shrink-0 ${
+                  isDarkBar ? 'bg-black text-white' : 'bg-white text-slate-900'
+                }`}
+              >
+                {/* 3 Navigation Icons */}
+                <Menu01 className="w-3 h-3 rotate-90 ml-3 opacity-70" />
+                <Square className="w-2.5 h-2.5 rounded-[2px] opacity-70" />
+                <ChevronLeft className="w-3 h-3 mr-3 opacity-70" />
+              </div>
+            )}
           </div>
         </div>
 

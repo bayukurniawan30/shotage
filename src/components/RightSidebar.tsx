@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import {
   ChevronDown,
@@ -23,6 +23,8 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from './SocialIcons';
+import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from './TechStackIcons';
 
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
@@ -37,8 +39,146 @@ export const GOOGLE_FONTS = [
   { name: 'Fira Code', family: "'Fira Code', monospace" },
 ];
 
+const FontSelect: React.FC<{
+  value: string;
+  onChange: (fontName: string) => void;
+}> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedFont = GOOGLE_FONTS.find((f) => f.name === value) || GOOGLE_FONTS[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-2 text-xs text-pastel-blue font-bold flex items-center justify-between cursor-pointer hover:border-neutral-700 transition-colors"
+        style={{ fontFamily: selectedFont.family }}
+      >
+        <span className="truncate">{selectedFont.name}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1.5 ${
+            isOpen ? 'rotate-180 text-pastel-pink' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-neutral-900 border border-neutral-800 rounded-xl p-1 shadow-2xl max-h-56 overflow-y-auto space-y-0.5 backdrop-blur-md">
+          {GOOGLE_FONTS.map((font) => {
+            const isSelected = font.name === value;
+            return (
+              <button
+                key={font.name}
+                type="button"
+                onClick={() => {
+                  onChange(font.name);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-2.5 py-1.5 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors text-left ${
+                  isSelected
+                    ? 'bg-[#a2d2ff]/20 text-pastel-blue font-bold'
+                    : 'text-slate-200 hover:bg-neutral-800 hover:text-white'
+                }`}
+                style={{ fontFamily: font.family }}
+              >
+                <span style={{ fontFamily: font.family }}>{font.name}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 text-pastel-blue shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SocialPlatformSelect: React.FC<{
+  value: SocialPlatform;
+  onChange: (platform: SocialPlatform) => void;
+}> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedPlat = SOCIAL_PLATFORMS.find((p) => p.id === value) || SOCIAL_PLATFORMS[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-medium flex items-center justify-between cursor-pointer hover:border-neutral-700 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <SocialIcon platform={selectedPlat.id} size={16} color="#a2d2ff" />
+          <span className="font-semibold">{selectedPlat.label}</span>
+        </div>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1.5 ${
+            isOpen ? 'rotate-180 text-pastel-pink' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-neutral-900 border border-neutral-800 rounded-xl p-1 shadow-2xl max-h-56 overflow-y-auto space-y-0.5 backdrop-blur-md">
+          {SOCIAL_PLATFORMS.map((plat) => {
+            const isSelected = plat.id === value;
+            return (
+              <button
+                key={plat.id}
+                type="button"
+                onClick={() => {
+                  onChange(plat.id);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-2.5 py-1.5 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors text-left ${
+                  isSelected
+                    ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] font-bold'
+                    : 'text-slate-200 hover:bg-neutral-800 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <SocialIcon
+                    platform={plat.id}
+                    size={16}
+                    color={isSelected ? '#a2d2ff' : '#94a3b8'}
+                  />
+                  <span>{plat.label}</span>
+                </div>
+                {isSelected && <Check className="w-3.5 h-3.5 text-[#a2d2ff] shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface RightSidebarProps {
-  mobileSection?: 'perspective' | 'watermark' | 'background' | 'text';
+  mobileSection?: 'perspective' | 'watermark' | 'background' | 'text' | 'social' | 'techstack';
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
@@ -304,7 +444,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       {/* Tab 3: Position Offset & Alignment */}
       {activeTab === 'position' && (
         <div className="space-y-3.5 pt-1">
-
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="font-medium text-slate-300">
@@ -1030,6 +1169,629 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     </div>
   );
 
+  const renderSocialSection = () => {
+    const socialLayers = state.textLayers.filter((l) => l.socialPlatform !== undefined);
+    const selectedLayer = state.textLayers.find(
+      (l) => l.id === state.selectedTextLayerId && l.socialPlatform !== undefined
+    );
+
+    const presetColors = [
+      '#ffffff',
+      '#000000',
+      '#ffafcc',
+      '#a2d2ff',
+      '#cdb4db',
+      '#fef08a',
+      '#4ade80',
+      '#f87171',
+      '#38bdf8',
+    ];
+
+    return (
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SocialIcon platform="instagram" size={16} color="#a2d2ff" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Social Media
+            </h3>
+          </div>
+          <button
+            onClick={() => state.addSocialLayer('instagram', '@username')}
+            className="px-2.5 py-1 bg-pastel-blue/20 hover:bg-pastel-blue/30 text-pastel-blue border border-pastel-blue/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Social</span>
+          </button>
+        </div>
+
+        {/* Social Layers List */}
+        {socialLayers.length === 0 ? (
+          <div className="text-center py-6 px-3 bg-neutral-950/80 rounded-xl border border-dashed border-neutral-800 space-y-1.5">
+            <p className="text-xs font-medium text-slate-400">No social media handles added</p>
+            <p className="text-[11px] text-slate-500">
+              Click "+ Add Social" to overlay Instagram, Twitter, TikTok, or YouTube handles.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              Social Layers ({socialLayers.length}):
+            </span>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {socialLayers.map((layer) => {
+                const isSelected = layer.id === state.selectedTextLayerId;
+                return (
+                  <div
+                    key={layer.id}
+                    className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer text-xs ${
+                      isSelected
+                        ? 'bg-neutral-900 border-pastel-blue text-white shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800/80 text-slate-400 hover:bg-neutral-800/60 hover:text-slate-200'
+                    }`}
+                    onClick={() => state.selectTextLayer(layer.id)}
+                  >
+                    <div className="flex items-center gap-2 truncate min-w-0 pr-2">
+                      <SocialIcon
+                        platform={layer.socialPlatform || 'instagram'}
+                        size={14}
+                        color={'#cbd5e1'}
+                      />
+                      <span className="font-semibold truncate">{layer.text}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        title="Duplicate"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.duplicateTextLayer(layer.id);
+                        }}
+                        className="p-1 hover:bg-neutral-800 text-slate-400 hover:text-white rounded transition-colors"
+                      >
+                        <Copy01 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        title="Delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.removeTextLayer(layer.id);
+                        }}
+                        className="p-1 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded transition-colors"
+                      >
+                        <Trash01 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Social Layer Settings */}
+        {selectedLayer && (
+          <div className="pt-3 border-t border-neutral-800/80 space-y-3.5 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-pastel-blue uppercase tracking-wider">
+                Edit Social Layer
+              </span>
+              <button
+                onClick={() => state.selectTextLayer(null)}
+                className="text-[11px] text-slate-400 hover:text-slate-200 underline"
+              >
+                Deselect
+              </button>
+            </div>
+
+            {/* Platform Select with Icons */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Social Platform Icon
+              </label>
+              <SocialPlatformSelect
+                value={selectedLayer.socialPlatform || 'instagram'}
+                onChange={(platform) =>
+                  state.updateTextLayer(selectedLayer.id, { socialPlatform: platform })
+                }
+              />
+            </div>
+
+            {/* Social Style Variant */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Badge & Card Style
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                {[
+                  { id: 'default', label: 'Default' },
+                  { id: 'badge-dark', label: 'Dark Badge' },
+                  { id: 'badge-light', label: 'Light Badge' },
+                  { id: 'glass-dark', label: 'Glass Dark' },
+                  { id: 'glass-light', label: 'Glass Light' },
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => {
+                      const updates: any = { socialStyle: st.id };
+                      if (st.id === 'badge-light' || st.id === 'glass-light') {
+                        updates.color = '#0f172a';
+                        updates.iconColor = '#0f172a';
+                      } else if (st.id === 'badge-dark' || st.id === 'glass-dark') {
+                        updates.color = '#ffffff';
+                        updates.iconColor = '#ffffff';
+                      }
+                      state.updateTextLayer(selectedLayer.id, updates);
+                    }}
+                    className={`py-1.5 text-[10px] font-medium rounded-lg transition-all text-center cursor-pointer ${
+                      (selectedLayer.socialStyle || 'default') === st.id
+                        ? 'bg-[#a2d2ff]/20 border border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Handle / Account Text */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Account Handle / Username
+              </label>
+              <input
+                type="text"
+                value={selectedLayer.text}
+                onChange={(e) => state.updateTextLayer(selectedLayer.id, { text: e.target.value })}
+                placeholder="@username"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-pastel-blue transition-colors font-mono"
+              />
+            </div>
+
+            {/* Icon Color & Text Color */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs items-center">
+                <span className="font-semibold text-slate-300">Icon Color</span>
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="w-4 h-4 rounded-full border border-neutral-700 shadow-inner"
+                    style={{ backgroundColor: selectedLayer.iconColor || selectedLayer.color }}
+                  />
+                  <input
+                    type="color"
+                    value={selectedLayer.iconColor || selectedLayer.color}
+                    onChange={(e) =>
+                      state.updateTextLayer(selectedLayer.id, { iconColor: e.target.value })
+                    }
+                    className="w-5 h-5 bg-transparent border-0 cursor-pointer p-0"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between text-xs items-center">
+                <span className="font-semibold text-slate-300">Text Color</span>
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="w-4 h-4 rounded-full border border-neutral-700 shadow-inner"
+                    style={{ backgroundColor: selectedLayer.color }}
+                  />
+                  <input
+                    type="color"
+                    value={selectedLayer.color}
+                    onChange={(e) =>
+                      state.updateTextLayer(selectedLayer.id, { color: e.target.value })
+                    }
+                    className="w-5 h-5 bg-transparent border-0 cursor-pointer p-0"
+                  />
+                </div>
+              </div>
+
+              {/* Color Presets */}
+              <div className="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar">
+                {presetColors.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() =>
+                      state.updateTextLayer(selectedLayer.id, {
+                        color: c,
+                        iconColor: c,
+                      })
+                    }
+                    className="w-5 h-5 rounded-full border border-neutral-700 shrink-0 transition-transform hover:scale-110"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Icon Size & Font Size */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Icon Size</span>
+                  <span className="font-mono text-slate-400">
+                    {selectedLayer.iconSize || Math.round(selectedLayer.fontSize * 1.1)}px
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={60}
+                  value={selectedLayer.iconSize || Math.round(selectedLayer.fontSize * 1.1)}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      iconSize: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Font Size</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.fontSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={60}
+                  value={selectedLayer.fontSize}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      fontSize: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+
+            {/* Font Family */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Font Family
+              </label>
+              <FontSelect
+                value={selectedLayer.fontFamily}
+                onChange={(fontName) =>
+                  state.updateTextLayer(selectedLayer.id, { fontFamily: fontName })
+                }
+              />
+            </div>
+
+            {/* X & Y Position */}
+            <div className="space-y-2">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position X (Horizontal)</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-400}
+                  max={400}
+                  value={selectedLayer.x}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { x: Number(e.target.value) })
+                  }
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position Y (Vertical)</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-400}
+                  max={400}
+                  value={selectedLayer.y}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, { y: Number(e.target.value) })
+                  }
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderTechStackSection = () => {
+    const config = state.techStackConfig || {
+      enabled: false,
+      selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],
+      size: 28,
+      gap: 12,
+      style: 'row',
+      position: 'bottom-left',
+      badgeStyle: 'glass-dark',
+      xOffset: 0,
+      yOffset: 0,
+    };
+
+    const updateConfig = (updates: Partial<import('../types/studio').TechStackConfig>) => {
+      onChange({
+        techStackConfig: {
+          ...config,
+          ...updates,
+        },
+      });
+    };
+
+    const toggleIcon = (iconId: TechStackId) => {
+      const current = config.selectedIcons || [];
+      const updated = current.includes(iconId)
+        ? current.filter((id) => id !== iconId)
+        : [...current, iconId];
+      updateConfig({ selectedIcons: updated });
+    };
+
+    const positionGrid: {
+      id: import('../types/studio').TechStackPosition;
+      label: string;
+      dotPos: string;
+    }[] = [
+      { id: 'top-left', label: 'Top Left', dotPos: 'top-1 left-1' },
+      { id: 'top-center', label: 'Top Center', dotPos: 'top-1 left-1/2 -translate-x-1/2' },
+      { id: 'top-right', label: 'Top Right', dotPos: 'top-1 right-1' },
+      { id: 'center-left', label: 'Mid Left', dotPos: 'top-1/2 left-1 -translate-y-1/2' },
+      {
+        id: 'center',
+        label: 'Center',
+        dotPos: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+      },
+      { id: 'center-right', label: 'Mid Right', dotPos: 'top-1/2 right-1 -translate-y-1/2' },
+      { id: 'bottom-left', label: 'Bottom Left', dotPos: 'bottom-1 left-1' },
+      { id: 'bottom-center', label: 'Bottom Center', dotPos: 'bottom-1 left-1/2 -translate-x-1/2' },
+      { id: 'bottom-right', label: 'Bottom Right', dotPos: 'bottom-1 right-1' },
+    ];
+
+    return (
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        {/* Header */}
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <TechStackIcon id="react" size={16} />
+              <TechStackIcon id="typescript" size={16} />
+            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Tech Stack
+            </h3>
+          </div>
+          {/* Toggle Switch */}
+          <button
+            type="button"
+            onClick={() => updateConfig({ enabled: !config.enabled })}
+            className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+              config.enabled ? 'bg-pastel-blue' : 'bg-slate-800'
+            }`}
+          >
+            <div
+              className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                config.enabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {config.enabled && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Tech Stack Icons Selector */}
+            <div>
+              <div className="flex justify-between text-xs mb-1.5 items-center">
+                <span className="font-semibold text-slate-300">Select Tech Stack Logos</span>
+                <span className="text-[10px] font-mono text-pastel-blue">
+                  {config.selectedIcons?.length || 0} selected
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5 max-h-48 overflow-y-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800 no-scrollbar">
+                {TECH_STACK_ITEMS.map((item) => {
+                  const isSelected = config.selectedIcons?.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      title={item.label}
+                      onClick={() => toggleIcon(item.id)}
+                      className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-white shadow-xs scale-105'
+                          : 'bg-neutral-900/60 border-neutral-800/80 text-slate-500 hover:border-neutral-700 hover:text-slate-300'
+                      }`}
+                    >
+                      <TechStackIcon id={item.id} size={22} />
+                      <span className="text-[9px] font-medium mt-1 truncate max-w-full">
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Layout Style: Row vs Column */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Layout Direction
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => updateConfig({ style: 'row' })}
+                  className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    config.style === 'row'
+                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Horizontal Row
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateConfig({ style: 'column' })}
+                  className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    config.style === 'column'
+                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Vertical Column
+                </button>
+              </div>
+            </div>
+
+            {/* 9 Grid Position Preset Options */}
+            <div>
+              <div className="flex justify-between text-xs mb-1.5 items-center">
+                <span className="font-semibold text-slate-300">Preset Position</span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase">
+                  {config.position}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {positionGrid.map((pos) => {
+                  const isSelected = config.position === pos.id;
+                  return (
+                    <button
+                      key={pos.id}
+                      type="button"
+                      onClick={() => updateConfig({ position: pos.id })}
+                      className={`h-11 rounded-lg border transition-all flex flex-col items-center justify-center cursor-pointer relative overflow-hidden ${
+                        isSelected
+                          ? 'bg-[#a2d2ff]/15 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs ring-1 ring-[#a2d2ff]'
+                          : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                      }`}
+                      title={pos.label}
+                    >
+                      {/* Outer Canvas Representation Box */}
+                      <div
+                        className={`w-8 h-6 rounded border relative transition-colors ${
+                          isSelected
+                            ? 'border-[#a2d2ff] bg-[#a2d2ff]/10'
+                            : 'border-slate-700 bg-slate-900/60'
+                        }`}
+                      >
+                        {/* Inner Location Box Indicator */}
+                        <div
+                          className={`absolute w-1.5 h-1 rounded-xs transition-colors ${pos.dotPos} ${
+                            isSelected ? 'bg-[#a2d2ff]' : 'bg-slate-400'
+                          }`}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Badge & Card Background Style */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Badge & Background Style
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                {[
+                  { id: 'plain', label: 'Default' },
+                  { id: 'glass-dark', label: 'Dark Glass' },
+                  { id: 'glass-light', label: 'Light Glass' },
+                  { id: 'badge-dark', label: 'Dark Badge' },
+                  { id: 'badge-light', label: 'Light Badge' },
+                ].map((bg) => (
+                  <button
+                    key={bg.id}
+                    type="button"
+                    onClick={() => updateConfig({ badgeStyle: bg.id as any })}
+                    className={`py-1.5 text-[10px] font-medium rounded-lg transition-all text-center cursor-pointer ${
+                      config.badgeStyle === bg.id
+                        ? 'bg-[#a2d2ff]/20 border border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50'
+                    }`}
+                  >
+                    {bg.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Size & Gap Sliders */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Logo Size</span>
+                  <span className="font-mono text-slate-400">{config.size || 28}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={16}
+                  max={64}
+                  value={config.size || 28}
+                  onChange={(e) => updateConfig({ size: Number(e.target.value) })}
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Gap</span>
+                  <span className="font-mono text-slate-400">{config.gap || 12}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={4}
+                  max={36}
+                  value={config.gap || 12}
+                  onChange={(e) => updateConfig({ gap: Number(e.target.value) })}
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+
+            {/* Fine Position Offset (X & Y) */}
+            <div className="space-y-2 pt-1 border-t border-neutral-800/60">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Offset X</span>
+                  <span className="font-mono text-slate-400">{config.xOffset || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-200}
+                  max={200}
+                  value={config.xOffset || 0}
+                  onChange={(e) => updateConfig({ xOffset: Number(e.target.value) })}
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Offset Y</span>
+                  <span className="font-mono text-slate-400">{config.yOffset || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-200}
+                  max={200}
+                  value={config.yOffset || 0}
+                  onChange={(e) => updateConfig({ yOffset: Number(e.target.value) })}
+                  className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderTextSection = () => {
     const selectedLayer = state.textLayers.find((l) => l.id === state.selectedTextLayerId);
 
@@ -1152,24 +1914,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                 Font Family (Google Fonts)
               </label>
-              <select
+              <FontSelect
                 value={selectedLayer.fontFamily}
-                onChange={(e) =>
-                  state.updateTextLayer(selectedLayer.id, { fontFamily: e.target.value })
+                onChange={(fontName) =>
+                  state.updateTextLayer(selectedLayer.id, { fontFamily: fontName })
                 }
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs text-pastel-blue font-bold outline-none cursor-pointer focus:border-pastel-blue transition-colors"
-              >
-                {GOOGLE_FONTS.map((font) => (
-                  <option
-                    key={font.name}
-                    value={font.name}
-                    className="bg-neutral-900 text-white font-normal"
-                    style={{ fontFamily: font.family }}
-                  >
-                    {font.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* Font Size & Weight */}
@@ -1360,9 +2110,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               <div className="grid grid-cols-2 gap-1.5">
                 <button
                   type="button"
-                  onClick={() =>
-                    state.updateTextLayer(selectedLayer.id, { position: 'above' })
-                  }
+                  onClick={() => state.updateTextLayer(selectedLayer.id, { position: 'above' })}
                   className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                     (selectedLayer.position || 'above') === 'above'
                       ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
@@ -1413,6 +2161,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
   if (mobileSection) {
     if (mobileSection === 'perspective') return renderPerspectiveSection();
+    if (mobileSection === 'social') return renderSocialSection();
+    if (mobileSection === 'techstack') return renderTechStackSection();
     if (mobileSection === 'text') return renderTextSection();
     if (mobileSection === 'watermark') return renderWatermarkSection();
     if (mobileSection === 'background') return renderBackgroundSection();
@@ -1422,8 +2172,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   return (
     <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {renderPerspectiveSection()}
-      {renderTextSection()}
       {renderBackgroundSection()}
+      {renderSocialSection()}
+      {renderTechStackSection()}
+      {renderTextSection()}
       {renderWatermarkSection()}
     </div>
   );

@@ -1,3 +1,45 @@
+export type SocialPlatform =
+  | 'instagram'
+  | 'facebook'
+  | 'youtube'
+  | 'tiktok'
+  | 'github'
+  | 'whatsapp'
+  | 'x'
+  | 'threads';
+
+export type SocialStyleVariant =
+  | 'default'
+  | 'badge-light'
+  | 'badge-dark'
+  | 'glass-dark'
+  | 'glass-light';
+
+export type TechStackPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right';
+
+export type TechStackLayoutStyle = 'row' | 'column';
+
+export interface TechStackConfig {
+  enabled: boolean;
+  selectedIcons: import('../components/TechStackIcons').TechStackId[];
+  size: number;
+  gap: number;
+  style: TechStackLayoutStyle;
+  position: TechStackPosition;
+  badgeStyle: 'plain' | 'glass-dark' | 'glass-light' | 'badge-dark' | 'badge-light';
+  xOffset: number;
+  yOffset: number;
+}
+
 export interface TextLayer {
   id: string;
   text: string;
@@ -12,6 +54,10 @@ export interface TextLayer {
   shadow: boolean;
   opacity: number; // 0 to 100
   position: 'above' | 'underneath'; // 'above' (front overlay) or 'underneath' (behind mockup)
+  socialPlatform?: SocialPlatform;
+  socialStyle?: SocialStyleVariant;
+  iconColor?: string;
+  iconSize?: number;
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
@@ -47,7 +93,11 @@ export interface StudioState {
     | 'samsung-s21'
     | 'tablet'
     | 'polaroid'
-    | 'polaroid-dark';
+    | 'polaroid-dark'
+    | 'instagram'
+    | 'instagram-dark';
+  samsungStatusBar?: 'none' | 'light' | 'dark';
+  iphoneStatusBar?: 'none' | 'light' | 'dark';
   urlText: string;
   secondUrlText: string;
   backgroundType:
@@ -118,6 +168,8 @@ export interface StudioState {
   // Text Layers
   textLayers: TextLayer[];
   selectedTextLayerId: string | null;
+  // Tech Stack Overlay
+  techStackConfig: TechStackConfig;
 }
 
 export const DEFAULT_STUDIO_STATE: StudioState = {
@@ -137,6 +189,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   framelessStyle: 'default',
   shadow: 'floating',
   frameType: 'frameless',
+  samsungStatusBar: 'none',
+  iphoneStatusBar: 'none',
   urlText: 'shotage.app/preview',
   secondUrlText: 'shotage.app/demo',
   backgroundType: 'gradient',
@@ -180,4 +234,15 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   activePresetId: '',
   textLayers: [],
   selectedTextLayerId: null,
+  techStackConfig: {
+    enabled: false,
+    selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],
+    size: 28,
+    gap: 12,
+    style: 'row',
+    position: 'bottom-left',
+    badgeStyle: 'glass-dark',
+    xOffset: 0,
+    yOffset: 0,
+  },
 };

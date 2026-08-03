@@ -8,7 +8,17 @@ import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
-import { ImageUp } from '@untitledui/icons';
+import { SocialIcon } from './SocialIcons';
+import { TechStackIcon } from './TechStackIcons';
+import {
+  ImageUp,
+  Heart,
+  MessageCircle02,
+  Repeat01,
+  Send01,
+  Bookmark,
+  DotsHorizontal,
+} from '@untitledui/icons';
 
 interface CanvasStageProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
@@ -239,7 +249,30 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               maxWidth: 'none',
             }}
           >
-            {layer.text}
+            {layer.socialPlatform ? (
+              <div
+                className={`flex items-center gap-2.5 ${
+                  layer.socialStyle === 'badge-light'
+                    ? 'bg-white text-slate-900 border border-slate-200/90 shadow-md rounded-lg px-3.5 py-1.5'
+                    : layer.socialStyle === 'badge-dark'
+                      ? 'bg-neutral-950/90 text-white border border-neutral-800 shadow-md rounded-lg px-3.5 py-1.5'
+                      : layer.socialStyle === 'glass-dark'
+                        ? 'bg-neutral-950/40 backdrop-blur-md border border-white/15 text-white shadow-xl rounded-lg px-3.5 py-1.5'
+                        : layer.socialStyle === 'glass-light'
+                          ? 'bg-white/30 backdrop-blur-md border border-white/50 text-slate-900 shadow-xl rounded-lg px-3.5 py-1.5'
+                          : ''
+                }`}
+              >
+                <SocialIcon
+                  platform={layer.socialPlatform}
+                  size={layer.iconSize || layer.fontSize * 1.1}
+                  color={layer.iconColor || layer.color}
+                />
+                <span style={{ fontFamily: fontFamilyCss }}>{layer.text}</span>
+              </div>
+            ) : (
+              layer.text
+            )}
           </div>
         );
       });
@@ -280,12 +313,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           <span className="text-[11px] font-semibold tracking-wide text-slate-100 drop-shadow-md">
             Replace Slot {slotIndex}
           </span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={slotFileChange}
-            className="hidden"
-          />
+          <input type="file" accept="image/*" onChange={slotFileChange} className="hidden" />
         </label>
       </div>
     ) : (
@@ -304,17 +332,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         >
           <svg
             className={`${state.layoutCount === 2 ? 'w-4 h-4' : 'w-6 h-6'} text-pastel-pink`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
         </div>
         <p
           className={`${state.layoutCount === 2 ? 'text-xs' : 'text-sm'} font-bold text-slate-100`}
@@ -328,7 +356,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         </p>
         <input
           type="file"
-          accept={state.mediaType === 'video' ? 'video/mp4,video/webm,video/quicktime,video/ogg' : 'image/*'}
+          accept={
+            state.mediaType === 'video'
+              ? 'video/mp4,video/webm,video/quicktime,video/ogg'
+              : 'image/*'
+          }
           onChange={slotFileChange}
           className="hidden"
         />
@@ -359,7 +391,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const isDark = state.frameType === 'polaroid-dark';
       frameElement = (
         <div
-          className={`p-4 pb-12 shadow-2xl transition-all border flex flex-col items-center gap-2 ${
+          className={`p-4 pb-16 shadow-2xl transition-all border flex flex-col items-center gap-2 ${
             isDark
               ? 'bg-neutral-950 border-neutral-800 text-slate-200'
               : 'bg-white border-slate-200/90 text-slate-800'
@@ -370,6 +402,60 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         >
           <div className="overflow-hidden rounded-xs border border-black/10 shadow-inner">
             {content}
+          </div>
+        </div>
+      );
+    } else if (state.frameType === 'instagram' || state.frameType === 'instagram-dark') {
+      const isDark = state.frameType === 'instagram-dark';
+      frameElement = (
+        <div
+          className={`transition-all border flex flex-col overflow-hidden ${
+            isDark
+              ? 'bg-neutral-950 border-neutral-800 text-slate-100'
+              : 'bg-white border-slate-200 text-slate-900'
+          }`}
+          style={{
+            borderRadius: '12px',
+          }}
+        >
+          {/* Header with Avatar & Username Skeleton */}
+          <div className="flex items-center justify-between px-3.5 py-3 border-b border-black/5 dark:border-white/5">
+            <div className="flex items-center gap-2.5">
+              <div
+                className={`w-8 h-8 rounded-full shrink-0 ${
+                  isDark ? 'bg-neutral-800' : 'bg-slate-200'
+                }`}
+              />
+              <div className="flex flex-col gap-1">
+                <div
+                  className={`w-24 h-3 rounded-full ${isDark ? 'bg-neutral-800' : 'bg-slate-200'}`}
+                />
+                <div
+                  className={`w-14 h-2 rounded-full ${
+                    isDark ? 'bg-neutral-800/60' : 'bg-slate-200/70'
+                  }`}
+                />
+              </div>
+            </div>
+            <DotsHorizontal
+              className={`w-5 h-5 ${isDark ? 'text-neutral-400' : 'text-slate-400'}`}
+            />
+          </div>
+
+          {/* Screenshot Content */}
+          <div className="relative overflow-hidden">{content}</div>
+
+          {/* Action Footer */}
+          <div className="flex items-center justify-between px-3.5 py-3">
+            <div className="flex items-center gap-3.5">
+              <Heart className={`w-5 h-5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`} />
+              <MessageCircle02
+                className={`w-5 h-5 scale-x-[-1] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
+              />
+              <Repeat01 className={`w-5 h-5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`} />
+              <Send01 className={`w-5 h-5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`} />
+            </div>
+            <Bookmark className={`w-5 h-5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`} />
           </div>
         </div>
       );
@@ -433,19 +519,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const shadowClass = getShadowClass();
     const currentStyle = state.framelessStyle || 'default';
-    const computedRadius =
-      isFrameless && currentStyle !== 'default'
-        ? `${state.borderRadius + 8}px`
-        : isFrameless || state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
-          ? `${state.borderRadius}px`
-          : undefined;
+    const computedRadius = state.frameType.startsWith('instagram')
+      ? '12px'
+      : state.frameType.startsWith('polaroid')
+        ? '6px'
+        : isFrameless && currentStyle !== 'default'
+          ? `${state.borderRadius + 8}px`
+          : isFrameless || state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
+            ? `${state.borderRadius}px`
+            : undefined;
 
     return (
       <div className="relative group">
         {/* Underlying shadow backing box with exact matching border-radius */}
         {shadowClass && (
           <div
-            className={`absolute inset-0 bg-neutral-900 pointer-events-none transition-all duration-200 ${shadowClass}`}
+            className={`absolute inset-0 pointer-events-none transition-all duration-200 ${shadowClass}`}
             style={{
               borderRadius: computedRadius,
             }}
@@ -703,6 +792,113 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#a2d2ff]/80 shadow-[0_0_8px_#a2d2ff]" />
             </div>
           )}
+
+          {/* Tech Stack Overlay */}
+          {(() => {
+            const config = state.techStackConfig;
+            if (!config || !config.enabled || !config.selectedIcons || config.selectedIcons.length === 0) {
+              return null;
+            }
+
+            const getPositionStyles = (): React.CSSProperties => {
+              let baseTX = '0%';
+              let baseTY = '0%';
+              let top: string | undefined;
+              let bottom: string | undefined;
+              let left: string | undefined;
+              let right: string | undefined;
+
+              switch (config.position) {
+                case 'top-left':
+                  top = '1.5rem';
+                  left = '1.5rem';
+                  break;
+                case 'top-center':
+                  top = '1.5rem';
+                  left = '50%';
+                  baseTX = '-50%';
+                  break;
+                case 'top-right':
+                  top = '1.5rem';
+                  right = '1.5rem';
+                  break;
+                case 'center-left':
+                  top = '50%';
+                  left = '1.5rem';
+                  baseTY = '-50%';
+                  break;
+                case 'center':
+                  top = '50%';
+                  left = '50%';
+                  baseTX = '-50%';
+                  baseTY = '-50%';
+                  break;
+                case 'center-right':
+                  top = '50%';
+                  right = '1.5rem';
+                  baseTY = '-50%';
+                  break;
+                case 'bottom-left':
+                  bottom = '1.5rem';
+                  left = '1.5rem';
+                  break;
+                case 'bottom-center':
+                  bottom = '1.5rem';
+                  left = '50%';
+                  baseTX = '-50%';
+                  break;
+                case 'bottom-right':
+                  bottom = '1.5rem';
+                  right = '1.5rem';
+                  break;
+              }
+
+              const xOff = config.xOffset || 0;
+              const yOff = config.yOffset || 0;
+
+              return {
+                top,
+                bottom,
+                left,
+                right,
+                transform: `translate(calc(${baseTX} + ${xOff}px), calc(${baseTY} + ${yOff}px))`,
+              };
+            };
+
+            const getBadgeClass = () => {
+              switch (config.badgeStyle) {
+                case 'glass-dark':
+                  return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
+                case 'glass-light':
+                  return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-xl p-2.5';
+                case 'badge-dark':
+                  return 'bg-neutral-950/90 border border-neutral-800 shadow-md rounded-xl p-2.5';
+                case 'badge-light':
+                  return 'bg-white border border-slate-200/90 shadow-md rounded-xl p-2.5';
+                case 'plain':
+                default:
+                  return '';
+              }
+            };
+
+            return (
+              <div
+                className={`absolute z-30 pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
+                style={getPositionStyles()}
+              >
+                <div
+                  className={`flex items-center ${
+                    config.style === 'column' ? 'flex-col' : 'flex-row'
+                  }`}
+                  style={{ gap: `${config.gap || 12}px` }}
+                >
+                  {config.selectedIcons.map((iconId) => (
+                    <TechStackIcon key={iconId} id={iconId} size={config.size || 28} />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Watermark Overlay */}
           <WatermarkOverlay />

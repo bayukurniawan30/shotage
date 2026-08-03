@@ -11,6 +11,10 @@ interface StudioStore extends StudioState {
   resetAll: () => void;
   togglePreviewMode: () => void;
   addTextLayer: (text?: string) => void;
+  addSocialLayer: (
+    platform?: import('../types/studio').SocialPlatform,
+    handle?: string
+  ) => void;
   updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
   removeTextLayer: (id: string) => void;
   duplicateTextLayer: (id: string) => void;
@@ -200,6 +204,33 @@ export const useStudioStore = create<StudioStore>()(
             shadow: true,
             opacity: 100,
             position: 'above',
+          };
+          return {
+            textLayers: [...state.textLayers, newLayer],
+            selectedTextLayerId: newLayer.id,
+          };
+        }),
+      addSocialLayer: (platform, handle) =>
+        set((state) => {
+          const plat = platform || 'instagram';
+          const newLayer: import('../types/studio').TextLayer = {
+            id: `social-${Date.now()}`,
+            text: handle || '@username',
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: '600',
+            fontStyle: 'normal',
+            color: '#ffffff',
+            textAlign: 'left',
+            x: 0,
+            y: 120,
+            shadow: false,
+            opacity: 100,
+            position: 'above',
+            socialPlatform: plat,
+            socialStyle: 'default',
+            iconColor: '#ffffff',
+            iconSize: 20,
           };
           return {
             textLayers: [...state.textLayers, newLayer],
