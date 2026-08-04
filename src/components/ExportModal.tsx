@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { toPng, toJpeg, toBlob, toCanvas } from 'html-to-image';
+import { toPng, toJpeg, toBlob, toCanvas, getFontEmbedCSS } from 'html-to-image';
 import { Download01, XClose, LinkExternal01, Film01, Loading01, Check } from '@untitledui/icons';
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
@@ -31,12 +31,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setIsExporting(true);
     setExportingType('image');
 
+    // Ensure all web fonts are loaded and DOM has reflowed after deselecting text layers
+    if ('fonts' in document) {
+      await document.fonts.ready;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     try {
       const options = {
         pixelRatio: state.exportScale,
         quality: 0.95,
         cacheBust: true,
-        skipFonts: true,
       };
 
       if (isCopy) {
@@ -168,6 +173,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         await document.fonts.ready;
       }
 
+      // Pre-compute font embed CSS ONCE to prevent html-to-image from downloading/converting fonts on every frame (300x)
+      let cachedFontEmbedCSS = '';
+      try {
+        cachedFontEmbedCSS = await getFontEmbedCSS(canvasRef.current);
+      } catch (err) {
+        console.warn('Could not pre-cache font embed CSS:', err);
+      }
+
       // Frame-by-Frame High Speed Pipeline using direct canvas capture
       for (let frame = 0; frame <= totalFrames; frame++) {
         const targetTimeSec = (frame / totalFrames) * durationSec;
@@ -177,7 +190,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           const renderedCanvas = await toCanvas(canvasRef.current, {
             pixelRatio: scale,
             cacheBust: false,
-            skipFonts: true,
+            fontEmbedCSS: cachedFontEmbedCSS,
           });
 
           // Draw directly to even-dimension exportCanvas
@@ -333,7 +346,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 disabled={isExporting}
                 onClick={() => handleExport(state.exportFormat, false)}
                 className={`w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm ${
-                  isExporting ? 'opacity-60 cursor-not-allowed' : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
+                  isExporting
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
                 }`}
                 style={{
                   backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
@@ -353,7 +368,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 disabled={isExporting}
                 onClick={() => handleExport('png', true)}
                 className={`w-full py-2.5 bg-slate-800 text-slate-200 font-medium text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 ${
-                  isExporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-700 cursor-pointer'
+                  isExporting
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:bg-slate-700 cursor-pointer'
                 }`}
               >
                 Copy PNG to Clipboard
@@ -421,9 +438,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   transformStyle: 'preserve-3d',
                   transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                   transform:
-                    isExporting && exportingType === 'video'
-                      ? 'rotateX(-90deg)'
-                      : 'rotateX(0deg)',
+                    isExporting && exportingType === 'video' ? 'rotateX(-90deg)' : 'rotateX(0deg)',
                 }}
               >
                 {/* 1. FRONT FACE: Idle or Success State */}

@@ -1793,7 +1793,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   };
 
   const renderTextSection = () => {
-    const selectedLayer = state.textLayers.find((l) => l.id === state.selectedTextLayerId);
+    const plainTextLayers = state.textLayers.filter((l) => l.socialPlatform === undefined);
+    const selectedLayer = state.textLayers.find(
+      (l) => l.id === state.selectedTextLayerId && l.socialPlatform === undefined
+    );
 
     const presetColors = [
       '#ffffff',
@@ -1826,7 +1829,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         </div>
 
         {/* Text Layers List */}
-        {state.textLayers.length === 0 ? (
+        {plainTextLayers.length === 0 ? (
           <div className="text-center py-6 px-3 bg-neutral-950/80 rounded-xl border border-dashed border-neutral-800 space-y-1.5">
             <p className="text-xs font-medium text-slate-400">No text layers added yet</p>
             <p className="text-[11px] text-slate-500">
@@ -1836,10 +1839,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         ) : (
           <div className="space-y-2">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              Layers ({state.textLayers.length}):
+              Layers ({plainTextLayers.length}):
             </span>
             <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-              {state.textLayers.map((layer, index) => {
+              {plainTextLayers.map((layer, index) => {
                 const isSelected = layer.id === state.selectedTextLayerId;
                 return (
                   <div

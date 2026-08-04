@@ -230,7 +230,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               e.stopPropagation();
               state.selectTextLayer(layer.id);
             }}
-            className={`text-layer-item absolute transition-all cursor-pointer select-none px-1 py-0.5 rounded-sm ${
+            className={`text-layer-item absolute cursor-pointer select-none rounded-sm ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
             } ${
               isSelected
@@ -241,6 +241,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               transform: `translate(${layer.x}px, ${layer.y}px)`,
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
+              lineHeight: 1.2,
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
               color: layer.color,
