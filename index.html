@@ -52,8 +52,9 @@
       rel="stylesheet"
     />
     <script>
-      (function() {
-        var fullFontsUrl = "https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Fira+Code:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Montserrat:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&family=Outfit:wght@400;600;700;800&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Poppins:wght@400;600;700;800&family=Roboto:wght@400;500;700;900&display=swap";
+      (function () {
+        var fullFontsUrl =
+          'https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Fira+Code:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Montserrat:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&family=Outfit:wght@400;600;700;800&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Poppins:wght@400;600;700;800&family=Roboto:wght@400;500;700;900&display=swap';
         function loadStudioFonts() {
           if (window.location.pathname.startsWith('/studio')) {
             var fontLink = document.getElementById('google-fonts');
@@ -66,7 +67,7 @@
         window.addEventListener('popstate', loadStudioFonts);
         var origPushState = history.pushState;
         if (origPushState) {
-          history.pushState = function() {
+          history.pushState = function () {
             var ret = origPushState.apply(this, arguments);
             loadStudioFonts();
             return ret;
@@ -74,13 +75,35 @@
         }
         var origReplaceState = history.replaceState;
         if (origReplaceState) {
-          history.replaceState = function() {
+          history.replaceState = function () {
             var ret = origReplaceState.apply(this, arguments);
             loadStudioFonts();
             return ret;
           };
         }
       })();
+    </script>
+    <!-- JSON-LD Structured Data for SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Shotage",
+        "url": "https://shotage.studio",
+        "description": "Transform plain screenshots into visually engaging 3D mockups and social media graphics instantly in your browser.",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "All",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "IDR"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Bayu Kurniawan",
+          "url": "https://baycore.dev"
+        }
+      }
     </script>
   </head>
   <body class="h-full bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
