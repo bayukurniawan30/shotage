@@ -82,6 +82,9 @@ export interface StudioState {
   borderRadius: number; // 0 to 32
   framelessStyle: 'default' | 'glass-light' | 'glass-dark' | 'inset-light' | 'inset-dark' | 'card';
   shadow: 'none' | 'soft' | 'medium' | 'hard' | 'floating';
+  shadowOverlay: 'none' | 'shadow-overlay-1' | 'shadow-overlay-2' | 'shadow-overlay-3' | 'shadow-overlay-4' | 'shadow-overlay-5' | 'shadow-overlay-6';
+  shadowOverlayOpacity?: number; // 0 to 100
+  shadowOverlayPosition?: 'behind' | 'above';
   frameType:
     | 'frameless'
     | 'safari-light'
@@ -193,6 +196,9 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   borderRadius: 16,
   framelessStyle: 'default',
   shadow: 'floating',
+  shadowOverlay: 'none',
+  shadowOverlayOpacity: 85,
+  shadowOverlayPosition: 'above',
   frameType: 'frameless',
   samsungStatusBar: 'none',
   iphoneStatusBar: 'none',

@@ -775,6 +775,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             />
           )}
 
+          {/* Shadow Overlay Layer */}
+          {state.shadowOverlay && state.shadowOverlay !== 'none' && (
+            <img
+              src={`/overlay/${state.shadowOverlay}.png`}
+              alt="Shadow Overlay"
+              className={`absolute inset-0 w-full h-full object-cover pointer-events-none mix-blend-multiply ${
+                (state.shadowOverlayPosition || 'above') === 'behind' ? 'z-[1]' : 'z-[30]'
+              }`}
+              style={{
+                opacity: (state.shadowOverlayOpacity ?? 85) / 100,
+              }}
+            />
+          )}
+
           {/* Underneath Static Text Layers (Rendered behind the 3D mockup frame) */}
           {renderTextLayers('underneath')}
 
