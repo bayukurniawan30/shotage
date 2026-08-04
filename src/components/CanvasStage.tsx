@@ -802,7 +802,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Tech Stack Overlay */}
           {(() => {
             const config = state.techStackConfig;
-            if (!config || !config.enabled || !config.selectedIcons || config.selectedIcons.length === 0) {
+            if (
+              !config ||
+              !config.enabled ||
+              !config.selectedIcons ||
+              config.selectedIcons.length === 0
+            ) {
               return null;
             }
 
@@ -889,7 +894,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
             return (
               <div
-                className={`absolute z-30 pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
+                className={`absolute z-[5] pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
                 style={getPositionStyles()}
               >
                 <div
