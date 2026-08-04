@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { UploadCloud01, ChevronDown, Check } from '@untitledui/icons';
+import { SocialIcon } from './SocialIcons';
 
 const FRAME_LABELS: Record<string, string> = {
   frameless: 'No Frame',
@@ -55,7 +56,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
   const getAspectRatioCategory = (aspectRatio: string) => {
     if (aspectRatio === 'custom') return 'Custom';
-    if (['auto', '16:9', '1:1', '9:16', '4:3', '1.91:1'].includes(aspectRatio)) return 'General';
+    if (
+      ['auto', '16:9', '1:1', '9:16', '4:3', '3:2', '3:4', '5:4', '4:5'].includes(aspectRatio)
+    )
+      return 'General';
     if (aspectRatio.startsWith('ig-')) return 'Instagram';
     if (aspectRatio.startsWith('yt-')) return 'YouTube';
     return 'Custom';
@@ -80,15 +84,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       case 'yt-video':
         return 'YouTube Video (16:9)';
       case '16:9':
-        return 'Widescreen (16:9)';
+        return 'Landscape (16:9)';
       case '1:1':
         return 'Square (1:1)';
       case '9:16':
         return 'Vertical (9:16)';
       case '4:3':
         return 'Standard (4:3)';
-      case '1.91:1':
-        return 'Landscape (1.91:1)';
+      case '3:2':
+        return 'Classic (3:2)';
+      case '3:4':
+        return 'Portrait (3:4)';
+      case '5:4':
+        return 'Frame (5:4)';
+      case '4:5':
+        return 'Social (4:5)';
       default:
         return 'Original Ratio';
     }
@@ -99,8 +109,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     if (aspectRatio === '1:1' || aspectRatio === 'ig-post') ratioNum = 1;
     else if (aspectRatio === '9:16' || aspectRatio === 'ig-story') ratioNum = 9 / 16;
     else if (aspectRatio === '4:3') ratioNum = 4 / 3;
-    else if (aspectRatio === '1.91:1') ratioNum = 1.91;
-    else if (aspectRatio === 'ig-portrait') ratioNum = 4 / 5;
+    else if (aspectRatio === '3:2') ratioNum = 3 / 2;
+    else if (aspectRatio === '3:4') ratioNum = 3 / 4;
+    else if (aspectRatio === '5:4') ratioNum = 5 / 4;
+    else if (aspectRatio === '4:5' || aspectRatio === 'ig-portrait') ratioNum = 4 / 5;
     else if (aspectRatio === 'custom' && customW && customH) ratioNum = customW / customH;
 
     // Tall vertical ratios (like 9:16 or 4:5) need smaller zoom so placeholder fits within frame
@@ -361,33 +373,52 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
                 General
               </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {(['auto', '16:9', '1:1', '9:16', '4:3', '1.91:1'] as const).map((ratio) => {
-                  const isSelected = state.aspectRatio === ratio;
+              <div className="grid grid-cols-3 gap-3 items-end">
+                {[
+                  { id: 'auto', label: 'Auto', ratio: 'Auto', aspectClass: 'aspect-square' },
+                  { id: '1:1', label: 'Square', ratio: '1:1', aspectClass: 'aspect-square' },
+                  { id: '4:3', label: 'Standard', ratio: '4:3', aspectClass: 'aspect-[4/3]' },
+                  { id: '3:2', label: 'Classic', ratio: '3:2', aspectClass: 'aspect-[3/2]' },
+                  { id: '5:4', label: 'Frame', ratio: '5:4', aspectClass: 'aspect-[5/4]' },
+                  { id: '16:9', label: 'Landscape', ratio: '16:9', aspectClass: 'aspect-[16/9]' },
+                  { id: '9:16', label: 'Vertical', ratio: '9:16', aspectClass: 'aspect-[9/16]' },
+                  { id: '3:4', label: 'Portrait', ratio: '3:4', aspectClass: 'aspect-[3/4]' },
+                  { id: '4:5', label: 'Social', ratio: '4:5', aspectClass: 'aspect-[4/5]' },
+                ].map((item) => {
+                  const isSelected = state.aspectRatio === item.id;
                   return (
-                    <button
-                      key={ratio}
-                      onClick={() => {
-                        const recZoom = getRecommendedZoomForAspect(ratio);
-                        onChange({
-                          aspectRatio: ratio,
-                          zoom: recZoom,
-                          slot2Zoom: recZoom,
-                        });
-                        setIsAspectDropdownOpen(false);
-                      }}
-                      className={`px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                          : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
-                      }`}
+                    <div
+                      key={item.id}
+                      className="flex flex-col items-center justify-end gap-1.5 h-full"
                     >
-                      <span>{ratio}</span>
-                      {isSelected && <Check className="w-3 h-3 text-[#a2d2ff]" />}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recZoom = getRecommendedZoomForAspect(item.id);
+                          onChange({
+                            aspectRatio: item.id as any,
+                            zoom: recZoom,
+                            slot2Zoom: recZoom,
+                          });
+                          setIsAspectDropdownOpen(false);
+                        }}
+                        className={`w-full ${item.aspectClass} p-2 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
+                            : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-[10px] font-semibold font-mono tracking-tight">
+                          {item.ratio}
+                        </span>
+                      </button>
+                      <span className="text-[11px] font-medium text-slate-400 text-center">
+                        {item.label}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
@@ -397,34 +428,51 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
                 Instagram
               </label>
-              <div className="space-y-1">
+              <div className="grid grid-cols-3 gap-3 items-end">
                 {[
-                  { id: 'ig-post', label: 'Post (1:1)' },
-                  { id: 'ig-portrait', label: 'Portrait (4:5)' },
-                  { id: 'ig-story', label: 'Story (9:16)' },
+                  { id: 'ig-post', label: 'Post', ratio: '1:1', aspectClass: 'aspect-square' },
+                  {
+                    id: 'ig-portrait',
+                    label: 'Portrait',
+                    ratio: '4:5',
+                    aspectClass: 'aspect-[4/5]',
+                  },
+                  { id: 'ig-story', label: 'Story', ratio: '9:16', aspectClass: 'aspect-[9/16]' },
                 ].map((item) => {
                   const isSelected = state.aspectRatio === item.id;
                   return (
-                    <button
+                    <div
                       key={item.id}
-                      onClick={() => {
-                        const recZoom = getRecommendedZoomForAspect(item.id);
-                        onChange({
-                          aspectRatio: item.id as any,
-                          zoom: recZoom,
-                          slot2Zoom: recZoom,
-                        });
-                        setIsAspectDropdownOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                          : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
-                      }`}
+                      className="flex flex-col items-center justify-end gap-1.5 h-full"
                     >
-                      <span>{item.label}</span>
-                      {isSelected && <Check className="w-3 h-3 text-[#a2d2ff]" />}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recZoom = getRecommendedZoomForAspect(item.id);
+                          onChange({
+                            aspectRatio: item.id as any,
+                            zoom: recZoom,
+                            slot2Zoom: recZoom,
+                          });
+                          setIsAspectDropdownOpen(false);
+                        }}
+                        className={`w-full ${item.aspectClass} p-2 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
+                            : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
+                        }`}
+                      >
+                        <SocialIcon
+                          platform="instagram"
+                          size={18}
+                          color={isSelected ? '#a2d2ff' : 'currentColor'}
+                        />
+                        <span className="text-[10px] font-semibold tracking-tight">
+                          {item.ratio}
+                        </span>
+                      </button>
+                      <span className="text-[11px] font-medium text-slate-400">{item.label}</span>
+                    </div>
                   );
                 })}
               </div>
@@ -434,34 +482,48 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
                 YouTube
               </label>
-              <div className="space-y-1">
+              <div className="grid grid-cols-3 gap-3 items-end">
                 {[
-                  { id: 'yt-banner', label: 'Banner (16:9)' },
-                  { id: 'yt-thumbnail', label: 'Thumbnail (16:9)' },
-                  { id: 'yt-video', label: 'Video (16:9)' },
+                  { id: 'yt-banner', label: 'Banner', ratio: '16:9' },
+                  { id: 'yt-thumbnail', label: 'Thumbnail', ratio: '16:9' },
+                  { id: 'yt-video', label: 'Video', ratio: '16:9' },
                 ].map((item) => {
                   const isSelected = state.aspectRatio === item.id;
                   return (
-                    <button
+                    <div
                       key={item.id}
-                      onClick={() => {
-                        const recZoom = getRecommendedZoomForAspect(item.id);
-                        onChange({
-                          aspectRatio: item.id as any,
-                          zoom: recZoom,
-                          slot2Zoom: recZoom,
-                        });
-                        setIsAspectDropdownOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                          : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
-                      }`}
+                      className="flex flex-col items-center justify-end gap-1.5 h-full"
                     >
-                      <span>{item.label}</span>
-                      {isSelected && <Check className="w-3 h-3 text-[#a2d2ff]" />}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recZoom = getRecommendedZoomForAspect(item.id);
+                          onChange({
+                            aspectRatio: item.id as any,
+                            zoom: recZoom,
+                            slot2Zoom: recZoom,
+                          });
+                          setIsAspectDropdownOpen(false);
+                        }}
+                        className={`w-full aspect-[16/9] px-2 py-3 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
+                            : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:text-white'
+                        }`}
+                      >
+                        <SocialIcon
+                          platform="youtube"
+                          size={18}
+                          color={isSelected ? '#a2d2ff' : 'currentColor'}
+                        />
+                        <span className="text-[10px] font-semibold tracking-tight">
+                          {item.ratio}
+                        </span>
+                      </button>
+                      <span className="text-[11px] font-medium text-slate-400 text-center">
+                        {item.label}
+                      </span>
+                    </div>
                   );
                 })}
               </div>

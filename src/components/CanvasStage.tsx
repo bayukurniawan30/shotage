@@ -51,8 +51,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         return 'aspect-[9/16] h-[380px] w-[214px]';
       case '4:3':
         return isDual ? 'aspect-[4/3] w-[580px]' : 'aspect-[4/3] w-[460px]';
-      case '1.91:1':
-        return isDual ? 'aspect-[1.91/1] w-[640px]' : 'aspect-[1.91/1] w-[520px]';
+      case '3:2':
+        return isDual ? 'aspect-[3/2] w-[600px]' : 'aspect-[3/2] w-[480px]';
+      case '5:4':
+        return isDual ? 'aspect-[5/4] w-[540px]' : 'aspect-[5/4] w-[420px]';
+      case '3:4':
+        return 'aspect-[3/4] h-[380px] w-[285px]';
+      case '4:5':
       case 'ig-portrait':
         return 'aspect-[4/5] h-[380px] w-[304px]';
       case 'custom':
