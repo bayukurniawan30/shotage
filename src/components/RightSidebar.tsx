@@ -2089,6 +2089,25 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Rotation</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.rotation ?? 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  value={selectedLayer.rotation ?? 0}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      rotation: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium text-slate-300">Opacity</span>
                   <span className="font-mono text-slate-400">{selectedLayer.opacity ?? 100}%</span>
                 </div>

@@ -16,6 +16,7 @@ import {
   Download01,
   UploadCloud01,
   Play,
+  Heart,
 } from '@untitledui/icons';
 
 export const Studio: React.FC = () => {
@@ -327,6 +328,15 @@ export const Studio: React.FC = () => {
             </button>
           </div>
 
+          <a
+            href="https://saweria.co/bayukurniawan30"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 sm:px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-200 font-semibold text-xs rounded-xl border border-neutral-700 transition-all flex items-center gap-1.5 cursor-pointer hover:border-neutral-600"
+          >
+            <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
+            <span className="hidden sm:inline">Support Me</span>
+          </a>
           <button
             onClick={() => setIsExportModalOpen(true)}
             className="px-3 sm:px-4 py-1.5 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98]"

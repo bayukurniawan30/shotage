@@ -53,6 +53,7 @@ export interface TextLayer {
   y: number;
   shadow: boolean;
   opacity: number; // 0 to 100
+  rotation: number; // -180 to 180 degrees
   position: 'above' | 'underneath'; // 'above' (front overlay) or 'underneath' (behind mockup)
   socialPlatform?: SocialPlatform;
   socialStyle?: SocialStyleVariant;

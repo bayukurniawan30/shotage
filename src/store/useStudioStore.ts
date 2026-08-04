@@ -203,6 +203,7 @@ export const useStudioStore = create<StudioStore>()(
             y: 0,
             shadow: true,
             opacity: 100,
+            rotation: 0,
             position: 'above',
           };
           return {
@@ -226,6 +227,7 @@ export const useStudioStore = create<StudioStore>()(
             y: 120,
             shadow: false,
             opacity: 100,
+            rotation: 0,
             position: 'above',
             socialPlatform: plat,
             socialStyle: 'default',

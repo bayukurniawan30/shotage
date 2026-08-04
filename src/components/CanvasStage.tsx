@@ -238,7 +238,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 : 'hover:outline-1 hover:outline-dashed hover:outline-slate-400'
             }`}
             style={{
-              transform: `translate(${layer.x}px, ${layer.y}px)`,
+              transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation || 0}deg)`,
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
               lineHeight: 1.2,
