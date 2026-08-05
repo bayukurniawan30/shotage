@@ -119,9 +119,11 @@ export const AnimationTimeline: React.FC = () => {
       ...kf,
       id: `kf-preset-${i}-${Date.now()}`,
     }));
+    const maxTime = Math.max(...preset.keyframes.map((k) => k.timeSec), 3);
     onChange({
       activePresetId: presetId,
       keyframes: newKeyframes,
+      durationSec: maxTime,
       currentTimeSec: 0,
     });
   };
@@ -357,6 +359,11 @@ export const AnimationTimeline: React.FC = () => {
                 onChange={(e) => handleDurationChange(Number(e.target.value))}
                 className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer w-full md:w-auto"
               >
+                {[3, 5, 8, 9, 10, 12, 15, 20].includes(state.durationSec) ? null : (
+                  <option value={state.durationSec} className="bg-neutral-900 text-white">
+                    {state.durationSec}s
+                  </option>
+                )}
                 <option value={3} className="bg-neutral-900 text-white">
                   3s
                 </option>
@@ -365,6 +372,9 @@ export const AnimationTimeline: React.FC = () => {
                 </option>
                 <option value={8} className="bg-neutral-900 text-white">
                   8s
+                </option>
+                <option value={9} className="bg-neutral-900 text-white">
+                  9s
                 </option>
                 <option value={10} className="bg-neutral-900 text-white">
                   10s

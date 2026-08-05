@@ -227,7 +227,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   watermarkSize: 'md',
   customWidth: 1280,
   customHeight: 720,
-  aspectRatio: '16:9',
+  aspectRatio: 'auto',
   rotateX: 0,
   rotateY: 0,
   slot1Rotate: 0,

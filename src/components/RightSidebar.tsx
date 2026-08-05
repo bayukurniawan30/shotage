@@ -270,7 +270,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const visibleMeshes = showAllMeshes ? MESH_PRESETS : MESH_PRESETS.slice(0, 4);
   const visibleConfetti = showAllConfetti ? CONFETTI_PRESETS : CONFETTI_PRESETS.slice(0, 4);
   const visibleRadiant = showAllRadiant ? RADIANT_PRESETS : RADIANT_PRESETS.slice(0, 4);
-  const visibleLinearSwatches = showAllLinearSwatches ? LINEAR_SWATCH_PRESETS : LINEAR_SWATCH_PRESETS.slice(0, 4);
+  const visibleLinearSwatches = showAllLinearSwatches
+    ? LINEAR_SWATCH_PRESETS
+    : LINEAR_SWATCH_PRESETS.slice(0, 4);
 
   const renderPerspectiveSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
@@ -343,7 +345,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="font-medium text-slate-300">Canvas Padding</span>
-              <span className="font-mono text-slate-400">{state.padding}px</span>
+              {/* <span className="font-mono text-slate-400">{state.padding}px</span> */}
             </div>
             <input
               type="range"
@@ -568,7 +570,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
             }`}
-            title={bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Linear Swatches' : bg}
+            title={
+              bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Linear Swatches' : bg
+            }
           >
             {bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Swatches' : bg}
           </button>

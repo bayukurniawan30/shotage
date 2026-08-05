@@ -65,4 +65,37 @@ export const ANIMATION_PRESETS: AnimationPresetTemplate[] = [
       { timeSec: 10, rotateX: 0, rotateY: 0, zoom: 85, offsetX: 0, offsetY: 0 },
     ],
   },
+  {
+    id: 'preset-loop-pulse',
+    name: 'Infinite Pulse Loop',
+    description: 'Seamless looping push-in zoom pulse and gentle 3D tilt',
+    keyframes: [
+      { timeSec: 0, rotateX: 0, rotateY: 0, zoom: 85, offsetX: 0, offsetY: 0 },
+      { timeSec: 3, rotateX: 12, rotateY: -10, zoom: 105, offsetX: 0, offsetY: 0 },
+      { timeSec: 6, rotateX: -8, rotateY: 10, zoom: 95, offsetX: 0, offsetY: 0 },
+      { timeSec: 10, rotateX: 0, rotateY: 0, zoom: 85, offsetX: 0, offsetY: 0 },
+    ],
+  },
+  {
+    id: 'preset-loop-orbit',
+    name: 'Endless Orbit Loop',
+    description: 'Continuous smooth 360° perspective rotation returning seamlessly',
+    keyframes: [
+      { timeSec: 0, rotateX: 10, rotateY: -25, zoom: 90, offsetX: 0, offsetY: 0 },
+      { timeSec: 3, rotateX: -10, rotateY: 0, zoom: 98, offsetX: 15, offsetY: -10 },
+      { timeSec: 6, rotateX: 10, rotateY: 25, zoom: 90, offsetX: 0, offsetY: 0 },
+      { timeSec: 9, rotateX: -8, rotateY: 0, zoom: 98, offsetX: -15, offsetY: 10 },
+      { timeSec: 12, rotateX: 10, rotateY: -25, zoom: 90, offsetX: 0, offsetY: 0 },
+    ],
+  },
+  {
+    id: 'preset-loop-breathing',
+    name: 'Breathing Hover Loop',
+    description: 'Subtle organic up-down float with soft tilt for continuous background loop',
+    keyframes: [
+      { timeSec: 0, rotateX: 5, rotateY: -5, zoom: 90, offsetX: 0, offsetY: 15 },
+      { timeSec: 4, rotateX: -5, rotateY: 5, zoom: 96, offsetX: 0, offsetY: -15 },
+      { timeSec: 10, rotateX: 5, rotateY: -5, zoom: 90, offsetX: 0, offsetY: 15 },
+    ],
+  },
 ];

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { UploadCloud01, ChevronDown, Check } from '@untitledui/icons';
 import { SocialIcon } from './SocialIcons';
+import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 
 const FRAME_LABELS: Record<string, string> = {
   frameless: 'No Frame',
@@ -1012,6 +1013,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       const c1 = state.gradient?.color1 || '#ffafcc';
       const c2 = state.gradient?.color2 || '#a2d2ff';
       return { backgroundImage: `linear-gradient(${angle}deg, ${c1}, ${c2})` };
+    }
+    if (bgType === 'linearSwatches') {
+      const preset =
+        LINEAR_SWATCH_PRESETS.find((p) => p.id === state.linearSwatchesPreset) ||
+        LINEAR_SWATCH_PRESETS[0];
+      return { background: preset.css };
     }
 
     // Default to pastel pink for all non-solid/gradient background types (mesh, wave, confetti, radiant, image, transparent)

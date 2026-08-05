@@ -35,7 +35,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     }
   };
 
-  // Calculate aspect ratio styling
   const getAspectRatioStyle = () => {
     const isDual = state.layoutCount === 2;
     switch (state.aspectRatio) {
@@ -43,28 +42,30 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       case 'yt-banner':
       case 'yt-thumbnail':
       case 'yt-video':
-        return isDual ? 'aspect-[16/9] w-[640px]' : 'aspect-[16/9] w-[520px]';
+        return isDual ? 'aspect-[16/9] w-[960px]' : 'aspect-[16/9] w-[780px]';
       case '1:1':
       case 'ig-post':
-        return isDual ? 'aspect-square h-[420px] w-[420px]' : 'aspect-square h-[340px] w-[340px]';
+        return isDual ? 'aspect-square w-[630px]' : 'aspect-square w-[510px]';
       case '9:16':
       case 'ig-story':
-        return 'aspect-[9/16] h-[380px] w-[214px]';
+        return 'aspect-[9/16] w-[321px]';
       case '4:3':
-        return isDual ? 'aspect-[4/3] w-[580px]' : 'aspect-[4/3] w-[460px]';
+        return isDual ? 'aspect-[4/3] w-[870px]' : 'aspect-[4/3] w-[690px]';
       case '3:2':
-        return isDual ? 'aspect-[3/2] w-[600px]' : 'aspect-[3/2] w-[480px]';
+        return isDual ? 'aspect-[3/2] w-[900px]' : 'aspect-[3/2] w-[720px]';
       case '5:4':
-        return isDual ? 'aspect-[5/4] w-[540px]' : 'aspect-[5/4] w-[420px]';
+        return isDual ? 'aspect-[5/4] w-[810px]' : 'aspect-[5/4] w-[630px]';
       case '3:4':
-        return 'aspect-[3/4] h-[380px] w-[285px]';
+        return 'aspect-[3/4] w-[428px]';
       case '4:5':
       case 'ig-portrait':
-        return 'aspect-[4/5] h-[380px] w-[304px]';
+        return 'aspect-[4/5] w-[456px]';
+      case 'auto':
+        return 'w-auto h-auto min-h-[390px]';
       case 'custom':
         return '';
       default:
-        return 'w-auto h-auto min-h-[260px]';
+        return 'w-auto h-auto min-h-[390px]';
     }
   };
 
@@ -87,7 +88,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       };
     }
     if (state.backgroundType === 'linearSwatches') {
-      const preset = LINEAR_SWATCH_PRESETS.find((p) => p.id === state.linearSwatchesPreset) || LINEAR_SWATCH_PRESETS[0];
+      const preset =
+        LINEAR_SWATCH_PRESETS.find((p) => p.id === state.linearSwatchesPreset) ||
+        LINEAR_SWATCH_PRESETS[0];
       return { background: preset.css };
     }
     return { backgroundColor: '#0f172a' };
@@ -657,10 +660,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       layoutElement = firstFrameElement;
     }
 
+    // Compute inner scale reduction based on padding
+    const paddingScale = Math.max(0.2, 1 - (state.padding * 1.2) / 300);
+
     return (
       <div
-        className="transition-all duration-200"
+        className="transition-all duration-200 flex items-center justify-center pointer-events-auto max-w-full max-h-full"
         style={{
+          transform: `scale(${paddingScale})`,
           transformOrigin:
             state.alignment === 'top'
               ? 'top center'
@@ -733,7 +740,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         <div
           ref={canvasRef}
           id="shotage-canvas"
-          className={`relative flex items-center justify-center transition-all duration-300 overflow-hidden shadow-2xl box-content shrink-0 ${getAspectRatioStyle()}`}
+          className={`relative flex items-center justify-center transition-all duration-300 overflow-hidden shadow-2xl box-border shrink-0 ${getAspectRatioStyle()}`}
           style={{
             ...getBackgroundStyle(),
             padding: `${state.padding}px`,
