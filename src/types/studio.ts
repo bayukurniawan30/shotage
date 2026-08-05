@@ -107,6 +107,7 @@ export interface StudioState {
   backgroundType:
     | 'solid'
     | 'gradient'
+    | 'linearSwatches'
     | 'image'
     | 'transparent'
     | 'wave'
@@ -118,6 +119,7 @@ export interface StudioState {
   confettiPreset: string;
   customConfettiObj: any | null;
   radiantPreset: string;
+  linearSwatchesPreset: string;
   backgroundColor: string;
   gradient: {
     color1: string;
@@ -210,6 +212,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   confettiPreset: 'confetti-1',
   customConfettiObj: null,
   radiantPreset: 'radiant-1',
+  linearSwatchesPreset: 'ls-1',
   backgroundColor: '#0f172a',
   gradient: {
     color1: '#cdb4db',

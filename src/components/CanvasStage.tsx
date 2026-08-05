@@ -6,6 +6,7 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
@@ -84,6 +85,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       return {
         backgroundImage: `linear-gradient(${state.gradient.angle}deg, ${state.gradient.color1}, ${state.gradient.color2})`,
       };
+    }
+    if (state.backgroundType === 'linearSwatches') {
+      const preset = LINEAR_SWATCH_PRESETS.find((p) => p.id === state.linearSwatchesPreset) || LINEAR_SWATCH_PRESETS[0];
+      return { background: preset.css };
     }
     return { backgroundColor: '#0f172a' };
   };

@@ -58,7 +58,8 @@ export const Studio: React.FC = () => {
       ...settingsToSave
     } = storeState;
 
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(settingsToSave, null, 2));
+    const dataStr =
+      'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(settingsToSave, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute('download', `shotage-settings-${Date.now()}.json`);
@@ -290,15 +291,20 @@ export const Studio: React.FC = () => {
           {/* 4. Animate Timeline Toggle Button */}
           <button
             onClick={() => updateState({ isAnimationMode: !isAnimationMode })}
-            className={`px-2.5 py-1.5 rounded-lg border transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-              isAnimationMode
-                ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
-                : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
+            className={`relative overflow-hidden rounded-lg p-[2px] transition-all cursor-pointer ${
+              isAnimationMode ? 'animate-border shadow-lg shadow-pink-300/30' : ''
             }`}
-            title="Toggle Keyframe Timeline Animation Mode"
           >
-            <Play className="w-3.5 h-3.5" />
-            <span>Animate</span>
+            <span
+              className={`relative z-10 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${
+                isAnimationMode
+                  ? 'bg-neutral-900 text-white'
+                  : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5" color={isAnimationMode ? '#bde0fe' : '#a2d2ff'} />
+              Animate
+            </span>
           </button>
 
           <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
@@ -402,14 +408,20 @@ export const Studio: React.FC = () => {
             </button>
             <button
               onClick={() => updateState({ isAnimationMode: !isAnimationMode })}
-              className={`p-1.5 rounded-lg border transition-all ${
-                isAnimationMode
-                  ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
-                  : 'bg-neutral-800 text-slate-300 border-neutral-700'
+              className={`relative overflow-hidden rounded-lg p-[2px] transition-all cursor-pointer ${
+                isAnimationMode ? 'animate-border shadow-lg shadow-pink-300/30' : ''
               }`}
               title="Toggle Keyframe Timeline Animation Mode"
             >
-              <Play className="w-3.5 h-3.5" />
+              <span
+                className={`relative z-10 flex items-center justify-center rounded-md p-1.5 transition-all ${
+                  isAnimationMode
+                    ? 'bg-neutral-900 text-white'
+                    : 'bg-neutral-800 text-slate-300 border border-neutral-700'
+                }`}
+              >
+                <Play className="w-3.5 h-3.5" color={isAnimationMode ? '#bde0fe' : '#a2d2ff'} />
+              </span>
             </button>
             <button
               onClick={togglePreviewMode}
@@ -422,6 +434,54 @@ export const Studio: React.FC = () => {
             >
               <Expand03 className="w-3.5 h-3.5" />
             </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => {
+                  setIsMenuOpen(!isMenuOpen);
+                }}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  isMenuOpen
+                    ? 'bg-neutral-700 text-white border-neutral-600'
+                    : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
+                }`}
+                title="More Options"
+              >
+                <DotsVertical className="w-4 h-4" />
+              </button>
+
+              {isMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-[100] animate-in fade-in zoom-in-95 duration-100">
+                  <a
+                    href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
+                  >
+                    <MessageTextSquare01 className="w-4 h-4 text-slate-400" />
+                    <span>Send Feedback</span>
+                  </a>
+
+                  <label className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors cursor-pointer">
+                    <UploadCloud01 className="w-4 h-4 text-slate-400" />
+                    <span>Import Settings</span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportSettings}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleExportSettings}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors text-left cursor-pointer"
+                  >
+                    <Download01 className="w-4 h-4 text-slate-400" />
+                    <span>Export Settings</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <a
@@ -569,7 +629,7 @@ export const Studio: React.FC = () => {
       />
 
       {/* Mobile Install App Button */}
-      <InstallPwaModal />
+      <InstallPwaModal showFloatingButton={!isMenuOpen} />
     </div>
   );
 };

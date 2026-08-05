@@ -19,6 +19,7 @@ import { WAVE_PRESETS } from '../utils/wavePresets';
 import { MESH_PRESETS } from '../utils/meshPresets';
 import { CONFETTI_PRESETS, generateRandomConfettiPreset } from '../utils/confettiPresets';
 import { RADIANT_PRESETS } from '../utils/radiantPresets';
+import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
@@ -190,6 +191,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const [showAllMeshes, setShowAllMeshes] = useState(false);
   const [showAllConfetti, setShowAllConfetti] = useState(false);
   const [showAllRadiant, setShowAllRadiant] = useState(false);
+  const [showAllLinearSwatches, setShowAllLinearSwatches] = useState(false);
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
   const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
     []
@@ -268,6 +270,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const visibleMeshes = showAllMeshes ? MESH_PRESETS : MESH_PRESETS.slice(0, 4);
   const visibleConfetti = showAllConfetti ? CONFETTI_PRESETS : CONFETTI_PRESETS.slice(0, 4);
   const visibleRadiant = showAllRadiant ? RADIANT_PRESETS : RADIANT_PRESETS.slice(0, 4);
+  const visibleLinearSwatches = showAllLinearSwatches ? LINEAR_SWATCH_PRESETS : LINEAR_SWATCH_PRESETS.slice(0, 4);
 
   const renderPerspectiveSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
@@ -543,10 +546,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         </h3>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         {(
           [
             'gradient',
+            'linearSwatches',
             'wave',
             'mesh',
             'radiant',
@@ -564,9 +568,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
             }`}
-            title={bg === 'transparent' ? 'No BG' : bg}
+            title={bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Linear Swatches' : bg}
           >
-            {bg === 'transparent' ? 'No BG' : bg}
+            {bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Swatches' : bg}
           </button>
         ))}
       </div>
@@ -885,6 +889,52 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               }
               className="w-full bg-slate-800 rounded-lg"
             />
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'linearSwatches' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Linear Swatches ({LINEAR_SWATCH_PRESETS.length})
+            </span>
+            <button
+              onClick={() => setShowAllLinearSwatches(!showAllLinearSwatches)}
+              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <ChevronDown
+                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                  showAllLinearSwatches ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {visibleLinearSwatches.map((preset) => {
+              const isSelected = (state.linearSwatchesPreset || 'ls-1') === preset.id;
+
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => onChange({ linearSwatchesPreset: preset.id })}
+                  className={`h-8 rounded-lg border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  style={{ background: preset.css }}
+                  title={preset.name}
+                >
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/70 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

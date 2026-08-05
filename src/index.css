@@ -61,3 +61,30 @@ input[type='range'] {
 .animate-marquee-down {
   animation: marquee-down 25s linear infinite;
 }
+
+.animate-border::before {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(#cdb4db, #ffc8dd, #ffafcc, #bde0fe, #a2d2ff, #cdb4db);
+  animation: spin-border 2.5s linear infinite;
+}
+
+.animate-border::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: #171717;
+}
+
+.animate-border > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes spin-border {
+  to {
+    transform: rotate(360deg);
+  }
+}
