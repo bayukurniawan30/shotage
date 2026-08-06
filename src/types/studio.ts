@@ -1,3 +1,5 @@
+import { getRandomGradientPreset } from '../utils/gradientPresets';
+
 export type SocialPlatform =
   | 'instagram'
   | 'facebook'
@@ -214,11 +216,14 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   radiantPreset: 'radiant-1',
   linearSwatchesPreset: 'ls-1',
   backgroundColor: '#0f172a',
-  gradient: {
-    color1: '#cdb4db',
-    color2: '#ffafcc',
-    angle: 135,
-  },
+  gradient: (() => {
+    const initialPreset = getRandomGradientPreset();
+    return {
+      color1: initialPreset.c1,
+      color2: initialPreset.c2,
+      angle: 135,
+    };
+  })(),
   bgImageUrl: null,
   bgBlur: 0,
   isPositionDragging: false,

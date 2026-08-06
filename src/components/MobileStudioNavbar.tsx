@@ -101,7 +101,11 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
 
       {/* Expandable Mobile Panel Drawer */}
       {activeTab && (
-        <div className="fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl max-h-[45vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
+        <div
+          className={`fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200 ${
+            activeTab === 'aspect' ? 'min-h-[40vh] max-h-[45vh]' : 'max-h-[45vh]'
+          }`}
+        >
           <div className="sticky top-0 z-[60] bg-neutral-900/95 backdrop-blur-xl px-4 pt-4 pb-2 border-b border-neutral-800 flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-pastel-pink">
               {tabs.find((t) => t.id === activeTab)?.label}

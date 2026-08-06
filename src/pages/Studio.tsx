@@ -521,28 +521,30 @@ export const Studio: React.FC = () => {
             <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
 
             {/* Floating Bottom Zoom Slider (Full Preview Mode OR Mobile Normal Mode) */}
-            {(isPreviewMode || true) && !useStudioStore((s) => s.isAnimationMode) && (
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
-                  isPreviewMode ? 'bottom-4 sm:bottom-6' : 'bottom-3 flex md:hidden'
-                }`}
-              >
-                <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
-                  Canvas Zoom
-                </span>
-                <input
-                  type="range"
-                  min="25"
-                  max="150"
-                  value={previewCanvasZoom}
-                  onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
-                  className="w-24 sm:w-36 bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
-                />
-                <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
-                  {previewCanvasZoom}%
-                </span>
-              </div>
-            )}
+            <div
+              className={`absolute left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
+                isPreviewMode
+                  ? 'bottom-4 sm:bottom-6'
+                  : isAnimationMode
+                    ? 'bottom-20 flex md:hidden'
+                    : 'bottom-3 flex md:hidden'
+              }`}
+            >
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
+                Canvas Zoom
+              </span>
+              <input
+                type="range"
+                min="25"
+                max="150"
+                value={previewCanvasZoom}
+                onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
+                className="w-24 sm:w-36 bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
+              />
+              <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
+                {previewCanvasZoom}%
+              </span>
+            </div>
           </div>
 
           {/* Animation Keyframe Timeline Dock */}
