@@ -518,16 +518,14 @@ export const Studio: React.FC = () => {
         {/* Center Stage: Interactive Canvas Workspace */}
         <div className="flex-1 bg-neutral-950 relative overflow-hidden flex flex-col items-center justify-between">
           <div className="flex-1 w-full flex items-center justify-center relative">
-            <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
-
-            {/* Floating Bottom Zoom Slider (Full Preview Mode OR Mobile Normal Mode) */}
+            {/* Floating Bottom Zoom Slider (Full Preview Mode OR Normal Mode) */}
             <div
-              className={`absolute left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
+              className={`fixed left-1/2 -translate-x-1/2 z-50 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
                 isPreviewMode
                   ? 'bottom-4 sm:bottom-6'
                   : isAnimationMode
-                    ? 'bottom-20 flex md:hidden'
-                    : 'bottom-3 flex md:hidden'
+                    ? 'bottom-24 sm:bottom-28'
+                    : 'bottom-20 sm:bottom-6'
               }`}
             >
               <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
@@ -545,6 +543,8 @@ export const Studio: React.FC = () => {
                 {previewCanvasZoom}%
               </span>
             </div>
+
+            <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
           </div>
 
           {/* Animation Keyframe Timeline Dock */}

@@ -11,10 +11,7 @@ interface StudioStore extends StudioState {
   resetAll: () => void;
   togglePreviewMode: () => void;
   addTextLayer: (text?: string) => void;
-  addSocialLayer: (
-    platform?: import('../types/studio').SocialPlatform,
-    handle?: string
-  ) => void;
+  addSocialLayer: (platform?: import('../types/studio').SocialPlatform, handle?: string) => void;
   updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
   removeTextLayer: (id: string) => void;
   duplicateTextLayer: (id: string) => void;
@@ -186,7 +183,7 @@ export const useStudioStore = create<StudioStore>()(
           slot2OffsetX: 0,
           slot2OffsetY: 0,
         }),
-      resetAll: () => set({ ...DEFAULT_STUDIO_STATE }),
+      resetAll: () => set((s) => ({ ...DEFAULT_STUDIO_STATE, resetKey: s.resetKey + 1 })),
       togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode })),
       addTextLayer: (initialText) =>
         set((state) => {

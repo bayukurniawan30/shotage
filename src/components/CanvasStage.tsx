@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
@@ -42,24 +42,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       case 'yt-banner':
       case 'yt-thumbnail':
       case 'yt-video':
-        return isDual ? 'aspect-[16/9] w-[960px]' : 'aspect-[16/9] w-[780px]';
+        return isDual ? 'aspect-[16/9] w-[960px]' : 'aspect-[16/9] w-[832px]';
       case '1:1':
       case 'ig-post':
-        return isDual ? 'aspect-square w-[630px]' : 'aspect-square w-[510px]';
+        return isDual ? 'aspect-square w-[630px]' : 'aspect-square w-[520px]';
       case '9:16':
       case 'ig-story':
-        return 'aspect-[9/16] w-[321px]';
+        return isDual ? 'aspect-[9/16] w-[450px]' : 'aspect-[9/16] w-[450px]';
       case '4:3':
-        return isDual ? 'aspect-[4/3] w-[870px]' : 'aspect-[4/3] w-[690px]';
+        return isDual ? 'aspect-[4/3] w-[870px]' : 'aspect-[4/3] w-[565px]';
       case '3:2':
-        return isDual ? 'aspect-[3/2] w-[900px]' : 'aspect-[3/2] w-[720px]';
+        return isDual ? 'aspect-[3/2] w-[900px]' : 'aspect-[3/2] w-[585px]';
       case '5:4':
-        return isDual ? 'aspect-[5/4] w-[810px]' : 'aspect-[5/4] w-[630px]';
+        return isDual ? 'aspect-[5/4] w-[810px]' : 'aspect-[5/4] w-[526px]';
       case '3:4':
-        return 'aspect-[3/4] w-[428px]';
+        return isDual ? 'aspect-[3/4] w-[428px]' : 'aspect-[3/4] w-[428px]';
       case '4:5':
       case 'ig-portrait':
-        return 'aspect-[4/5] w-[456px]';
+        return isDual ? 'aspect-[4/5] w-[468px]' : 'aspect-[4/5] w-[468px]';
       case 'auto':
         return 'w-auto h-auto min-h-[390px]';
       case 'custom':
@@ -660,8 +660,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       layoutElement = firstFrameElement;
     }
 
-    // Compute inner scale reduction based on padding
-    const paddingScale = Math.max(0.2, 1 - (state.padding * 1.2) / 300);
+    // Compute inner scale reduction based on padding, aspect ratio, and layout count
+    const isPortrait = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(state.aspectRatio);
+    const baseScale = state.layoutCount === 2 ? (isPortrait ? 0.65 : 1) : 0.95;
+    const paddingScale = Math.max(0.2, baseScale - (state.padding * 0.6) / 300);
 
     return (
       <div
@@ -685,6 +687,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const startPosRef = useRef({ x: 0, y: 0 });
+
+  // Reset pan offset to center when aspect ratio changes or when state is reset
+  useEffect(() => {
+    setPan({ x: 0, y: 0 });
+  }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;

@@ -149,7 +149,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
             return (
               <button
                 key={count}
-                onClick={() => onChange({ layoutCount: count as 1 | 2 })}
+                onClick={() => {
+                  const isPortraitRatio = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(state.aspectRatio);
+                  const newPreset = count === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
+                  onChange({ layoutCount: count as 1 | 2, layoutPreset: newPreset });
+                }}
                 className={`py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   isSelected
                     ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
@@ -399,10 +403,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         type="button"
                         onClick={() => {
                           const recZoom = getRecommendedZoomForAspect(item.id);
+                          const isPortraitRatio = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(item.id);
+                          const newPreset = state.layoutCount === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
                           onChange({
                             aspectRatio: item.id as any,
                             zoom: recZoom,
                             slot2Zoom: recZoom,
+                            layoutPreset: newPreset,
                           });
                           setIsAspectDropdownOpen(false);
                         }}
@@ -450,10 +457,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         type="button"
                         onClick={() => {
                           const recZoom = getRecommendedZoomForAspect(item.id);
+                          const isPortraitRatio = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(item.id);
+                          const newPreset = state.layoutCount === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
                           onChange({
                             aspectRatio: item.id as any,
                             zoom: recZoom,
                             slot2Zoom: recZoom,
+                            layoutPreset: newPreset,
                           });
                           setIsAspectDropdownOpen(false);
                         }}

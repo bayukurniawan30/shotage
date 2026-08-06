@@ -182,6 +182,7 @@ export interface StudioState {
   selectedTextLayerId: string | null;
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
+  resetKey: number;
 }
 
 export const DEFAULT_STUDIO_STATE: StudioState = {
@@ -264,4 +265,5 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
     xOffset: 0,
     yOffset: 0,
   },
+  resetKey: 0,
 };
