@@ -8,7 +8,20 @@ export type SocialPlatform =
   | 'github'
   | 'whatsapp'
   | 'x'
-  | 'threads';
+  | 'threads'
+  | 'linkedin'
+  | 'dribbble'
+  | 'behance'
+  | 'figma'
+  | 'discord'
+  | 'telegram'
+  | 'reddit'
+  | 'twitch'
+  | 'spotify'
+  | 'pinterest'
+  | 'producthunt'
+  | 'medium'
+  | 'substack';
 
 export type SocialStyleVariant =
   | 'default'
@@ -35,6 +48,46 @@ export interface TechStackConfig {
   selectedIcons: import('../components/TechStackIcons').TechStackId[];
   size: number;
   gap: number;
+  style: TechStackLayoutStyle;
+  position: TechStackPosition;
+  badgeStyle: 'plain' | 'glass-dark' | 'glass-light' | 'badge-dark' | 'badge-light';
+  xOffset: number;
+  yOffset: number;
+}
+
+export type PhosphorWeight = 'regular' | 'fill' | 'duotone';
+
+export type PhosphorBadgeStyle =
+  | 'plain'
+  | 'glass-dark'
+  | 'glass-light'
+  | 'badge-dark'
+  | 'badge-light'
+  | 'circle-dark'
+  | 'circle-light';
+
+export interface PhosphorIconLayer {
+  id: string;
+  iconId: string;
+  weight: PhosphorWeight;
+  size: number;
+  color: string;
+  badgeStyle: PhosphorBadgeStyle;
+  x: number;
+  y: number;
+  rotation: number;
+  opacity: number;
+  position: 'above' | 'underneath';
+  shadow?: boolean;
+}
+
+export interface PhosphorIconConfig {
+  enabled: boolean;
+  selectedIcons: string[];
+  weight: PhosphorWeight;
+  size: number;
+  gap: number;
+  color: string;
   style: TechStackLayoutStyle;
   position: TechStackPosition;
   badgeStyle: 'plain' | 'glass-dark' | 'glass-light' | 'badge-dark' | 'badge-light';
@@ -130,6 +183,12 @@ export interface StudioState {
   };
   bgImageUrl: string | null;
   bgBlur: number; // 0 to 20
+  bgGrain: number; // 0 to 100
+  lensBlurEnabled: boolean;
+  lensBlurAmount: number; // 0 to 50
+  lensBlurFocalX: number; // 0 to 100 (%)
+  lensBlurFocalY: number; // 0 to 100 (%)
+  lensBlurRadius: number; // 0 to 100 (%)
   isPositionDragging: boolean;
   watermarkType: WatermarkType;
   watermarkPosition: WatermarkPosition;
@@ -180,8 +239,13 @@ export interface StudioState {
   // Text Layers
   textLayers: TextLayer[];
   selectedTextLayerId: string | null;
+  // Phosphor Icon Layers (Independent canvas layers)
+  phosphorIconLayers: PhosphorIconLayer[];
+  selectedPhosphorIconLayerId: string | null;
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
+  // Phosphor Icons Overlay (Grouped)
+  phosphorIconConfig: PhosphorIconConfig;
   resetKey: number;
 }
 
@@ -217,6 +281,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   radiantPreset: 'radiant-1',
   linearSwatchesPreset: 'ls-1',
   backgroundColor: '#0f172a',
+  bgGrain: 0,
   gradient: (() => {
     const initialPreset = getRandomGradientPreset();
     return {
@@ -227,6 +292,11 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   })(),
   bgImageUrl: null,
   bgBlur: 0,
+  lensBlurEnabled: false,
+  lensBlurAmount: 24,
+  lensBlurFocalX: 50,
+  lensBlurFocalY: 50,
+  lensBlurRadius: 20,
   isPositionDragging: false,
   watermarkType: 'none',
   watermarkPosition: 'bottom-right',
@@ -254,6 +324,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   activePresetId: '',
   textLayers: [],
   selectedTextLayerId: null,
+  phosphorIconLayers: [],
+  selectedPhosphorIconLayerId: null,
   techStackConfig: {
     enabled: false,
     selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],
@@ -261,6 +333,19 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
     gap: 12,
     style: 'row',
     position: 'bottom-left',
+    badgeStyle: 'glass-dark',
+    xOffset: 0,
+    yOffset: 0,
+  },
+  phosphorIconConfig: {
+    enabled: false,
+    selectedIcons: ['Sparkle', 'Heart', 'Cube'],
+    weight: 'duotone',
+    size: 28,
+    gap: 12,
+    color: '#a2d2ff',
+    style: 'row',
+    position: 'top-right',
     badgeStyle: 'glass-dark',
     xOffset: 0,
     yOffset: 0,

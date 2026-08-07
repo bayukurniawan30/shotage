@@ -16,6 +16,7 @@ import { LeftSidebar } from './LeftSidebar';
 import { RightSidebar } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
+import * as PhosphorIcons from '@phosphor-icons/react';
 
 interface MobileStudioNavbarProps {
   onImageUpload: (file: File) => void;
@@ -30,6 +31,7 @@ export type MobileTab =
   | 'perspective'
   | 'social'
   | 'techstack'
+  | 'icons'
   | 'text'
   | 'watermark'
   | 'background';
@@ -69,6 +71,16 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
         </svg>
       ),
     },
+    {
+      id: 'icons',
+      label: 'Icons by Phosphor',
+      icon: (props) => (
+        <PhosphorIcons.Sparkle
+          weight="duotone"
+          className={props.className || 'w-5 h-5 text-pastel-pink'}
+        />
+      ),
+    },
     { id: 'text', label: 'Text Layers', icon: Type01 },
     { id: 'watermark', label: 'Watermark', icon: Bookmark },
   ];
@@ -103,7 +115,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       {activeTab && (
         <div
           className={`fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200 ${
-            activeTab === 'aspect' ? 'min-h-[40vh] max-h-[45vh]' : 'max-h-[45vh]'
+            activeTab === 'aspect' ? 'min-h-[40vh] max-h-[50vh]' : 'min-h-[50vh] max-h-[55vh]'
           }`}
         >
           <div className="sticky top-0 z-[60] bg-neutral-900/95 backdrop-blur-xl px-4 pt-4 pb-2 border-b border-neutral-800 flex items-center justify-between">
@@ -138,6 +150,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
             {activeTab === 'perspective' && <RightSidebar mobileSection="perspective" />}
             {activeTab === 'social' && <RightSidebar mobileSection="social" />}
             {activeTab === 'techstack' && <RightSidebar mobileSection="techstack" />}
+            {activeTab === 'icons' && <RightSidebar mobileSection="icons" />}
             {activeTab === 'text' && <RightSidebar mobileSection="text" />}
             {activeTab === 'watermark' && <RightSidebar mobileSection="watermark" />}
             {activeTab === 'background' && <RightSidebar mobileSection="background" />}

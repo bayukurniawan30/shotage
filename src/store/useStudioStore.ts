@@ -16,6 +16,11 @@ interface StudioStore extends StudioState {
   removeTextLayer: (id: string) => void;
   duplicateTextLayer: (id: string) => void;
   selectTextLayer: (id: string | null) => void;
+  addPhosphorIconLayer: (iconId?: string) => void;
+  updatePhosphorIconLayer: (id: string, updates: Partial<import('../types/studio').PhosphorIconLayer>) => void;
+  removePhosphorIconLayer: (id: string) => void;
+  duplicatePhosphorIconLayer: (id: string) => void;
+  selectPhosphorIconLayer: (id: string | null) => void;
 }
 
 export const useStudioStore = create<StudioStore>()(
@@ -260,7 +265,62 @@ export const useStudioStore = create<StudioStore>()(
             selectedTextLayerId: dup.id,
           };
         }),
-      selectTextLayer: (id) => set({ selectedTextLayerId: id }),
+      selectTextLayer: (id) =>
+        set(() => ({
+          selectedTextLayerId: id,
+        })),
+      addPhosphorIconLayer: (iconId) =>
+        set((state) => {
+          const newLayer: import('../types/studio').PhosphorIconLayer = {
+            id: `phosphor-${Date.now()}`,
+            iconId: iconId || 'Sparkle',
+            weight: 'duotone',
+            size: 40,
+            color: '#a2d2ff',
+            badgeStyle: 'circle-dark',
+            x: 0,
+            y: 0,
+            rotation: 0,
+            opacity: 100,
+            position: 'above',
+            shadow: false,
+          };
+          return {
+            phosphorIconLayers: [...(state.phosphorIconLayers || []), newLayer],
+            selectedPhosphorIconLayerId: newLayer.id,
+          };
+        }),
+      updatePhosphorIconLayer: (id, updates) =>
+        set((state) => ({
+          phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
+            l.id === id ? { ...l, ...updates } : l
+          ),
+        })),
+      removePhosphorIconLayer: (id) =>
+        set((state) => ({
+          phosphorIconLayers: (state.phosphorIconLayers || []).filter((l) => l.id !== id),
+          selectedPhosphorIconLayerId:
+            state.selectedPhosphorIconLayerId === id ? null : state.selectedPhosphorIconLayerId,
+        })),
+      duplicatePhosphorIconLayer: (id) =>
+        set((state) => {
+          const layerToDup = (state.phosphorIconLayers || []).find((l) => l.id === id);
+          if (!layerToDup) return state;
+          const dup: import('../types/studio').PhosphorIconLayer = {
+            ...layerToDup,
+            id: `phosphor-${Date.now()}`,
+            x: layerToDup.x + 20,
+            y: layerToDup.y + 20,
+          };
+          return {
+            phosphorIconLayers: [...(state.phosphorIconLayers || []), dup],
+            selectedPhosphorIconLayerId: dup.id,
+          };
+        }),
+      selectPhosphorIconLayer: (id) =>
+        set(() => ({
+          selectedPhosphorIconLayerId: id,
+        })),
     }),
     {
       limit: 50, // Keep last 50 history steps

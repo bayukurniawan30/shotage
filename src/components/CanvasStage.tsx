@@ -11,6 +11,7 @@ import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
+import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ImageUp,
   Heart,
@@ -287,6 +288,71 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ) : (
               layer.text
             )}
+          </div>
+        );
+      });
+  };
+
+  const renderPhosphorIconLayers = (positionFilter: 'above' | 'underneath') => {
+    const layers = state.phosphorIconLayers || [];
+    return layers
+      .filter((layer) => (layer.position || 'above') === positionFilter)
+      .map((layer) => {
+        const isSelected = layer.id === state.selectedPhosphorIconLayerId;
+        const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
+
+        const getBadgeClass = (style: import('../types/studio').PhosphorBadgeStyle) => {
+          switch (style) {
+            case 'circle-dark':
+              return 'w-fit h-fit rounded-full bg-neutral-950/90 shadow-md p-3 flex items-center justify-center';
+            case 'circle-light':
+              return 'w-fit h-fit rounded-full bg-white shadow-md p-3 flex items-center justify-center';
+            case 'glass-dark':
+              return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-2xl p-3 flex items-center justify-center';
+            case 'glass-light':
+              return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-2xl p-3 flex items-center justify-center';
+            case 'badge-dark':
+              return 'bg-neutral-950/90 shadow-md rounded-2xl p-3 flex items-center justify-center';
+            case 'badge-light':
+              return 'bg-white shadow-md rounded-2xl p-3 flex items-center justify-center';
+            case 'plain':
+            default:
+              return 'p-1 flex items-center justify-center';
+          }
+        };
+
+        const isCircle = layer.badgeStyle === 'circle-dark' || layer.badgeStyle === 'circle-light';
+        const roundedClass = isCircle
+          ? 'rounded-full'
+          : layer.badgeStyle === 'plain'
+            ? 'rounded-xl'
+            : 'rounded-2xl';
+
+        return (
+          <div
+            key={layer.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              state.selectPhosphorIconLayer(layer.id);
+            }}
+            className={`phosphor-icon-layer-item absolute cursor-pointer select-none transition-all ${roundedClass} ${
+              positionFilter === 'underneath' ? 'z-0' : 'z-30'
+            } ${
+              isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
+            }`}
+            style={{
+              transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation || 0}deg)`,
+              opacity: (layer.opacity ?? 100) / 100,
+              filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+            }}
+          >
+            <div className={getBadgeClass(layer.badgeStyle)}>
+              <IconComp
+                weight={layer.weight || 'duotone'}
+                size={layer.size || 36}
+                color={layer.color || '#a2d2ff'}
+              />
+            </div>
           </div>
         );
       });
@@ -661,7 +727,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     }
 
     // Compute inner scale reduction based on padding, aspect ratio, and layout count
-    const isPortrait = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(state.aspectRatio);
+    const isPortrait = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(
+      state.aspectRatio
+    );
     const baseScale = state.layoutCount === 2 ? (isPortrait ? 0.65 : 1) : 0.95;
     const paddingScale = Math.max(0.2, baseScale - (state.padding * 0.6) / 300);
 
@@ -706,6 +774,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     if (state.selectedTextLayerId && !target.closest('.text-layer-item')) {
       state.selectTextLayer(null);
+    }
+
+    if (state.selectedPhosphorIconLayerId && !target.closest('.phosphor-icon-layer-item')) {
+      state.selectPhosphorIconLayer(null);
     }
 
     setIsPanning(true);
@@ -760,36 +832,57 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               : {}),
           }}
         >
-          {/* SVG Wave Background Layer */}
-          {state.backgroundType === 'wave' && (
-            <WaveBackground presetId={state.wavePreset || 'wave-1'} />
-          )}
+          {/* Global Canvas Background Layer Container with Blur Support */}
+          <div
+            className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
+              (state.bgBlur ?? 0) > 0 ? 'scale-105' : ''
+            }`}
+            style={{
+              ...getBackgroundStyle(),
+              filter: (state.bgBlur ?? 0) > 0 ? `blur(${state.bgBlur}px)` : undefined,
+            }}
+          >
+            {/* SVG Wave Background Layer */}
+            {state.backgroundType === 'wave' && (
+              <WaveBackground presetId={state.wavePreset || 'wave-1'} />
+            )}
 
-          {/* Dynamic Mesh Background Layer */}
-          {state.backgroundType === 'mesh' && (
-            <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
-          )}
+            {/* Dynamic Mesh Background Layer */}
+            {state.backgroundType === 'mesh' && (
+              <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
+            )}
 
-          {/* Confetti Shapes Background Layer */}
-          {state.backgroundType === 'confetti' && (
-            <ConfettiBackground
-              presetId={state.confettiPreset || 'confetti-1'}
-              customPreset={state.customConfettiObj}
-            />
-          )}
+            {/* Confetti Shapes Background Layer */}
+            {state.backgroundType === 'confetti' && (
+              <ConfettiBackground
+                presetId={state.confettiPreset || 'confetti-1'}
+                customPreset={state.customConfettiObj}
+              />
+            )}
 
-          {/* Radiant Glow Background Layer */}
-          {state.backgroundType === 'radiant' && (
-            <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
-          )}
+            {/* Radiant Glow Background Layer */}
+            {state.backgroundType === 'radiant' && (
+              <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
+            )}
 
-          {/* Background Image Layer (Scope blur strictly to background image) */}
-          {state.backgroundType === 'image' && state.bgImageUrl && (
+            {/* Background Image Layer */}
+            {state.backgroundType === 'image' && state.bgImageUrl && (
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: `url(${state.bgImageUrl})`,
+                }}
+              />
+            )}
+          </div>
+
+          {/* Grain Effect Noise Overlay Layer */}
+          {(state.bgGrain ?? 0) > 0 && (
             <div
-              className="absolute inset-0 bg-cover bg-center pointer-events-none scale-105"
+              className="absolute inset-0 pointer-events-none z-[2] mix-blend-overlay"
               style={{
-                backgroundImage: `url(${state.bgImageUrl})`,
-                filter: `blur(${state.bgBlur}px)`,
+                opacity: (state.bgGrain ?? 0) / 100,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
               }}
             />
           )}
@@ -808,8 +901,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             />
           )}
 
-          {/* Underneath Static Text Layers (Rendered behind the 3D mockup frame) */}
+          {/* Underneath Static Text & Icon Layers (Rendered behind the 3D mockup frame) */}
           {renderTextLayers('underneath')}
+          {renderPhosphorIconLayers('underneath')}
 
           {/* 3D Transform Wrapper */}
           <div
@@ -819,8 +913,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             {renderFrameContent()}
           </div>
 
-          {/* Above Static Text Layers (Rendered on top of the 3D mockup frame) */}
+          {/* Above Static Text & Icon Layers (Rendered on top of the 3D mockup frame) */}
           {renderTextLayers('above')}
+          {renderPhosphorIconLayers('above')}
 
           {/* Center Alignment Guide Lines (Shown while dragging position sliders) */}
           {state.isPositionDragging && (
@@ -944,8 +1039,151 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             );
           })()}
 
+          {/* Phosphor Icons Overlay */}
+          {(() => {
+            const config = state.phosphorIconConfig;
+            if (
+              !config ||
+              !config.enabled ||
+              !config.selectedIcons ||
+              config.selectedIcons.length === 0
+            ) {
+              return null;
+            }
+
+            const getPositionStyles = (): React.CSSProperties => {
+              let baseTX = '0%';
+              let baseTY = '0%';
+              let top: string | undefined;
+              let bottom: string | undefined;
+              let left: string | undefined;
+              let right: string | undefined;
+
+              switch (config.position) {
+                case 'top-left':
+                  top = '1.5rem';
+                  left = '1.5rem';
+                  break;
+                case 'top-center':
+                  top = '1.5rem';
+                  left = '50%';
+                  baseTX = '-50%';
+                  break;
+                case 'top-right':
+                  top = '1.5rem';
+                  right = '1.5rem';
+                  break;
+                case 'center-left':
+                  top = '50%';
+                  left = '1.5rem';
+                  baseTY = '-50%';
+                  break;
+                case 'center':
+                  top = '50%';
+                  left = '50%';
+                  baseTX = '-50%';
+                  baseTY = '-50%';
+                  break;
+                case 'center-right':
+                  top = '50%';
+                  right = '1.5rem';
+                  baseTY = '-50%';
+                  break;
+                case 'bottom-left':
+                  bottom = '1.5rem';
+                  left = '1.5rem';
+                  break;
+                case 'bottom-center':
+                  bottom = '1.5rem';
+                  left = '50%';
+                  baseTX = '-50%';
+                  break;
+                case 'bottom-right':
+                  bottom = '1.5rem';
+                  right = '1.5rem';
+                  break;
+              }
+
+              const xOff = config.xOffset || 0;
+              const yOff = config.yOffset || 0;
+
+              return {
+                top,
+                bottom,
+                left,
+                right,
+                transform: `translate(calc(${baseTX} + ${xOff}px), calc(${baseTY} + ${yOff}px))`,
+              };
+            };
+
+            const getBadgeClass = () => {
+              switch (config.badgeStyle) {
+                case 'glass-dark':
+                  return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
+                case 'glass-light':
+                  return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-xl p-2.5';
+                case 'badge-dark':
+                  return 'bg-neutral-950/90 border border-neutral-800 shadow-md rounded-xl p-2.5';
+                case 'badge-light':
+                  return 'bg-white border border-slate-200/90 shadow-md rounded-xl p-2.5';
+                case 'plain':
+                default:
+                  return '';
+              }
+            };
+
+            return (
+              <div
+                className={`absolute z-[5] pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
+                style={getPositionStyles()}
+              >
+                <div
+                  className={`flex items-center ${
+                    config.style === 'column' ? 'flex-col' : 'flex-row'
+                  }`}
+                  style={{ gap: `${config.gap || 12}px` }}
+                >
+                  {config.selectedIcons.map((iconId) => {
+                    const IconComp = (PhosphorIcons as any)[iconId] || PhosphorIcons.Sparkle;
+                    return (
+                      <IconComp
+                        key={iconId}
+                        weight={config.weight || 'duotone'}
+                        size={config.size || 28}
+                        color={config.color || '#a2d2ff'}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Watermark Overlay */}
           <WatermarkOverlay />
+
+          {/* Top-Level Lens Blur (Depth of Field) Overlay covering the entire stage & mockup */}
+          {state.lensBlurEnabled && (state.lensBlurAmount ?? 0) > 0 && (
+            <div
+              className="absolute inset-0 pointer-events-none z-40 transition-all duration-200 scale-[1.03]"
+              style={{
+                backdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
+                WebkitBackdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
+                WebkitMaskImage: `radial-gradient(circle at ${state.lensBlurFocalX ?? 50}% ${
+                  state.lensBlurFocalY ?? 50
+                }%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) ${state.lensBlurRadius ?? 20}%, rgba(0,0,0,1) ${Math.min(
+                  100,
+                  (state.lensBlurRadius ?? 20) + 35
+                )}%)`,
+                maskImage: `radial-gradient(circle at ${state.lensBlurFocalX ?? 50}% ${
+                  state.lensBlurFocalY ?? 50
+                }%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) ${state.lensBlurRadius ?? 20}%, rgba(0,0,0,1) ${Math.min(
+                  100,
+                  (state.lensBlurRadius ?? 20) + 35
+                )}%)`,
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -27,6 +27,9 @@ import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from './SocialIcons';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from './TechStackIcons';
+import { Toggle } from './Toggle';
+import * as PhosphorIcons from '@phosphor-icons/react';
+import { PhosphorWeight } from '../types/studio';
 
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
@@ -106,6 +109,71 @@ const FontSelect: React.FC<{
   );
 };
 
+const MiniFocalPad: React.FC<{
+  focalX: number;
+  focalY: number;
+  onChange: (x: number, y: number) => void;
+}> = ({ focalX, focalY, onChange }) => {
+  const padRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handlePointer = (e: React.PointerEvent) => {
+    if (!padRef.current) return;
+    const rect = padRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+    const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
+    onChange(x, y);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold text-slate-300">Focal Target Pad</span>
+        <span className="font-mono text-[11px] text-pastel-pink">
+          {focalX}% / {focalY}%
+        </span>
+      </div>
+      <div
+        ref={padRef}
+        onPointerDown={(e) => {
+          setIsDragging(true);
+          e.currentTarget.setPointerCapture?.(e.pointerId);
+          handlePointer(e);
+        }}
+        onPointerMove={(e) => {
+          if (isDragging) handlePointer(e);
+        }}
+        onPointerUp={(e) => {
+          setIsDragging(false);
+          e.currentTarget.releasePointerCapture?.(e.pointerId);
+        }}
+        className="relative w-full h-28 bg-neutral-950 rounded-xl border border-neutral-800 cursor-crosshair overflow-hidden select-none shadow-inner group hover:border-pastel-pink/50 transition-colors"
+      >
+        {/* Grid lines */}
+        <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 pointer-events-none opacity-25">
+          {Array.from({ length: 16 }).map((_, i) => (
+            <div key={i} className="border-r border-b border-slate-700/40" />
+          ))}
+        </div>
+
+        {/* Center Crosshairs */}
+        <div className="absolute left-1/2 top-0 bottom-0 border-r border-dashed border-slate-700/60 pointer-events-none" />
+        <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-slate-700/60 pointer-events-none" />
+
+        {/* Focal point target reticle */}
+        <div
+          className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-75"
+          style={{ left: `${focalX}%`, top: `${focalY}%` }}
+        >
+          <div className="w-7 h-7 rounded-full border-2 border-pastel-pink bg-pastel-pink/20 shadow-lg shadow-pastel-pink/50 flex items-center justify-center animate-pulse">
+            <div className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SocialPlatformSelect: React.FC<{
   value: SocialPlatform;
   onChange: (platform: SocialPlatform) => void;
@@ -180,7 +248,8 @@ const SocialPlatformSelect: React.FC<{
 };
 
 interface RightSidebarProps {
-  mobileSection?: 'perspective' | 'watermark' | 'background' | 'text' | 'social' | 'techstack';
+  mobileSection?:
+    'perspective' | 'watermark' | 'background' | 'text' | 'social' | 'techstack' | 'icons';
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
@@ -1024,23 +1093,120 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               </div>
             </div>
           </div>
-
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">Background Blur</span>
-              <span className="font-mono text-slate-400">{state.bgBlur}px</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="20"
-              value={state.bgBlur}
-              onChange={(e) => onChange({ bgBlur: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg"
-            />
-          </div>
         </div>
       )}
+
+      {/* Global Background Adjustments (Grain & Blur) */}
+      <div className="pt-3 border-t border-slate-800/60 space-y-3">
+        {/* Grain Effect Slider */}
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium text-slate-300">Grain Effect</span>
+            <span className="font-mono text-slate-400">{state.bgGrain || 0}%</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={state.bgGrain || 0}
+            onChange={(e) => onChange({ bgGrain: Number(e.target.value) })}
+            className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+          />
+        </div>
+
+        {/* Background Blur Slider */}
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium text-slate-300">Background Blur</span>
+            <span className="font-mono text-slate-400">{state.bgBlur || 0}px</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="20"
+            value={state.bgBlur || 0}
+            onChange={(e) => onChange({ bgBlur: Number(e.target.value) })}
+            className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+          />
+        </div>
+
+        {/* Lens Blur (Depth of Field) Controls */}
+        <div className="pt-3 border-t border-slate-800/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <Toggle
+              isSelected={state.lensBlurEnabled}
+              onChange={(checked) => onChange({ lensBlurEnabled: checked })}
+              label="LENS BLUR (DEPTH OF FIELD)"
+              size="sm"
+            />
+          </div>
+
+          {state.lensBlurEnabled && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              {/* 2D Mini Pad for Focal Point */}
+              <MiniFocalPad
+                focalX={state.lensBlurFocalX ?? 50}
+                focalY={state.lensBlurFocalY ?? 50}
+                onChange={(x, y) => onChange({ lensBlurFocalX: x, lensBlurFocalY: y })}
+              />
+
+              {/* Quick Focal Position Presets */}
+              <div className="flex items-center gap-1.5 justify-between">
+                <span className="text-[10px] text-slate-400 font-medium">Target Presets:</span>
+                <div className="flex items-center gap-1">
+                  {[
+                    { label: 'TL', x: 25, y: 25 },
+                    { label: 'TR', x: 75, y: 25 },
+                    { label: 'Center', x: 50, y: 50 },
+                    { label: 'BL', x: 25, y: 75 },
+                    { label: 'BR', x: 75, y: 75 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      onClick={() => onChange({ lensBlurFocalX: p.x, lensBlurFocalY: p.y })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 hover:border-pastel-pink/50 rounded text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lens Blur Amount Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Blur Intensity</span>
+                  <span className="font-mono text-slate-400">{state.lensBlurAmount || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="4"
+                  max="50"
+                  value={state.lensBlurAmount || 24}
+                  onChange={(e) => onChange({ lensBlurAmount: Number(e.target.value) })}
+                  className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+                />
+              </div>
+
+              {/* Focus Clear Radius Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Focal Sharp Area</span>
+                  <span className="font-mono text-slate-400">{state.lensBlurRadius || 20}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="80"
+                  value={state.lensBlurRadius || 20}
+                  onChange={(e) => onChange({ lensBlurRadius: Number(e.target.value) })}
+                  className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 
@@ -1796,6 +1962,541 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     );
   };
 
+  const renderPhosphorIconsSection = () => {
+    const iconLayers = state.phosphorIconLayers || [];
+    const selectedLayer = iconLayers.find((l) => l.id === state.selectedPhosphorIconLayerId);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
+
+    const categories = [
+      { id: 'all', label: 'All' },
+      { id: 'ui', label: 'UI & Web' },
+      { id: 'shapes', label: 'Shapes' },
+      { id: 'tech', label: 'Tech' },
+      { id: 'media', label: 'Media' },
+      { id: 'commerce', label: 'Commerce' },
+      { id: 'social', label: 'Social' },
+    ];
+
+    const phosphorIconItems: { id: string; label: string; category: string }[] = [
+      // UI & Web (including Bookmarks!)
+      { id: 'Bookmark', label: 'Bookmark', category: 'ui' },
+      { id: 'BookmarkSimple', label: 'Simple Bookmark', category: 'ui' },
+      { id: 'Bookmarks', label: 'Bookmarks', category: 'ui' },
+      { id: 'Gear', label: 'Gear', category: 'ui' },
+      { id: 'Sliders', label: 'Sliders', category: 'ui' },
+      { id: 'Funnel', label: 'Filter', category: 'ui' },
+      { id: 'MagnifyingGlass', label: 'Search', category: 'ui' },
+      { id: 'Check', label: 'Check', category: 'ui' },
+      { id: 'X', label: 'Close', category: 'ui' },
+      { id: 'Plus', label: 'Plus', category: 'ui' },
+      { id: 'ArrowRight', label: 'Arrow', category: 'ui' },
+      { id: 'ArrowUpRight', label: 'Diagonal Arrow', category: 'ui' },
+      { id: 'LockKey', label: 'Lock', category: 'ui' },
+      { id: 'Key', label: 'Key', category: 'ui' },
+      { id: 'Trash', label: 'Trash', category: 'ui' },
+      { id: 'PencilSimple', label: 'Edit', category: 'ui' },
+      { id: 'Copy', label: 'Copy', category: 'ui' },
+      { id: 'Share', label: 'Share', category: 'ui' },
+      { id: 'DownloadSimple', label: 'Download', category: 'ui' },
+
+      // Shapes & Badges
+      { id: 'Sparkle', label: 'Sparkle', category: 'shapes' },
+      { id: 'Star', label: 'Star', category: 'shapes' },
+      { id: 'Heart', label: 'Heart', category: 'shapes' },
+      { id: 'Lightning', label: 'Lightning', category: 'shapes' },
+      { id: 'Fire', label: 'Fire', category: 'shapes' },
+      { id: 'Cube', label: 'Cube', category: 'shapes' },
+      { id: 'Circle', label: 'Circle', category: 'shapes' },
+      { id: 'Square', label: 'Square', category: 'shapes' },
+      { id: 'Triangle', label: 'Triangle', category: 'shapes' },
+      { id: 'Polygon', label: 'Polygon', category: 'shapes' },
+      { id: 'Diamond', label: 'Diamond', category: 'shapes' },
+      { id: 'ShieldCheck', label: 'Shield', category: 'shapes' },
+      { id: 'SealCheck', label: 'Seal Check', category: 'shapes' },
+      { id: 'Crown', label: 'Crown', category: 'shapes' },
+      { id: 'Planet', label: 'Planet', category: 'shapes' },
+
+      // Tech & Dev
+      { id: 'Code', label: 'Code', category: 'tech' },
+      { id: 'TerminalWindow', label: 'Terminal', category: 'tech' },
+      { id: 'Cpu', label: 'CPU', category: 'tech' },
+      { id: 'Database', label: 'Database', category: 'tech' },
+      { id: 'GitBranch', label: 'Git Branch', category: 'tech' },
+      { id: 'Cloud', label: 'Cloud', category: 'tech' },
+      { id: 'Bug', label: 'Bug', category: 'tech' },
+      { id: 'Desktop', label: 'Desktop', category: 'tech' },
+      { id: 'Laptop', label: 'Laptop', category: 'tech' },
+      { id: 'DeviceMobile', label: 'Mobile', category: 'tech' },
+      { id: 'WifiHigh', label: 'Wi-Fi', category: 'tech' },
+      { id: 'Broadcast', label: 'Broadcast', category: 'tech' },
+
+      // Media
+      { id: 'Image', label: 'Image', category: 'media' },
+      { id: 'VideoCamera', label: 'Video', category: 'media' },
+      { id: 'MusicNotes', label: 'Music', category: 'media' },
+      { id: 'Microphone', label: 'Mic', category: 'media' },
+      { id: 'Camera', label: 'Camera', category: 'media' },
+      { id: 'Play', label: 'Play', category: 'media' },
+      { id: 'Pause', label: 'Pause', category: 'media' },
+      { id: 'Folder', label: 'Folder', category: 'media' },
+      { id: 'FileCode', label: 'File Code', category: 'media' },
+
+      // Commerce
+      { id: 'ShoppingCart', label: 'Cart', category: 'commerce' },
+      { id: 'ShoppingBag', label: 'Bag', category: 'commerce' },
+      { id: 'CreditCard', label: 'Card', category: 'commerce' },
+      { id: 'Tag', label: 'Tag', category: 'commerce' },
+      { id: 'Receipt', label: 'Receipt', category: 'commerce' },
+      { id: 'TrendUp', label: 'Trend Up', category: 'commerce' },
+      { id: 'Percent', label: 'Percent', category: 'commerce' },
+      { id: 'Gift', label: 'Gift', category: 'commerce' },
+      { id: 'Trophy', label: 'Trophy', category: 'commerce' },
+      { id: 'Bank', label: 'Bank', category: 'commerce' },
+
+      // Social, Brands & Chat
+      { id: 'TwitterLogo', label: 'X / Twitter', category: 'social' },
+      { id: 'InstagramLogo', label: 'Instagram', category: 'social' },
+      { id: 'FacebookLogo', label: 'Facebook', category: 'social' },
+      { id: 'YoutubeLogo', label: 'YouTube', category: 'social' },
+      { id: 'TiktokLogo', label: 'TikTok', category: 'social' },
+      { id: 'LinkedinLogo', label: 'LinkedIn', category: 'social' },
+      { id: 'GithubLogo', label: 'GitHub', category: 'social' },
+      { id: 'DribbbleLogo', label: 'Dribbble', category: 'social' },
+      { id: 'FigmaLogo', label: 'Figma', category: 'social' },
+      { id: 'BehanceLogo', label: 'Behance', category: 'social' },
+      { id: 'DiscordLogo', label: 'Discord', category: 'social' },
+      { id: 'TelegramLogo', label: 'Telegram', category: 'social' },
+      { id: 'WhatsappLogo', label: 'WhatsApp', category: 'social' },
+      { id: 'RedditLogo', label: 'Reddit', category: 'social' },
+      { id: 'TwitchLogo', label: 'Twitch', category: 'social' },
+      { id: 'SpotifyLogo', label: 'Spotify', category: 'social' },
+      { id: 'PinterestLogo', label: 'Pinterest', category: 'social' },
+      { id: 'MediumLogo', label: 'Medium', category: 'social' },
+      { id: 'SlackLogo', label: 'Slack', category: 'social' },
+      { id: 'SnapchatLogo', label: 'Snapchat', category: 'social' },
+      { id: 'GoogleLogo', label: 'Google', category: 'social' },
+      { id: 'AppleLogo', label: 'Apple', category: 'social' },
+      { id: 'AndroidLogo', label: 'Android', category: 'social' },
+      { id: 'ChatCircleText', label: 'Chat', category: 'social' },
+      { id: 'Envelope', label: 'Email', category: 'social' },
+      { id: 'ShareNetwork', label: 'Network', category: 'social' },
+      { id: 'ThumbsUp', label: 'Like', category: 'social' },
+      { id: 'User', label: 'User', category: 'social' },
+      { id: 'Users', label: 'Users', category: 'social' },
+      { id: 'Globe', label: 'Globe', category: 'social' },
+    ];
+
+    const filteredItems = phosphorIconItems.filter((item) => {
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesSearch =
+        item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+
+    const weights: { id: PhosphorWeight; label: string }[] = [
+      { id: 'regular', label: 'Regular' },
+      { id: 'fill', label: 'Fill' },
+      { id: 'duotone', label: 'Duotone' },
+    ];
+
+    const badgeStyles: { id: import('../types/studio').PhosphorBadgeStyle; label: string }[] = [
+      { id: 'plain', label: 'Plain' },
+      { id: 'glass-dark', label: 'Glass Dark' },
+      { id: 'glass-light', label: 'Glass Light' },
+      { id: 'badge-dark', label: 'Solid Dark' },
+      { id: 'badge-light', label: 'Solid Light' },
+      { id: 'circle-dark', label: 'Circle Dark' },
+      { id: 'circle-light', label: 'Circle Light' },
+    ];
+
+    return (
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        {/* Header */}
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <PhosphorIcons.Sparkle weight="duotone" className="w-4 h-4 text-pastel-pink" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Icons by Phosphor
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => state.addPhosphorIconLayer('Bookmark')}
+            className="px-2.5 py-1 bg-pastel-pink/20 hover:bg-pastel-pink/30 text-pastel-pink border border-pastel-pink/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Icon</span>
+          </button>
+        </div>
+
+        {/* Catalog Search & Add Icon Grid */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-slate-300">Icon Catalog (Click to Add)</span>
+            <span className="font-mono text-[10px] text-pastel-pink">
+              {iconLayers.length} on stage
+            </span>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-2 py-1 text-[11px] font-medium rounded-lg shrink-0 border transition-all cursor-pointer ${
+                  selectedCategory === cat.id
+                    ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-pastel-blue font-bold'
+                    : 'bg-neutral-900 border-neutral-800/80 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <input
+            type="text"
+            placeholder="Search icons (e.g. Bookmark, Heart, Code)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-neutral-900 border border-neutral-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink"
+          />
+
+          {/* Icon Grid Picker */}
+          <div className="grid grid-cols-5 gap-1.5 max-h-40 overflow-y-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800 no-scrollbar">
+            {filteredItems.map((item) => {
+              const IconComp = (PhosphorIcons as any)[item.id] || PhosphorIcons.Sparkle;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  title={`Click to add ${item.label}`}
+                  onClick={() => state.addPhosphorIconLayer(item.id)}
+                  className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 text-slate-300 hover:border-pastel-pink/60 hover:text-white hover:bg-pastel-pink/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
+                >
+                  <IconComp weight="duotone" size={20} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Existing Canvas Icon Layers List */}
+        {iconLayers.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-neutral-800/80">
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Canvas Icon Layers ({iconLayers.length})
+            </label>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+              {iconLayers.map((layer, index) => {
+                const isSelected = layer.id === state.selectedPhosphorIconLayerId;
+                const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
+                return (
+                  <div
+                    key={layer.id}
+                    onClick={() => state.selectPhosphorIconLayer(layer.id)}
+                    className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-white font-bold'
+                        : 'bg-neutral-900/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <div className="w-6 h-6 rounded-full bg-neutral-950 border border-neutral-800 flex items-center justify-center shrink-0">
+                        <IconComp weight={layer.weight || 'duotone'} size={14} color={layer.color || '#a2d2ff'} />
+                      </div>
+                      <span className="text-xs truncate">
+                        {layer.iconId} #{index + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-slate-400">
+                        {layer.position === 'underneath' ? 'Behind' : 'Above'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.duplicatePhosphorIconLayer(layer.id);
+                        }}
+                        title="Duplicate icon"
+                        className="p-1 hover:text-pastel-pink text-slate-400 transition-colors cursor-pointer"
+                      >
+                        <Copy01 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.removePhosphorIconLayer(layer.id);
+                        }}
+                        title="Delete icon"
+                        className="p-1 hover:text-red-400 text-slate-400 transition-colors cursor-pointer"
+                      >
+                        <Trash01 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Icon Layer Editor Controls */}
+        {selectedLayer && (
+          <div className="space-y-4 pt-3 border-t border-neutral-800/80 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <span>Editing: {selectedLayer.iconId}</span>
+              <button
+                type="button"
+                onClick={() => state.selectPhosphorIconLayer(null)}
+                className="text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer"
+              >
+                Deselect
+              </button>
+            </div>
+
+            {/* Icon Weight Switcher */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Icon Style / Weight
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {weights.map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    onClick={() =>
+                      state.updatePhosphorIconLayer(selectedLayer.id, { weight: w.id })
+                    }
+                    className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                      (selectedLayer.weight || 'duotone') === w.id
+                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink shadow-xs'
+                        : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Drop Shadow Toggle */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="text-[11px] font-semibold text-slate-300">
+                Drop Shadow
+              </label>
+              <Toggle
+                isSelected={!!selectedLayer.shadow}
+                onChange={(checked) =>
+                  state.updatePhosphorIconLayer(selectedLayer.id, { shadow: checked })
+                }
+                size="sm"
+              />
+            </div>
+
+            {/* Layering Depth (Above vs Behind Mockup) */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Layering Depth
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, { position: 'above' })
+                  }
+                  className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    (selectedLayer.position || 'above') === 'above'
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Above Mockup
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, { position: 'underneath' })
+                  }
+                  className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    selectedLayer.position === 'underneath'
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Behind Mockup
+                </button>
+              </div>
+            </div>
+
+            {/* Container Style Switcher (includes Circle Dark & Circle Light!) */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Container Style
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {badgeStyles.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() =>
+                      state.updatePhosphorIconLayer(selectedLayer.id, { badgeStyle: b.id })
+                    }
+                    className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all cursor-pointer truncate text-center ${
+                      (selectedLayer.badgeStyle || 'circle-dark') === b.id
+                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink shadow-xs'
+                        : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Icon Color Picker */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Icon Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={selectedLayer.color || '#a2d2ff'}
+                  onChange={(e) =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, { color: e.target.value })
+                  }
+                  className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
+                />
+                <input
+                  type="text"
+                  value={selectedLayer.color || '#a2d2ff'}
+                  onChange={(e) =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, { color: e.target.value })
+                  }
+                  className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
+                />
+              </div>
+            </div>
+
+            {/* Size & Opacity */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Icon Size</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.size || 40}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={16}
+                  max={120}
+                  value={selectedLayer.size || 40}
+                  onChange={(e) =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, {
+                      size: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Opacity</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.opacity ?? 100}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={selectedLayer.opacity ?? 100}
+                  onChange={(e) =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, {
+                      opacity: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+
+            {/* Rotation Slider */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Rotation</span>
+                <span className="font-mono text-slate-400">{selectedLayer.rotation || 0}°</span>
+              </div>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                value={selectedLayer.rotation || 0}
+                onChange={(e) =>
+                  state.updatePhosphorIconLayer(selectedLayer.id, {
+                    rotation: Number(e.target.value),
+                  })
+                }
+                className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+              />
+            </div>
+
+            {/* Fine Position Offset (X & Y) */}
+            <div className="space-y-2 pt-1 border-t border-neutral-800/60">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position X (Horizontal)</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.x || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-400}
+                  max={400}
+                  value={selectedLayer.x || 0}
+                  onChange={(e) =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, {
+                      x: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position Y (Vertical)</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.y || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-400}
+                  max={400}
+                  value={selectedLayer.y || 0}
+                  onChange={(e) =>
+                    state.updatePhosphorIconLayer(selectedLayer.id, {
+                      y: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderTextSection = () => {
     const plainTextLayers = state.textLayers.filter((l) => l.socialPlatform === undefined);
     const selectedLayer = state.textLayers.find(
@@ -2189,6 +2890,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     if (mobileSection === 'perspective') return renderPerspectiveSection();
     if (mobileSection === 'social') return renderSocialSection();
     if (mobileSection === 'techstack') return renderTechStackSection();
+    if (mobileSection === 'icons') return renderPhosphorIconsSection();
     if (mobileSection === 'text') return renderTextSection();
     if (mobileSection === 'watermark') return renderWatermarkSection();
     if (mobileSection === 'background') return renderBackgroundSection();
@@ -2201,6 +2903,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       {renderBackgroundSection()}
       {renderSocialSection()}
       {renderTechStackSection()}
+      {renderPhosphorIconsSection()}
       {renderTextSection()}
       {renderWatermarkSection()}
     </div>
