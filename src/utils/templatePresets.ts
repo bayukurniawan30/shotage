@@ -1,0 +1,206 @@
+import { StudioState } from '../types/studio';
+
+export interface TemplatePreset {
+  id: string;
+  title: string;
+  desc: string;
+  thumbnail?: string;
+  category: 'product' | 'desktop' | 'mobile';
+  state: Partial<StudioState>;
+}
+
+export const TEMPLATE_PRESETS: TemplatePreset[] = [
+  // Product Presets
+  {
+    id: 'p1',
+    title: 'Product Launch',
+    desc: 'Floating shadow with soft gradient',
+    category: 'product',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786072101/morphic-cms-media/main-workspace/i7bem46043hcumfjrxej.webp',
+    state: {
+      imageName: 'Shotage',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786071922/morphic-cms-media/main-workspace/zoipgvvuxigewg1oqdot.webp',
+      urlText: 'shotage.studio',
+      layoutCount: 1,
+      aspectRatio: '16:9',
+      frameType: 'safari-dark',
+      shadow: 'floating',
+      backgroundType: 'gradient',
+      gradient: {
+        color1: '#ffafcc',
+        color2: '#bde0fe',
+        angle: 135,
+      },
+      padding: 48,
+      borderRadius: 16,
+      zoom: 110,
+    },
+  },
+  {
+    id: 'p3',
+    title: 'SaaS Hero Banner',
+    desc: 'Minimalist clean border',
+    category: 'product',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786065136/morphic-cms-media/main-workspace/hhuuxm33fwb0epjn4pww.png',
+    state: {
+      imageName: 'Morphic CMS',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786064269/morphic-cms-media/main-workspace/fujtd3cv7kjnccal6iz4.webp',
+      layoutCount: 1,
+      aspectRatio: '16:9',
+      frameType: 'frameless',
+      framelessStyle: 'glass-dark',
+      shadow: 'none',
+      backgroundType: 'linearSwatches',
+      linearSwatchesPreset: 'ls-3',
+      padding: 56,
+      borderRadius: 20,
+      zoom: 120,
+      offsetY: 60,
+    },
+  },
+
+  // Desktop Presets
+  {
+    id: 'd1',
+    title: 'MacBook Showcase',
+    desc: 'MacBook Pro frame with shadow overlay',
+    category: 'desktop',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786071490/morphic-cms-media/main-workspace/gfca5l0bz3jgdytpqong.webp',
+    state: {
+      imageName: 'MacBook Showcase',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786071336/morphic-cms-media/main-workspace/tzrxid7ct4heg6bi2dal.webp',
+      layoutCount: 1,
+      aspectRatio: '16:9',
+      frameType: 'macbookair13',
+      shadow: 'floating',
+      backgroundType: 'gradient',
+      gradient: {
+        color1: '#4f46e5',
+        color2: '#06b6d4',
+        angle: 145,
+      },
+      bgBlur: 10,
+      padding: 24,
+      zoom: 120,
+      shadowOverlay: 'shadow-overlay-4',
+      shadowOverlayOpacity: 80,
+      shadowOverlayPosition: 'behind',
+    },
+  },
+  {
+    id: 'd2',
+    title: 'Safari Browser',
+    desc: 'Light mode browser frame with 16:9',
+    category: 'desktop',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786072836/morphic-cms-media/main-workspace/xa03dulv4akqsvzwhvuo.webp',
+    state: {
+      imageName: 'Heylookatme',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786072579/morphic-cms-media/main-workspace/shwvbourn65mx53xfgxs.webp',
+      layoutCount: 1,
+      aspectRatio: '16:9',
+      frameType: 'safari-light',
+      urlText: 'heylookat.me',
+      shadow: 'medium',
+      shadowOverlay: 'shadow-overlay-2',
+      shadowOverlayOpacity: 20,
+      shadowOverlayPosition: 'above',
+      backgroundType: 'linearSwatches',
+      linearSwatchesPreset: 'ls-18',
+      radiantPreset: 'radiant-1',
+      padding: 48,
+    },
+  },
+
+  // Mobile Presets
+  {
+    id: 'm1',
+    title: 'iPhone 15',
+    desc: '9:16 vertical mockup',
+    category: 'mobile',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786067990/morphic-cms-media/main-workspace/dd9sliakqee31zdd9bw5.jpg',
+    state: {
+      imageName: 'iPhone 15 Wallpaper',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786067702/morphic-cms-media/main-workspace/i4ncoex9kj3xhtprt3tv.webp',
+      layoutCount: 1,
+      aspectRatio: '9:16',
+      frameType: 'iphone',
+      iphoneStatusBar: 'light',
+      shadow: 'floating',
+      backgroundType: 'gradient',
+      gradient: {
+        color1: '#eef2f3',
+        color2: '#8e9eab',
+        angle: 135,
+      },
+      zoom: 140,
+      padding: 48,
+    },
+  },
+  {
+    id: 'm2',
+    title: 'Instagram Post',
+    desc: 'Image with Instagram frame',
+    category: 'mobile',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786069988/morphic-cms-media/main-workspace/rcdfwjknm55etkbfl8ki.jpg',
+    state: {
+      imageName: 'Instagram Post',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786069519/morphic-cms-media/main-workspace/uytw1blb9mxos5kwsck0.webp',
+      layoutCount: 1,
+      aspectRatio: 'ig-post',
+      frameType: 'instagram',
+      shadow: 'medium',
+      backgroundType: 'confetti',
+      confettiPreset: 'confetti-6',
+      padding: 80,
+    },
+  },
+  {
+    id: 'm3',
+    title: 'Dual Mobile Rotated',
+    desc: 'Side-by-side dual mockup with 45° rotation',
+    category: 'mobile',
+    thumbnail:
+      'https://res.cloudinary.com/dbb1msinp/image/upload/v1786067093/morphic-cms-media/main-workspace/d0m3tx6b6qnw33bzarek.jpg',
+    state: {
+      imageName: 'Mobile Rotated 1',
+      imageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786066146/morphic-cms-media/main-workspace/wjzlqpem7pnpfhvwha1v.webp',
+      secondImageName: 'Mobile Rotated 2',
+      secondImageSrc:
+        'https://res.cloudinary.com/dbb1msinp/image/upload/v1786066363/morphic-cms-media/main-workspace/bbuqgjwna2khp9kq2i9e.webp',
+      layoutCount: 2,
+      layoutPreset: 'side-by-side',
+      frameType: 'iphone14pro',
+      zoom: 170,
+      slot2Zoom: 170,
+      slot1Rotate: -45,
+      slot2Rotate: 135,
+      offsetX: -68,
+      offsetY: 68,
+      slot2OffsetX: 74,
+      aspectRatio: '9:16',
+      shadow: 'soft',
+      backgroundType: 'gradient',
+      gradient: {
+        color1: '#cdb4db',
+        color2: '#a2d2ff',
+        angle: 135,
+      },
+      padding: 32,
+      shadowOverlay: 'shadow-overlay-3',
+      shadowOverlayOpacity: 80,
+    },
+  },
+];

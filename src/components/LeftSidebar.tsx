@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { UploadCloud01, ChevronDown, Check } from '@untitledui/icons';
+import { UploadCloud01, ChevronDown, Check, XClose } from '@untitledui/icons';
 import { SocialIcon } from './SocialIcons';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
+import { DocumentsIllustration } from './shared-assets/illustrations';
+import { TEMPLATE_PRESETS } from '../utils/templatePresets';
 
 const FRAME_LABELS: Record<string, string> = {
   frameless: 'No Frame',
@@ -30,6 +32,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
   const state = useStudioStore();
   const onChange = state.updateState;
 
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isAspectDropdownOpen, setIsAspectDropdownOpen] = useState(false);
   const [isFrameDropdownOpen, setIsFrameDropdownOpen] = useState(false);
   const [customWidthInput, setCustomWidthInput] = useState<string>(
@@ -57,9 +60,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
   const getAspectRatioCategory = (aspectRatio: string) => {
     if (aspectRatio === 'custom') return 'Custom';
-    if (
-      ['auto', '16:9', '1:1', '9:16', '4:3', '3:2', '3:4', '5:4', '4:5'].includes(aspectRatio)
-    )
+    if (['auto', '16:9', '1:1', '9:16', '4:3', '3:2', '3:4', '5:4', '4:5'].includes(aspectRatio))
       return 'General';
     if (aspectRatio.startsWith('ig-')) return 'Instagram';
     if (aspectRatio.startsWith('yt-')) return 'YouTube';
@@ -133,6 +134,176 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
   const renderImageSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+      {/* Big Template Button */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setIsTemplateModalOpen(true)}
+          className="w-full group relative flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-pastel-pink/15 via-purple-500/10 to-blue-500/15 border border-pastel-pink/30 hover:border-pastel-pink/60 transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg"
+        >
+          <div className="flex items-center">
+            <DocumentsIllustration size="sm" className="scale-[0.6]" />
+            <div className="text-left">
+              <div className="text-sm font-bold text-slate-100 group-hover:text-pastel-pink transition-colors">
+                Browse Templates
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">
+                Presets for Product, Desktop & Mobile
+              </div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Template Menu Modal */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-3xl bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/90 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <DocumentsIllustration size="sm" />
+                <div>
+                  <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
+                    Template Showcase
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Pick a pre-designed layout for your showcase
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-neutral-800 hover:bg-neutral-700 transition-all cursor-pointer"
+              >
+                <XClose className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Categories Content */}
+            <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+              {/* Product Category */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-pastel-pink uppercase tracking-wider">
+                    Product
+                  </h3>
+                  <span className="text-[10px] text-slate-400">
+                    {TEMPLATE_PRESETS.filter((t) => t.category === 'product').length} Presets
+                  </span>
+                </div>
+                <div className="flex gap-4 overflow-x-auto p-3 scrollbar-thin scrollbar-thumb-neutral-800">
+                  {TEMPLATE_PRESETS.filter((t) => t.category === 'product').map((tmpl) => (
+                    <div
+                      key={tmpl.id}
+                      onClick={() => {
+                        onChange(tmpl.state);
+                        setIsTemplateModalOpen(false);
+                      }}
+                      className="group shrink-0 w-52 bg-neutral-950 border border-neutral-800 hover:border-pastel-pink/50 rounded-xl p-3 cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      {/* Box Placeholder for Image */}
+                      <div className="w-full h-28 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 border border-neutral-800 rounded-lg flex items-center justify-center mb-2.5 group-hover:border-pastel-pink/30 transition-all overflow-hidden">
+                        {tmpl.thumbnail ? (
+                          <img
+                            src={tmpl.thumbnail}
+                            alt={tmpl.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="text-xs font-bold text-slate-200 group-hover:text-pastel-pink transition-colors">
+                        {tmpl.title}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5">{tmpl.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop Category */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-[#a2d2ff] uppercase tracking-wider">
+                    Desktop
+                  </h3>
+                  <span className="text-[10px] text-slate-400">
+                    {TEMPLATE_PRESETS.filter((t) => t.category === 'desktop').length} Presets
+                  </span>
+                </div>
+                <div className="flex gap-4 overflow-x-auto p-3 scrollbar-thin scrollbar-thumb-neutral-800">
+                  {TEMPLATE_PRESETS.filter((t) => t.category === 'desktop').map((tmpl) => (
+                    <div
+                      key={tmpl.id}
+                      onClick={() => {
+                        onChange(tmpl.state);
+                        setIsTemplateModalOpen(false);
+                      }}
+                      className="group shrink-0 w-52 bg-neutral-950 border border-neutral-800 hover:border-[#a2d2ff]/50 rounded-xl p-3 cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      {/* Box Placeholder for Image */}
+                      <div className="w-full h-28 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 border border-neutral-800 rounded-lg flex items-center justify-center mb-2.5 group-hover:border-[#a2d2ff]/30 transition-all overflow-hidden">
+                        {tmpl.thumbnail ? (
+                          <img
+                            src={tmpl.thumbnail}
+                            alt={tmpl.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="text-xs font-bold text-slate-200 group-hover:text-[#a2d2ff] transition-colors">
+                        {tmpl.title}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5">{tmpl.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile Category */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-pastel-purple uppercase tracking-wider">
+                    Mobile
+                  </h3>
+                  <span className="text-[10px] text-slate-400">
+                    {TEMPLATE_PRESETS.filter((t) => t.category === 'mobile').length} Presets
+                  </span>
+                </div>
+                <div className="flex gap-4 overflow-x-auto p-3 scrollbar-thin scrollbar-thumb-neutral-800">
+                  {TEMPLATE_PRESETS.filter((t) => t.category === 'mobile').map((tmpl) => (
+                    <div
+                      key={tmpl.id}
+                      onClick={() => {
+                        onChange(tmpl.state);
+                        setIsTemplateModalOpen(false);
+                      }}
+                      className="group shrink-0 w-52 bg-neutral-950 border border-neutral-800 hover:border-pastel-purple/50 rounded-xl p-3 cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      {/* Box Placeholder for Image */}
+                      <div className="w-full h-28 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 border border-neutral-800 rounded-lg flex items-center justify-center mb-2.5 group-hover:border-pastel-purple/30 transition-all overflow-hidden">
+                        {tmpl.thumbnail ? (
+                          <img
+                            src={tmpl.thumbnail}
+                            alt={tmpl.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="text-xs font-bold text-slate-200 group-hover:text-pastel-purple transition-colors">
+                        {tmpl.title}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5">{tmpl.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="border-b border-slate-800/80 pb-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
           Image & Layout
@@ -150,7 +321,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               <button
                 key={count}
                 onClick={() => {
-                  const isPortraitRatio = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(state.aspectRatio);
+                  const isPortraitRatio = [
+                    '9:16',
+                    '3:4',
+                    '4:5',
+                    'ig-story',
+                    'ig-portrait',
+                  ].includes(state.aspectRatio);
                   const newPreset = count === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
                   onChange({ layoutCount: count as 1 | 2, layoutPreset: newPreset });
                 }}
@@ -403,8 +580,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         type="button"
                         onClick={() => {
                           const recZoom = getRecommendedZoomForAspect(item.id);
-                          const isPortraitRatio = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(item.id);
-                          const newPreset = state.layoutCount === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
+                          const isPortraitRatio = [
+                            '9:16',
+                            '3:4',
+                            '4:5',
+                            'ig-story',
+                            'ig-portrait',
+                          ].includes(item.id);
+                          const newPreset =
+                            state.layoutCount === 2 && isPortraitRatio
+                              ? 'stacked'
+                              : state.layoutPreset;
                           onChange({
                             aspectRatio: item.id as any,
                             zoom: recZoom,
@@ -457,8 +643,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         type="button"
                         onClick={() => {
                           const recZoom = getRecommendedZoomForAspect(item.id);
-                          const isPortraitRatio = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(item.id);
-                          const newPreset = state.layoutCount === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
+                          const isPortraitRatio = [
+                            '9:16',
+                            '3:4',
+                            '4:5',
+                            'ig-story',
+                            'ig-portrait',
+                          ].includes(item.id);
+                          const newPreset =
+                            state.layoutCount === 2 && isPortraitRatio
+                              ? 'stacked'
+                              : state.layoutPreset;
                           onChange({
                             aspectRatio: item.id as any,
                             zoom: recZoom,
@@ -1301,12 +1496,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     if (mobileSection === 'aspect') return renderAspectSection();
     if (mobileSection === 'frame') return renderFrameSection();
     if (mobileSection === 'style') return renderStyleSection();
-    if (mobileSection === 'shadow') return (
-      <>
-        {renderShadowSection()}
-        {renderShadowOverlaySection()}
-      </>
-    );
+    if (mobileSection === 'shadow')
+      return (
+        <>
+          {renderShadowSection()}
+          {renderShadowOverlaySection()}
+        </>
+      );
     return null;
   }
 

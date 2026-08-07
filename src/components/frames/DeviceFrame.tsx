@@ -12,7 +12,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
     return (
       <div className="relative mx-auto w-[440px] sm:w-[480px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper for MacBook Air 13" */}
-        <div className="absolute inset-0 top-[10.2%] bottom-[10.2%] left-[9%] right-[9%] z-0 overflow-hidden rounded-[8px]">
+        <div className="absolute inset-0 top-[10.2%] bottom-[10.2%] left-[10%] right-[10%] z-0 overflow-hidden rounded-[4px]">
           <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black">
             {children}
           </div>
