@@ -290,13 +290,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               layer.text
             )}
             {isSelected && (
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
-                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
-              </div>
+              <>
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
+                  data-action="resize"
+                  title="Drag to resize font"
+                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                </div>
+              </>
             )}
           </div>
         );
@@ -365,13 +374,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               />
             </div>
             {isSelected && (
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
-                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
-              </div>
+              <>
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
+                  data-action="resize"
+                  title="Drag to resize icon"
+                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                </div>
+              </>
             )}
           </div>
         );
@@ -406,31 +424,53 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               height: `${el.height || 90}px`,
             }}
           >
-            <div
-              className="w-full h-full"
-              style={{
-                backgroundColor: el.color || '#a2d2ff',
-                WebkitMaskImage: `url(${el.src})`,
-                maskImage: `url(${el.src})`,
-                WebkitMaskSize: 'contain',
-                maskSize: 'contain',
-                WebkitMaskRepeat: 'no-repeat',
-                maskRepeat: 'no-repeat',
-                WebkitMaskPosition: 'center',
-                maskPosition: 'center',
-              }}
-            />
-            {isSelected && (
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
-                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{
-                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-                }}
-              >
-                <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+            {el.category === 'emoji' ? (
+              <div className="w-full h-full flex items-center justify-center select-none pointer-events-none">
+                <img
+                  src={el.src}
+                  alt="Emoji Element"
+                  className="w-full h-full object-contain pointer-events-none"
+                />
               </div>
+            ) : (
+              <div
+                className="w-full h-full"
+                style={{
+                  backgroundColor: el.color || '#a2d2ff',
+                  WebkitMaskImage: `url("${el.src}")`,
+                  maskImage: `url("${el.src}")`,
+                  WebkitMaskSize: 'contain',
+                  maskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'center',
+                  maskPosition: 'center',
+                }}
+              />
+            )}
+            {isSelected && (
+              <>
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                  style={{
+                    transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                  }}
+                >
+                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
+                  data-action="resize"
+                  title="Drag to resize element"
+                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                  style={{
+                    transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                  }}
+                >
+                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                </div>
+              </>
             )}
           </div>
         );
@@ -465,11 +505,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           }`}
           style={imageStyle}
         />
-        <label className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer backdrop-blur-[2px]">
-          <div className="w-10 h-10 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-            <ImageUp className="w-5 h-5 text-brand-400" />
+        <label className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center text-white cursor-pointer z-10">
+          <div className="w-10 h-10 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-1 group-hover:scale-110 transition-transform pointer-events-none">
+            <ImageUp className="w-5 h-5 text-brand-400 pointer-events-none" />
           </div>
-          <span className="text-[11px] font-semibold tracking-wide text-slate-100 drop-shadow-md">
+          <span className="text-[11px] font-semibold tracking-wide text-slate-100 drop-shadow-md pointer-events-none">
             Replace Slot {slotIndex}
           </span>
           <input type="file" accept="image/*" onChange={slotFileChange} className="hidden" />
@@ -843,6 +883,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     startY: number;
     initialLayerX: number;
     initialLayerY: number;
+    scale: number;
   } | null>(null);
 
   // On-canvas direct element rotation state
@@ -853,6 +894,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     centerY: number;
     startAngle: number;
     initialRotation: number;
+  } | null>(null);
+
+  // On-canvas direct element resize state
+  const [resizeDragItem, setResizeDragItem] = useState<{
+    type: 'text' | 'phosphor' | 'element';
+    id: string;
+    startX: number;
+    startY: number;
+    initialWidth: number;
+    initialHeight: number;
+    initialFontSize: number;
+    initialSize: number;
+    scale: number;
   } | null>(null);
 
   // Touch center for 2-finger mobile panning
@@ -869,8 +923,82 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       target.tagName === 'INPUT' ||
       target.tagName === 'BUTTON' ||
       target.tagName === 'TEXTAREA' ||
-      target.tagName === 'SELECT'
+      target.tagName === 'SELECT' ||
+      target.closest('label') ||
+      target.closest('button') ||
+      target.closest('input')
     ) {
+      return;
+    }
+
+    const resizeHandleEl = target.closest('[data-action="resize"]') as HTMLElement | null;
+    if (resizeHandleEl) {
+      const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
+      const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
+      const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
+
+      let currentScale = 1;
+      const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        if (rect.width > 0 && canvasEl.offsetWidth > 0) {
+          currentScale = rect.width / canvasEl.offsetWidth;
+        }
+      }
+
+      if (textLayerEl) {
+        const id = textLayerEl.dataset.layerId || '';
+        const layer = (state.textLayers || []).find((l) => l.id === id);
+        if (layer) {
+          setResizeDragItem({
+            type: 'text',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialWidth: 0,
+            initialHeight: 0,
+            initialFontSize: layer.fontSize || 32,
+            initialSize: 0,
+            scale: currentScale,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
+      } else if (phosphorIconLayerEl) {
+        const id = phosphorIconLayerEl.dataset.layerId || '';
+        const layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
+        if (layer) {
+          setResizeDragItem({
+            type: 'phosphor',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialWidth: 0,
+            initialHeight: 0,
+            initialFontSize: 0,
+            initialSize: layer.size || 36,
+            scale: currentScale,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
+      } else if (canvasElementEl) {
+        const id = canvasElementEl.dataset.layerId || '';
+        const layer = (state.canvasElements || []).find((l) => l.id === id);
+        if (layer) {
+          setResizeDragItem({
+            type: 'element',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialWidth: layer.width || 90,
+            initialHeight: layer.height || 90,
+            initialFontSize: 0,
+            initialSize: 0,
+            scale: currentScale,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
+      }
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       return;
     }
 
@@ -940,9 +1068,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
 
     const isShiftDrag = e.shiftKey;
-    const isTargetingLayer = (textLayerEl || phosphorIconLayerEl || canvasElementEl) && !isShiftDrag;
+    const isTargetingLayer =
+      (textLayerEl || phosphorIconLayerEl || canvasElementEl) && !isShiftDrag;
 
     if (isTargetingLayer) {
+      let currentScale = 1;
+      const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        if (rect.width > 0 && canvasEl.offsetWidth > 0) {
+          currentScale = rect.width / canvasEl.offsetWidth;
+        }
+      }
+
       if (textLayerEl) {
         const id = textLayerEl.dataset.layerId || '';
         const layer = (state.textLayers || []).find((l) => l.id === id);
@@ -955,6 +1093,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             startY: e.clientY,
             initialLayerX: layer.x || 0,
             initialLayerY: layer.y || 0,
+            scale: currentScale,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -970,6 +1109,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             startY: e.clientY,
             initialLayerX: layer.x || 0,
             initialLayerY: layer.y || 0,
+            scale: currentScale,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -985,6 +1125,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             startY: e.clientY,
             initialLayerX: layer.x || 0,
             initialLayerY: layer.y || 0,
+            scale: currentScale,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -992,7 +1133,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     } else {
       if (!isShiftDrag) {
         if (state.selectedTextLayerId && !textLayerEl) state.selectTextLayer(null);
-        if (state.selectedPhosphorIconLayerId && !phosphorIconLayerEl) state.selectPhosphorIconLayer(null);
+        if (state.selectedPhosphorIconLayerId && !phosphorIconLayerEl)
+          state.selectPhosphorIconLayer(null);
         if (state.selectedElementId && !canvasElementEl) state.selectCanvasElement(null);
       }
 
@@ -1005,12 +1147,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (rotateDragItem) {
-      const currentAngle = Math.atan2(e.clientY - rotateDragItem.centerY, e.clientX - rotateDragItem.centerX) * (180 / Math.PI);
+      const currentAngle =
+        Math.atan2(e.clientY - rotateDragItem.centerY, e.clientX - rotateDragItem.centerX) *
+        (180 / Math.PI);
       const angleDiff = currentAngle - rotateDragItem.startAngle;
       let newRotation = Math.round(rotateDragItem.initialRotation + angleDiff);
 
       // Normalize to -180 .. 180 range
-      newRotation = ((newRotation + 180) % 360 + 360) % 360 - 180;
+      newRotation = ((((newRotation + 180) % 360) + 360) % 360) - 180;
+
+      // Snap to every 45 degrees (0, 45, 90, 135, 180, -45, -90, -135, -180) within 4 degrees threshold
+      const snapTargets = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
+      for (const target of snapTargets) {
+        if (Math.abs(newRotation - target) <= 10) {
+          newRotation = target;
+          break;
+        }
+      }
 
       if (rotateDragItem.type === 'text') {
         state.updateTextLayer(rotateDragItem.id, { rotation: newRotation });
@@ -1019,10 +1172,39 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       } else if (rotateDragItem.type === 'element') {
         state.updateCanvasElement(rotateDragItem.id, { rotation: newRotation });
       }
+    } else if (resizeDragItem) {
+      const scale = resizeDragItem.scale || 1;
+      const deltaX = (e.clientX - resizeDragItem.startX) / scale;
+      const deltaY = (e.clientY - resizeDragItem.startY) / scale;
+      const delta = (deltaX + deltaY) / 2;
+
+      if (resizeDragItem.type === 'text') {
+        const newFontSize = Math.max(
+          12,
+          Math.min(200, Math.round(resizeDragItem.initialFontSize + delta * 0.5))
+        );
+        state.updateTextLayer(resizeDragItem.id, { fontSize: newFontSize });
+      } else if (resizeDragItem.type === 'phosphor') {
+        const newSize = Math.max(
+          16,
+          Math.min(300, Math.round(resizeDragItem.initialSize + delta * 0.5))
+        );
+        state.updatePhosphorIconLayer(resizeDragItem.id, { size: newSize });
+      } else if (resizeDragItem.type === 'element') {
+        const newWidth = Math.max(
+          20,
+          Math.min(600, Math.round(resizeDragItem.initialWidth + deltaX))
+        );
+        const newHeight = Math.max(
+          20,
+          Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
+        );
+        state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight });
+      }
     } else if (dragItem) {
-      const zoomScale = Math.max(0.1, (state.previewCanvasZoom || 100) / 100);
-      const deltaX = (e.clientX - dragItem.startX) / zoomScale;
-      const deltaY = (e.clientY - dragItem.startY) / zoomScale;
+      const scale = dragItem.scale || 1;
+      const deltaX = (e.clientX - dragItem.startX) / scale;
+      const deltaY = (e.clientY - dragItem.startY) / scale;
 
       const newX = Math.round(dragItem.initialLayerX + deltaX);
       const newY = Math.round(dragItem.initialLayerY + deltaY);
@@ -1047,6 +1229,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       setRotateDragItem(null);
       state.updateState({ isPositionDragging: false });
     }
+    if (resizeDragItem) {
+      setResizeDragItem(null);
+      state.updateState({ isPositionDragging: false });
+    }
     if (dragItem) {
       setDragItem(null);
       state.updateState({ isPositionDragging: false });
@@ -1061,6 +1247,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     if (e.touches.length >= 2) {
       if (rotateDragItem) {
         setRotateDragItem(null);
+        state.updateState({ isPositionDragging: false });
+      }
+      if (resizeDragItem) {
+        setResizeDragItem(null);
         state.updateState({ isPositionDragging: false });
       }
       if (dragItem) {
@@ -1106,7 +1296,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className={`w-full h-full max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
-        rotateDragItem || dragItem ? 'cursor-move select-none' : isPanning ? 'cursor-grabbing select-none' : 'cursor-grab'
+        rotateDragItem || resizeDragItem || dragItem
+          ? 'cursor-move select-none'
+          : isPanning
+            ? 'cursor-grabbing select-none'
+            : 'cursor-grab'
       }`}
     >
       {/* Canvas Viewport Scaling & Drag Pan Wrapper */}
@@ -1471,9 +1665,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             );
           })()}
 
-          {/* Watermark Overlay */}
-          <WatermarkOverlay />
-
           {/* Top-Level Lens Blur (Depth of Field) Overlay covering the entire stage & mockup */}
           {state.lensBlurEnabled && (state.lensBlurAmount ?? 0) > 0 && (
             <div
@@ -1496,6 +1687,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               }}
             />
           )}
+
+          {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
+          <WatermarkOverlay />
         </div>
       </div>
     </div>

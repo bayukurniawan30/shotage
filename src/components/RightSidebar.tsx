@@ -270,6 +270,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const [showAllRadiant, setShowAllRadiant] = useState(false);
   const [showAllLinearSwatches, setShowAllLinearSwatches] = useState(false);
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
+  const [customEmojiInput, setCustomEmojiInput] = useState('');
   const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
     []
   );
@@ -2128,14 +2129,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               Icons by Phosphor
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={() => state.addPhosphorIconLayer('Bookmark')}
-            className="px-2.5 py-1 bg-pastel-pink/20 hover:bg-pastel-pink/30 text-pastel-pink border border-pastel-pink/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Icon</span>
-          </button>
         </div>
 
         {/* Catalog Search & Add Icon Grid */}
@@ -2186,7 +2179,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   onClick={() => state.addPhosphorIconLayer(item.id)}
                   className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 text-slate-300 hover:border-pastel-pink/60 hover:text-white hover:bg-pastel-pink/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
                 >
-                  <IconComp weight="duotone" size={20} className="group-hover:scale-110 transition-transform" />
+                  <IconComp
+                    weight="duotone"
+                    size={20}
+                    className="group-hover:scale-110 transition-transform"
+                  />
                   <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
                     {item.label}
                   </span>
@@ -2218,7 +2215,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   >
                     <div className="flex items-center gap-2 truncate">
                       <div className="w-6 h-6 rounded-full bg-neutral-950 border border-neutral-800 flex items-center justify-center shrink-0">
-                        <IconComp weight={layer.weight || 'duotone'} size={14} color={layer.color || '#a2d2ff'} />
+                        <IconComp
+                          weight={layer.weight || 'duotone'}
+                          size={14}
+                          color={layer.color || '#a2d2ff'}
+                        />
                       </div>
                       <span className="text-xs truncate">
                         {layer.iconId} #{index + 1}
@@ -2300,9 +2301,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
             {/* Drop Shadow Toggle */}
             <div className="flex items-center justify-between pt-1">
-              <label className="text-[11px] font-semibold text-slate-300">
-                Drop Shadow
-              </label>
+              <label className="text-[11px] font-semibold text-slate-300">Drop Shadow</label>
               <Toggle
                 isSelected={!!selectedLayer.shadow}
                 onChange={(checked) =>
@@ -2897,11 +2896,142 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     const elements = state.canvasElements || [];
     const selectedElement = elements.find((el) => el.id === state.selectedElementId);
 
+    const createSvgDataUri = (svg: string): string => {
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    };
+
     const arrowItems = Array.from({ length: 10 }).map((_, i) => ({
       id: `arrow-${i + 1}`,
       src: `/element/arrow/${i + 1}.svg`,
       label: `Arrow ${i + 1}`,
     }));
+
+    const lineItems = [
+      {
+        id: 'line-straight',
+        label: 'Straight Line',
+        src: createSvgDataUri(
+          `<svg width="100" height="20" viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="8" width="100" height="4" rx="2" fill="black"/></svg>`
+        ),
+      },
+      {
+        id: 'line-perpendicular',
+        label: 'Perpendicular Cross',
+        src: createSvgDataUri(
+          `<svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="28" width="100" height="4" rx="2" fill="black"/><rect x="48" y="0" width="4" height="60" rx="2" fill="black"/></svg>`
+        ),
+      },
+      {
+        id: 'line-t-junction',
+        label: 'T-Junction',
+        src: createSvgDataUri(
+          `<svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="100" height="4" rx="2" fill="black"/><rect x="48" y="0" width="4" height="60" rx="2" fill="black"/></svg>`
+        ),
+      },
+      {
+        id: 'line-dashed',
+        label: 'Dashed Line',
+        src: createSvgDataUri(
+          `<svg width="100" height="20" viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><line x1="4" y1="10" x2="96" y2="10" stroke="black" stroke-width="2" stroke-linecap="round" stroke-dasharray="12 10"/></svg>`
+        ),
+      },
+      {
+        id: 'line-dotted',
+        label: 'Dotted Line',
+        src: createSvgDataUri(
+          `<svg width="100" height="20" viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><line x1="6" y1="10" x2="94" y2="10" stroke="black" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 14"/></svg>`
+        ),
+      },
+      {
+        id: 'line-corner',
+        label: 'Corner L-Line',
+        src: createSvgDataUri(
+          `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><path d="M 6 6 L 6 54 L 54 54" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        ),
+      },
+    ];
+
+    const createEmojiSvgDataUri = (char: string): string => {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><text x="50%" y="55%" dominant-baseline="central" text-anchor="middle" font-size="75">${char}</text></svg>`;
+      return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+    };
+
+    const emojiPresets = [
+      // Smile & Kiss Face Family
+      '😘',
+      '😗',
+      '😚',
+      '😙',
+      '🥰',
+      '😍',
+      '🤩',
+      '😃',
+      '😄',
+      '😁',
+      '😆',
+      '😅',
+      '🤣',
+      '😂',
+      '🙂',
+      '🙃',
+      '😉',
+      '😊',
+      '😇',
+      '😋',
+      '😜',
+      '🤪',
+      '😝',
+      '🤑',
+      '🤗',
+      '🤭',
+      '🤫',
+      '🤔',
+      '😏',
+      '🥳',
+      '😎',
+      '🤓',
+      '🧐',
+      '😌',
+      '🤯',
+      '🤠',
+      '🥸',
+      '😴',
+      '🤤',
+      '😍',
+      // Popular Reactions & Symbols
+      '🔥',
+      '🚀',
+      '✨',
+      '💡',
+      '💖',
+      '⭐',
+      '🎉',
+      '🎯',
+      '⚡',
+      '📌',
+      '👍',
+      '🙌',
+      '👏',
+      '👋',
+      '💯',
+      '🌟',
+      '🎨',
+      '💻',
+      '📱',
+      '🔒',
+      '🛠️',
+      '🔔',
+      '💬',
+      '👑',
+      '🏆',
+      '❤️',
+      '🖤',
+      '🤍',
+      '🧡',
+      '💛',
+      '💚',
+      '💙',
+    ];
 
     return (
       <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
@@ -2909,18 +3039,103 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PhosphorIcons.CursorClick weight="duotone" className="w-4 h-4 text-pastel-pink" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Elements
-            </h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Elements</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => state.addCanvasElement('arrow-1', '/element/arrow/1.svg', 'arrow')}
-            className="px-2.5 py-1 bg-pastel-pink/20 hover:bg-pastel-pink/30 text-pastel-pink border border-pastel-pink/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Arrow</span>
-          </button>
+        </div>
+
+        {/* Emojis Category Grid */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs items-center">
+            <span className="font-semibold text-slate-300">Emojis (Click to Add)</span>
+            <span className="text-[10px] font-mono text-amber-300">
+              {elements.filter((el) => el.category === 'emoji').length} emojis
+            </span>
+          </div>
+
+          <div className="grid grid-cols-6 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800 max-h-36 overflow-y-auto no-scrollbar">
+            {emojiPresets.map((char, idx) => (
+              <button
+                key={`${char}-${idx}`}
+                type="button"
+                title={`Add ${char}`}
+                onClick={() =>
+                  state.addCanvasElement(`emoji-${idx}`, createEmojiSvgDataUri(char), 'emoji')
+                }
+                className="p-1.5 rounded-lg border bg-neutral-900/60 border-neutral-800/80 hover:border-amber-400/60 hover:bg-amber-400/10 transition-all flex items-center justify-center text-xl cursor-pointer group hover:scale-125 duration-150"
+              >
+                <span>{char}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Emoji Input */}
+          <div className="flex items-center gap-1.5 pt-1">
+            <input
+              type="text"
+              value={customEmojiInput}
+              onChange={(e) => setCustomEmojiInput(e.target.value)}
+              placeholder="Type or paste any emoji (e.g. 🤩)"
+              className="flex-1 px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink"
+            />
+            <button
+              type="button"
+              disabled={!customEmojiInput.trim()}
+              onClick={() => {
+                const val = customEmojiInput.trim();
+                if (val) {
+                  state.addCanvasElement(
+                    `emoji-custom-${Date.now()}`,
+                    createEmojiSvgDataUri(val),
+                    'emoji'
+                  );
+                  setCustomEmojiInput('');
+                }
+              }}
+              className="px-3 py-1.5 bg-pastel-pink/20 hover:bg-pastel-pink/30 text-pastel-pink border border-pastel-pink/40 rounded-lg text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer shrink-0"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        {/* Lines Category Grid */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs items-center">
+            <span className="font-semibold text-slate-300">Lines (Click to Add)</span>
+            <span className="text-[10px] font-mono text-[#a2d2ff]">
+              {elements.filter((el) => el.category === 'line').length} lines
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+            {lineItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={`Add ${item.label}`}
+                onClick={() => state.addCanvasElement(item.id, item.src, 'line')}
+                className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 hover:border-pastel-blue/60 hover:bg-pastel-blue/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
+              >
+                <div
+                  className="w-8 h-5 group-hover:scale-110 transition-transform"
+                  style={{
+                    backgroundColor: '#a2d2ff',
+                    WebkitMaskImage: `url("${item.src}")`,
+                    maskImage: `url("${item.src}")`,
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                  }}
+                />
+                <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Arrows Category Grid */}
@@ -2928,7 +3143,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           <div className="flex justify-between text-xs items-center">
             <span className="font-semibold text-slate-300">Arrows (Click to Add)</span>
             <span className="text-[10px] font-mono text-pastel-pink">
-              {elements.length} on stage
+              {elements.filter((el) => el.category === 'arrow').length} arrows
             </span>
           </div>
 
@@ -2983,20 +3198,28 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <div
-                        className="w-5 h-5 shrink-0"
-                        style={{
-                          backgroundColor: el.color || '#a2d2ff',
-                          WebkitMaskImage: `url(${el.src})`,
-                          maskImage: `url(${el.src})`,
-                          WebkitMaskSize: 'contain',
-                          maskSize: 'contain',
-                          WebkitMaskRepeat: 'no-repeat',
-                          maskRepeat: 'no-repeat',
-                          WebkitMaskPosition: 'center',
-                          maskPosition: 'center',
-                        }}
-                      />
+                      {el.category === 'emoji' ? (
+                        <img
+                          src={el.src}
+                          alt="Emoji"
+                          className="w-5 h-5 shrink-0 object-contain pointer-events-none"
+                        />
+                      ) : (
+                        <div
+                          className="w-5 h-5 shrink-0"
+                          style={{
+                            backgroundColor: el.color || '#a2d2ff',
+                            WebkitMaskImage: `url("${el.src}")`,
+                            maskImage: `url("${el.src}")`,
+                            WebkitMaskSize: 'contain',
+                            maskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskPosition: 'center',
+                          }}
+                        />
+                      )}
                       <span className="text-xs truncate">
                         {el.elementId} #{index + 1}
                       </span>
@@ -3050,30 +3273,32 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               </button>
             </div>
 
-            {/* Element Color */}
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
-                Element Color
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={selectedElement.color || '#a2d2ff'}
-                  onChange={(e) =>
-                    state.updateCanvasElement(selectedElement.id, { color: e.target.value })
-                  }
-                  className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
-                />
-                <input
-                  type="text"
-                  value={selectedElement.color || '#a2d2ff'}
-                  onChange={(e) =>
-                    state.updateCanvasElement(selectedElement.id, { color: e.target.value })
-                  }
-                  className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
-                />
+            {/* Element Color (Only for non-emoji vector elements) */}
+            {selectedElement.category !== 'emoji' && (
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                  Element Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={selectedElement.color || '#a2d2ff'}
+                    onChange={(e) =>
+                      state.updateCanvasElement(selectedElement.id, { color: e.target.value })
+                    }
+                    className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
+                  />
+                  <input
+                    type="text"
+                    value={selectedElement.color || '#a2d2ff'}
+                    onChange={(e) =>
+                      state.updateCanvasElement(selectedElement.id, { color: e.target.value })
+                    }
+                    className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Rotation Slider */}
             <div>
@@ -3200,9 +3425,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
             {/* Drop Shadow Toggle */}
             <div className="flex items-center justify-between pt-1">
-              <label className="text-[11px] font-semibold text-slate-300">
-                Drop Shadow
-              </label>
+              <label className="text-[11px] font-semibold text-slate-300">Drop Shadow</label>
               <Toggle
                 isSelected={!!selectedElement.shadow}
                 onChange={(checked) =>

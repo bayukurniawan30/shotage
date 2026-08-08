@@ -70,7 +70,7 @@ export const WatermarkOverlay: React.FC = () => {
 
   return (
     <div
-      className={`absolute z-30 flex items-center pointer-events-none select-none transition-all duration-200 ${getPositionClass()} ${size.container} ${getVariantStyle()}`}
+      className={`absolute z-50 flex items-center pointer-events-none select-none transition-all duration-200 ${getPositionClass()} ${size.container} ${getVariantStyle()}`}
     >
       <img
         src="/shotage-logo-small.png"

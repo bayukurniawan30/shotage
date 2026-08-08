@@ -508,15 +508,19 @@ export const Studio: React.FC = () => {
 
       {/* 3-Column Studio Workspace */}
       <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden relative">
-        {/* Left Sidebar (Desktop Only, Hidden in Preview Mode) */}
-        {!isPreviewMode && (
-          <div className="hidden md:block h-full">
-            <LeftSidebar onImageUpload={handleImageUpload} />
-          </div>
-        )}
+        {/* Left Sidebar (Desktop Only, Animated Slide Out to Left in Preview Mode) */}
+        <div
+          className={`hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
+            isPreviewMode
+              ? '-translate-x-full opacity-0 pointer-events-none w-0 overflow-hidden'
+              : 'translate-x-0 opacity-100 w-80'
+          }`}
+        >
+          <LeftSidebar onImageUpload={handleImageUpload} />
+        </div>
 
         {/* Center Stage: Interactive Canvas Workspace */}
-        <div className="flex-1 bg-neutral-950 relative overflow-hidden flex flex-col items-center justify-between">
+        <div className="flex-1 bg-neutral-950 relative overflow-hidden flex flex-col items-center justify-between min-w-0 transition-all duration-300">
           <div className="flex-1 w-full flex items-center justify-center relative">
             {/* Floating Bottom Zoom Slider (Full Preview Mode OR Normal Mode) */}
             <div
@@ -555,15 +559,25 @@ export const Studio: React.FC = () => {
           )}
         </div>
 
-        {/* Right Sidebar (Desktop Only, Hidden in Preview Mode) */}
-        {!isPreviewMode && (
-          <div className="hidden md:block h-full">
-            <RightSidebar />
-          </div>
-        )}
+        {/* Right Sidebar (Desktop Only, Animated Slide Out to Right in Preview Mode) */}
+        <div
+          className={`hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
+            isPreviewMode
+              ? 'translate-x-full opacity-0 pointer-events-none w-0 overflow-hidden'
+              : 'translate-x-0 opacity-100 w-80'
+          }`}
+        >
+          <RightSidebar />
+        </div>
 
-        {/* Mobile Bottom Scrollable Navbar Drawer */}
-        {!isPreviewMode && <MobileStudioNavbar onImageUpload={handleImageUpload} />}
+        {/* Mobile Bottom Scrollable Navbar Drawer (Animated Slide Down in Preview Mode) */}
+        <div
+          className={`block md:hidden transition-all duration-300 ease-in-out ${
+            isPreviewMode ? 'translate-y-full opacity-0 pointer-events-none h-0 overflow-hidden' : 'translate-y-0 opacity-100'
+          }`}
+        >
+          <MobileStudioNavbar onImageUpload={handleImageUpload} />
+        </div>
       </div>
 
       {/* Fullscreen Drag & Drop Overlay */}

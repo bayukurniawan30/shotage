@@ -66,7 +66,7 @@ export type PhosphorBadgeStyle =
   | 'circle-dark'
   | 'circle-light';
 
-export type ElementCategory = 'arrow';
+export type ElementCategory = 'arrow' | 'line' | 'emoji';
 
 export interface CanvasElement {
   id: string;

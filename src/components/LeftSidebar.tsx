@@ -869,6 +869,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         onChange({
                           frameType: item.id as any,
                           borderRadius: 0,
+                          shadow: 'none',
                         });
                         setIsFrameDropdownOpen(false);
                       }}
@@ -1499,13 +1500,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     if (mobileSection === 'aspect') return renderAspectSection();
     if (mobileSection === 'frame') return renderFrameSection();
     if (mobileSection === 'style') return renderStyleSection();
-    if (mobileSection === 'shadow')
+    if (mobileSection === 'shadow') {
+      const isDeviceFrame = [
+        'iphone',
+        'iphone14pro',
+        'macbook',
+        'macbookair13',
+        'samsung-s21',
+        'tablet',
+      ].includes(state.frameType);
       return (
         <>
-          {renderShadowSection()}
+          {!isDeviceFrame && renderShadowSection()}
           {renderShadowOverlaySection()}
         </>
       );
+    }
     return null;
   }
 
