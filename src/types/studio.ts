@@ -66,6 +66,26 @@ export type PhosphorBadgeStyle =
   | 'circle-dark'
   | 'circle-light';
 
+export type ElementCategory = 'arrow';
+
+export interface CanvasElement {
+  id: string;
+  category: ElementCategory;
+  elementId: string;
+  src: string;
+  color: string;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  rotation: number;
+  opacity: number;
+  position: 'above' | 'underneath';
+  shadow?: boolean;
+  flipX?: boolean;
+  flipY?: boolean;
+}
+
 export interface PhosphorIconLayer {
   id: string;
   iconId: string;
@@ -242,6 +262,9 @@ export interface StudioState {
   // Phosphor Icon Layers (Independent canvas layers)
   phosphorIconLayers: PhosphorIconLayer[];
   selectedPhosphorIconLayerId: string | null;
+  // Canvas Elements (Arrows, Stickers, Shapes)
+  canvasElements: CanvasElement[];
+  selectedElementId: string | null;
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
   // Phosphor Icons Overlay (Grouped)
@@ -326,6 +349,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   selectedTextLayerId: null,
   phosphorIconLayers: [],
   selectedPhosphorIconLayerId: null,
+  canvasElements: [],
+  selectedElementId: null,
   techStackConfig: {
     enabled: false,
     selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],

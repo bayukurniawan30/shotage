@@ -33,6 +33,7 @@ export type MobileTab =
   | 'techstack'
   | 'icons'
   | 'text'
+  | 'elements'
   | 'watermark'
   | 'background';
 
@@ -82,6 +83,16 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       ),
     },
     { id: 'text', label: 'Text Layers', icon: Type01 },
+    {
+      id: 'elements',
+      label: 'Elements',
+      icon: (props) => (
+        <PhosphorIcons.CursorClickIcon
+          weight="duotone"
+          className={props.className || 'w-5 h-5 text-pastel-pink'}
+        />
+      ),
+    },
     { id: 'watermark', label: 'Watermark', icon: Bookmark },
   ];
 
@@ -152,6 +163,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
             {activeTab === 'techstack' && <RightSidebar mobileSection="techstack" />}
             {activeTab === 'icons' && <RightSidebar mobileSection="icons" />}
             {activeTab === 'text' && <RightSidebar mobileSection="text" />}
+            {activeTab === 'elements' && <RightSidebar mobileSection="elements" />}
             {activeTab === 'watermark' && <RightSidebar mobileSection="watermark" />}
             {activeTab === 'background' && <RightSidebar mobileSection="background" />}
           </div>

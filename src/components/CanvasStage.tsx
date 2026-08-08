@@ -235,6 +235,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         return (
           <div
             key={layer.id}
+            data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
               state.selectTextLayer(layer.id);
@@ -288,6 +289,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ) : (
               layer.text
             )}
+            {isSelected && (
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+              </div>
+            )}
           </div>
         );
       });
@@ -331,6 +341,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         return (
           <div
             key={layer.id}
+            data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
               state.selectPhosphorIconLayer(layer.id);
@@ -353,6 +364,74 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 color={layer.color || '#a2d2ff'}
               />
             </div>
+            {isSelected && (
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+              </div>
+            )}
+          </div>
+        );
+      });
+  };
+
+  const renderCanvasElements = (positionFilter: 'above' | 'underneath') => {
+    const elements = state.canvasElements || [];
+    return elements
+      .filter((el) => (el.position || 'above') === positionFilter)
+      .map((el) => {
+        const isSelected = el.id === state.selectedElementId;
+
+        return (
+          <div
+            key={el.id}
+            data-layer-id={el.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              state.selectCanvasElement(el.id);
+            }}
+            className={`canvas-element-item absolute cursor-pointer select-none transition-all rounded-lg ${
+              positionFilter === 'underneath' ? 'z-0' : 'z-30'
+            } ${
+              isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
+            }`}
+            style={{
+              transform: `translate(${el.x}px, ${el.y}px) rotate(${el.rotation || 0}deg) scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+              opacity: (el.opacity ?? 100) / 100,
+              filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              width: `${el.width || 90}px`,
+              height: `${el.height || 90}px`,
+            }}
+          >
+            <div
+              className="w-full h-full"
+              style={{
+                backgroundColor: el.color || '#a2d2ff',
+                WebkitMaskImage: `url(${el.src})`,
+                maskImage: `url(${el.src})`,
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+              }}
+            />
+            {isSelected && (
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{
+                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                }}
+              >
+                <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+              </div>
+            )}
           </div>
         );
       });
@@ -751,10 +830,33 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     );
   };
 
-  // Touch / Mouse Panning State for Mobile & Desktop
+  // Touch / Mouse Panning & Layer Dragging State
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const startPosRef = useRef({ x: 0, y: 0 });
+
+  // On-canvas direct element dragging state
+  const [dragItem, setDragItem] = useState<{
+    type: 'text' | 'phosphor' | 'element';
+    id: string;
+    startX: number;
+    startY: number;
+    initialLayerX: number;
+    initialLayerY: number;
+  } | null>(null);
+
+  // On-canvas direct element rotation state
+  const [rotateDragItem, setRotateDragItem] = useState<{
+    type: 'text' | 'phosphor' | 'element';
+    id: string;
+    centerX: number;
+    centerY: number;
+    startAngle: number;
+    initialRotation: number;
+  } | null>(null);
+
+  // Touch center for 2-finger mobile panning
+  const touchCenterRef = useRef<{ x: number; y: number } | null>(null);
 
   // Reset pan offset to center when aspect ratio changes or when state is reset
   useEffect(() => {
@@ -772,30 +874,226 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       return;
     }
 
-    if (state.selectedTextLayerId && !target.closest('.text-layer-item')) {
-      state.selectTextLayer(null);
+    const rotateHandleEl = target.closest('[data-action="rotate"]') as HTMLElement | null;
+    if (rotateHandleEl) {
+      const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
+      const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
+      const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
+      const layerEl = textLayerEl || phosphorIconLayerEl || canvasElementEl;
+
+      if (layerEl) {
+        const rect = layerEl.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+
+        if (textLayerEl) {
+          const id = textLayerEl.dataset.layerId || '';
+          const layer = (state.textLayers || []).find((l) => l.id === id);
+          if (layer) {
+            setRotateDragItem({
+              type: 'text',
+              id: layer.id,
+              centerX,
+              centerY,
+              startAngle,
+              initialRotation: layer.rotation || 0,
+            });
+            state.updateState({ isPositionDragging: true });
+          }
+        } else if (phosphorIconLayerEl) {
+          const id = phosphorIconLayerEl.dataset.layerId || '';
+          const layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
+          if (layer) {
+            setRotateDragItem({
+              type: 'phosphor',
+              id: layer.id,
+              centerX,
+              centerY,
+              startAngle,
+              initialRotation: layer.rotation || 0,
+            });
+            state.updateState({ isPositionDragging: true });
+          }
+        } else if (canvasElementEl) {
+          const id = canvasElementEl.dataset.layerId || '';
+          const layer = (state.canvasElements || []).find((l) => l.id === id);
+          if (layer) {
+            setRotateDragItem({
+              type: 'element',
+              id: layer.id,
+              centerX,
+              centerY,
+              startAngle,
+              initialRotation: layer.rotation || 0,
+            });
+            state.updateState({ isPositionDragging: true });
+          }
+        }
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+        return;
+      }
     }
 
-    if (state.selectedPhosphorIconLayerId && !target.closest('.phosphor-icon-layer-item')) {
-      state.selectPhosphorIconLayer(null);
+    const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
+    const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
+    const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
+
+    const isShiftDrag = e.shiftKey;
+    const isTargetingLayer = (textLayerEl || phosphorIconLayerEl || canvasElementEl) && !isShiftDrag;
+
+    if (isTargetingLayer) {
+      if (textLayerEl) {
+        const id = textLayerEl.dataset.layerId || '';
+        const layer = (state.textLayers || []).find((l) => l.id === id);
+        if (layer) {
+          state.selectTextLayer(layer.id);
+          setDragItem({
+            type: 'text',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialLayerX: layer.x || 0,
+            initialLayerY: layer.y || 0,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
+      } else if (phosphorIconLayerEl) {
+        const id = phosphorIconLayerEl.dataset.layerId || '';
+        const layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
+        if (layer) {
+          state.selectPhosphorIconLayer(layer.id);
+          setDragItem({
+            type: 'phosphor',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialLayerX: layer.x || 0,
+            initialLayerY: layer.y || 0,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
+      } else if (canvasElementEl) {
+        const id = canvasElementEl.dataset.layerId || '';
+        const layer = (state.canvasElements || []).find((l) => l.id === id);
+        if (layer) {
+          state.selectCanvasElement(layer.id);
+          setDragItem({
+            type: 'element',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialLayerX: layer.x || 0,
+            initialLayerY: layer.y || 0,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
+      }
+    } else {
+      if (!isShiftDrag) {
+        if (state.selectedTextLayerId && !textLayerEl) state.selectTextLayer(null);
+        if (state.selectedPhosphorIconLayerId && !phosphorIconLayerEl) state.selectPhosphorIconLayer(null);
+        if (state.selectedElementId && !canvasElementEl) state.selectCanvasElement(null);
+      }
+
+      setIsPanning(true);
+      startPosRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
     }
 
-    setIsPanning(true);
-    startPosRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-    target.setPointerCapture?.(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isPanning) return;
-    setPan({
-      x: e.clientX - startPosRef.current.x,
-      y: e.clientY - startPosRef.current.y,
-    });
+    if (rotateDragItem) {
+      const currentAngle = Math.atan2(e.clientY - rotateDragItem.centerY, e.clientX - rotateDragItem.centerX) * (180 / Math.PI);
+      const angleDiff = currentAngle - rotateDragItem.startAngle;
+      let newRotation = Math.round(rotateDragItem.initialRotation + angleDiff);
+
+      // Normalize to -180 .. 180 range
+      newRotation = ((newRotation + 180) % 360 + 360) % 360 - 180;
+
+      if (rotateDragItem.type === 'text') {
+        state.updateTextLayer(rotateDragItem.id, { rotation: newRotation });
+      } else if (rotateDragItem.type === 'phosphor') {
+        state.updatePhosphorIconLayer(rotateDragItem.id, { rotation: newRotation });
+      } else if (rotateDragItem.type === 'element') {
+        state.updateCanvasElement(rotateDragItem.id, { rotation: newRotation });
+      }
+    } else if (dragItem) {
+      const zoomScale = Math.max(0.1, (state.previewCanvasZoom || 100) / 100);
+      const deltaX = (e.clientX - dragItem.startX) / zoomScale;
+      const deltaY = (e.clientY - dragItem.startY) / zoomScale;
+
+      const newX = Math.round(dragItem.initialLayerX + deltaX);
+      const newY = Math.round(dragItem.initialLayerY + deltaY);
+
+      if (dragItem.type === 'text') {
+        state.updateTextLayer(dragItem.id, { x: newX, y: newY });
+      } else if (dragItem.type === 'phosphor') {
+        state.updatePhosphorIconLayer(dragItem.id, { x: newX, y: newY });
+      } else if (dragItem.type === 'element') {
+        state.updateCanvasElement(dragItem.id, { x: newX, y: newY });
+      }
+    } else if (isPanning) {
+      setPan({
+        x: e.clientX - startPosRef.current.x,
+        y: e.clientY - startPosRef.current.y,
+      });
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    setIsPanning(false);
-    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    if (rotateDragItem) {
+      setRotateDragItem(null);
+      state.updateState({ isPositionDragging: false });
+    }
+    if (dragItem) {
+      setDragItem(null);
+      state.updateState({ isPositionDragging: false });
+    }
+    if (isPanning) {
+      setIsPanning(false);
+    }
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length >= 2) {
+      if (rotateDragItem) {
+        setRotateDragItem(null);
+        state.updateState({ isPositionDragging: false });
+      }
+      if (dragItem) {
+        setDragItem(null);
+        state.updateState({ isPositionDragging: false });
+      }
+      setIsPanning(true);
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      touchCenterRef.current = { x: centerX - pan.x, y: centerY - pan.y };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length >= 2 && touchCenterRef.current) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentCenterX = (touch1.clientX + touch2.clientX) / 2;
+      const currentCenterY = (touch1.clientY + touch2.clientY) / 2;
+
+      setPan({
+        x: currentCenterX - touchCenterRef.current.x,
+        y: currentCenterY - touchCenterRef.current.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      touchCenterRef.current = null;
+    }
   };
 
   return (
@@ -804,8 +1102,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className={`w-full h-full max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
-        isPanning ? 'cursor-grabbing select-none' : 'cursor-grab'
+        rotateDragItem || dragItem ? 'cursor-move select-none' : isPanning ? 'cursor-grabbing select-none' : 'cursor-grab'
       }`}
     >
       {/* Canvas Viewport Scaling & Drag Pan Wrapper */}
@@ -904,6 +1205,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Underneath Static Text & Icon Layers (Rendered behind the 3D mockup frame) */}
           {renderTextLayers('underneath')}
           {renderPhosphorIconLayers('underneath')}
+          {renderCanvasElements('underneath')}
 
           {/* 3D Transform Wrapper */}
           <div
@@ -916,14 +1218,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Above Static Text & Icon Layers (Rendered on top of the 3D mockup frame) */}
           {renderTextLayers('above')}
           {renderPhosphorIconLayers('above')}
+          {renderCanvasElements('above')}
 
-          {/* Center Alignment Guide Lines (Shown while dragging position sliders) */}
+          {/* Center Alignment Guide Lines & Dashed Grid Overlay (Shown while dragging) */}
           {state.isPositionDragging && (
-            <div className="absolute inset-0 pointer-events-none z-20 animate-in fade-in duration-100">
+            <div className="absolute inset-0 pointer-events-none z-20 animate-in fade-in duration-100 overflow-hidden">
+              {/* Grid of small squares with dashed lines */}
+              <div
+                className="absolute inset-0 opacity-40"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 32 0 L 0 0 0 32' fill='none' stroke='rgba(244,114,182,0.5)' stroke-width='1' stroke-dasharray='3 3'/%3E%3C/svg%3E")`,
+                  backgroundPosition: 'center center',
+                  backgroundRepeat: 'repeat',
+                }}
+              />
               {/* Vertical Center Alignment Line */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-[#a2d2ff]/80 shadow-[0_0_8px_#a2d2ff]" />
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-pastel-pink shadow-[0_0_8px_#f472b6]" />
               {/* Horizontal Center Alignment Line */}
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#a2d2ff]/80 shadow-[0_0_8px_#a2d2ff]" />
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-pastel-pink shadow-[0_0_8px_#f472b6]" />
             </div>
           )}
 

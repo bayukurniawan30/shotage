@@ -21,6 +21,11 @@ interface StudioStore extends StudioState {
   removePhosphorIconLayer: (id: string) => void;
   duplicatePhosphorIconLayer: (id: string) => void;
   selectPhosphorIconLayer: (id: string | null) => void;
+  addCanvasElement: (elementId?: string, src?: string, category?: import('../types/studio').ElementCategory) => void;
+  updateCanvasElement: (id: string, updates: Partial<import('../types/studio').CanvasElement>) => void;
+  removeCanvasElement: (id: string) => void;
+  duplicateCanvasElement: (id: string) => void;
+  selectCanvasElement: (id: string | null) => void;
 }
 
 export const useStudioStore = create<StudioStore>()(
@@ -320,6 +325,58 @@ export const useStudioStore = create<StudioStore>()(
       selectPhosphorIconLayer: (id) =>
         set(() => ({
           selectedPhosphorIconLayerId: id,
+        })),
+      addCanvasElement: (elementId, src, category = 'arrow') =>
+        set((state) => {
+          const newEl: import('../types/studio').CanvasElement = {
+            id: `el-${Date.now()}`,
+            category,
+            elementId: elementId || 'arrow-1',
+            src: src || '/element/arrow/1.svg',
+            color: '#a2d2ff',
+            width: 90,
+            height: 90,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            opacity: 100,
+            position: 'above',
+            shadow: false,
+          };
+          return {
+            canvasElements: [...(state.canvasElements || []), newEl],
+            selectedElementId: newEl.id,
+          };
+        }),
+      updateCanvasElement: (id, updates) =>
+        set((state) => ({
+          canvasElements: (state.canvasElements || []).map((el) =>
+            el.id === id ? { ...el, ...updates } : el
+          ),
+        })),
+      removeCanvasElement: (id) =>
+        set((state) => ({
+          canvasElements: (state.canvasElements || []).filter((el) => el.id !== id),
+          selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
+        })),
+      duplicateCanvasElement: (id) =>
+        set((state) => {
+          const elToDup = (state.canvasElements || []).find((el) => el.id === id);
+          if (!elToDup) return state;
+          const dup: import('../types/studio').CanvasElement = {
+            ...elToDup,
+            id: `el-${Date.now()}`,
+            x: elToDup.x + 20,
+            y: elToDup.y + 20,
+          };
+          return {
+            canvasElements: [...(state.canvasElements || []), dup],
+            selectedElementId: dup.id,
+          };
+        }),
+      selectCanvasElement: (id) =>
+        set(() => ({
+          selectedElementId: id,
         })),
     }),
     {

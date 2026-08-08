@@ -249,7 +249,14 @@ const SocialPlatformSelect: React.FC<{
 
 interface RightSidebarProps {
   mobileSection?:
-    'perspective' | 'watermark' | 'background' | 'text' | 'social' | 'techstack' | 'icons';
+    | 'perspective'
+    | 'watermark'
+    | 'background'
+    | 'text'
+    | 'social'
+    | 'techstack'
+    | 'icons'
+    | 'elements';
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
@@ -2886,12 +2893,413 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     );
   };
 
+  const renderElementsSection = () => {
+    const elements = state.canvasElements || [];
+    const selectedElement = elements.find((el) => el.id === state.selectedElementId);
+
+    const arrowItems = Array.from({ length: 10 }).map((_, i) => ({
+      id: `arrow-${i + 1}`,
+      src: `/element/arrow/${i + 1}.svg`,
+      label: `Arrow ${i + 1}`,
+    }));
+
+    return (
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+        {/* Header */}
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <PhosphorIcons.CursorClick weight="duotone" className="w-4 h-4 text-pastel-pink" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Elements
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => state.addCanvasElement('arrow-1', '/element/arrow/1.svg', 'arrow')}
+            className="px-2.5 py-1 bg-pastel-pink/20 hover:bg-pastel-pink/30 text-pastel-pink border border-pastel-pink/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Arrow</span>
+          </button>
+        </div>
+
+        {/* Arrows Category Grid */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs items-center">
+            <span className="font-semibold text-slate-300">Arrows (Click to Add)</span>
+            <span className="text-[10px] font-mono text-pastel-pink">
+              {elements.length} on stage
+            </span>
+          </div>
+
+          <div className="grid grid-cols-5 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800 max-h-36 overflow-y-auto no-scrollbar">
+            {arrowItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={`Add ${item.label}`}
+                onClick={() => state.addCanvasElement(item.id, item.src, 'arrow')}
+                className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 hover:border-pastel-pink/60 hover:bg-pastel-pink/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
+              >
+                <div
+                  className="w-6 h-6 group-hover:scale-110 transition-transform"
+                  style={{
+                    backgroundColor: '#a2d2ff',
+                    WebkitMaskImage: `url(${item.src})`,
+                    maskImage: `url(${item.src})`,
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                  }}
+                />
+                <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Canvas Elements List */}
+        {elements.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-neutral-800/80">
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Canvas Elements ({elements.length})
+            </label>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+              {elements.map((el, index) => {
+                const isSelected = el.id === state.selectedElementId;
+                return (
+                  <div
+                    key={el.id}
+                    onClick={() => state.selectCanvasElement(el.id)}
+                    className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-white font-bold'
+                        : 'bg-neutral-900/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <div
+                        className="w-5 h-5 shrink-0"
+                        style={{
+                          backgroundColor: el.color || '#a2d2ff',
+                          WebkitMaskImage: `url(${el.src})`,
+                          maskImage: `url(${el.src})`,
+                          WebkitMaskSize: 'contain',
+                          maskSize: 'contain',
+                          WebkitMaskRepeat: 'no-repeat',
+                          maskRepeat: 'no-repeat',
+                          WebkitMaskPosition: 'center',
+                          maskPosition: 'center',
+                        }}
+                      />
+                      <span className="text-xs truncate">
+                        {el.elementId} #{index + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-slate-400">
+                        {el.position === 'underneath' ? 'Behind' : 'Above'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.duplicateCanvasElement(el.id);
+                        }}
+                        title="Duplicate element"
+                        className="p-1 hover:text-pastel-pink text-slate-400 transition-colors cursor-pointer"
+                      >
+                        <Copy01 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.removeCanvasElement(el.id);
+                        }}
+                        title="Delete element"
+                        className="p-1 hover:text-red-400 text-slate-400 transition-colors cursor-pointer"
+                      >
+                        <Trash01 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Element Editor */}
+        {selectedElement && (
+          <div className="space-y-4 pt-3 border-t border-neutral-800/80 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <span>Editing: {selectedElement.elementId}</span>
+              <button
+                type="button"
+                onClick={() => state.selectCanvasElement(null)}
+                className="text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer"
+              >
+                Deselect
+              </button>
+            </div>
+
+            {/* Element Color */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Element Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={selectedElement.color || '#a2d2ff'}
+                  onChange={(e) =>
+                    state.updateCanvasElement(selectedElement.id, { color: e.target.value })
+                  }
+                  className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
+                />
+                <input
+                  type="text"
+                  value={selectedElement.color || '#a2d2ff'}
+                  onChange={(e) =>
+                    state.updateCanvasElement(selectedElement.id, { color: e.target.value })
+                  }
+                  className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
+                />
+              </div>
+            </div>
+
+            {/* Rotation Slider */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Rotation</span>
+                <span className="font-mono text-slate-400">{selectedElement.rotation || 0}°</span>
+              </div>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                value={selectedElement.rotation || 0}
+                onChange={(e) =>
+                  state.updateCanvasElement(selectedElement.id, {
+                    rotation: Number(e.target.value),
+                  })
+                }
+                className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+              />
+            </div>
+
+            {/* Flip Horizontal / Vertical */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Flip Axis
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateCanvasElement(selectedElement.id, {
+                      flipX: !selectedElement.flipX,
+                    })
+                  }
+                  className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedElement.flipX
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <PhosphorIcons.FlipHorizontal className="w-4 h-4" />
+                  <span>Flip Horizontal</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateCanvasElement(selectedElement.id, {
+                      flipY: !selectedElement.flipY,
+                    })
+                  }
+                  className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedElement.flipY
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <PhosphorIcons.FlipVertical className="w-4 h-4" />
+                  <span>Flip Vertical</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Size (Width & Height) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Width</span>
+                  <span className="font-mono text-slate-400">{selectedElement.width || 90}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={20}
+                  max={300}
+                  value={selectedElement.width || 90}
+                  onChange={(e) =>
+                    state.updateCanvasElement(selectedElement.id, {
+                      width: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Height</span>
+                  <span className="font-mono text-slate-400">{selectedElement.height || 90}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={20}
+                  max={300}
+                  value={selectedElement.height || 90}
+                  onChange={(e) =>
+                    state.updateCanvasElement(selectedElement.id, {
+                      height: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+
+            {/* Opacity Slider */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Opacity</span>
+                <span className="font-mono text-slate-400">{selectedElement.opacity ?? 100}%</span>
+              </div>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                value={selectedElement.opacity ?? 100}
+                onChange={(e) =>
+                  state.updateCanvasElement(selectedElement.id, {
+                    opacity: Number(e.target.value),
+                  })
+                }
+                className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+              />
+            </div>
+
+            {/* Drop Shadow Toggle */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="text-[11px] font-semibold text-slate-300">
+                Drop Shadow
+              </label>
+              <Toggle
+                isSelected={!!selectedElement.shadow}
+                onChange={(checked) =>
+                  state.updateCanvasElement(selectedElement.id, { shadow: checked })
+                }
+                size="sm"
+              />
+            </div>
+
+            {/* Layering Depth */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                Layering Depth
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateCanvasElement(selectedElement.id, { position: 'above' })
+                  }
+                  className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    (selectedElement.position || 'above') === 'above'
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Above Mockup
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateCanvasElement(selectedElement.id, { position: 'underneath' })
+                  }
+                  className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                    selectedElement.position === 'underneath'
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                      : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Behind Mockup
+                </button>
+              </div>
+            </div>
+
+            {/* Position Offset X & Y */}
+            <div className="space-y-2 pt-1 border-t border-neutral-800/60">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position X (Horizontal)</span>
+                  <span className="font-mono text-slate-400">{selectedElement.x || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-400}
+                  max={400}
+                  value={selectedElement.x || 0}
+                  onChange={(e) =>
+                    state.updateCanvasElement(selectedElement.id, {
+                      x: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Position Y (Vertical)</span>
+                  <span className="font-mono text-slate-400">{selectedElement.y || 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-400}
+                  max={400}
+                  value={selectedElement.y || 0}
+                  onChange={(e) =>
+                    state.updateCanvasElement(selectedElement.id, {
+                      y: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (mobileSection) {
     if (mobileSection === 'perspective') return renderPerspectiveSection();
     if (mobileSection === 'social') return renderSocialSection();
     if (mobileSection === 'techstack') return renderTechStackSection();
     if (mobileSection === 'icons') return renderPhosphorIconsSection();
     if (mobileSection === 'text') return renderTextSection();
+    if (mobileSection === 'elements') return renderElementsSection();
     if (mobileSection === 'watermark') return renderWatermarkSection();
     if (mobileSection === 'background') return renderBackgroundSection();
     return null;
@@ -2905,6 +3313,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       {renderTechStackSection()}
       {renderPhosphorIconsSection()}
       {renderTextSection()}
+      {renderElementsSection()}
       {renderWatermarkSection()}
     </div>
   );
