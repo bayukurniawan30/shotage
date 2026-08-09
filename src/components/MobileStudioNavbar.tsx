@@ -97,7 +97,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
   ];
 
   return (
-    <div className="md:hidden flex flex-col w-full bg-neutral-900 border-t border-neutral-800 shrink-0 z-30">
+    <div className="md:hidden flex flex-col w-full bg-neutral-900 border-t border-neutral-800 shrink-0 relative z-40">
       {/* Bottom Horizontal Scrollable Icon Navbar */}
       <div className="flex items-center gap-1 p-2 overflow-x-auto no-scrollbar scroll-smooth">
         {tabs.map((tab) => {
@@ -125,7 +125,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       {/* Expandable Mobile Panel Drawer */}
       {activeTab && (
         <div
-          className={`fixed inset-x-0 bottom-[68px] z-40 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200 ${
+          className={`fixed inset-x-0 bottom-[68px] z-50 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200 ${
             activeTab === 'aspect' ? 'min-h-[40vh] max-h-[50vh]' : 'min-h-[50vh] max-h-[55vh]'
           }`}
         >

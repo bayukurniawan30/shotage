@@ -537,7 +537,7 @@ export const Studio: React.FC = () => {
           <div className="flex-1 w-full flex items-center justify-center relative">
             {/* Floating Bottom Zoom Slider (Full Preview Mode OR Normal Mode) */}
             <div
-              className={`fixed left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
+              className={`fixed left-1/2 -translate-x-1/2 z-20 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
                 isAnimationMode
                   ? 'bottom-[150px] sm:bottom-24'
                   : isPreviewMode
@@ -585,7 +585,7 @@ export const Studio: React.FC = () => {
 
         {/* Mobile Bottom Scrollable Navbar Drawer (Animated Slide Down in Preview Mode) */}
         <div
-          className={`block md:hidden transition-all duration-300 ease-in-out ${
+          className={`block md:hidden relative z-40 transition-all duration-300 ease-in-out ${
             isPreviewMode ? 'translate-y-full opacity-0 pointer-events-none h-0 overflow-hidden' : 'translate-y-0 opacity-100'
           }`}
         >
