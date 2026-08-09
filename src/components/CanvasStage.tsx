@@ -292,6 +292,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             {isSelected && (
               <>
                 <div
+                  data-action="delete"
+                  title="Delete layer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    state.removeTextLayer(layer.id);
+                  }}
+                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
                   data-action="rotate"
                   title="Drag to rotate"
                   className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
@@ -376,6 +387,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             {isSelected && (
               <>
                 <div
+                  data-action="delete"
+                  title="Delete layer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    state.removePhosphorIconLayer(layer.id);
+                  }}
+                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
                   data-action="rotate"
                   title="Drag to rotate"
                   className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
@@ -450,6 +472,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             )}
             {isSelected && (
               <>
+                <div
+                  data-action="delete"
+                  title="Delete element"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    state.removeCanvasElement(el.id);
+                  }}
+                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+                  style={{
+                    transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                  }}
+                >
+                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                </div>
                 <div
                   data-action="rotate"
                   title="Drag to rotate"
@@ -928,6 +964,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       target.closest('button') ||
       target.closest('input')
     ) {
+      return;
+    }
+
+    const deleteHandleEl = target.closest('[data-action="delete"]') as HTMLElement | null;
+    if (deleteHandleEl) {
       return;
     }
 

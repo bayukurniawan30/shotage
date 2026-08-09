@@ -31,13 +31,24 @@ export const Studio: React.FC = () => {
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isStartOverModalOpen, setIsStartOverModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const desktopMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
+      if (
+        desktopMenuRef.current &&
+        !desktopMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsDesktopMenuOpen(false);
+      }
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsMobileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -45,7 +56,8 @@ export const Studio: React.FC = () => {
   }, []);
 
   const handleExportSettings = () => {
-    setIsMenuOpen(false);
+    setIsDesktopMenuOpen(false);
+    setIsMobileMenuOpen(false);
     const storeState = useStudioStore.getState();
 
     // Extract canvas settings without image binary blobs or transient flags
@@ -69,7 +81,8 @@ export const Studio: React.FC = () => {
   };
 
   const handleImportSettings = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsMenuOpen(false);
+    setIsDesktopMenuOpen(false);
+    setIsMobileMenuOpen(false);
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -323,11 +336,11 @@ export const Studio: React.FC = () => {
           </button>
 
           {/* 6. More Options Dropdown Menu (DotsVertical) */}
-          <div className="relative" ref={menuRef}>
+          <div className="relative" ref={desktopMenuRef}>
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
               className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                isMenuOpen
+                isDesktopMenuOpen
                   ? 'bg-neutral-700 text-white border-neutral-600'
                   : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
               }`}
@@ -336,11 +349,11 @@ export const Studio: React.FC = () => {
               <DotsVertical className="w-4 h-4" />
             </button>
 
-            {isMenuOpen && (
+            {isDesktopMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <a
                   href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => setIsDesktopMenuOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
                 >
                   <MessageTextSquare01 className="w-4 h-4 text-slate-400" />
@@ -434,13 +447,13 @@ export const Studio: React.FC = () => {
             >
               <Expand03 className="w-3.5 h-3.5" />
             </button>
-            <div className="relative" ref={menuRef}>
+            <div className="relative" ref={mobileMenuRef}>
               <button
                 onClick={() => {
-                  setIsMenuOpen(!isMenuOpen);
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
                 }}
                 className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                  isMenuOpen
+                  isMobileMenuOpen
                     ? 'bg-neutral-700 text-white border-neutral-600'
                     : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
                 }`}
@@ -449,11 +462,11 @@ export const Studio: React.FC = () => {
                 <DotsVertical className="w-4 h-4" />
               </button>
 
-              {isMenuOpen && (
+              {isMobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-[100] animate-in fade-in zoom-in-95 duration-100">
                   <a
                     href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
                   >
                     <MessageTextSquare01 className="w-4 h-4 text-slate-400" />
@@ -645,7 +658,7 @@ export const Studio: React.FC = () => {
       />
 
       {/* Mobile Install App Button */}
-      <InstallPwaModal showFloatingButton={!isMenuOpen} />
+      <InstallPwaModal showFloatingButton={!isMobileMenuOpen} />
     </div>
   );
 };
