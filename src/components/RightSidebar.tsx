@@ -2170,7 +2170,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           {/* Icon Grid Picker */}
           <div className="grid grid-cols-5 gap-1.5 max-h-40 overflow-y-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800 no-scrollbar">
             {filteredItems.map((item) => {
-              const IconComp = (PhosphorIcons as any)[item.id] || PhosphorIcons.Sparkle;
+              const IconComp = (PhosphorIcons as any)[item.id] || PhosphorIcons.SparkleIcon;
               return (
                 <button
                   key={item.id}
@@ -2202,7 +2202,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
               {iconLayers.map((layer, index) => {
                 const isSelected = layer.id === state.selectedPhosphorIconLayerId;
-                const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
+                const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.SparkleIcon;
                 return (
                   <div
                     key={layer.id}
