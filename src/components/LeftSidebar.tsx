@@ -218,7 +218,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         <div className="text-xs font-bold text-slate-200 group-hover:text-pastel-pink transition-colors">
                           {tmpl.title}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5">{tmpl.desc}</div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          {tmpl.desc}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -257,7 +259,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         <div className="text-xs font-bold text-slate-200 group-hover:text-[#a2d2ff] transition-colors">
                           {tmpl.title}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5">{tmpl.desc}</div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          {tmpl.desc}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -296,7 +300,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         <div className="text-xs font-bold text-slate-200 group-hover:text-pastel-purple transition-colors">
                           {tmpl.title}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5">{tmpl.desc}</div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          {tmpl.desc}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -858,6 +864,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                 {[
                   { id: 'iphone', label: 'iPhone 15', file: 'iphone-15' },
                   { id: 'iphone14pro', label: 'iPhone 14 Pro', file: 'iphone-14-pro' },
+                  { id: 'iphone16', label: 'iPhone 16', file: 'iphone-16' },
                   { id: 'samsung-s21', label: 'Samsung S21', file: 'samsung-s21' },
                   { id: 'macbookair13', label: 'MacBook Air 13"', file: 'macbook-air-13' },
                 ].map((item) => {

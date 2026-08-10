@@ -42,6 +42,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         pixelRatio: state.exportScale,
         quality: 0.95,
         cacheBust: true,
+        ...(state.backgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
       };
 
       if (isCopy) {

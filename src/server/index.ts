@@ -9,7 +9,12 @@ app.get('/*', async (c, next) => {
   const reqPath = c.req.path;
 
   // Skip rendering routes and API proxy routes
-  if (reqPath === '/' || reqPath === '/studio' || reqPath === '/terms' || reqPath.startsWith('/api/')) {
+  if (
+    reqPath === '/' ||
+    reqPath === '/studio' ||
+    reqPath === '/terms' ||
+    reqPath.startsWith('/api/')
+  ) {
     return await next();
   }
 
@@ -66,7 +71,7 @@ const renderInertiaPage = (componentName: string, props = {}) => {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shotage — Turn Screenshots into Stunning Mockups</title>
+    <title>Shotage Studio — Turn Screenshots into Stunning Mockups</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />

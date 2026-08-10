@@ -74,10 +74,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const getBackgroundStyle = () => {
     if (state.backgroundType === 'transparent') {
       return {
-        backgroundImage:
-          'radial-gradient(#334155 1px, transparent 1px), radial-gradient(#334155 1px, #0f172a 1px)',
-        backgroundSize: '20px 20px',
-        backgroundPosition: '0 0, 10px 10px',
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        backgroundImage: 'none',
       };
     }
     if (state.backgroundType === 'solid') {
@@ -619,6 +618,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       state.frameType === 'macbookair13' ||
       state.frameType === 'iphone' ||
       state.frameType === 'iphone14pro' ||
+      state.frameType === 'iphone16' ||
       state.frameType === 'samsung-s21'
     ) {
       frameElement = <DeviceFrame type={state.frameType}>{content}</DeviceFrame>;
@@ -1346,11 +1346,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     >
       {/* Canvas Viewport Scaling & Drag Pan Wrapper */}
       <div
-        className="transition-transform duration-75 flex items-center justify-center touch-none"
+        className="transition-transform duration-75 flex items-center justify-center touch-none relative"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${state.previewCanvasZoom / 100})`,
         }}
       >
+        {/* Editor-Only Transparency Guide Grid (Not included in export canvasRef) */}
+        {state.backgroundType === 'transparent' && (
+          <div
+            className="absolute inset-0 rounded-2xl pointer-events-none border border-neutral-700/60 shadow-2xl"
+            style={{
+              backgroundImage:
+                'radial-gradient(#334155 1.5px, transparent 1.5px), radial-gradient(#334155 1.5px, #0f172a 1.5px)',
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 10px 10px',
+            }}
+          />
+        )}
+
         {/* Exportable Canvas Container */}
         <div
           ref={canvasRef}

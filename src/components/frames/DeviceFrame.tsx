@@ -3,7 +3,8 @@ import { Menu01, Square, ChevronLeft, Wifi, BarChart05, BatteryMid } from '@unti
 import { useStudioStore } from '../../store/useStudioStore';
 
 interface DeviceFrameProps {
-  type: 'macbook' | 'macbookair13' | 'iphone' | 'iphone14pro' | 'samsung-s21' | 'tablet';
+  type:
+    'macbook' | 'macbookair13' | 'iphone' | 'iphone14pro' | 'iphone16' | 'samsung-s21' | 'tablet';
   children: React.ReactNode;
 }
 
@@ -108,6 +109,60 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
         <img
           src="/mockup/apple-iphone-15-black-portrait.png"
           alt="iPhone 15 Frame Mockup"
+          className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
+        />
+      </div>
+    );
+  }
+
+  if (type === 'iphone16') {
+    const iphoneStatusBar = useStudioStore((state) => state.iphoneStatusBar || 'none');
+    const isStatusBarActive = iphoneStatusBar !== 'none';
+    const isLightBar = iphoneStatusBar === 'light';
+
+    return (
+      <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center [perspective:1000px]">
+        {/* Screen Content Wrapper placed precisely inside 3D Yaw & Skew tilted bezel bounds */}
+        <div
+          className="absolute z-0 overflow-hidden"
+          style={{
+            top: '4.3%',
+            bottom: '7%',
+            left: '16.5%',
+            right: '4.8%',
+            borderRadius: '38px',
+            transform: 'perspective(1000px) rotateY(5deg) skewY(350deg)',
+            transformOrigin: 'center center',
+          }}
+        >
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+            {/* Top Status Bar (Transparent Overlay) */}
+            {isStatusBarActive && (
+              <div
+                className={`absolute top-0 left-0 right-0 z-20 px-6 pt-3 flex items-center justify-between pointer-events-none ${
+                  isLightBar ? 'text-white' : 'text-slate-900'
+                }`}
+              >
+                {/* Time (Left) */}
+                <span className="text-[9px] font-semibold tracking-tight font-sans ml-1">9:41</span>
+
+                {/* Right Status Icons */}
+                <div className="flex items-center gap-1 mr-1">
+                  <BarChart05 className="w-2.5 h-2.5" />
+                  <Wifi className="w-2.5 h-2.5" />
+                  <BatteryMid className="w-3 h-3" />
+                </div>
+              </div>
+            )}
+
+            {children}
+          </div>
+        </div>
+
+        {/* Real iPhone 16 Frame Overlay WebP */}
+        <img
+          src="/mockup/apple-iphone-16-portrait.webp"
+          alt="iPhone 16 Frame Mockup"
           className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
         />
       </div>

@@ -24,11 +24,7 @@ export type SocialPlatform =
   | 'substack';
 
 export type SocialStyleVariant =
-  | 'default'
-  | 'badge-light'
-  | 'badge-dark'
-  | 'glass-dark'
-  | 'glass-light';
+  'default' | 'badge-light' | 'badge-dark' | 'glass-dark' | 'glass-light';
 
 export type TechStackPosition =
   | 'top-left'
@@ -138,12 +134,7 @@ export interface TextLayer {
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
 export type WatermarkPosition =
-  | 'bottom-right'
-  | 'bottom-left'
-  | 'top-right'
-  | 'top-left'
-  | 'bottom-center'
-  | 'top-center';
+  'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'bottom-center' | 'top-center';
 export type WatermarkSize = 'sm' | 'md' | 'lg';
 
 export interface StudioState {
@@ -157,7 +148,14 @@ export interface StudioState {
   borderRadius: number; // 0 to 32
   framelessStyle: 'default' | 'glass-light' | 'glass-dark' | 'inset-light' | 'inset-dark' | 'card';
   shadow: 'none' | 'soft' | 'medium' | 'hard' | 'floating';
-  shadowOverlay: 'none' | 'shadow-overlay-1' | 'shadow-overlay-2' | 'shadow-overlay-3' | 'shadow-overlay-4' | 'shadow-overlay-5' | 'shadow-overlay-6';
+  shadowOverlay:
+    | 'none'
+    | 'shadow-overlay-1'
+    | 'shadow-overlay-2'
+    | 'shadow-overlay-3'
+    | 'shadow-overlay-4'
+    | 'shadow-overlay-5'
+    | 'shadow-overlay-6';
   shadowOverlayOpacity?: number; // 0 to 100
   shadowOverlayPosition?: 'behind' | 'above';
   frameType:
@@ -169,6 +167,7 @@ export interface StudioState {
     | 'macbookair13'
     | 'iphone'
     | 'iphone14pro'
+    | 'iphone16'
     | 'samsung-s21'
     | 'tablet'
     | 'polaroid'
