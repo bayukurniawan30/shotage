@@ -6,6 +6,10 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import {
+  AnimatedGradientBackground,
+  AnimatedMeshBackground,
+} from './AnimatedBackgrounds';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
@@ -1412,6 +1416,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             {/* Radiant Glow Background Layer */}
             {state.backgroundType === 'radiant' && (
               <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
+            )}
+
+            {/* Pure CSS Animated Gradient Background Layer */}
+            {state.backgroundType === 'animatedGradient' && (
+              <AnimatedGradientBackground
+                presetId={state.animatedGradientPreset || 'anim-grad-1'}
+              />
+            )}
+
+            {/* Pure CSS Animated Mesh Background Layer */}
+            {state.backgroundType === 'animatedMesh' && (
+              <AnimatedMeshBackground
+                presetId={state.animatedMeshPreset || 'anim-mesh-1'}
+              />
             )}
 
             {/* Background Image Layer */}

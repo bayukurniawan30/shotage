@@ -181,15 +181,19 @@ export interface StudioState {
   backgroundType:
     | 'solid'
     | 'gradient'
+    | 'animatedGradient'
     | 'linearSwatches'
-    | 'image'
-    | 'transparent'
     | 'wave'
     | 'mesh'
+    | 'animatedMesh'
     | 'confetti'
-    | 'radiant';
+    | 'radiant'
+    | 'transparent'
+    | 'image';
   wavePreset: string;
   meshPreset: string;
+  animatedGradientPreset?: string;
+  animatedMeshPreset?: string;
   confettiPreset: string;
   customConfettiObj: any | null;
   radiantPreset: string;
@@ -298,6 +302,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   backgroundType: 'gradient',
   wavePreset: 'wave-1',
   meshPreset: 'mesh-1',
+  animatedGradientPreset: 'anim-grad-1',
+  animatedMeshPreset: 'anim-mesh-1',
   confettiPreset: 'confetti-1',
   customConfettiObj: null,
   radiantPreset: 'radiant-1',

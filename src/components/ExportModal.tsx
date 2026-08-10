@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { toPng, toJpeg, toBlob, toCanvas, getFontEmbedCSS } from 'html-to-image';
-import { Download01, XClose, LinkExternal01, Film01, Loading01, Check } from '@untitledui/icons';
+import {
+  Download01,
+  XClose,
+  LinkExternal01,
+  Film01,
+  Loading01,
+  Check,
+  Heart,
+} from '@untitledui/icons';
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
 
@@ -22,6 +30,38 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     state.isAnimationMode ? 'video' : 'image'
   );
   const [exportProgress, setExportProgress] = useState(0);
+  const [supportCountdown, setSupportCountdown] = useState(0);
+  const cancelVideoRef = useRef(false);
+
+  useEffect(() => {
+    let timer: any;
+    if (supportCountdown > 0) {
+      timer = setInterval(() => {
+        setSupportCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [supportCountdown]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSupportCountdown(0);
+      setIsExporting(false);
+      setExportingType(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -67,8 +107,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         link.download = `shotage-${Date.now()}.${format}`;
         link.href = dataUrl;
         link.click();
+        setSupportCountdown(10);
       }
-      onClose();
     } catch (err) {
       console.error('Export error:', err);
       alert('Failed to export canvas image. Please try again.');
@@ -81,6 +121,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   // High-Quality WebCodecs 60FPS Video Export (Exact Duration & Zero Lag)
   const handleExportVideo = async () => {
     if (!canvasRef.current) return;
+    cancelVideoRef.current = false;
     setIsExporting(true);
     setExportingType('video');
     setExportProgress(0);
@@ -184,6 +225,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
       // Frame-by-Frame High Speed Pipeline using direct canvas capture
       for (let frame = 0; frame <= totalFrames; frame++) {
+        if (cancelVideoRef.current) {
+          console.log('Video export cancelled by user.');
+          break;
+        }
+
         const targetTimeSec = (frame / totalFrames) * durationSec;
         onChange({ currentTimeSec: targetTimeSec });
 
@@ -208,6 +254,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         }
 
         setExportProgress(Math.round((frame / totalFrames) * 100));
+      }
+
+      if (cancelVideoRef.current) {
+        setIsExporting(false);
+        setExportingType(null);
+        setExportProgress(0);
+        return;
       }
 
       await videoEncoder.flush();
@@ -239,8 +292,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200 cursor-default"
+      >
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2.5">
             <div
@@ -264,7 +323,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Close"
           >
             <XClose className="w-5 h-5" />
           </button>
@@ -343,27 +403,39 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
 
             <div className="pt-2 space-y-2.5">
-              <button
-                disabled={isExporting}
-                onClick={() => handleExport(state.exportFormat, false)}
-                className={`w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm ${
-                  isExporting
-                    ? 'opacity-60 cursor-not-allowed'
-                    : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
-                }`}
-                style={{
-                  backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
-                }}
-              >
-                {exportingType === 'image' ? (
-                  <>
-                    <Loading01 className="w-4 h-4 text-slate-950 animate-spin" />
-                    <span>Generating Image...</span>
-                  </>
-                ) : (
-                  `Download ${state.exportFormat.toUpperCase()} (${state.exportScale}x)`
-                )}
-              </button>
+              {supportCountdown > 0 ? (
+                <a
+                  href="https://saweria.co/bayukurniawan30"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                >
+                  <Heart className="w-4 h-4 text-white fill-white" />
+                  <span>Support Me ({supportCountdown}s)</span>
+                </a>
+              ) : (
+                <button
+                  disabled={isExporting}
+                  onClick={() => handleExport(state.exportFormat, false)}
+                  className={`w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm ${
+                    isExporting
+                      ? 'opacity-60 cursor-not-allowed'
+                      : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
+                  }`}
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                  }}
+                >
+                  {exportingType === 'image' ? (
+                    <>
+                      <Loading01 className="w-4 h-4 text-slate-950 animate-spin" />
+                      <span>Generating Image...</span>
+                    </>
+                  ) : (
+                    `Download ${state.exportFormat.toUpperCase()} (${state.exportScale}x)`
+                  )}
+                </button>
+              )}
 
               <button
                 disabled={isExporting}
@@ -469,9 +541,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   )}
                 </button>
 
-                {/* 2. BOTTOM/PROGRESS FACE: 3D Side-Down Progress Track (Rotated 90deg down - NO TEXT) */}
+                {/* 2. BOTTOM/PROGRESS FACE: 3D Side-Down Progress Track */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden shadow-inner flex items-center justify-between p-1.5"
+                  className="absolute inset-0 w-full h-full bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden shadow-inner flex items-center justify-between p-1.5 group relative"
                   style={{
                     backfaceVisibility: 'hidden',
                     transform: 'rotateX(90deg) translateZ(22px)',
@@ -486,12 +558,39 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                     />
                   </div>
 
-                  {/* Percentage Indicator Badge */}
-                  <span className="font-mono text-xs font-bold text-pastel-pink px-2.5 shrink-0">
-                    {exportProgress}%
-                  </span>
+                  {/* Percentage Indicator Badge & Hover Cancel/Stop Button */}
+                  <div className="flex items-center gap-1.5 pl-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelVideoRef.current = true;
+                      }}
+                      className="hidden group-hover:flex px-2 py-0.5 text-[11px] font-bold bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-lg transition-all items-center gap-1 cursor-pointer shadow-sm"
+                      title="Cancel Video Export"
+                    >
+                      <XClose className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Stop</span>
+                    </button>
+                    <span className="font-mono text-xs font-bold text-pastel-pink group-hover:text-rose-300 px-1 transition-colors">
+                      {exportProgress}%
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {/* Support Me Link displayed while Video Export is running */}
+              {isExporting && exportingType === 'video' && (
+                <a
+                  href="https://saweria.co/bayukurniawan30"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 w-full py-2.5 bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                >
+                  <Heart className="w-4 h-4 text-white fill-white" />
+                  <span>Support Me</span>
+                </a>
+              )}
             </div>
           </>
         )}
@@ -499,7 +598,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         {/* Sponsorer Box */}
         <div className="pt-3 border-t border-slate-800/80">
           <a
-            href="https://morphic-cms.com/"
+            href="https://morphic-cms.com?ref=shotage.studio"
             target="_blank"
             rel="noopener noreferrer"
             className="group block p-3 bg-slate-950/60 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl transition-all shadow-inner"

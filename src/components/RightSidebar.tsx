@@ -25,6 +25,12 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import {
+  ANIMATED_GRADIENT_PRESETS,
+  ANIMATED_MESH_PRESETS,
+  AnimatedGradientBackground,
+  AnimatedMeshBackground,
+} from './AnimatedBackgrounds';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from './SocialIcons';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from './TechStackIcons';
 import { Toggle } from './Toggle';
@@ -579,9 +585,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         {(
           [
             'gradient',
+            'animatedGradient',
             'linearSwatches',
             'wave',
             'mesh',
+            'animatedMesh',
             'radiant',
             'confetti',
             'solid',
@@ -598,13 +606,101 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
             }`}
             title={
-              bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Linear Swatches' : bg
+              bg === 'transparent'
+                ? 'No BG'
+                : bg === 'linearSwatches'
+                  ? 'Linear Swatches'
+                  : bg === 'animatedGradient'
+                    ? 'Anim Grad'
+                    : bg === 'animatedMesh'
+                      ? 'Anim Mesh'
+                      : bg
             }
           >
-            {bg === 'transparent' ? 'No BG' : bg === 'linearSwatches' ? 'Swatches' : bg}
+            {bg === 'transparent'
+              ? 'No BG'
+              : bg === 'linearSwatches'
+                ? 'Swatches'
+                : bg === 'animatedGradient'
+                  ? 'Anim Grad'
+                  : bg === 'animatedMesh'
+                    ? 'Anim Mesh'
+                    : bg}
           </button>
         ))}
       </div>
+
+      {state.backgroundType === 'animatedGradient' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Animated Gradient Presets ({ANIMATED_GRADIENT_PRESETS.length})
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 max-h-56 overflow-y-auto no-scrollbar pr-1">
+            {ANIMATED_GRADIENT_PRESETS.map((preset) => {
+              const isSelected = (state.animatedGradientPreset || 'anim-grad-1') === preset.id;
+
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => onChange({ animatedGradientPreset: preset.id })}
+                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={preset.name}
+                >
+                  <AnimatedGradientBackground presetId={preset.id} />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'animatedMesh' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Animated Mesh Presets ({ANIMATED_MESH_PRESETS.length})
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 max-h-56 overflow-y-auto no-scrollbar pr-1">
+            {ANIMATED_MESH_PRESETS.map((preset) => {
+              const isSelected = (state.animatedMeshPreset || 'anim-mesh-1') === preset.id;
+
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => onChange({ animatedMeshPreset: preset.id })}
+                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={preset.name}
+                >
+                  <AnimatedMeshBackground presetId={preset.id} />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {state.backgroundType === 'radiant' && (
         <div className="space-y-3 pt-1 border-t border-slate-800/60">
