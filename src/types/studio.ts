@@ -80,6 +80,9 @@ export interface CanvasElement {
   shadow?: boolean;
   flipX?: boolean;
   flipY?: boolean;
+  name?: string;
+  visible?: boolean;
+  locked?: boolean;
 }
 
 export interface PhosphorIconLayer {
@@ -95,6 +98,9 @@ export interface PhosphorIconLayer {
   opacity: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
+  name?: string;
+  visible?: boolean;
+  locked?: boolean;
 }
 
 export interface PhosphorIconConfig {
@@ -130,6 +136,9 @@ export interface TextLayer {
   socialStyle?: SocialStyleVariant;
   iconColor?: string;
   iconSize?: number;
+  name?: string;
+  visible?: boolean;
+  locked?: boolean;
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
@@ -262,12 +271,15 @@ export interface StudioState {
   // Text Layers
   textLayers: TextLayer[];
   selectedTextLayerId: string | null;
+  selectedTextLayerIds: string[];
   // Phosphor Icon Layers (Independent canvas layers)
   phosphorIconLayers: PhosphorIconLayer[];
   selectedPhosphorIconLayerId: string | null;
+  selectedPhosphorIconLayerIds: string[];
   // Canvas Elements (Arrows, Stickers, Shapes)
   canvasElements: CanvasElement[];
   selectedElementId: string | null;
+  selectedElementIds: string[];
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
   // Phosphor Icons Overlay (Grouped)
@@ -352,10 +364,13 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   activePresetId: '',
   textLayers: [],
   selectedTextLayerId: null,
+  selectedTextLayerIds: [],
   phosphorIconLayers: [],
   selectedPhosphorIconLayerId: null,
+  selectedPhosphorIconLayerIds: [],
   canvasElements: [],
   selectedElementId: null,
+  selectedElementIds: [],
   techStackConfig: {
     enabled: false,
     selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],

@@ -20,6 +20,9 @@ import {
   DotsVertical,
 } from '@untitledui/icons';
 
+const SESSION_STORAGE_KEY = 'shotage-session-v1';
+const SESSION_VERSION = 1;
+
 export const Studio: React.FC = () => {
   const setImage = useStudioStore((state) => state.setImage);
   const resetAll = useStudioStore((state) => state.resetAll);
@@ -38,16 +41,10 @@ export const Studio: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        desktopMenuRef.current &&
-        !desktopMenuRef.current.contains(event.target as Node)
-      ) {
+      if (desktopMenuRef.current && !desktopMenuRef.current.contains(event.target as Node)) {
         setIsDesktopMenuOpen(false);
       }
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target as Node)
-      ) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
         setIsMobileMenuOpen(false);
       }
     };
@@ -105,7 +102,88 @@ export const Studio: React.FC = () => {
   const confirmStartOver = () => {
     resetAll();
     temporalStore.getState().clear();
+    localStorage.removeItem(SESSION_STORAGE_KEY);
     setIsStartOverModalOpen(false);
+  };
+
+  // Auto-save session to localStorage (debounced so drag/scrub spam doesn't write every frame)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const save = () => {
+      try {
+        const storeState = useStudioStore.getState();
+        if (storeState.isPlaying) return;
+        const { imageSrc, secondImageSrc, isPreviewMode, isPlaying, isPositionDragging, ...rest } =
+          storeState;
+        localStorage.setItem(
+          SESSION_STORAGE_KEY,
+          JSON.stringify({ ...rest, _version: SESSION_VERSION, savedAt: Date.now() })
+        );
+      } catch (err) {
+        // Quota exceeded / storage unavailable — silently skip autosave
+      }
+    };
+
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(save, 800);
+    };
+
+    const flush = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      save();
+    };
+
+    const unsubscribe = useStudioStore.subscribe(schedule);
+    window.addEventListener('beforeunload', flush);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('beforeunload', flush);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  const [isRestorePromptOpen, setIsRestorePromptOpen] = useState(false);
+
+  // On mount, check for a previous session and offer to restore it
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          setIsRestorePromptOpen(true);
+        }
+      }
+    } catch (err) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  }, []);
+
+  const restoreSession = () => {
+    try {
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const { _version, savedAt, ...data } = parsed;
+        useStudioStore.getState().updateState(data);
+        temporalStore.getState().clear();
+      }
+    } catch (err) {
+      // Invalid saved data — fall through and just clear the session
+    }
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setIsRestorePromptOpen(false);
+  };
+
+  const discardSession = () => {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setIsRestorePromptOpen(false);
   };
 
   // Access temporal store for undo / redo
@@ -121,7 +199,42 @@ export const Studio: React.FC = () => {
     return () => unsubscribe();
   }, [temporalStore]);
 
+  // Global keyboard shortcuts for undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+Y)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          temporalStore.getState().redo();
+        } else {
+          temporalStore.getState().undo();
+        }
+      } else if (key === 'y') {
+        e.preventDefault();
+        temporalStore.getState().redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [temporalStore]);
+
   const canvasRef = useRef<HTMLDivElement>(null);
+  const centerStageRef = useRef<HTMLDivElement>(null);
 
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounter = useRef(0);
@@ -241,6 +354,30 @@ export const Studio: React.FC = () => {
     }
   };
 
+  // Zoom preset: Fit computes the scale so the canvas fits inside the stage viewport
+  const handleZoomPreset = (preset: 'fit' | '100' | '200') => {
+    if (preset === '100') {
+      updateState({ previewCanvasZoom: 100 });
+      return;
+    }
+    if (preset === '200') {
+      updateState({ previewCanvasZoom: 200 });
+      return;
+    }
+    const container = centerStageRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+    const containerRect = container.getBoundingClientRect();
+    const canvasWidth = canvas.offsetWidth;
+    const canvasHeight = canvas.offsetHeight;
+    if (canvasWidth <= 0 || canvasHeight <= 0) return;
+    const scale = Math.min(
+      (containerRect.width - 48) / canvasWidth,
+      (containerRect.height - 48) / canvasHeight
+    );
+    updateState({ previewCanvasZoom: Math.max(25, Math.min(200, Math.round(scale * 100))) });
+  };
+
   return (
     <div className="h-screen h-[100dvh] w-screen bg-neutral-950 text-slate-100 flex flex-col font-sans overflow-hidden">
       {/* Studio Header Bar */}
@@ -251,7 +388,7 @@ export const Studio: React.FC = () => {
             <img
               src="/shotage-logo-small.png"
               alt="Shotage Logo"
-              className="h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-8 sm:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
             <span className="hidden sm:inline font-bold text-base tracking-tight text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
               Shotage
@@ -265,7 +402,7 @@ export const Studio: React.FC = () => {
           <button
             onClick={() => temporalStore.getState().undo()}
             disabled={!canUndo}
-            className={`p-1.5 rounded-lg border transition-all ${
+            className={`flex flex-col items-center gap-0.5 p-1.5 min-w-[32px] rounded-lg border transition-all ${
               canUndo
                 ? 'bg-neutral-800 hover:bg-neutral-700 text-slate-200 border-neutral-700 cursor-pointer'
                 : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
@@ -273,20 +410,22 @@ export const Studio: React.FC = () => {
             title={canUndo ? 'Undo (Cmd+Z)' : 'Nothing to undo'}
           >
             <FlipBackward className="w-4 h-4" />
+            <span className="text-[8px] font-mono font-semibold leading-none opacity-80">⌘Z</span>
           </button>
 
           {/* 2. Redo Button */}
           <button
             onClick={() => temporalStore.getState().redo()}
             disabled={!canRedo}
-            className={`p-1.5 rounded-lg border transition-all ${
+            className={`flex flex-col items-center gap-0.5 p-1.5 min-w-[32px] rounded-lg border transition-all ${
               canRedo
                 ? 'bg-neutral-800 hover:bg-neutral-700 text-slate-200 border-neutral-700 cursor-pointer'
                 : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
             }`}
-            title={canRedo ? 'Redo (Cmd+Shift+Z)' : 'Nothing to redo'}
+            title={canRedo ? 'Redo (Cmd+Shift+Z or Cmd+Y)' : 'Nothing to redo'}
           >
             <FlipForward className="w-4 h-4" />
+            <span className="text-[8px] font-mono font-semibold leading-none opacity-80">⇧⌘Z</span>
           </button>
 
           <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
@@ -396,7 +535,7 @@ export const Studio: React.FC = () => {
                   ? 'bg-neutral-800 text-slate-200 border-neutral-700'
                   : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
               }`}
-              title="Undo"
+              title="Undo (Cmd/Ctrl+Z)"
             >
               <FlipBackward className="w-3.5 h-3.5" />
             </button>
@@ -408,7 +547,7 @@ export const Studio: React.FC = () => {
                   ? 'bg-neutral-800 text-slate-200 border-neutral-700'
                   : 'bg-neutral-950/50 text-slate-600 border-neutral-800/50 cursor-not-allowed'
               }`}
-              title="Redo"
+              title="Redo (Cmd/Ctrl+Shift+Z)"
             >
               <FlipForward className="w-3.5 h-3.5" />
             </button>
@@ -534,10 +673,13 @@ export const Studio: React.FC = () => {
 
         {/* Center Stage: Interactive Canvas Workspace */}
         <div className="flex-1 bg-neutral-950 relative overflow-hidden flex flex-col items-center justify-between min-w-0 transition-all duration-300">
-          <div className="flex-1 w-full flex items-center justify-center relative">
+          <div
+            ref={centerStageRef}
+            className="flex-1 w-full flex items-center justify-center relative"
+          >
             {/* Floating Bottom Zoom Slider (Full Preview Mode OR Normal Mode) */}
             <div
-              className={`fixed left-1/2 -translate-x-1/2 z-20 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-xs sm:w-auto justify-between ${
+              className={`fixed left-1/2 -translate-x-1/2 z-20 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-md sm:w-auto justify-between ${
                 isAnimationMode
                   ? 'bottom-[150px] sm:bottom-24'
                   : isPreviewMode
@@ -548,13 +690,49 @@ export const Studio: React.FC = () => {
               <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
                 Canvas Zoom
               </span>
+              <button
+                type="button"
+                onClick={() => handleZoomPreset('fit')}
+                className={`hidden sm:inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  previewCanvasZoom <= 30
+                    ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
+                    : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
+                }`}
+                title="Fit canvas to viewport"
+              >
+                Fit
+              </button>
+              <button
+                type="button"
+                onClick={() => handleZoomPreset('100')}
+                className={`hidden sm:inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  previewCanvasZoom === 100
+                    ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
+                    : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
+                }`}
+                title="Zoom to 100%"
+              >
+                100%
+              </button>
+              <button
+                type="button"
+                onClick={() => handleZoomPreset('200')}
+                className={`hidden sm:inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  previewCanvasZoom >= 200
+                    ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
+                    : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
+                }`}
+                title="Zoom to 200%"
+              >
+                200%
+              </button>
               <input
                 type="range"
                 min="25"
-                max="150"
+                max="200"
                 value={previewCanvasZoom}
                 onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
-                className="w-24 sm:w-36 bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
+                className="flex-1 min-w-[80px] sm:min-w-0 w-auto bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
               />
               <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
                 {previewCanvasZoom}%
@@ -586,7 +764,9 @@ export const Studio: React.FC = () => {
         {/* Mobile Bottom Scrollable Navbar Drawer (Animated Slide Down in Preview Mode) */}
         <div
           className={`block md:hidden relative z-40 transition-all duration-300 ease-in-out ${
-            isPreviewMode ? 'translate-y-full opacity-0 pointer-events-none h-0 overflow-hidden' : 'translate-y-0 opacity-100'
+            isPreviewMode
+              ? 'translate-y-full opacity-0 pointer-events-none h-0 overflow-hidden'
+              : 'translate-y-0 opacity-100'
           }`}
         >
           <MobileStudioNavbar onImageUpload={handleImageUpload} />
@@ -644,6 +824,48 @@ export const Studio: React.FC = () => {
                 }}
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Previous Session Modal */}
+      {isRestorePromptOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-bold shrink-0 shadow-md"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                }}
+              >
+                <RefreshCcw01 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">Restore session?</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  We found a previously saved edit. Restore it and pick up where you left off?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                onClick={discardSession}
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 transition-colors"
+              >
+                Start Fresh
+              </button>
+              <button
+                onClick={restoreSession}
+                className="flex-1 py-2 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                }}
+              >
+                Restore
               </button>
             </div>
           </div>

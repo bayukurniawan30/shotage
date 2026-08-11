@@ -262,7 +262,8 @@ interface RightSidebarProps {
     | 'social'
     | 'techstack'
     | 'icons'
-    | 'elements';
+    | 'elements'
+    | 'layers';
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
@@ -3045,6 +3046,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><path d="M 6 6 L 6 54 L 54 54" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
         ),
       },
+      {
+        id: 'line-corner-dashed',
+        label: 'Dashed Corner L',
+        src: createSvgDataUri(
+          `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><path d="M 6 6 L 6 54 L 54 54" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 7"/></svg>`
+        ),
+      },
+      {
+        id: 'line-corner-rounded',
+        label: 'Rounded L',
+        src: createSvgDataUri(
+          `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><path d="M 6 6 L 6 40 A 14 14 0 0 0 20 54 L 54 54" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        ),
+      },
+      {
+        id: 'line-corner-rounded-dashed',
+        label: 'Dashed Rounded L',
+        src: createSvgDataUri(
+          `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><path d="M 6 6 L 6 40 A 14 14 0 0 0 20 54 L 54 54" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 7"/></svg>`
+        ),
+      },
     ];
 
     const createEmojiSvgDataUri = (char: string): string => {
@@ -3094,6 +3116,50 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       '😴',
       '🤤',
       '😍',
+      // Hand & Gesture Family
+      '👋',
+      '🤚',
+      '🖐️',
+      '✋',
+      '🖖',
+      '👌',
+      '🤌',
+      '🤏',
+      '✌️',
+      '🤞',
+      '🫰',
+      '🤟',
+      '🤘',
+      '🤙',
+      '🫱',
+      '🫲',
+      '🫳',
+      '🫴',
+      '👈',
+      '👉',
+      '👆',
+      '🖕',
+      '👇',
+      '☝️',
+      '🫵',
+      '👍',
+      '👎',
+      '✊',
+      '👊',
+      '🤛',
+      '🤜',
+      '👏',
+      '🙌',
+      '🫶',
+      '🤲',
+      '🤝',
+      '🙏',
+      '✍️',
+      '💅',
+      '🤳',
+      '💪',
+      '🦾',
+      '🦿',
       // Popular Reactions & Symbols
       '🔥',
       '🚀',
@@ -3612,6 +3678,205 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     );
   };
 
+  const renderLayersSection = () => {
+    const rows: {
+      key: string;
+      type: 'text' | 'phosphor' | 'element';
+      id: string;
+      name: string;
+      visible: boolean;
+      locked: boolean;
+      position: 'above' | 'underneath';
+      selected: boolean;
+      indicator: React.ReactNode;
+    }[] = [];
+
+    (state.textLayers || []).forEach((l) =>
+      rows.push({
+        key: `text-${l.id}`,
+        type: 'text',
+        id: l.id,
+        name: l.name || l.text || 'Text',
+        visible: l.visible !== false,
+        locked: l.locked === true,
+        position: l.position || 'above',
+        selected: (state.selectedTextLayerIds || []).includes(l.id),
+        indicator: <PhosphorIcons.TextTIcon className="w-3.5 h-3.5 text-pastel-blue shrink-0" />,
+      })
+    );
+
+    (state.phosphorIconLayers || []).forEach((l) => {
+      const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.Sparkle;
+      rows.push({
+        key: `phosphor-${l.id}`,
+        type: 'phosphor',
+        id: l.id,
+        name: l.name || l.iconId || 'Icon',
+        visible: l.visible !== false,
+        locked: l.locked === true,
+        position: l.position || 'above',
+        selected: (state.selectedPhosphorIconLayerIds || []).includes(l.id),
+        indicator: <IconComp className="w-3.5 h-3.5 text-pastel-pink shrink-0" />,
+      });
+    });
+
+    (state.canvasElements || []).forEach((el) => {
+      const CatIcon =
+        el.category === 'emoji'
+          ? PhosphorIcons.Smiley
+          : el.category === 'line'
+            ? PhosphorIcons.LineSegment
+            : PhosphorIcons.ArrowRight;
+      rows.push({
+        key: `el-${el.id}`,
+        type: 'element',
+        id: el.id,
+        name: el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
+        visible: el.visible !== false,
+        locked: el.locked === true,
+        position: el.position || 'above',
+        selected: (state.selectedElementIds || []).includes(el.id),
+        indicator: <CatIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />,
+      });
+    });
+
+    const select = (row: (typeof rows)[0]) => {
+      if (row.type === 'text') state.selectTextLayer(row.id);
+      else if (row.type === 'phosphor') state.selectPhosphorIconLayer(row.id);
+      else state.selectCanvasElement(row.id);
+    };
+
+    const update = (row: (typeof rows)[0], updates: Record<string, unknown>) => {
+      if (row.type === 'text') state.updateTextLayer(row.id, updates as never);
+      else if (row.type === 'phosphor') state.updatePhosphorIconLayer(row.id, updates as never);
+      else state.updateCanvasElement(row.id, updates as never);
+    };
+
+    return (
+      <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
+        <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <PhosphorIcons.StackIcon className="w-4 h-4 text-pastel-pink" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Layers</h3>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500">{rows.length}</span>
+        </div>
+
+        {rows.length === 0 ? (
+          <p className="text-xs text-slate-500 py-2">
+            No layers yet. Add text, icons, or elements from the canvas toolbar.
+          </p>
+        ) : (
+          <div className="space-y-1.5 max-h-80 overflow-y-auto no-scrollbar pr-1">
+            {rows.map((row) => (
+              <div
+                key={row.key}
+                onClick={() => select(row)}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                  row.selected
+                    ? 'bg-[#a2d2ff]/10 border-[#a2d2ff]/40'
+                    : 'bg-neutral-950 border-neutral-800/80 hover:border-neutral-700'
+                } ${!row.visible ? 'opacity-40' : ''}`}
+              >
+                {row.indicator}
+                <input
+                  value={row.name}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => update(row, { name: e.target.value })}
+                  className="flex-1 min-w-0 bg-transparent text-xs text-slate-200 focus:outline-none truncate"
+                  title="Rename layer"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    update(row, {
+                      position: row.position === 'above' ? 'underneath' : 'above',
+                    });
+                  }}
+                  title={row.position === 'above' ? 'Above mockup' : 'Behind mockup'}
+                  className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
+                    row.position === 'above'
+                      ? 'text-pastel-pink hover:bg-neutral-800'
+                      : 'text-slate-500 hover:bg-neutral-800'
+                  }`}
+                >
+                  {row.position === 'above' ? (
+                    <PhosphorIcons.ArrowLineUpIcon className="w-3.5 h-3.5" />
+                  ) : (
+                    <PhosphorIcons.ArrowLineDownIcon className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    update(row, { visible: !row.visible });
+                  }}
+                  title={row.visible ? 'Hide layer' : 'Show layer'}
+                  className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
+                    row.visible ? 'text-slate-400 hover:text-white hover:bg-neutral-800' : ''
+                  }`}
+                >
+                  {row.visible ? (
+                    <PhosphorIcons.EyeIcon className="w-3.5 h-3.5" />
+                  ) : (
+                    <PhosphorIcons.EyeSlashIcon className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    update(row, { locked: !row.locked });
+                  }}
+                  title={row.locked ? 'Unlock layer' : 'Lock layer'}
+                  className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
+                    row.locked
+                      ? 'text-amber-300 hover:bg-neutral-800'
+                      : 'text-slate-500 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  {row.locked ? (
+                    <PhosphorIcons.LockSimpleIcon className="w-3.5 h-3.5" />
+                  ) : (
+                    <PhosphorIcons.LockSimpleOpenIcon className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (row.type === 'text') state.duplicateTextLayer(row.id);
+                    else if (row.type === 'phosphor') state.duplicatePhosphorIconLayer(row.id);
+                    else state.duplicateCanvasElement(row.id);
+                  }}
+                  title="Duplicate layer"
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
+                >
+                  <PhosphorIcons.CopyIcon className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (row.type === 'text') state.removeTextLayer(row.id);
+                    else if (row.type === 'phosphor') state.removePhosphorIconLayer(row.id);
+                    else state.removeCanvasElement(row.id);
+                  }}
+                  title="Delete layer"
+                  className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
+                >
+                  <PhosphorIcons.TrashIcon className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (mobileSection) {
     if (mobileSection === 'perspective') return renderPerspectiveSection();
     if (mobileSection === 'social') return renderSocialSection();
@@ -3619,6 +3884,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     if (mobileSection === 'icons') return renderPhosphorIconsSection();
     if (mobileSection === 'text') return renderTextSection();
     if (mobileSection === 'elements') return renderElementsSection();
+    if (mobileSection === 'layers') return renderLayersSection();
     if (mobileSection === 'watermark') return renderWatermarkSection();
     if (mobileSection === 'background') return renderBackgroundSection();
     return null;
@@ -3633,6 +3899,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       {renderPhosphorIconsSection()}
       {renderTextSection()}
       {renderElementsSection()}
+      {renderLayersSection()}
       {renderWatermarkSection()}
     </div>
   );

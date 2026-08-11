@@ -6,10 +6,7 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
-import {
-  AnimatedGradientBackground,
-  AnimatedMeshBackground,
-} from './AnimatedBackgrounds';
+import { AnimatedGradientBackground, AnimatedMeshBackground } from './AnimatedBackgrounds';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
@@ -229,9 +226,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const renderTextLayers = (positionFilter: 'above' | 'underneath') => {
     return state.textLayers
-      .filter((layer) => (layer.position || 'above') === positionFilter)
+      .filter(
+        (layer) =>
+          (layer.position || 'above') === positionFilter && layer.visible !== false
+      )
       .map((layer) => {
-        const isSelected = layer.id === state.selectedTextLayerId;
+        const isSelected = (state.selectedTextLayerIds || []).includes(layer.id);
+        const layerLocked = layer.locked === true;
         const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
         const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
 
@@ -241,10 +242,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
-              state.selectTextLayer(layer.id);
+              if (e.shiftKey || e.metaKey) {
+                state.toggleTextLayer(layer.id);
+              } else {
+                state.selectTextLayer(layer.id);
+              }
             }}
             className={`text-layer-item absolute cursor-pointer select-none rounded-sm ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
+            } ${
+              layerLocked ? 'pointer-events-none' : ''
             } ${
               isSelected
                 ? 'ring-2 ring-pastel-blue ring-offset-2 ring-offset-neutral-950/40'
@@ -329,9 +336,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderPhosphorIconLayers = (positionFilter: 'above' | 'underneath') => {
     const layers = state.phosphorIconLayers || [];
     return layers
-      .filter((layer) => (layer.position || 'above') === positionFilter)
+      .filter(
+        (layer) =>
+          (layer.position || 'above') === positionFilter && layer.visible !== false
+      )
       .map((layer) => {
-        const isSelected = layer.id === state.selectedPhosphorIconLayerId;
+        const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
+        const layerLocked = layer.locked === true;
         const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
 
         const getBadgeClass = (style: import('../types/studio').PhosphorBadgeStyle) => {
@@ -367,10 +378,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
-              state.selectPhosphorIconLayer(layer.id);
+              if (e.shiftKey || e.metaKey) {
+                state.togglePhosphorIconLayer(layer.id);
+              } else {
+                state.selectPhosphorIconLayer(layer.id);
+              }
             }}
             className={`phosphor-icon-layer-item absolute cursor-pointer select-none transition-all ${roundedClass} ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
+            } ${
+              layerLocked ? 'pointer-events-none' : ''
             } ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
@@ -424,9 +441,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderCanvasElements = (positionFilter: 'above' | 'underneath') => {
     const elements = state.canvasElements || [];
     return elements
-      .filter((el) => (el.position || 'above') === positionFilter)
+      .filter((el) => (el.position || 'above') === positionFilter && el.visible !== false)
       .map((el) => {
-        const isSelected = el.id === state.selectedElementId;
+        const isSelected = (state.selectedElementIds || []).includes(el.id);
+        const layerLocked = el.locked === true;
 
         return (
           <div
@@ -434,10 +452,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={el.id}
             onClick={(e) => {
               e.stopPropagation();
-              state.selectCanvasElement(el.id);
+              if (e.shiftKey || e.metaKey) {
+                state.toggleSelectCanvasElement(el.id);
+              } else {
+                state.selectCanvasElement(el.id);
+              }
             }}
             className={`canvas-element-item absolute cursor-pointer select-none transition-all rounded-lg ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
+            } ${
+              layerLocked ? 'pointer-events-none' : ''
             } ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
@@ -949,8 +973,49 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     scale: number;
   } | null>(null);
 
+  // On-canvas drag of multiple selected layers together
+  const [groupDrag, setGroupDrag] = useState<{
+    startX: number;
+    startY: number;
+    scale: number;
+    items: { type: 'text' | 'phosphor' | 'element'; id: string; x: number; y: number }[];
+  } | null>(null);
+
   // Touch center for 2-finger mobile panning
   const touchCenterRef = useRef<{ x: number; y: number } | null>(null);
+
+  // rAF-throttled store updates for drag/resize/rotate (coalesce pointer-move spam to 1 update/frame)
+  const dragFrameRef = useRef<number | null>(null);
+  const dragPendingRef = useRef<(() => void) | null>(null);
+
+  const scheduleDragUpdate = (update: () => void) => {
+    dragPendingRef.current = update;
+    if (dragFrameRef.current == null) {
+      dragFrameRef.current = requestAnimationFrame(() => {
+        dragFrameRef.current = null;
+        const pending = dragPendingRef.current;
+        dragPendingRef.current = null;
+        pending?.();
+      });
+    }
+  };
+
+  const flushDragUpdate = () => {
+    if (dragFrameRef.current != null) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    const pending = dragPendingRef.current;
+    dragPendingRef.current = null;
+    if (pending) pending();
+  };
+
+  // Cancel any pending drag frame on unmount
+  useEffect(() => {
+    return () => {
+      if (dragFrameRef.current != null) cancelAnimationFrame(dragFrameRef.current);
+    };
+  }, []);
 
   // Reset pan offset to center when aspect ratio changes or when state is reset
   useEffect(() => {
@@ -1112,6 +1177,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
     const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
 
+    // Modifier+click on a layer: let the native click event handle multi-select
+    // toggling instead of starting a drag / pan / single-select here.
+    const multiKey = e.shiftKey || e.metaKey || e.ctrlKey;
+    if ((textLayerEl || phosphorIconLayerEl || canvasElementEl) && multiKey) {
+      return;
+    }
+
     const isShiftDrag = e.shiftKey;
     const isTargetingLayer =
       (textLayerEl || phosphorIconLayerEl || canvasElementEl) && !isShiftDrag;
@@ -1123,6 +1195,51 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const rect = canvasEl.getBoundingClientRect();
         if (rect.width > 0 && canvasEl.offsetWidth > 0) {
           currentScale = rect.width / canvasEl.offsetWidth;
+        }
+      }
+
+      const pressedEl = textLayerEl
+        ? textLayerEl
+        : phosphorIconLayerEl
+          ? phosphorIconLayerEl
+          : canvasElementEl;
+
+      if (pressedEl) {
+        const pressedId = pressedEl.dataset.layerId || '';
+        const selectedIds = textLayerEl
+          ? (state.selectedTextLayerIds || [])
+          : phosphorIconLayerEl
+            ? (state.selectedPhosphorIconLayerIds || [])
+            : (state.selectedElementIds || []);
+
+        // Pressed layer is part of a current multi-selection → drag all selected layers together
+        if (selectedIds.length >= 2 && selectedIds.includes(pressedId)) {
+          const items: { type: 'text' | 'phosphor' | 'element'; id: string; x: number; y: number }[] = [];
+          (state.textLayers || [])
+            .filter((l) => (state.selectedTextLayerIds || []).includes(l.id))
+            .forEach((l) => items.push({ type: 'text', id: l.id, x: l.x || 0, y: l.y || 0 }));
+          (state.phosphorIconLayers || [])
+            .filter((l) => (state.selectedPhosphorIconLayerIds || []).includes(l.id))
+            .forEach((l) =>
+              items.push({ type: 'phosphor', id: l.id, x: l.x || 0, y: l.y || 0 })
+            );
+          (state.canvasElements || [])
+            .filter((el) => (state.selectedElementIds || []).includes(el.id))
+            .forEach((el) =>
+              items.push({ type: 'element', id: el.id, x: el.x || 0, y: el.y || 0 })
+            );
+
+          if (items.length >= 2) {
+            setGroupDrag({
+              startX: e.clientX,
+              startY: e.clientY,
+              scale: currentScale,
+              items,
+            });
+            state.updateState({ isPositionDragging: true });
+            (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+            return;
+          }
         }
       }
 
@@ -1176,11 +1293,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         }
       }
     } else {
-      if (!isShiftDrag) {
-        if (state.selectedTextLayerId && !textLayerEl) state.selectTextLayer(null);
-        if (state.selectedPhosphorIconLayerId && !phosphorIconLayerEl)
+      if (!(e.shiftKey || e.metaKey || e.ctrlKey)) {
+        if ((state.selectedTextLayerIds?.length ?? 0) > 0 && !textLayerEl)
+          state.selectTextLayer(null);
+        if ((state.selectedPhosphorIconLayerIds?.length ?? 0) > 0 && !phosphorIconLayerEl)
           state.selectPhosphorIconLayer(null);
-        if (state.selectedElementId && !canvasElementEl) state.selectCanvasElement(null);
+        if ((state.selectedElementIds?.length ?? 0) > 0 && !canvasElementEl)
+          state.selectCanvasElement(null);
       }
 
       setIsPanning(true);
@@ -1211,11 +1330,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       }
 
       if (rotateDragItem.type === 'text') {
-        state.updateTextLayer(rotateDragItem.id, { rotation: newRotation });
+        scheduleDragUpdate(() =>
+          state.updateTextLayer(rotateDragItem.id, { rotation: newRotation })
+        );
       } else if (rotateDragItem.type === 'phosphor') {
-        state.updatePhosphorIconLayer(rotateDragItem.id, { rotation: newRotation });
+        scheduleDragUpdate(() =>
+          state.updatePhosphorIconLayer(rotateDragItem.id, { rotation: newRotation })
+        );
       } else if (rotateDragItem.type === 'element') {
-        state.updateCanvasElement(rotateDragItem.id, { rotation: newRotation });
+        scheduleDragUpdate(() =>
+          state.updateCanvasElement(rotateDragItem.id, { rotation: newRotation })
+        );
       }
     } else if (resizeDragItem) {
       const scale = resizeDragItem.scale || 1;
@@ -1228,13 +1353,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           12,
           Math.min(200, Math.round(resizeDragItem.initialFontSize + delta * 0.5))
         );
-        state.updateTextLayer(resizeDragItem.id, { fontSize: newFontSize });
+        scheduleDragUpdate(() =>
+          state.updateTextLayer(resizeDragItem.id, { fontSize: newFontSize })
+        );
       } else if (resizeDragItem.type === 'phosphor') {
         const newSize = Math.max(
           16,
           Math.min(300, Math.round(resizeDragItem.initialSize + delta * 0.5))
         );
-        state.updatePhosphorIconLayer(resizeDragItem.id, { size: newSize });
+        scheduleDragUpdate(() =>
+          state.updatePhosphorIconLayer(resizeDragItem.id, { size: newSize })
+        );
       } else if (resizeDragItem.type === 'element') {
         const newWidth = Math.max(
           20,
@@ -1244,8 +1373,28 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           20,
           Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
         );
-        state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight });
+        scheduleDragUpdate(() =>
+          state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
+        );
       }
+    } else if (groupDrag) {
+      const scale = groupDrag.scale || 1;
+      const deltaX = (e.clientX - groupDrag.startX) / scale;
+      const deltaY = (e.clientY - groupDrag.startY) / scale;
+
+      scheduleDragUpdate(() => {
+        for (const item of groupDrag.items) {
+          const newX = Math.round(item.x + deltaX);
+          const newY = Math.round(item.y + deltaY);
+          if (item.type === 'text') {
+            state.updateTextLayer(item.id, { x: newX, y: newY });
+          } else if (item.type === 'phosphor') {
+            state.updatePhosphorIconLayer(item.id, { x: newX, y: newY });
+          } else if (item.type === 'element') {
+            state.updateCanvasElement(item.id, { x: newX, y: newY });
+          }
+        }
+      });
     } else if (dragItem) {
       const scale = dragItem.scale || 1;
       const deltaX = (e.clientX - dragItem.startX) / scale;
@@ -1255,11 +1404,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const newY = Math.round(dragItem.initialLayerY + deltaY);
 
       if (dragItem.type === 'text') {
-        state.updateTextLayer(dragItem.id, { x: newX, y: newY });
+        scheduleDragUpdate(() => state.updateTextLayer(dragItem.id, { x: newX, y: newY }));
       } else if (dragItem.type === 'phosphor') {
-        state.updatePhosphorIconLayer(dragItem.id, { x: newX, y: newY });
+        scheduleDragUpdate(() => state.updatePhosphorIconLayer(dragItem.id, { x: newX, y: newY }));
       } else if (dragItem.type === 'element') {
-        state.updateCanvasElement(dragItem.id, { x: newX, y: newY });
+        scheduleDragUpdate(() => state.updateCanvasElement(dragItem.id, { x: newX, y: newY }));
       }
     } else if (isPanning) {
       setPan({
@@ -1270,12 +1419,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    flushDragUpdate();
     if (rotateDragItem) {
       setRotateDragItem(null);
       state.updateState({ isPositionDragging: false });
     }
     if (resizeDragItem) {
       setResizeDragItem(null);
+      state.updateState({ isPositionDragging: false });
+    }
+    if (groupDrag) {
+      setGroupDrag(null);
       state.updateState({ isPositionDragging: false });
     }
     if (dragItem) {
@@ -1290,12 +1444,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length >= 2) {
+      flushDragUpdate();
       if (rotateDragItem) {
         setRotateDragItem(null);
         state.updateState({ isPositionDragging: false });
       }
       if (resizeDragItem) {
         setResizeDragItem(null);
+        state.updateState({ isPositionDragging: false });
+      }
+      if (groupDrag) {
+        setGroupDrag(null);
         state.updateState({ isPositionDragging: false });
       }
       if (dragItem) {
@@ -1341,7 +1500,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className={`w-full h-full max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
-        rotateDragItem || resizeDragItem || dragItem
+        rotateDragItem || resizeDragItem || groupDrag || dragItem
           ? 'cursor-move select-none'
           : isPanning
             ? 'cursor-grabbing select-none'
@@ -1427,9 +1586,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
             {/* Pure CSS Animated Mesh Background Layer */}
             {state.backgroundType === 'animatedMesh' && (
-              <AnimatedMeshBackground
-                presetId={state.animatedMeshPreset || 'anim-mesh-1'}
-              />
+              <AnimatedMeshBackground presetId={state.animatedMeshPreset || 'anim-mesh-1'} />
             )}
 
             {/* Background Image Layer */}
@@ -1491,17 +1648,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div className="absolute inset-0 pointer-events-none z-20 animate-in fade-in duration-100 overflow-hidden">
               {/* Grid of small squares with dashed lines */}
               <div
-                className="absolute inset-0 opacity-40"
+                className="absolute inset-0 opacity-80"
                 style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 32 0 L 0 0 0 32' fill='none' stroke='rgba(244,114,182,0.5)' stroke-width='1' stroke-dasharray='3 3'/%3E%3C/svg%3E")`,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 32 0 L 0 0 0 32' fill='none' stroke='rgba(148,163,184,0.9)' stroke-width='2' stroke-dasharray='4 4'/%3E%3C/svg%3E")`,
                   backgroundPosition: 'center center',
                   backgroundRepeat: 'repeat',
                 }}
               />
               {/* Vertical Center Alignment Line */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-pastel-pink shadow-[0_0_8px_#f472b6]" />
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-300 shadow-[0_0_4px_1px_rgba(203,213,225,0.7)]" />
               {/* Horizontal Center Alignment Line */}
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-pastel-pink shadow-[0_0_8px_#f472b6]" />
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-slate-300 shadow-[0_0_4px_1px_rgba(203,213,225,0.7)]" />
             </div>
           )}
 
@@ -1763,6 +1920,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
           <WatermarkOverlay />
         </div>
+
+        {/* Multi-Select Align Toolbar (Editor-only, not part of export canvas) */}
+        {(state.selectedElementIds?.length ?? 0) +
+          (state.selectedTextLayerIds?.length ?? 0) +
+          (state.selectedPhosphorIconLayerIds?.length ?? 0) >=
+          2 && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-neutral-900/95 border border-neutral-700 rounded-xl p-1 shadow-2xl pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => state.alignCanvasElements('left', canvasRef.current?.offsetWidth || 0)}
+              title="Align left"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-all cursor-pointer"
+            >
+              <PhosphorIcons.AlignLeftIcon className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                state.alignCanvasElements('center', canvasRef.current?.offsetWidth || 0)
+              }
+              title="Align horizontal center"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-all cursor-pointer"
+            >
+              <PhosphorIcons.AlignCenterHorizontalIcon className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                state.alignCanvasElements('right', canvasRef.current?.offsetWidth || 0)
+              }
+              title="Align right"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-all cursor-pointer"
+            >
+              <PhosphorIcons.AlignRightIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

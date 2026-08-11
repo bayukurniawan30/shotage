@@ -16,16 +16,20 @@ interface StudioStore extends StudioState {
   removeTextLayer: (id: string) => void;
   duplicateTextLayer: (id: string) => void;
   selectTextLayer: (id: string | null) => void;
+  toggleTextLayer: (id: string) => void;
   addPhosphorIconLayer: (iconId?: string) => void;
   updatePhosphorIconLayer: (id: string, updates: Partial<import('../types/studio').PhosphorIconLayer>) => void;
   removePhosphorIconLayer: (id: string) => void;
   duplicatePhosphorIconLayer: (id: string) => void;
   selectPhosphorIconLayer: (id: string | null) => void;
+  togglePhosphorIconLayer: (id: string) => void;
   addCanvasElement: (elementId?: string, src?: string, category?: import('../types/studio').ElementCategory) => void;
   updateCanvasElement: (id: string, updates: Partial<import('../types/studio').CanvasElement>) => void;
   removeCanvasElement: (id: string) => void;
   duplicateCanvasElement: (id: string) => void;
   selectCanvasElement: (id: string | null) => void;
+  toggleSelectCanvasElement: (id: string) => void;
+  alignCanvasElements: (align: 'left' | 'center' | 'right', canvasWidth: number) => void;
 }
 
 export const useStudioStore = create<StudioStore>()(
@@ -212,10 +216,14 @@ export const useStudioStore = create<StudioStore>()(
             opacity: 100,
             rotation: 0,
             position: 'above',
+            name: initialText || '',
+            visible: true,
+            locked: false,
           };
           return {
             textLayers: [...state.textLayers, newLayer],
             selectedTextLayerId: newLayer.id,
+            selectedTextLayerIds: [newLayer.id],
           };
         }),
       addSocialLayer: (platform, handle) =>
@@ -240,10 +248,14 @@ export const useStudioStore = create<StudioStore>()(
             socialStyle: 'default',
             iconColor: '#ffffff',
             iconSize: 20,
+            name: handle || '',
+            visible: true,
+            locked: false,
           };
           return {
             textLayers: [...state.textLayers, newLayer],
             selectedTextLayerId: newLayer.id,
+            selectedTextLayerIds: [newLayer.id],
           };
         }),
       updateTextLayer: (id, updates) =>
@@ -254,6 +266,7 @@ export const useStudioStore = create<StudioStore>()(
         set((state) => ({
           textLayers: state.textLayers.filter((l) => l.id !== id),
           selectedTextLayerId: state.selectedTextLayerId === id ? null : state.selectedTextLayerId,
+          selectedTextLayerIds: (state.selectedTextLayerIds || []).filter((i) => i !== id),
         })),
       duplicateTextLayer: (id) =>
         set((state) => {
@@ -268,12 +281,24 @@ export const useStudioStore = create<StudioStore>()(
           return {
             textLayers: [...state.textLayers, dup],
             selectedTextLayerId: dup.id,
+            selectedTextLayerIds: [dup.id],
           };
         }),
       selectTextLayer: (id) =>
         set(() => ({
           selectedTextLayerId: id,
+          selectedTextLayerIds: id ? [id] : [],
         })),
+      toggleTextLayer: (id) =>
+        set((state) => {
+          const ids = state.selectedTextLayerIds || [];
+          const has = ids.includes(id);
+          const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
+          return {
+            selectedTextLayerIds: nextIds,
+            selectedTextLayerId: nextIds.length ? id : null,
+          };
+        }),
       addPhosphorIconLayer: (iconId) =>
         set((state) => {
           const newLayer: import('../types/studio').PhosphorIconLayer = {
@@ -289,10 +314,14 @@ export const useStudioStore = create<StudioStore>()(
             opacity: 100,
             position: 'above',
             shadow: false,
+            name: iconId || 'Sparkle',
+            visible: true,
+            locked: false,
           };
           return {
             phosphorIconLayers: [...(state.phosphorIconLayers || []), newLayer],
             selectedPhosphorIconLayerId: newLayer.id,
+            selectedPhosphorIconLayerIds: [newLayer.id],
           };
         }),
       updatePhosphorIconLayer: (id, updates) =>
@@ -306,6 +335,9 @@ export const useStudioStore = create<StudioStore>()(
           phosphorIconLayers: (state.phosphorIconLayers || []).filter((l) => l.id !== id),
           selectedPhosphorIconLayerId:
             state.selectedPhosphorIconLayerId === id ? null : state.selectedPhosphorIconLayerId,
+          selectedPhosphorIconLayerIds: (state.selectedPhosphorIconLayerIds || []).filter(
+            (i) => i !== id
+          ),
         })),
       duplicatePhosphorIconLayer: (id) =>
         set((state) => {
@@ -320,12 +352,24 @@ export const useStudioStore = create<StudioStore>()(
           return {
             phosphorIconLayers: [...(state.phosphorIconLayers || []), dup],
             selectedPhosphorIconLayerId: dup.id,
+            selectedPhosphorIconLayerIds: [dup.id],
           };
         }),
       selectPhosphorIconLayer: (id) =>
         set(() => ({
           selectedPhosphorIconLayerId: id,
+          selectedPhosphorIconLayerIds: id ? [id] : [],
         })),
+      togglePhosphorIconLayer: (id) =>
+        set((state) => {
+          const ids = state.selectedPhosphorIconLayerIds || [];
+          const has = ids.includes(id);
+          const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
+          return {
+            selectedPhosphorIconLayerIds: nextIds,
+            selectedPhosphorIconLayerId: nextIds.length ? id : null,
+          };
+        }),
       addCanvasElement: (elementId, src, category = 'arrow') =>
         set((state) => {
           const newEl: import('../types/studio').CanvasElement = {
@@ -342,10 +386,14 @@ export const useStudioStore = create<StudioStore>()(
             opacity: 100,
             position: 'above',
             shadow: false,
+            name: elementId || 'arrow-1',
+            visible: true,
+            locked: false,
           };
           return {
             canvasElements: [...(state.canvasElements || []), newEl],
             selectedElementId: newEl.id,
+            selectedElementIds: [newEl.id],
           };
         }),
       updateCanvasElement: (id, updates) =>
@@ -358,6 +406,7 @@ export const useStudioStore = create<StudioStore>()(
         set((state) => ({
           canvasElements: (state.canvasElements || []).filter((el) => el.id !== id),
           selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
+          selectedElementIds: (state.selectedElementIds || []).filter((i) => i !== id),
         })),
       duplicateCanvasElement: (id) =>
         set((state) => {
@@ -372,12 +421,110 @@ export const useStudioStore = create<StudioStore>()(
           return {
             canvasElements: [...(state.canvasElements || []), dup],
             selectedElementId: dup.id,
+            selectedElementIds: [dup.id],
           };
         }),
       selectCanvasElement: (id) =>
         set(() => ({
           selectedElementId: id,
+          selectedElementIds: id ? [id] : [],
         })),
+      toggleSelectCanvasElement: (id) =>
+        set((state) => {
+          const ids = state.selectedElementIds || [];
+          const has = ids.includes(id);
+          const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
+          return {
+            selectedElementIds: nextIds,
+            selectedElementId: nextIds.length ? id : null,
+          };
+        }),
+      alignCanvasElements: (align, canvasWidth) =>
+        set((state) => {
+          const measureTextWidth = (
+            text: string,
+            fontFamily: string,
+            fontSize: number,
+            fontWeight: string
+          ): number => {
+            const longestLine = text
+              .split('\n')
+              .reduce((a, b) => (b.length > a.length ? b : a), '');
+            const ctx = document.createElement('canvas').getContext('2d');
+            if (!ctx) return longestLine.length * fontSize * 0.6;
+            ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+            return ctx.measureText(longestLine).width;
+          };
+
+          const getBox = (
+            type: 'text' | 'phosphor' | 'element',
+            layer: import('../types/studio').TextLayer &
+              import('../types/studio').PhosphorIconLayer &
+              import('../types/studio').CanvasElement
+          ): { id: string; x: number; width: number } => {
+            const x = layer.x || 0;
+            if (type === 'element') {
+              return { id: layer.id, x, width: layer.width || 90 };
+            }
+            if (type === 'phosphor') {
+              const size = layer.size || 36;
+              const badgePad = layer.badgeStyle === 'plain' ? 8 : 24;
+              return { id: layer.id, x, width: size + badgePad };
+            }
+            const base = measureTextWidth(
+              layer.text,
+              layer.fontFamily || 'Inter, sans-serif',
+              layer.fontSize || 32,
+              layer.fontWeight || '700'
+            );
+            const width = layer.socialPlatform
+              ? base + (layer.iconSize || layer.fontSize * 1.1) + 38
+              : base;
+            return { id: layer.id, x, width };
+          };
+
+          const boxes: { id: string; x: number; width: number }[] = [];
+          const textIds = state.selectedTextLayerIds || [];
+          (state.textLayers || [])
+            .filter((l) => textIds.includes(l.id))
+            .forEach((l) => boxes.push(getBox('text', l as never)));
+          const iconIds = state.selectedPhosphorIconLayerIds || [];
+          (state.phosphorIconLayers || [])
+            .filter((l) => iconIds.includes(l.id))
+            .forEach((l) => boxes.push(getBox('phosphor', l as never)));
+          const elIds = state.selectedElementIds || [];
+          (state.canvasElements || [])
+            .filter((el) => elIds.includes(el.id))
+            .forEach((el) => boxes.push(getBox('element', el as never)));
+
+          if (boxes.length === 0) return state;
+
+          // Layers are absolutely positioned in a flex-centered parent, so x/y are
+          // offsets from the canvas center: element center offset = x, and
+          // left edge = x - width/2, right edge = x + width/2.
+          const targets: Record<string, number> = {};
+          if (align === 'left') {
+            const minLeft = Math.min(...boxes.map((b) => b.x - b.width / 2));
+            boxes.forEach((b) => (targets[b.id] = Math.round(minLeft + b.width / 2)));
+          } else if (align === 'right') {
+            const maxRight = Math.max(...boxes.map((b) => b.x + b.width / 2));
+            boxes.forEach((b) => (targets[b.id] = Math.round(maxRight - b.width / 2)));
+          } else if (align === 'center') {
+            boxes.forEach((b) => (targets[b.id] = 0));
+          }
+
+          return {
+            textLayers: (state.textLayers || []).map((l) =>
+              targets[l.id] != null ? { ...l, x: Math.round(targets[l.id]) } : l
+            ),
+            phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
+              targets[l.id] != null ? { ...l, x: Math.round(targets[l.id]) } : l
+            ),
+            canvasElements: (state.canvasElements || []).map((el) =>
+              targets[el.id] != null ? { ...el, x: Math.round(targets[el.id]) } : el
+            ),
+          };
+        }),
     }),
     {
       limit: 50, // Keep last 50 history steps
