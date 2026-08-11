@@ -150,13 +150,13 @@ export const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="/studio"
-              className="w-full sm:w-auto px-8 py-3.5 text-slate-950 font-extrabold text-sm rounded-xl shadow-xl shadow-[#ffafcc]/30 transition-all flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
+              className="group w-full sm:w-auto px-8 py-3.5 text-slate-950 font-extrabold text-sm rounded-xl shadow-xl shadow-[#ffafcc]/30 transition-all flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
               style={{
                 backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
               }}
             >
               Open Studio Editor
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -233,6 +233,12 @@ export const Home: React.FC = () => {
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-8 text-xs font-medium text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
+          <a
+            href="/faq"
+            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
+          >
+            FAQ
+          </a>
           <a
             href="/terms"
             className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"

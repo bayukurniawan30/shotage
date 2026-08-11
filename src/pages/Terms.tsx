@@ -9,19 +9,19 @@ const Terms: React.FC = () => {
       <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-[#a2d2ff]/10 rounded-full blur-[160px] pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-20 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl py-4 px-6 md:px-12 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2.5 group">
-          <img
-            src="/shotage-logo-small.png"
-            alt="Shotage Logo"
-            className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
-          />
-          <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-pastel-pinkLight transition-colors">
-            Shotage
-          </span>
-        </a>
+      <header className="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2.5 group">
+            <img
+              src="/shotage-logo-small.png"
+              alt="Shotage Logo"
+              className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
+            <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-pastel-pinkLight transition-colors">
+              Shotage
+            </span>
+          </a>
 
-        <div className="flex items-center gap-3">
           <a
             href="/studio"
             className="px-3.5 sm:px-4 py-2 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
@@ -29,8 +29,7 @@ const Terms: React.FC = () => {
               backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
             }}
           >
-            <span className="hidden sm:inline">Launch Studio</span>
-            <span className="sm:hidden">Launch Studio</span>
+            <span>Launch Studio</span>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -165,8 +164,14 @@ const Terms: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-12 text-xs font-medium text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-8 text-xs font-medium text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
+          <a
+            href="/faq"
+            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
+          >
+            FAQ
+          </a>
           <a
             href="/terms"
             className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
