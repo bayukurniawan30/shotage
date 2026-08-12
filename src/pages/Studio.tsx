@@ -7,6 +7,7 @@ import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
 import { ExportModal } from '../components/ExportModal';
 import { InstallPwaModal } from '../components/InstallPwaModal';
 import { AnimationTimeline } from '../components/AnimationTimeline';
+import { StageManagerToolbar } from '../components/StageManagerToolbar';
 import {
   FlipBackward,
   FlipForward,
@@ -381,7 +382,7 @@ export const Studio: React.FC = () => {
   return (
     <div className="h-screen h-[100dvh] w-screen bg-neutral-950 text-slate-100 flex flex-col font-sans overflow-hidden">
       {/* Studio Header Bar */}
-      <header className="h-14 border-b border-neutral-800 bg-neutral-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between shrink-0 z-40 relative">
+      <header className="h-14 border-b border-neutral-800 bg-neutral-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between shrink-0 z-50 relative">
         {/* Left Section: Brand Logo */}
         <div className="flex items-center gap-4">
           <a href="/" onClick={handleNavHome} className="flex items-center gap-2.5 group">
@@ -657,6 +658,9 @@ export const Studio: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* Centered Fixed Stage Manager Toolbar */}
+      <StageManagerToolbar />
 
       {/* 3-Column Studio Workspace */}
       <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden relative">

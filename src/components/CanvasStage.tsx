@@ -2066,7 +2066,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   }`}
                   style={{ gap: `${config.gap || 12}px` }}
                 >
-                  {config.selectedIcons.map((iconId) => {
+                  {(config.selectedIcons || []).map((iconId: string) => {
                     const IconComp = (PhosphorIcons as any)[iconId] || PhosphorIcons.Sparkle;
                     return (
                       <IconComp

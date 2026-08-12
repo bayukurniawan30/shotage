@@ -31,6 +31,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   );
   const [exportProgress, setExportProgress] = useState(0);
   const [supportCountdown, setSupportCountdown] = useState(0);
+  const [exportScope, setExportScope] = useState<'current' | 'all'>('current');
   const cancelVideoRef = useRef(false);
 
   useEffect(() => {
@@ -78,36 +79,69 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     try {
-      const options = {
+        const options = {
         pixelRatio: state.exportScale,
         quality: 0.95,
         cacheBust: true,
         ...(state.backgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
       };
 
-      if (isCopy) {
-        const blob = await toBlob(canvasRef.current, options);
-        if (blob) {
-          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-          alert('Copied high-res image to clipboard!');
-        }
-      } else {
-        let dataUrl: string;
-        if (format === 'webp') {
-          const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
-          if (!blob) throw new Error('Failed to generate WebP blob');
-          dataUrl = URL.createObjectURL(blob);
-        } else if (format === 'jpeg') {
-          dataUrl = await toJpeg(canvasRef.current, options);
-        } else {
-          dataUrl = await toPng(canvasRef.current, options);
+      const totalStages = state.stages?.length || 1;
+
+      if (exportScope === 'all' && totalStages > 1 && !isCopy) {
+        const initialStageIndex = state.activeStageIndex;
+
+        for (let i = 0; i < totalStages; i++) {
+          state.selectStage(i);
+          setExportProgress(Math.round(((i + 1) / totalStages) * 100));
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          if ('fonts' in document) await document.fonts.ready;
+
+          let dataUrl: string;
+          if (format === 'webp') {
+            const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
+            if (!blob) throw new Error('Failed to generate WebP blob');
+            dataUrl = URL.createObjectURL(blob);
+          } else if (format === 'jpeg') {
+            dataUrl = await toJpeg(canvasRef.current, options);
+          } else {
+            dataUrl = await toPng(canvasRef.current, options);
+          }
+
+          const link = document.createElement('a');
+          link.download = `shotage-stage-${i + 1}-${Date.now()}.${format}`;
+          link.href = dataUrl;
+          link.click();
+          await new Promise((resolve) => setTimeout(resolve, 300));
         }
 
-        const link = document.createElement('a');
-        link.download = `shotage-${Date.now()}.${format}`;
-        link.href = dataUrl;
-        link.click();
+        state.selectStage(initialStageIndex);
         setSupportCountdown(10);
+      } else {
+        if (isCopy) {
+          const blob = await toBlob(canvasRef.current, options);
+          if (blob) {
+            await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+            alert('Copied high-res image to clipboard!');
+          }
+        } else {
+          let dataUrl: string;
+          if (format === 'webp') {
+            const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
+            if (!blob) throw new Error('Failed to generate WebP blob');
+            dataUrl = URL.createObjectURL(blob);
+          } else if (format === 'jpeg') {
+            dataUrl = await toJpeg(canvasRef.current, options);
+          } else {
+            dataUrl = await toPng(canvasRef.current, options);
+          }
+
+          const link = document.createElement('a');
+          link.download = `shotage-${Date.now()}.${format}`;
+          link.href = dataUrl;
+          link.click();
+          setSupportCountdown(10);
+        }
       }
     } catch (err) {
       console.error('Export error:', err);
@@ -401,6 +435,37 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 ))}
               </div>
             </div>
+
+            {/* Stage Scope Selector when multiple stages exist */}
+            {(state.stages?.length || 1) > 1 && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Export Target
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setExportScope('current')}
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                      exportScope === 'current'
+                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    Current Stage ({state.activeStageIndex + 1})
+                  </button>
+                  <button
+                    onClick={() => setExportScope('all')}
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                      exportScope === 'all'
+                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    All Stages (1..{state.stages?.length})
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="pt-2 space-y-2.5">
               {supportCountdown > 0 ? (

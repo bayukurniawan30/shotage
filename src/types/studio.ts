@@ -327,6 +327,9 @@ export interface StudioState {
   techStackConfig: TechStackConfig;
   // Phosphor Icons Overlay (Grouped)
   phosphorIconConfig: PhosphorIconConfig;
+  // Stage Manager State
+  stages?: Partial<StudioState>[];
+  activeStageIndex: number;
   resetKey: number;
 }
 
@@ -443,5 +446,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
     xOffset: 0,
     yOffset: 0,
   },
+  activeStageIndex: 0,
+  stages: [],
   resetKey: 0,
 };

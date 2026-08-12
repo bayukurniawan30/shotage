@@ -2168,8 +2168,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       { id: 'Check', label: 'Check', category: 'ui' },
       { id: 'X', label: 'Close', category: 'ui' },
       { id: 'Plus', label: 'Plus', category: 'ui' },
-      { id: 'ArrowRight', label: 'Arrow', category: 'ui' },
-      { id: 'ArrowUpRight', label: 'Diagonal Arrow', category: 'ui' },
       { id: 'LockKey', label: 'Lock', category: 'ui' },
       { id: 'Key', label: 'Key', category: 'ui' },
       { id: 'Trash', label: 'Trash', category: 'ui' },
@@ -2412,7 +2410,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               const IconComp = (PhosphorIcons as any)[item.id] || PhosphorIcons.SparkleIcon;
               return (
                 <button
-                  key={item.id}
+                  key={`${item.category}-${item.id}`}
                   type="button"
                   title={`Click to add ${item.label}`}
                   onClick={() => state.addPhosphorIconLayer(item.id)}

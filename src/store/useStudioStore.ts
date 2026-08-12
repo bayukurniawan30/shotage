@@ -46,7 +46,152 @@ interface StudioStore extends StudioState {
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
   alignCanvasElements: (align: 'left' | 'center' | 'right', canvasWidth: number) => void;
+  selectStage: (index: number) => void;
+  addStage: () => void;
+  removeStage: (index: number) => void;
 }
+
+const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
+  const {
+    imageSrc,
+    imageName,
+    secondImageSrc,
+    secondImageName,
+    layoutCount,
+    mediaType,
+    layoutPreset,
+    zoom,
+    slot2Zoom,
+    alignment,
+    padding,
+    borderRadius,
+    framelessStyle,
+    shadow,
+    shadowOverlay,
+    shadowOverlayOpacity,
+    shadowOverlayPosition,
+    frameType,
+    samsungStatusBar,
+    iphoneStatusBar,
+    urlText,
+    secondUrlText,
+    backgroundType,
+    wavePreset,
+    meshPreset,
+    animatedGradientPreset,
+    animatedMeshPreset,
+    confettiPreset,
+    radiantPreset,
+    linearSwatchesPreset,
+    backgroundColor,
+    bgGrain,
+    gradient,
+    bgImageUrl,
+    bgBlur,
+    lensBlurEnabled,
+    lensBlurAmount,
+    lensBlurFocalX,
+    lensBlurFocalY,
+    lensBlurRadius,
+    watermarkType,
+    watermarkPosition,
+    watermarkSize,
+    customWidth,
+    customHeight,
+    aspectRatio,
+    rotateX,
+    rotateY,
+    skewX,
+    skewY,
+    slot1Rotate,
+    slot2Rotate,
+    perspective,
+    offsetX,
+    offsetY,
+    slot2OffsetX,
+    slot2OffsetY,
+    textLayers,
+    phosphorIconLayers,
+    canvasElements,
+    shapeLayers,
+    techStackConfig,
+    phosphorIconConfig,
+    isAnimationMode,
+    durationSec,
+    keyframes,
+    activePresetId,
+  } = state;
+
+  return {
+    imageSrc,
+    imageName,
+    secondImageSrc,
+    secondImageName,
+    layoutCount,
+    mediaType,
+    layoutPreset,
+    zoom,
+    slot2Zoom,
+    alignment,
+    padding,
+    borderRadius,
+    framelessStyle,
+    shadow,
+    shadowOverlay,
+    shadowOverlayOpacity,
+    shadowOverlayPosition,
+    frameType,
+    samsungStatusBar,
+    iphoneStatusBar,
+    urlText,
+    secondUrlText,
+    backgroundType,
+    wavePreset,
+    meshPreset,
+    animatedGradientPreset,
+    animatedMeshPreset,
+    confettiPreset,
+    radiantPreset,
+    linearSwatchesPreset,
+    backgroundColor,
+    bgGrain,
+    gradient: { ...gradient },
+    bgImageUrl,
+    bgBlur,
+    lensBlurEnabled,
+    lensBlurAmount,
+    lensBlurFocalX,
+    lensBlurFocalY,
+    lensBlurRadius,
+    watermarkType,
+    watermarkPosition,
+    watermarkSize,
+    customWidth,
+    customHeight,
+    aspectRatio,
+    rotateX,
+    rotateY,
+    skewX,
+    skewY,
+    slot1Rotate,
+    slot2Rotate,
+    perspective,
+    offsetX,
+    offsetY,
+    slot2OffsetX,
+    slot2OffsetY,
+    textLayers: JSON.parse(JSON.stringify(textLayers || [])),
+    phosphorIconLayers: JSON.parse(JSON.stringify(phosphorIconLayers || [])),
+    canvasElements: JSON.parse(JSON.stringify(canvasElements || [])),
+    shapeLayers: JSON.parse(JSON.stringify(shapeLayers || [])),
+    techStackConfig: { ...techStackConfig },
+    phosphorIconConfig: { ...phosphorIconConfig },
+    isAnimationMode: isAnimationMode || false,
+    durationSec: durationSec || 10,
+    keyframes: JSON.parse(JSON.stringify(keyframes || [])),
+    activePresetId: activePresetId || '',
+  };
+};
 
 export const useStudioStore = create<StudioStore>()(
   temporal(
@@ -640,6 +785,99 @@ export const useStudioStore = create<StudioStore>()(
             shapeLayers: (state.shapeLayers || []).map((s) =>
               targets[s.id] != null ? { ...s, x: Math.round(targets[s.id]) } : s
             ),
+          };
+        }),
+
+      selectStage: (index) =>
+        set((state) => {
+          const snapshot = getStageSnapshot(state);
+          let currentStages = [...(state.stages || [])];
+          if (currentStages.length === 0) {
+            currentStages = [snapshot];
+          } else {
+            currentStages[state.activeStageIndex] = snapshot;
+          }
+
+          if (index < 0 || index >= currentStages.length) return state;
+
+          const targetSnapshot = currentStages[index];
+          return {
+            ...state,
+            ...targetSnapshot,
+            stages: currentStages,
+            activeStageIndex: index,
+            isPlaying: false,
+            currentTimeSec: 0,
+            selectedTextLayerId: null,
+            selectedTextLayerIds: [],
+            selectedPhosphorIconLayerId: null,
+            selectedPhosphorIconLayerIds: [],
+            selectedElementId: null,
+            selectedElementIds: [],
+            selectedShapeId: null,
+            selectedShapeIds: [],
+          };
+        }),
+
+      addStage: () =>
+        set((state) => {
+          const snapshot = getStageSnapshot(state);
+          let currentStages = [...(state.stages || [])];
+          if (currentStages.length === 0) {
+            currentStages = [snapshot];
+          } else {
+            currentStages[state.activeStageIndex] = snapshot;
+          }
+
+          if (currentStages.length >= 5) return state;
+
+          const newSnapshot = JSON.parse(JSON.stringify(snapshot));
+          const newIndex = currentStages.length;
+          currentStages.push(newSnapshot);
+
+          return {
+            ...state,
+            ...newSnapshot,
+            stages: currentStages,
+            activeStageIndex: newIndex,
+            selectedTextLayerId: null,
+            selectedTextLayerIds: [],
+            selectedPhosphorIconLayerId: null,
+            selectedPhosphorIconLayerIds: [],
+            selectedElementId: null,
+            selectedElementIds: [],
+            selectedShapeId: null,
+            selectedShapeIds: [],
+          };
+        }),
+
+      removeStage: (index) =>
+        set((state) => {
+          const snapshot = getStageSnapshot(state);
+          let currentStages = [...(state.stages || [])];
+          if (currentStages.length === 0) {
+            currentStages = [snapshot];
+          } else {
+            currentStages[state.activeStageIndex] = snapshot;
+          }
+
+          if (currentStages.length <= 1) return state;
+          if (index < 0 || index >= currentStages.length) return state;
+
+          currentStages.splice(index, 1);
+          let nextActiveIndex = state.activeStageIndex;
+          if (nextActiveIndex >= currentStages.length) {
+            nextActiveIndex = currentStages.length - 1;
+          } else if (index === state.activeStageIndex && nextActiveIndex > 0) {
+            nextActiveIndex = Math.max(0, nextActiveIndex - 1);
+          }
+
+          const activeSnapshot = currentStages[nextActiveIndex];
+          return {
+            ...state,
+            ...activeSnapshot,
+            stages: currentStages,
+            activeStageIndex: nextActiveIndex,
           };
         }),
     }),
