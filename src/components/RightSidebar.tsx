@@ -4990,6 +4990,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                     e.stopPropagation();
                     if (row.type === 'text') state.duplicateTextLayer(row.id);
                     else if (row.type === 'phosphor') state.duplicatePhosphorIconLayer(row.id);
+                    else if (row.type === 'shape') state.duplicateShapeLayer(row.id);
                     else state.duplicateCanvasElement(row.id);
                   }}
                   title="Duplicate layer"
@@ -5003,6 +5004,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                     e.stopPropagation();
                     if (row.type === 'text') state.removeTextLayer(row.id);
                     else if (row.type === 'phosphor') state.removePhosphorIconLayer(row.id);
+                    else if (row.type === 'shape') state.removeShapeLayer(row.id);
                     else state.removeCanvasElement(row.id);
                   }}
                   title="Delete layer"
