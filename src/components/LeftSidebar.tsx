@@ -14,6 +14,7 @@ const FRAME_LABELS: Record<string, string> = {
   'chrome-dark': 'Chrome Dark',
   iphone: 'iPhone 15',
   iphone14pro: 'iPhone 14 Pro',
+  iphone16: 'iPhone 16',
   'samsung-s21': 'Samsung S21',
   macbookair13: 'MacBook Air 13"',
   macbook: 'MacBook Pro',
@@ -877,6 +878,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                           frameType: item.id as any,
                           borderRadius: 0,
                           shadow: 'none',
+                          ...(item.id === 'iphone16' && (state.iphoneStatusBar || 'none') === 'none'
+                            ? { iphoneStatusBar: 'light' }
+                            : {}),
                         });
                         setIsFrameDropdownOpen(false);
                       }}
@@ -1096,7 +1100,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       )}
 
       {/* option to show system status bar for iPhone */}
-      {(state.frameType === 'iphone' || state.frameType === 'iphone14pro') && (
+      {(state.frameType === 'iphone' ||
+        state.frameType === 'iphone14pro' ||
+        state.frameType === 'iphone16') && (
         <div className="pt-2 space-y-2 border-t border-neutral-800/80">
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
             System Status Bar

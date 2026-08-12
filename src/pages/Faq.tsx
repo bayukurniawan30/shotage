@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Head } from '@inertiajs/react';
 import { MessageQuestionCircle, ArrowRight } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 
@@ -130,9 +131,34 @@ const faqSections: { heading: string; items: { q: string; a: string }[] }[] = [
   },
 ];
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqSections.flatMap((section) =>
+    section.items.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    }))
+  ),
+};
+
 const Faq: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
+    <>
+      <Head>
+        <title>Frequently Asked Questions — Shotage Studio</title>
+        <meta
+          name="description"
+          content="Find answers to common questions about creating 3D screenshot mockups, device frames, image/video exports, privacy, and browser features in Shotage Studio."
+        />
+        <link rel="canonical" href="https://shotage.studio/faq" />
+        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
+      </Head>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
       {/* Dynamic Background Glow Orbs */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-pastel-pink/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-[#a2d2ff]/10 rounded-full blur-[160px] pointer-events-none" />
@@ -249,6 +275,7 @@ const Faq: React.FC = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };
 

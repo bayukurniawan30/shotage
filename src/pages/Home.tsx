@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Head } from '@inertiajs/react';
 import { DownloadCloud01 } from '@untitledui/icons';
 import { InstallPwaModal } from '../components/InstallPwaModal';
 
@@ -39,7 +40,16 @@ export const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
+    <>
+      <Head>
+        <title>Shotage Studio — Turn Screenshots into Stunning 3D Mockups</title>
+        <meta
+          name="description"
+          content="Transform plain app screenshots into presentation-ready 3D mockups, social media graphics, and motion animations directly in your browser."
+        />
+        <link rel="canonical" href="https://shotage.studio/" />
+      </Head>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
       {/* Animated Background Marquee Columns (4 Columns) */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-50 overflow-hidden flex justify-center gap-6 md:gap-10 -rotate-6 scale-110">
         {[
@@ -256,6 +266,7 @@ export const Home: React.FC = () => {
       {/* Mobile Install App Modal (Triggered by Header Button) */}
       <InstallPwaModal showFloatingButton={false} />
     </div>
+    </>
   );
 };
 

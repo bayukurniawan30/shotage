@@ -35,7 +35,7 @@ import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from './SocialIcons';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from './TechStackIcons';
 import { Toggle } from './Toggle';
 import * as PhosphorIcons from '@phosphor-icons/react';
-import { PhosphorWeight } from '../types/studio';
+import { PhosphorWeight, ShapeType } from '../types/studio';
 
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
@@ -253,6 +253,45 @@ const SocialPlatformSelect: React.FC<{
   );
 };
 
+const ShapePreview: React.FC<{
+  type: ShapeType;
+  color?: string;
+  className?: string;
+}> = ({ type, color = '#a2d2ff', className = 'w-7 h-7' }) => {
+  const common = {
+    viewBox: '0 0 24 24',
+    className,
+    fill: 'none',
+  };
+  switch (type) {
+    case 'circle':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" fill={color} />
+        </svg>
+      );
+    case 'hexagon':
+      return (
+        <svg {...common}>
+          <polygon points="12,2.5 20.5,7.25 20.5,16.75 12,21.5 3.5,16.75 3.5,7.25" fill={color} />
+        </svg>
+      );
+    case 'rectangle':
+      return (
+        <svg {...common}>
+          <rect x="3" y="6" width="18" height="12" rx="2" fill={color} />
+        </svg>
+      );
+    case 'square':
+    default:
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" rx="2" fill={color} />
+        </svg>
+      );
+  }
+};
+
 interface RightSidebarProps {
   mobileSection?:
     | 'perspective'
@@ -424,6 +463,39 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               onChange={(e) => onChange({ rotateY: Number(e.target.value) })}
               className="w-full bg-slate-800 rounded-lg cursor-pointer"
             />
+          </div>
+
+          {/* Skew X & Y */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Skew X</span>
+                <span className="font-mono text-slate-400">{state.skewX}°</span>
+              </div>
+              <input
+                type="range"
+                min="-60"
+                max="60"
+                value={state.skewX}
+                onChange={(e) => onChange({ skewX: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Skew Y</span>
+                <span className="font-mono text-slate-400">{state.skewY}°</span>
+              </div>
+              <input
+                type="range"
+                min="-60"
+                max="60"
+                value={state.skewY}
+                onChange={(e) => onChange({ skewY: Number(e.target.value) })}
+                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* Slot 1 Rotation */}
@@ -2859,6 +2931,226 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               </div>
             </div>
 
+            {/* Gradient Text */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-semibold text-slate-300">
+                  Gradient Text
+                </label>
+                <button
+                  onClick={() =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      gradient: selectedLayer.gradient
+                        ? null
+                        : { color1: '#ffafcc', color2: '#a2d2ff', angle: 135 },
+                    })
+                  }
+                  className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                    selectedLayer.gradient ? 'bg-pastel-blue' : 'bg-slate-800'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                      selectedLayer.gradient ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {selectedLayer.gradient && (
+                <div className="space-y-2.5 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                      Presets ({GRADIENT_PRESETS.length})
+                    </span>
+                    <button
+                      onClick={() => setShowAllGradients(!showAllGradients)}
+                      className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                          showAllGradients ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {visibleGradients.map((g) => {
+                      const isSelected =
+                        selectedLayer.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
+                        selectedLayer.gradient?.color2.toLowerCase() === g.c2.toLowerCase();
+                      return (
+                        <button
+                          key={g.name}
+                          onClick={() =>
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color1: g.c1,
+                                color2: g.c2,
+                              },
+                            })
+                          }
+                          title={g.name}
+                          className={`h-8 rounded-lg border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-white ring-2 ring-pastel-pink scale-105'
+                              : 'border-slate-700/80 hover:scale-105'
+                          }`}
+                          style={{
+                            backgroundImage: `linear-gradient(135deg, ${g.c1}, ${g.c2})`,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <input
+                        type="color"
+                        value={selectedLayer.gradient.color1}
+                        onChange={(e) =>
+                          state.updateTextLayer(selectedLayer.id, {
+                            gradient: {
+                              ...selectedLayer.gradient!,
+                              color1: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-7 h-7 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0"
+                        title="Gradient Color 1"
+                      />
+                      <span className="text-[10px] font-mono text-slate-500 uppercase">
+                        {selectedLayer.gradient.color1}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-1 justify-end">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase">
+                        {selectedLayer.gradient.color2}
+                      </span>
+                      <input
+                        type="color"
+                        value={selectedLayer.gradient.color2}
+                        onChange={(e) =>
+                          state.updateTextLayer(selectedLayer.id, {
+                            gradient: {
+                              ...selectedLayer.gradient!,
+                              color2: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-7 h-7 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0"
+                        title="Gradient Color 2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Angle</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedLayer.gradient.angle}°
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={selectedLayer.gradient.angle}
+                      onChange={(e) =>
+                        state.updateTextLayer(selectedLayer.id, {
+                          gradient: {
+                            ...selectedLayer.gradient!,
+                            angle: Number(e.target.value),
+                          },
+                        })
+                      }
+                      className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Image Fill (Clipping Text) */}
+            <div className="space-y-2.5">
+              <label className="block text-[11px] font-semibold text-slate-300">
+                Image Fill (Clip Text)
+              </label>
+
+              {selectedLayer.bgImage ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-lg border border-slate-700 overflow-hidden shrink-0">
+                    <img
+                      src={selectedLayer.bgImage}
+                      alt="Text fill"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-[10px] font-mono text-slate-500">Image fill applied</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <label className="flex-1 flex items-center justify-center py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-pastel-pink rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-colors">
+                        Replace
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              if (ev.target?.result) {
+                                state.updateTextLayer(selectedLayer.id, {
+                                  bgImage: ev.target.result as string,
+                                  shadow: false,
+                                });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                      <button
+                        onClick={() => state.updateTextLayer(selectedLayer.id, { bgImage: null })}
+                        className="py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-red-400 hover:text-red-400 rounded-lg text-[10px] font-semibold text-slate-400 cursor-pointer transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
+                  <span className="text-xs font-medium text-slate-300">
+                    Upload image to clip into text
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        if (ev.target?.result) {
+                          state.updateTextLayer(selectedLayer.id, {
+                            bgImage: ev.target.result as string,
+                            shadow: false,
+                          });
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
             {/* Position Offsets X / Y */}
             <div className="space-y-2 pt-1 border-t border-neutral-800/60">
               <div>
@@ -2914,6 +3206,87 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 />
               </div>
 
+              {/* Pitch Slider (Rotate X) */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.pitch ?? 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min="-30"
+                  max="30"
+                  value={selectedLayer.pitch ?? 0}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      pitch: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              {/* Yaw Slider (Rotate Y) */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
+                  <span className="font-mono text-slate-400">{selectedLayer.yaw ?? 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min="-30"
+                  max="30"
+                  value={selectedLayer.yaw ?? 0}
+                  onChange={(e) =>
+                    state.updateTextLayer(selectedLayer.id, {
+                      yaw: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              {/* Skew Sliders */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Skew X</span>
+                    <span className="font-mono text-slate-400">{selectedLayer.skewX ?? 0}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-60"
+                    max="60"
+                    value={selectedLayer.skewX ?? 0}
+                    onChange={(e) =>
+                      state.updateTextLayer(selectedLayer.id, {
+                        skewX: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Skew Y</span>
+                    <span className="font-mono text-slate-400">{selectedLayer.skewY ?? 0}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-60"
+                    max="60"
+                    value={selectedLayer.skewY ?? 0}
+                    onChange={(e) =>
+                      state.updateTextLayer(selectedLayer.id, {
+                        skewY: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium text-slate-300">Opacity</span>
@@ -2967,13 +3340,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
             {/* Text Shadow Toggle */}
             <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60">
-              <span className="text-xs font-medium text-slate-300">Drop Shadow</span>
+              <span
+                className={`text-xs font-medium ${
+                  selectedLayer.bgImage ? 'text-slate-600' : 'text-slate-300'
+                }`}
+              >
+                Drop Shadow
+              </span>
               <button
+                disabled={!!selectedLayer.bgImage}
                 onClick={() =>
                   state.updateTextLayer(selectedLayer.id, { shadow: !selectedLayer.shadow })
                 }
                 className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                  selectedLayer.shadow ? 'bg-pastel-blue' : 'bg-slate-800'
+                  selectedLayer.bgImage
+                    ? 'bg-slate-800/50 cursor-not-allowed'
+                    : selectedLayer.shadow
+                      ? 'bg-pastel-blue'
+                      : 'bg-slate-800'
                 }`}
               >
                 <div
@@ -3340,6 +3724,43 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
           </div>
         </div>
 
+        {/* Shapes Category Grid */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs items-center">
+            <span className="font-semibold text-slate-300">Shapes (Click to Add)</span>
+            <span className="text-[10px] font-mono text-pastel-pink">
+              {(state.shapeLayers || []).length} shapes
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+            {(
+              [
+                { id: 'square', label: 'Square' },
+                { id: 'rectangle', label: 'Rectangle' },
+                { id: 'circle', label: 'Circle' },
+                { id: 'hexagon', label: 'Hexagon' },
+              ] as { id: ShapeType; label: string }[]
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={`Add ${item.label}`}
+                onClick={() => state.addShapeLayer(item.id)}
+                className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 hover:border-pastel-blue/60 hover:bg-pastel-blue/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
+              >
+                <ShapePreview
+                  type={item.id}
+                  className="w-6 h-6 group-hover:scale-110 transition-transform"
+                />
+                <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Canvas Elements List */}
         {elements.length > 0 && (
           <div className="space-y-2 pt-2 border-t border-neutral-800/80">
@@ -3420,6 +3841,416 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             </div>
           </div>
         )}
+
+        {/* Shapes List */}
+        {(state.shapeLayers || []).length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-neutral-800/80">
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Shapes ({state.shapeLayers.length})
+            </label>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+              {state.shapeLayers.map((shape, index) => {
+                const isSelected = shape.id === state.selectedShapeId;
+                return (
+                  <div
+                    key={shape.id}
+                    onClick={() => state.selectShapeLayer(shape.id)}
+                    className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-white font-bold'
+                        : 'bg-neutral-900/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <ShapePreview
+                        type={shape.shapeType}
+                        color={shape.color}
+                        className="w-5 h-5 shrink-0"
+                      />
+                      <span className="text-xs truncate capitalize">
+                        {shape.shapeType} #{index + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-slate-400">
+                        {shape.position === 'underneath' ? 'Behind' : 'Above'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.duplicateShapeLayer(shape.id);
+                        }}
+                        title="Duplicate shape"
+                        className="p-1 hover:text-pastel-pink text-slate-400 transition-colors cursor-pointer"
+                      >
+                        <Copy01 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          state.removeShapeLayer(shape.id);
+                        }}
+                        title="Delete shape"
+                        className="p-1 hover:text-red-400 text-slate-400 transition-colors cursor-pointer"
+                      >
+                        <Trash01 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Shape Editor */}
+        {(() => {
+          const selectedShape = (state.shapeLayers || []).find(
+            (s) => s.id === state.selectedShapeId
+          );
+          if (!selectedShape) return null;
+          const isUniform = selectedShape.shapeType !== 'rectangle';
+          const supportsRadius =
+            selectedShape.shapeType === 'square' || selectedShape.shapeType === 'rectangle';
+          return (
+            <div className="space-y-4 pt-3 border-t border-neutral-800/80 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                <span className="capitalize">Editing: {selectedShape.shapeType}</span>
+                <button
+                  type="button"
+                  onClick={() => state.selectShapeLayer(null)}
+                  className="text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer"
+                >
+                  Deselect
+                </button>
+              </div>
+
+              {/* Shape Color */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                  Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={selectedShape.color || '#a2d2ff'}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, { color: e.target.value })
+                    }
+                    className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
+                  />
+                  <input
+                    type="text"
+                    value={selectedShape.color || '#a2d2ff'}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, { color: e.target.value })
+                    }
+                    className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
+                  />
+                </div>
+              </div>
+
+              {/* Shape Size */}
+              {isUniform ? (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Size</span>
+                    <span className="font-mono text-slate-400">{selectedShape.width || 120}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={400}
+                    value={selectedShape.width || 120}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      state.updateShapeLayer(selectedShape.id, { width: v, height: v });
+                    }}
+                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Width</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedShape.width || 160}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={600}
+                      value={selectedShape.width || 160}
+                      onChange={(e) =>
+                        state.updateShapeLayer(selectedShape.id, {
+                          width: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Height</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedShape.height || 100}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={600}
+                      value={selectedShape.height || 100}
+                      onChange={(e) =>
+                        state.updateShapeLayer(selectedShape.id, {
+                          height: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Border Radius (Square & Rectangle only) */}
+              {supportsRadius && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Border Radius</span>
+                    <span className="font-mono text-slate-400">
+                      {selectedShape.borderRadius ?? 8}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={200}
+                    value={selectedShape.borderRadius ?? 8}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, {
+                        borderRadius: Number(e.target.value),
+                      })
+                    }
+                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  />
+                </div>
+              )}
+
+              {/* Rotation Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Rotation</span>
+                  <span className="font-mono text-slate-400">{selectedShape.rotation || 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  value={selectedShape.rotation || 0}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      rotation: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              {/* Pitch Slider (Rotate X) */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
+                  <span className="font-mono text-slate-400">{selectedShape.pitch || 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min={-30}
+                  max={30}
+                  value={selectedShape.pitch || 0}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      pitch: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              {/* Yaw Slider (Rotate Y) */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
+                  <span className="font-mono text-slate-400">{selectedShape.yaw || 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min={-30}
+                  max={30}
+                  value={selectedShape.yaw || 0}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      yaw: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              {/* Skew Sliders */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Skew X</span>
+                    <span className="font-mono text-slate-400">{selectedShape.skewX || 0}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-60}
+                    max={60}
+                    value={selectedShape.skewX || 0}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, {
+                        skewX: Number(e.target.value),
+                      })
+                    }
+                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Skew Y</span>
+                    <span className="font-mono text-slate-400">{selectedShape.skewY || 0}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-60}
+                    max={60}
+                    value={selectedShape.skewY || 0}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, {
+                        skewY: Number(e.target.value),
+                      })
+                    }
+                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  />
+                </div>
+              </div>
+
+              {/* Opacity Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Opacity</span>
+                  <span className="font-mono text-slate-400">{selectedShape.opacity ?? 100}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={selectedShape.opacity ?? 100}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      opacity: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              {/* Drop Shadow Toggle */}
+              <div className="flex items-center justify-between pt-1">
+                <label className="text-[11px] font-semibold text-slate-300">Drop Shadow</label>
+                <Toggle
+                  isSelected={!!selectedShape.shadow}
+                  onChange={(checked) =>
+                    state.updateShapeLayer(selectedShape.id, { shadow: checked })
+                  }
+                  size="sm"
+                />
+              </div>
+
+              {/* Layering Depth */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                  Layering Depth
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => state.updateShapeLayer(selectedShape.id, { position: 'above' })}
+                    className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                      (selectedShape.position || 'above') === 'above'
+                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                        : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Above Mockup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      state.updateShapeLayer(selectedShape.id, { position: 'underneath' })
+                    }
+                    className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                      selectedShape.position === 'underneath'
+                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                        : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Behind Mockup
+                  </button>
+                </div>
+              </div>
+
+              {/* Position Offset X & Y */}
+              <div className="space-y-2 pt-1 border-t border-neutral-800/60">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Position X (Horizontal)</span>
+                    <span className="font-mono text-slate-400">{selectedShape.x || 0}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-400}
+                    max={400}
+                    value={selectedShape.x || 0}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, {
+                        x: Number(e.target.value),
+                      })
+                    }
+                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Position Y (Vertical)</span>
+                    <span className="font-mono text-slate-400">{selectedShape.y || 0}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-400}
+                    max={400}
+                    value={selectedShape.y || 0}
+                    onChange={(e) =>
+                      state.updateShapeLayer(selectedShape.id, {
+                        y: Number(e.target.value),
+                      })
+                    }
+                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Selected Element Editor */}
         {selectedElement && (
@@ -3681,7 +4512,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const renderLayersSection = () => {
     const rows: {
       key: string;
-      type: 'text' | 'phosphor' | 'element';
+      type: 'text' | 'phosphor' | 'element' | 'shape';
       id: string;
       name: string;
       visible: boolean;
@@ -3740,15 +4571,39 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       });
     });
 
+    (state.shapeLayers || []).forEach((s) => {
+      const ShapeCatIcon =
+        s.shapeType === 'circle'
+          ? PhosphorIcons.Circle
+          : s.shapeType === 'hexagon'
+            ? PhosphorIcons.Hexagon
+            : s.shapeType === 'rectangle'
+              ? PhosphorIcons.Rectangle
+              : PhosphorIcons.Square;
+      rows.push({
+        key: `shape-${s.id}`,
+        type: 'shape',
+        id: s.id,
+        name: s.name || s.shapeType || 'Shape',
+        visible: s.visible !== false,
+        locked: s.locked === true,
+        position: s.position || 'above',
+        selected: (state.selectedShapeIds || []).includes(s.id),
+        indicator: <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />,
+      });
+    });
+
     const select = (row: (typeof rows)[0]) => {
       if (row.type === 'text') state.selectTextLayer(row.id);
       else if (row.type === 'phosphor') state.selectPhosphorIconLayer(row.id);
+      else if (row.type === 'shape') state.selectShapeLayer(row.id);
       else state.selectCanvasElement(row.id);
     };
 
     const update = (row: (typeof rows)[0], updates: Record<string, unknown>) => {
       if (row.type === 'text') state.updateTextLayer(row.id, updates as never);
       else if (row.type === 'phosphor') state.updatePhosphorIconLayer(row.id, updates as never);
+      else if (row.type === 'shape') state.updateShapeLayer(row.id, updates as never);
       else state.updateCanvasElement(row.id, updates as never);
     };
 

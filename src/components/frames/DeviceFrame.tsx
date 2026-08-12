@@ -139,15 +139,15 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
             {/* Top Status Bar (Transparent Overlay) */}
             {isStatusBarActive && (
               <div
-                className={`absolute top-0 left-0 right-0 z-20 px-6 pt-3 flex items-center justify-between pointer-events-none ${
+                className={`absolute top-1 left-0 right-0 z-20 px-6 pt-3 flex items-center justify-between pointer-events-none ${
                   isLightBar ? 'text-white' : 'text-slate-900'
                 }`}
               >
                 {/* Time (Left) */}
-                <span className="text-[9px] font-semibold tracking-tight font-sans ml-1">9:41</span>
+                <span className="text-[9px] font-semibold tracking-tight font-sans">9:41</span>
 
                 {/* Right Status Icons */}
-                <div className="flex items-center gap-1 mr-1">
+                <div className="flex items-center gap-1">
                   <BarChart05 className="w-2.5 h-2.5" />
                   <Wifi className="w-2.5 h-2.5" />
                   <BatteryMid className="w-3 h-3" />

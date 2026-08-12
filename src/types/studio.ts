@@ -64,6 +64,30 @@ export type PhosphorBadgeStyle =
 
 export type ElementCategory = 'arrow' | 'line' | 'emoji';
 
+export type ShapeType = 'square' | 'rectangle' | 'circle' | 'hexagon';
+
+export interface ShapeLayer {
+  id: string;
+  shapeType: ShapeType;
+  color: string;
+  width: number;
+  height: number;
+  borderRadius?: number;
+  x: number;
+  y: number;
+  rotation: number;
+  pitch?: number;
+  yaw?: number;
+  skewX?: number;
+  skewY?: number;
+  opacity: number;
+  position: 'above' | 'underneath';
+  shadow?: boolean;
+  name?: string;
+  visible?: boolean;
+  locked?: boolean;
+}
+
 export interface CanvasElement {
   id: string;
   category: ElementCategory;
@@ -125,12 +149,18 @@ export interface TextLayer {
   fontWeight: '300' | '400' | '500' | '600' | '700' | '800' | '900';
   fontStyle: 'normal' | 'italic';
   color: string;
+  gradient?: { color1: string; color2: string; angle: number } | null;
+  bgImage?: string | null;
   textAlign: 'left' | 'center' | 'right';
   x: number;
   y: number;
   shadow: boolean;
   opacity: number; // 0 to 100
   rotation: number; // -180 to 180 degrees
+  pitch?: number;
+  yaw?: number;
+  skewX?: number;
+  skewY?: number;
   position: 'above' | 'underneath'; // 'above' (front overlay) or 'underneath' (behind mockup)
   socialPlatform?: SocialPlatform;
   socialStyle?: SocialStyleVariant;
@@ -247,6 +277,8 @@ export interface StudioState {
     | 'custom';
   rotateX: number; // -30 to 30
   rotateY: number; // -30 to 30
+  skewX: number; // -60 to 60
+  skewY: number; // -60 to 60
   slot1Rotate: number; // -180 to 180
   slot2Rotate: number; // -180 to 180
   perspective: number; // 500 to 2000
@@ -280,6 +312,10 @@ export interface StudioState {
   canvasElements: CanvasElement[];
   selectedElementId: string | null;
   selectedElementIds: string[];
+  // Shape Layers (Square, Rectangle, Circle, Hexagon)
+  shapeLayers: ShapeLayer[];
+  selectedShapeId: string | null;
+  selectedShapeIds: string[];
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
   // Phosphor Icons Overlay (Grouped)
@@ -346,6 +382,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   aspectRatio: 'auto',
   rotateX: 0,
   rotateY: 0,
+  skewX: 0,
+  skewY: 0,
   slot1Rotate: 0,
   slot2Rotate: 0,
   perspective: 1000,
@@ -371,6 +409,9 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   canvasElements: [],
   selectedElementId: null,
   selectedElementIds: [],
+  shapeLayers: [],
+  selectedShapeId: null,
+  selectedShapeIds: [],
   techStackConfig: {
     enabled: false,
     selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],

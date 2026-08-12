@@ -219,17 +219,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // 3D Perspective & Tilt transform matrix for the stage
   const transformStyle: React.CSSProperties = {
-    transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg)`,
+    transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) skewX(${state.skewX}deg) skewY(${state.skewY}deg)`,
     transformStyle: 'preserve-3d',
     transition: state.isPlaying ? 'none' : 'transform 0.15s ease-out',
   };
 
   const renderTextLayers = (positionFilter: 'above' | 'underneath') => {
     return state.textLayers
-      .filter(
-        (layer) =>
-          (layer.position || 'above') === positionFilter && layer.visible !== false
-      )
+      .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
       .map((layer) => {
         const isSelected = (state.selectedTextLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
@@ -250,26 +247,44 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }}
             className={`text-layer-item absolute cursor-pointer select-none rounded-sm ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${
-              layerLocked ? 'pointer-events-none' : ''
-            } ${
+            } ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected
                 ? 'ring-2 ring-pastel-blue ring-offset-2 ring-offset-neutral-950/40'
                 : 'hover:outline-1 hover:outline-dashed hover:outline-slate-400'
             }`}
             style={{
-              transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation || 0}deg)`,
+              transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
+              transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
               lineHeight: 1.2,
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
-              color: layer.color,
+              color: layer.bgImage || layer.gradient ? 'transparent' : layer.color,
+              ...(layer.bgImage
+                ? {
+                    backgroundImage: `url(${layer.bgImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }
+                : layer.gradient
+                  ? {
+                      backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                    }
+                  : {}),
               textAlign: layer.textAlign,
               opacity: (layer.opacity ?? 100) / 100,
-              textShadow: layer.shadow
-                ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
-                : 'none',
+              textShadow:
+                layer.bgImage || layer.gradient
+                  ? 'none'
+                  : layer.shadow
+                    ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
+                    : 'none',
               whiteSpace: layer.text.includes('\n') ? 'pre-wrap' : 'nowrap',
               width: 'max-content',
               maxWidth: 'none',
@@ -336,10 +351,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderPhosphorIconLayers = (positionFilter: 'above' | 'underneath') => {
     const layers = state.phosphorIconLayers || [];
     return layers
-      .filter(
-        (layer) =>
-          (layer.position || 'above') === positionFilter && layer.visible !== false
-      )
+      .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
       .map((layer) => {
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
@@ -386,9 +398,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }}
             className={`phosphor-icon-layer-item absolute cursor-pointer select-none transition-all ${roundedClass} ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${
-              layerLocked ? 'pointer-events-none' : ''
-            } ${
+            } ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
@@ -460,9 +470,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }}
             className={`canvas-element-item absolute cursor-pointer select-none transition-all rounded-lg ${
               positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${
-              layerLocked ? 'pointer-events-none' : ''
-            } ${
+            } ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
@@ -530,6 +538,95 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   style={{
                     transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
                   }}
+                >
+                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                </div>
+              </>
+            )}
+          </div>
+        );
+      });
+  };
+
+  const renderShapeLayers = (positionFilter: 'above' | 'underneath') => {
+    const layers = state.shapeLayers || [];
+    return layers
+      .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
+      .map((layer) => {
+        const isSelected = (state.selectedShapeIds || []).includes(layer.id);
+        const layerLocked = layer.locked === true;
+        const getShapeStyle = (): React.CSSProperties => {
+          switch (layer.shapeType) {
+            case 'circle':
+              return { borderRadius: '9999px' };
+            case 'hexagon':
+              return {
+                clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+              };
+            case 'rectangle':
+            case 'square':
+            default:
+              return { borderRadius: `${layer.borderRadius ?? 8}px` };
+          }
+        };
+
+        return (
+          <div
+            key={layer.id}
+            data-layer-id={layer.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (e.shiftKey || e.metaKey) {
+                state.toggleSelectShapeLayer(layer.id);
+              } else {
+                state.selectShapeLayer(layer.id);
+              }
+            }}
+            className={`shape-layer-item absolute cursor-pointer select-none transition-all ${
+              positionFilter === 'underneath' ? 'z-0' : 'z-30'
+            } ${layerLocked ? 'pointer-events-none' : ''} ${
+              isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
+            }`}
+            style={{
+              transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
+              transformStyle: 'preserve-3d',
+              opacity: (layer.opacity ?? 100) / 100,
+              filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              width: `${layer.width || 120}px`,
+              height: `${layer.height || 120}px`,
+            }}
+          >
+            <div
+              className="w-full h-full"
+              style={{
+                backgroundColor: layer.color || '#a2d2ff',
+                ...getShapeStyle(),
+              }}
+            />
+            {isSelected && (
+              <>
+                <div
+                  data-action="delete"
+                  title="Delete shape"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    state.removeShapeLayer(layer.id);
+                  }}
+                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                >
+                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                </div>
+                <div
+                  data-action="resize"
+                  title="Drag to resize shape"
+                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
                   <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
                 </div>
@@ -941,7 +1038,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // On-canvas direct element dragging state
   const [dragItem, setDragItem] = useState<{
-    type: 'text' | 'phosphor' | 'element';
+    type: 'text' | 'phosphor' | 'element' | 'shape';
     id: string;
     startX: number;
     startY: number;
@@ -952,7 +1049,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // On-canvas direct element rotation state
   const [rotateDragItem, setRotateDragItem] = useState<{
-    type: 'text' | 'phosphor' | 'element';
+    type: 'text' | 'phosphor' | 'element' | 'shape';
     id: string;
     centerX: number;
     centerY: number;
@@ -962,7 +1059,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // On-canvas direct element resize state
   const [resizeDragItem, setResizeDragItem] = useState<{
-    type: 'text' | 'phosphor' | 'element';
+    type: 'text' | 'phosphor' | 'element' | 'shape';
     id: string;
     startX: number;
     startY: number;
@@ -978,7 +1075,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     startX: number;
     startY: number;
     scale: number;
-    items: { type: 'text' | 'phosphor' | 'element'; id: string; x: number; y: number }[];
+    items: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string; x: number; y: number }[];
   } | null>(null);
 
   // Touch center for 2-finger mobile panning
@@ -1046,6 +1143,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
       const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
       const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
+      const shapeLayerEl = target.closest('.shape-layer-item') as HTMLElement | null;
 
       let currentScale = 1;
       const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
@@ -1107,6 +1205,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           });
           state.updateState({ isPositionDragging: true });
         }
+      } else if (shapeLayerEl) {
+        const id = shapeLayerEl.dataset.layerId || '';
+        const layer = (state.shapeLayers || []).find((l) => l.id === id);
+        if (layer) {
+          setResizeDragItem({
+            type: 'shape',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialWidth: layer.width || 120,
+            initialHeight: layer.height || 120,
+            initialFontSize: 0,
+            initialSize: 0,
+            scale: currentScale,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
       }
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       return;
@@ -1117,7 +1232,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
       const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
       const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
-      const layerEl = textLayerEl || phosphorIconLayerEl || canvasElementEl;
+      const shapeLayerEl = target.closest('.shape-layer-item') as HTMLElement | null;
+      const layerEl = textLayerEl || phosphorIconLayerEl || canvasElementEl || shapeLayerEl;
 
       if (layerEl) {
         const rect = layerEl.getBoundingClientRect();
@@ -1167,6 +1283,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             });
             state.updateState({ isPositionDragging: true });
           }
+        } else if (shapeLayerEl) {
+          const id = shapeLayerEl.dataset.layerId || '';
+          const layer = (state.shapeLayers || []).find((l) => l.id === id);
+          if (layer) {
+            setRotateDragItem({
+              type: 'shape',
+              id: layer.id,
+              centerX,
+              centerY,
+              startAngle,
+              initialRotation: layer.rotation || 0,
+            });
+            state.updateState({ isPositionDragging: true });
+          }
         }
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
         return;
@@ -1176,17 +1306,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
     const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
     const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
+    const shapeLayerEl = target.closest('.shape-layer-item') as HTMLElement | null;
 
     // Modifier+click on a layer: let the native click event handle multi-select
     // toggling instead of starting a drag / pan / single-select here.
     const multiKey = e.shiftKey || e.metaKey || e.ctrlKey;
-    if ((textLayerEl || phosphorIconLayerEl || canvasElementEl) && multiKey) {
+    if ((textLayerEl || phosphorIconLayerEl || canvasElementEl || shapeLayerEl) && multiKey) {
       return;
     }
 
     const isShiftDrag = e.shiftKey;
     const isTargetingLayer =
-      (textLayerEl || phosphorIconLayerEl || canvasElementEl) && !isShiftDrag;
+      (textLayerEl || phosphorIconLayerEl || canvasElementEl || shapeLayerEl) && !isShiftDrag;
 
     if (isTargetingLayer) {
       let currentScale = 1;
@@ -1202,32 +1333,42 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         ? textLayerEl
         : phosphorIconLayerEl
           ? phosphorIconLayerEl
-          : canvasElementEl;
+          : canvasElementEl
+            ? canvasElementEl
+            : shapeLayerEl;
 
       if (pressedEl) {
         const pressedId = pressedEl.dataset.layerId || '';
         const selectedIds = textLayerEl
-          ? (state.selectedTextLayerIds || [])
+          ? state.selectedTextLayerIds || []
           : phosphorIconLayerEl
-            ? (state.selectedPhosphorIconLayerIds || [])
-            : (state.selectedElementIds || []);
+            ? state.selectedPhosphorIconLayerIds || []
+            : canvasElementEl
+              ? state.selectedElementIds || []
+              : state.selectedShapeIds || [];
 
         // Pressed layer is part of a current multi-selection → drag all selected layers together
         if (selectedIds.length >= 2 && selectedIds.includes(pressedId)) {
-          const items: { type: 'text' | 'phosphor' | 'element'; id: string; x: number; y: number }[] = [];
+          const items: {
+            type: 'text' | 'phosphor' | 'element' | 'shape';
+            id: string;
+            x: number;
+            y: number;
+          }[] = [];
           (state.textLayers || [])
             .filter((l) => (state.selectedTextLayerIds || []).includes(l.id))
             .forEach((l) => items.push({ type: 'text', id: l.id, x: l.x || 0, y: l.y || 0 }));
           (state.phosphorIconLayers || [])
             .filter((l) => (state.selectedPhosphorIconLayerIds || []).includes(l.id))
-            .forEach((l) =>
-              items.push({ type: 'phosphor', id: l.id, x: l.x || 0, y: l.y || 0 })
-            );
+            .forEach((l) => items.push({ type: 'phosphor', id: l.id, x: l.x || 0, y: l.y || 0 }));
           (state.canvasElements || [])
             .filter((el) => (state.selectedElementIds || []).includes(el.id))
             .forEach((el) =>
               items.push({ type: 'element', id: el.id, x: el.x || 0, y: el.y || 0 })
             );
+          (state.shapeLayers || [])
+            .filter((s) => (state.selectedShapeIds || []).includes(s.id))
+            .forEach((s) => items.push({ type: 'shape', id: s.id, x: s.x || 0, y: s.y || 0 }));
 
           if (items.length >= 2) {
             setGroupDrag({
@@ -1291,6 +1432,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           });
           state.updateState({ isPositionDragging: true });
         }
+      } else if (shapeLayerEl) {
+        const id = shapeLayerEl.dataset.layerId || '';
+        const layer = (state.shapeLayers || []).find((l) => l.id === id);
+        if (layer) {
+          state.selectShapeLayer(layer.id);
+          setDragItem({
+            type: 'shape',
+            id: layer.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialLayerX: layer.x || 0,
+            initialLayerY: layer.y || 0,
+            scale: currentScale,
+          });
+          state.updateState({ isPositionDragging: true });
+        }
       }
     } else {
       if (!(e.shiftKey || e.metaKey || e.ctrlKey)) {
@@ -1300,6 +1457,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           state.selectPhosphorIconLayer(null);
         if ((state.selectedElementIds?.length ?? 0) > 0 && !canvasElementEl)
           state.selectCanvasElement(null);
+        if ((state.selectedShapeIds?.length ?? 0) > 0 && !shapeLayerEl)
+          state.selectShapeLayer(null);
       }
 
       setIsPanning(true);
@@ -1341,6 +1500,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         scheduleDragUpdate(() =>
           state.updateCanvasElement(rotateDragItem.id, { rotation: newRotation })
         );
+      } else if (rotateDragItem.type === 'shape') {
+        scheduleDragUpdate(() =>
+          state.updateShapeLayer(rotateDragItem.id, { rotation: newRotation })
+        );
       }
     } else if (resizeDragItem) {
       const scale = resizeDragItem.scale || 1;
@@ -1376,6 +1539,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         scheduleDragUpdate(() =>
           state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
         );
+      } else if (resizeDragItem.type === 'shape') {
+        const newWidth = Math.max(
+          10,
+          Math.min(600, Math.round(resizeDragItem.initialWidth + deltaX))
+        );
+        const newHeight = Math.max(
+          10,
+          Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
+        );
+        scheduleDragUpdate(() =>
+          state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
+        );
       }
     } else if (groupDrag) {
       const scale = groupDrag.scale || 1;
@@ -1392,6 +1567,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             state.updatePhosphorIconLayer(item.id, { x: newX, y: newY });
           } else if (item.type === 'element') {
             state.updateCanvasElement(item.id, { x: newX, y: newY });
+          } else if (item.type === 'shape') {
+            state.updateShapeLayer(item.id, { x: newX, y: newY });
           }
         }
       });
@@ -1409,6 +1586,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         scheduleDragUpdate(() => state.updatePhosphorIconLayer(dragItem.id, { x: newX, y: newY }));
       } else if (dragItem.type === 'element') {
         scheduleDragUpdate(() => state.updateCanvasElement(dragItem.id, { x: newX, y: newY }));
+      } else if (dragItem.type === 'shape') {
+        scheduleDragUpdate(() => state.updateShapeLayer(dragItem.id, { x: newX, y: newY }));
       }
     } else if (isPanning) {
       setPan({
@@ -1629,6 +1808,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {renderTextLayers('underneath')}
           {renderPhosphorIconLayers('underneath')}
           {renderCanvasElements('underneath')}
+          {renderShapeLayers('underneath')}
 
           {/* 3D Transform Wrapper */}
           <div
@@ -1642,6 +1822,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {renderTextLayers('above')}
           {renderPhosphorIconLayers('above')}
           {renderCanvasElements('above')}
+          {renderShapeLayers('above')}
 
           {/* Center Alignment Guide Lines & Dashed Grid Overlay (Shown while dragging) */}
           {state.isPositionDragging && (
@@ -1924,7 +2105,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         {/* Multi-Select Align Toolbar (Editor-only, not part of export canvas) */}
         {(state.selectedElementIds?.length ?? 0) +
           (state.selectedTextLayerIds?.length ?? 0) +
-          (state.selectedPhosphorIconLayerIds?.length ?? 0) >=
+          (state.selectedPhosphorIconLayerIds?.length ?? 0) +
+          (state.selectedShapeIds?.length ?? 0) >=
           2 && (
           <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-neutral-900/95 border border-neutral-700 rounded-xl p-1 shadow-2xl pointer-events-auto">
             <button

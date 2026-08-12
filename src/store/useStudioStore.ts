@@ -18,17 +18,33 @@ interface StudioStore extends StudioState {
   selectTextLayer: (id: string | null) => void;
   toggleTextLayer: (id: string) => void;
   addPhosphorIconLayer: (iconId?: string) => void;
-  updatePhosphorIconLayer: (id: string, updates: Partial<import('../types/studio').PhosphorIconLayer>) => void;
+  updatePhosphorIconLayer: (
+    id: string,
+    updates: Partial<import('../types/studio').PhosphorIconLayer>
+  ) => void;
   removePhosphorIconLayer: (id: string) => void;
   duplicatePhosphorIconLayer: (id: string) => void;
   selectPhosphorIconLayer: (id: string | null) => void;
   togglePhosphorIconLayer: (id: string) => void;
-  addCanvasElement: (elementId?: string, src?: string, category?: import('../types/studio').ElementCategory) => void;
-  updateCanvasElement: (id: string, updates: Partial<import('../types/studio').CanvasElement>) => void;
+  addCanvasElement: (
+    elementId?: string,
+    src?: string,
+    category?: import('../types/studio').ElementCategory
+  ) => void;
+  updateCanvasElement: (
+    id: string,
+    updates: Partial<import('../types/studio').CanvasElement>
+  ) => void;
   removeCanvasElement: (id: string) => void;
   duplicateCanvasElement: (id: string) => void;
   selectCanvasElement: (id: string | null) => void;
   toggleSelectCanvasElement: (id: string) => void;
+  addShapeLayer: (shapeType?: import('../types/studio').ShapeType) => void;
+  updateShapeLayer: (id: string, updates: Partial<import('../types/studio').ShapeLayer>) => void;
+  removeShapeLayer: (id: string) => void;
+  duplicateShapeLayer: (id: string) => void;
+  selectShapeLayer: (id: string | null) => void;
+  toggleSelectShapeLayer: (id: string) => void;
   alignCanvasElements: (align: 'left' | 'center' | 'right', canvasWidth: number) => void;
 }
 
@@ -189,6 +205,8 @@ export const useStudioStore = create<StudioStore>()(
           slot2Zoom: 100,
           rotateX: 0,
           rotateY: 0,
+          skewX: 0,
+          skewY: 0,
           slot1Rotate: 0,
           slot2Rotate: 0,
           perspective: 1000,
@@ -215,6 +233,10 @@ export const useStudioStore = create<StudioStore>()(
             shadow: true,
             opacity: 100,
             rotation: 0,
+            pitch: 0,
+            yaw: 0,
+            skewX: 0,
+            skewY: 0,
             position: 'above',
             name: initialText || '',
             visible: true,
@@ -243,6 +265,10 @@ export const useStudioStore = create<StudioStore>()(
             shadow: false,
             opacity: 100,
             rotation: 0,
+            pitch: 0,
+            yaw: 0,
+            skewX: 0,
+            skewY: 0,
             position: 'above',
             socialPlatform: plat,
             socialStyle: 'default',
@@ -439,6 +465,86 @@ export const useStudioStore = create<StudioStore>()(
             selectedElementId: nextIds.length ? id : null,
           };
         }),
+      addShapeLayer: (shapeType = 'square') =>
+        set((state) => {
+          const dims: Record<
+            import('../types/studio').ShapeType,
+            { width: number; height: number }
+          > = {
+            square: { width: 120, height: 120 },
+            rectangle: { width: 160, height: 100 },
+            circle: { width: 120, height: 120 },
+            hexagon: { width: 140, height: 122 },
+          };
+          const newShape: import('../types/studio').ShapeLayer = {
+            id: `shape-${Date.now()}`,
+            shapeType,
+            color: '#a2d2ff',
+            ...dims[shapeType],
+            borderRadius: shapeType === 'square' || shapeType === 'rectangle' ? 8 : 0,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            pitch: 0,
+            yaw: 0,
+            skewX: 0,
+            skewY: 0,
+            opacity: 100,
+            position: 'above',
+            shadow: false,
+            name: shapeType,
+            visible: true,
+            locked: false,
+          };
+          return {
+            shapeLayers: [...(state.shapeLayers || []), newShape],
+            selectedShapeId: newShape.id,
+            selectedShapeIds: [newShape.id],
+          };
+        }),
+      updateShapeLayer: (id, updates) =>
+        set((state) => ({
+          shapeLayers: (state.shapeLayers || []).map((s) =>
+            s.id === id ? { ...s, ...updates } : s
+          ),
+        })),
+      removeShapeLayer: (id) =>
+        set((state) => ({
+          shapeLayers: (state.shapeLayers || []).filter((s) => s.id !== id),
+          selectedShapeId: state.selectedShapeId === id ? null : state.selectedShapeId,
+          selectedShapeIds: (state.selectedShapeIds || []).filter((i) => i !== id),
+        })),
+      duplicateShapeLayer: (id) =>
+        set((state) => {
+          const shapeToDup = (state.shapeLayers || []).find((s) => s.id === id);
+          if (!shapeToDup) return state;
+          const dup: import('../types/studio').ShapeLayer = {
+            ...shapeToDup,
+            id: `shape-${Date.now()}`,
+            x: shapeToDup.x + 20,
+            y: shapeToDup.y + 20,
+          };
+          return {
+            shapeLayers: [...(state.shapeLayers || []), dup],
+            selectedShapeId: dup.id,
+            selectedShapeIds: [dup.id],
+          };
+        }),
+      selectShapeLayer: (id) =>
+        set(() => ({
+          selectedShapeId: id,
+          selectedShapeIds: id ? [id] : [],
+        })),
+      toggleSelectShapeLayer: (id) =>
+        set((state) => {
+          const ids = state.selectedShapeIds || [];
+          const has = ids.includes(id);
+          const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
+          return {
+            selectedShapeIds: nextIds,
+            selectedShapeId: nextIds.length ? id : null,
+          };
+        }),
       alignCanvasElements: (align, canvasWidth) =>
         set((state) => {
           const measureTextWidth = (
@@ -457,14 +563,18 @@ export const useStudioStore = create<StudioStore>()(
           };
 
           const getBox = (
-            type: 'text' | 'phosphor' | 'element',
+            type: 'text' | 'phosphor' | 'element' | 'shape',
             layer: import('../types/studio').TextLayer &
               import('../types/studio').PhosphorIconLayer &
-              import('../types/studio').CanvasElement
+              import('../types/studio').CanvasElement &
+              import('../types/studio').ShapeLayer
           ): { id: string; x: number; width: number } => {
             const x = layer.x || 0;
             if (type === 'element') {
               return { id: layer.id, x, width: layer.width || 90 };
+            }
+            if (type === 'shape') {
+              return { id: layer.id, x, width: layer.width || 120 };
             }
             if (type === 'phosphor') {
               const size = layer.size || 36;
@@ -496,6 +606,10 @@ export const useStudioStore = create<StudioStore>()(
           (state.canvasElements || [])
             .filter((el) => elIds.includes(el.id))
             .forEach((el) => boxes.push(getBox('element', el as never)));
+          const shapeIds = state.selectedShapeIds || [];
+          (state.shapeLayers || [])
+            .filter((s) => shapeIds.includes(s.id))
+            .forEach((s) => boxes.push(getBox('shape', s as never)));
 
           if (boxes.length === 0) return state;
 
@@ -522,6 +636,9 @@ export const useStudioStore = create<StudioStore>()(
             ),
             canvasElements: (state.canvasElements || []).map((el) =>
               targets[el.id] != null ? { ...el, x: Math.round(targets[el.id]) } : el
+            ),
+            shapeLayers: (state.shapeLayers || []).map((s) =>
+              targets[s.id] != null ? { ...s, x: Math.round(targets[s.id]) } : s
             ),
           };
         }),
