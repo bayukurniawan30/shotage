@@ -264,8 +264,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               ...(layer.bgImage
                 ? {
                     backgroundImage: `url(${layer.bgImage})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    backgroundSize: `${layer.bgImageZoom ?? 100}%`,
+                    backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
@@ -600,6 +600,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="w-full h-full"
               style={{
                 backgroundColor: layer.color || '#a2d2ff',
+                ...(layer.bgImage
+                  ? {
+                      backgroundImage: `url(${layer.bgImage})`,
+                      backgroundSize: `${layer.bgImageZoom ?? 100}%`,
+                      backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
+                    }
+                  : {}),
                 ...getShapeStyle(),
               }}
             />

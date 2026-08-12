@@ -2149,6 +2149,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       { id: 'all', label: 'All' },
       { id: 'ui', label: 'UI & Web' },
       { id: 'shapes', label: 'Shapes' },
+      { id: 'arrows', label: 'Arrows' },
       { id: 'tech', label: 'Tech' },
       { id: 'media', label: 'Media' },
       { id: 'commerce', label: 'Commerce' },
@@ -2193,6 +2194,75 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       { id: 'SealCheck', label: 'Seal Check', category: 'shapes' },
       { id: 'Crown', label: 'Crown', category: 'shapes' },
       { id: 'Planet', label: 'Planet', category: 'shapes' },
+
+      // Arrows (Direction, Carets, Chevrons & Variations)
+      { id: 'ArrowUp', label: 'Arrow Up', category: 'arrows' },
+      { id: 'ArrowDown', label: 'Arrow Down', category: 'arrows' },
+      { id: 'ArrowLeft', label: 'Arrow Left', category: 'arrows' },
+      { id: 'ArrowRight', label: 'Arrow Right', category: 'arrows' },
+      { id: 'ArrowUpRight', label: 'Arrow Up Right', category: 'arrows' },
+      { id: 'ArrowUpLeft', label: 'Arrow Up Left', category: 'arrows' },
+      { id: 'ArrowDownRight', label: 'Arrow Down Right', category: 'arrows' },
+      { id: 'ArrowDownLeft', label: 'Arrow Down Left', category: 'arrows' },
+      { id: 'ArrowCircleUp', label: 'Circle Up', category: 'arrows' },
+      { id: 'ArrowCircleDown', label: 'Circle Down', category: 'arrows' },
+      { id: 'ArrowCircleLeft', label: 'Circle Left', category: 'arrows' },
+      { id: 'ArrowCircleRight', label: 'Circle Right', category: 'arrows' },
+      { id: 'ArrowSquareUp', label: 'Square Up', category: 'arrows' },
+      { id: 'ArrowSquareDown', label: 'Square Down', category: 'arrows' },
+      { id: 'ArrowSquareLeft', label: 'Square Left', category: 'arrows' },
+      { id: 'ArrowSquareRight', label: 'Square Right', category: 'arrows' },
+      { id: 'ArrowLineUp', label: 'Line Up', category: 'arrows' },
+      { id: 'ArrowLineDown', label: 'Line Down', category: 'arrows' },
+      { id: 'ArrowLineLeft', label: 'Line Left', category: 'arrows' },
+      { id: 'ArrowLineRight', label: 'Line Right', category: 'arrows' },
+      { id: 'ArrowFatUp', label: 'Fat Up', category: 'arrows' },
+      { id: 'ArrowFatDown', label: 'Fat Down', category: 'arrows' },
+      { id: 'ArrowFatLeft', label: 'Fat Left', category: 'arrows' },
+      { id: 'ArrowFatRight', label: 'Fat Right', category: 'arrows' },
+      { id: 'ArrowClockwise', label: 'Clockwise', category: 'arrows' },
+      { id: 'ArrowCounterClockwise', label: 'Counter Clockwise', category: 'arrows' },
+      { id: 'ArrowBendUpRight', label: 'Bend Up Right', category: 'arrows' },
+      { id: 'ArrowBendUpLeft', label: 'Bend Up Left', category: 'arrows' },
+      { id: 'ArrowBendDownRight', label: 'Bend Down Right', category: 'arrows' },
+      { id: 'ArrowBendDownLeft', label: 'Bend Down Left', category: 'arrows' },
+      { id: 'ArrowUDownLeft', label: 'U-Turn Left', category: 'arrows' },
+      { id: 'ArrowUDownRight', label: 'U-Turn Right', category: 'arrows' },
+      { id: 'ArrowElbowUpRight', label: 'Elbow Up Right', category: 'arrows' },
+      { id: 'ArrowElbowUpLeft', label: 'Elbow Up Left', category: 'arrows' },
+      { id: 'ArrowElbowDownRight', label: 'Elbow Down Right', category: 'arrows' },
+      { id: 'ArrowElbowDownLeft', label: 'Elbow Down Left', category: 'arrows' },
+      { id: 'CaretUp', label: 'Caret Up', category: 'arrows' },
+      { id: 'CaretDown', label: 'Caret Down', category: 'arrows' },
+      { id: 'CaretLeft', label: 'Caret Left', category: 'arrows' },
+      { id: 'CaretRight', label: 'Caret Right', category: 'arrows' },
+      { id: 'CaretDoubleUp', label: 'Caret Double Up', category: 'arrows' },
+      { id: 'CaretDoubleDown', label: 'Caret Double Down', category: 'arrows' },
+      { id: 'CaretDoubleLeft', label: 'Caret Double Left', category: 'arrows' },
+      { id: 'CaretDoubleRight', label: 'Caret Double Right', category: 'arrows' },
+      { id: 'CaretCircleUp', label: 'Caret Circle Up', category: 'arrows' },
+      { id: 'CaretCircleDown', label: 'Caret Circle Down', category: 'arrows' },
+      { id: 'CaretCircleLeft', label: 'Caret Circle Left', category: 'arrows' },
+      { id: 'CaretCircleRight', label: 'Caret Circle Right', category: 'arrows' },
+      { id: 'CaretCircleDoubleUp', label: 'Caret Circle Dbl Up', category: 'arrows' },
+      { id: 'CaretCircleDoubleDown', label: 'Caret Circle Dbl Down', category: 'arrows' },
+      { id: 'CaretCircleDoubleLeft', label: 'Caret Circle Dbl Left', category: 'arrows' },
+      { id: 'CaretCircleDoubleRight', label: 'Caret Circle Dbl Right', category: 'arrows' },
+      { id: 'ArrowsClockwise', label: 'Arrows Spin CW', category: 'arrows' },
+      { id: 'ArrowsCounterClockwise', label: 'Arrows Spin CCW', category: 'arrows' },
+      { id: 'ArrowsLeftRight', label: 'Left Right', category: 'arrows' },
+      { id: 'ArrowsDownUp', label: 'Down Up', category: 'arrows' },
+      { id: 'ArrowsHorizontal', label: 'Horizontal', category: 'arrows' },
+      { id: 'ArrowsVertical', label: 'Vertical', category: 'arrows' },
+      { id: 'ArrowsIn', label: 'Arrows In', category: 'arrows' },
+      { id: 'ArrowsOut', label: 'Arrows Out', category: 'arrows' },
+      { id: 'ArrowsInSimple', label: 'Arrows In Simple', category: 'arrows' },
+      { id: 'ArrowsOutSimple', label: 'Arrows Out Simple', category: 'arrows' },
+      { id: 'ArrowsMerge', label: 'Arrows Merge', category: 'arrows' },
+      { id: 'ArrowsSplit', label: 'Arrows Split', category: 'arrows' },
+      { id: 'Swap', label: 'Swap', category: 'arrows' },
+      { id: 'Shuffle', label: 'Shuffle', category: 'arrows' },
+      { id: 'Repeat', label: 'Repeat', category: 'arrows' },
 
       // Tech & Dev
       { id: 'Code', label: 'Code', category: 'tech' },
@@ -3149,6 +3219,75 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   />
                 </label>
               )}
+
+              {selectedLayer.bgImage && (
+                <div className="space-y-2.5 pt-1 animate-in fade-in duration-150">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Zoom</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedLayer.bgImageZoom ?? 100}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="400"
+                      value={selectedLayer.bgImageZoom ?? 100}
+                      onChange={(e) =>
+                        state.updateTextLayer(selectedLayer.id, {
+                          bgImageZoom: Number(e.target.value),
+                        })
+                      }
+                      className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Offset X</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedLayer.bgImageOffsetX || 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        value={selectedLayer.bgImageOffsetX || 0}
+                        onChange={(e) =>
+                          state.updateTextLayer(selectedLayer.id, {
+                            bgImageOffsetX: Number(e.target.value),
+                          })
+                        }
+                        className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Offset Y</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedLayer.bgImageOffsetY || 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        value={selectedLayer.bgImageOffsetY || 0}
+                        onChange={(e) =>
+                          state.updateTextLayer(selectedLayer.id, {
+                            bgImageOffsetY: Number(e.target.value),
+                          })
+                        }
+                        className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Position Offsets X / Y */}
@@ -3952,6 +4091,155 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   />
                 </div>
               </div>
+
+              {/* Image Fill (Clip Shape) */}
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold text-slate-300">
+                  Image Fill (Clip Shape)
+                </label>
+
+                {selectedShape.bgImage ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg border border-slate-700 overflow-hidden shrink-0">
+                      <img
+                        src={selectedShape.bgImage}
+                        alt="Shape fill"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[10px] font-mono text-slate-500">
+                        Image fill applied
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <label className="flex-1 flex items-center justify-center py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-pastel-pink rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-colors">
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                if (ev.target?.result) {
+                                  state.updateShapeLayer(selectedShape.id, {
+                                    bgImage: ev.target.result as string,
+                                  });
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                        <button
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, { bgImage: null })
+                          }
+                          className="py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-red-400 hover:text-red-400 rounded-lg text-[10px] font-semibold text-slate-400 cursor-pointer transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
+                    <span className="text-xs font-medium text-slate-300">
+                      Upload image to clip into shape
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            state.updateShapeLayer(selectedShape.id, {
+                              bgImage: ev.target.result as string,
+                            });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Image Fill Adjustments */}
+              {selectedShape.bgImage && (
+                <div className="space-y-2.5 animate-in fade-in duration-150">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Zoom</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedShape.bgImageZoom ?? 100}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="400"
+                      value={selectedShape.bgImageZoom ?? 100}
+                      onChange={(e) =>
+                        state.updateShapeLayer(selectedShape.id, {
+                          bgImageZoom: Number(e.target.value),
+                        })
+                      }
+                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Offset X</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedShape.bgImageOffsetX || 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        value={selectedShape.bgImageOffsetX || 0}
+                        onChange={(e) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            bgImageOffsetX: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Offset Y</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedShape.bgImageOffsetY || 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        value={selectedShape.bgImageOffsetY || 0}
+                        onChange={(e) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            bgImageOffsetY: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Shape Size */}
               {isUniform ? (

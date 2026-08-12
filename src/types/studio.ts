@@ -70,6 +70,10 @@ export interface ShapeLayer {
   id: string;
   shapeType: ShapeType;
   color: string;
+  bgImage?: string | null;
+  bgImageZoom?: number;
+  bgImageOffsetX?: number;
+  bgImageOffsetY?: number;
   width: number;
   height: number;
   borderRadius?: number;
@@ -151,6 +155,9 @@ export interface TextLayer {
   color: string;
   gradient?: { color1: string; color2: string; angle: number } | null;
   bgImage?: string | null;
+  bgImageZoom?: number;
+  bgImageOffsetX?: number;
+  bgImageOffsetY?: number;
   textAlign: 'left' | 'center' | 'right';
   x: number;
   y: number;
