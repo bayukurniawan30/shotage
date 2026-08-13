@@ -1221,6 +1221,42 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           />
         </div>
       )}
+
+      {/* Hide Mockup toggle */}
+      <button
+        type="button"
+        onClick={() => onChange({ hideMockup: !state.hideMockup })}
+        className={`w-full rounded-xl border p-3 text-left transition-all cursor-pointer ${
+          state.hideMockup
+            ? 'bg-[#a2d2ff]/15 border-[#a2d2ff] ring-1 ring-[#a2d2ff]/50 shadow-sm'
+            : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/60'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className={`text-xs font-bold uppercase tracking-wider ${
+              state.hideMockup ? 'text-[#a2d2ff]' : 'text-slate-300'
+            }`}
+          >
+            Hide Mockup
+          </span>
+          <span
+            className={`w-8 h-4 rounded-full relative transition-colors ${
+              state.hideMockup ? 'bg-[#a2d2ff]' : 'bg-neutral-800'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${
+                state.hideMockup ? 'left-[18px]' : 'left-0.5'
+              }`}
+            />
+          </span>
+        </div>
+        <p className="mt-1 text-[10px] leading-snug text-slate-400">
+          Hides the mockup on the canvas so you can focus on editing text, icons, and elements. Both
+          images stay hidden in 2-image layouts.
+        </p>
+      </button>
     </div>
   );
 

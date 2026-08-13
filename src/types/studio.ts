@@ -204,6 +204,7 @@ export interface StudioState {
     | 'shadow-overlay-6';
   shadowOverlayOpacity?: number; // 0 to 100
   shadowOverlayPosition?: 'behind' | 'above';
+  hideMockup: boolean;
   frameType:
     | 'frameless'
     | 'safari-light'
@@ -352,6 +353,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shadowOverlay: 'none',
   shadowOverlayOpacity: 85,
   shadowOverlayPosition: 'above',
+  hideMockup: false,
   frameType: 'frameless',
   samsungStatusBar: 'none',
   iphoneStatusBar: 'none',

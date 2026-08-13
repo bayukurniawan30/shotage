@@ -1024,6 +1024,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className="transition-all duration-200 flex items-center justify-center pointer-events-auto max-w-full max-h-full"
         style={{
+          visibility: state.hideMockup ? 'hidden' : 'visible',
           transform: `scale(${paddingScale})`,
           transformOrigin:
             state.alignment === 'top'
@@ -1819,7 +1820,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
           {/* 3D Transform Wrapper */}
           <div
-            className="flex-1 h-full max-w-full flex items-center justify-center relative z-10"
+            className={`flex-1 h-full max-w-full flex items-center justify-center relative z-10 ${
+              state.hideMockup ? 'pointer-events-none' : ''
+            }`}
             style={transformStyle}
           >
             {renderFrameContent()}
