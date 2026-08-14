@@ -4449,6 +4449,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 />
               </div>
 
+              {/* Blur Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Blur</span>
+                  <span className="font-mono text-slate-400">{selectedShape.blur ?? 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={40}
+                  value={selectedShape.blur ?? 0}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      blur: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
               {/* Drop Shadow Toggle */}
               <div className="flex items-center justify-between pt-1">
                 <label className="text-[11px] font-semibold text-slate-300">Drop Shadow</label>
@@ -4696,6 +4716,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 onChange={(e) =>
                   state.updateCanvasElement(selectedElement.id, {
                     opacity: Number(e.target.value),
+                  })
+                }
+                className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+              />
+            </div>
+
+            {/* Blur Slider */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-slate-300">Blur</span>
+                <span className="font-mono text-slate-400">{selectedElement.blur ?? 0}px</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={40}
+                value={selectedElement.blur ?? 0}
+                onChange={(e) =>
+                  state.updateCanvasElement(selectedElement.id, {
+                    blur: Number(e.target.value),
                   })
                 }
                 className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"

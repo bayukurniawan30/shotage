@@ -87,6 +87,7 @@ export interface ShapeLayer {
   opacity: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
+  blur?: number;
   name?: string;
   visible?: boolean;
   locked?: boolean;
@@ -106,6 +107,7 @@ export interface CanvasElement {
   opacity: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
+  blur?: number;
   flipX?: boolean;
   flipY?: boolean;
   name?: string;

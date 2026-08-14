@@ -482,7 +482,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }}
           >
             {el.category === 'emoji' ? (
-              <div className="w-full h-full flex items-center justify-center select-none pointer-events-none">
+              <div
+                className="w-full h-full flex items-center justify-center select-none pointer-events-none"
+                style={{ filter: el.blur ? `blur(${el.blur}px)` : 'none' }}
+              >
                 <img
                   src={el.src}
                   alt="Emoji Element"
@@ -494,6 +497,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 className="w-full h-full"
                 style={{
                   backgroundColor: el.color || '#a2d2ff',
+                  filter: el.blur ? `blur(${el.blur}px)` : 'none',
                   WebkitMaskImage: `url("${el.src}")`,
                   maskImage: `url("${el.src}")`,
                   WebkitMaskSize: 'contain',
@@ -600,6 +604,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="w-full h-full"
               style={{
                 backgroundColor: layer.color || '#a2d2ff',
+                filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
                 ...(layer.bgImage
                   ? {
                       backgroundImage: `url(${layer.bgImage})`,
