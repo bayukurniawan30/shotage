@@ -188,6 +188,12 @@ export type WatermarkSize = 'sm' | 'md' | 'lg';
 export interface StudioState {
   imageSrc: string | null;
   imageName: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  secondImageWidth: number | null;
+  secondImageHeight: number | null;
+  shareId: string | null;
+  shareIdentifier: string | null;
   zoom: number; // 50 to 150
   slot2Zoom: number; // 50 to 150
   previewCanvasZoom: number; // 50 to 150
@@ -291,6 +297,11 @@ export interface StudioState {
   skewY: number; // -60 to 60
   slot1Rotate: number; // -180 to 180
   slot2Rotate: number; // -180 to 180
+  slot2RotateX: number; // -30 to 30 (Slot 2 pitch)
+  slot2RotateY: number; // -30 to 30 (Slot 2 yaw)
+  slot2SkewX: number; // -60 to 60
+  slot2SkewY: number; // -60 to 60
+  slot2Perspective: number; // 500 to 2000
   perspective: number; // 500 to 2000
   offsetX: number; // -200 to 200
   offsetY: number; // -200 to 200
@@ -339,6 +350,12 @@ export interface StudioState {
 export const DEFAULT_STUDIO_STATE: StudioState = {
   imageSrc: null,
   imageName: 'screenshot.png',
+  imageWidth: null,
+  imageHeight: null,
+  secondImageWidth: null,
+  secondImageHeight: null,
+  shareId: null,
+  shareIdentifier: null,
   secondImageSrc: null,
   secondImageName: 'screenshot-2.png',
   layoutCount: 1,
@@ -393,13 +410,18 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   watermarkSize: 'md',
   customWidth: 1280,
   customHeight: 720,
-  aspectRatio: 'auto',
+  aspectRatio: '4:3',
   rotateX: 0,
   rotateY: 0,
   skewX: 0,
   skewY: 0,
   slot1Rotate: 0,
   slot2Rotate: 0,
+  slot2RotateX: 0,
+  slot2RotateY: 0,
+  slot2SkewX: 0,
+  slot2SkewY: 0,
+  slot2Perspective: 1000,
   perspective: 1000,
   offsetX: 0,
   offsetY: 0,

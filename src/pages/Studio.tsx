@@ -8,6 +8,7 @@ import { ExportModal } from '../components/ExportModal';
 import { InstallPwaModal } from '../components/InstallPwaModal';
 import { AnimationTimeline } from '../components/AnimationTimeline';
 import { StageManagerToolbar } from '../components/StageManagerToolbar';
+import { ProjectSpotlight } from '../components/ProjectSpotlight';
 import {
   FlipBackward,
   FlipForward,
@@ -23,6 +24,8 @@ import {
 
 const SESSION_STORAGE_KEY = 'shotage-session-v1';
 const SESSION_VERSION = 1;
+const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
+const PROJECT_SPOTLIGHT_GATED = true;
 
 export const Studio: React.FC = () => {
   const setImage = useStudioStore((state) => state.setImage);
@@ -33,12 +36,23 @@ export const Studio: React.FC = () => {
   const isAnimationMode = useStudioStore((state) => state.isAnimationMode);
   const updateState = useStudioStore((state) => state.updateState);
 
+  // When the URL carries ?s=<entryId>, this page renders a shared design (view mode)
+  const sharedViewKey = new URLSearchParams(window.location.search).get('s') || null;
+
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isStartOverModalOpen, setIsStartOverModalOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+
+  useEffect(() => {
+    if (PROJECT_SPOTLIGHT_GATED && sharedViewKey && !sessionStorage.getItem(SPOTLIGHT_SESSION_KEY)) {
+      sessionStorage.setItem(SPOTLIGHT_SESSION_KEY, '1');
+      setIsSpotlightOpen(true);
+    }
+  }, [sharedViewKey]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,6 +119,8 @@ export const Studio: React.FC = () => {
     temporalStore.getState().clear();
     localStorage.removeItem(SESSION_STORAGE_KEY);
     setIsStartOverModalOpen(false);
+    setTimeout(() => fitCanvasToView(), 60);
+    setTimeout(() => fitCanvasToView(), 400);
   };
 
   // Auto-save session to localStorage (debounced so drag/scrub spam doesn't write every frame)
@@ -113,6 +129,7 @@ export const Studio: React.FC = () => {
 
     const save = () => {
       try {
+        if (sharedViewKey) return; // don't overwrite the user's session while viewing a shared design
         const storeState = useStudioStore.getState();
         if (storeState.isPlaying) return;
         const { imageSrc, secondImageSrc, isPreviewMode, isPlaying, isPositionDragging, ...rest } =
@@ -153,6 +170,7 @@ export const Studio: React.FC = () => {
 
   // On mount, check for a previous session and offer to restore it
   useEffect(() => {
+    if (sharedViewKey) return; // shared design should take precedence over a saved session
     try {
       const raw = localStorage.getItem(SESSION_STORAGE_KEY);
       if (raw) {
@@ -165,6 +183,34 @@ export const Studio: React.FC = () => {
       localStorage.removeItem(SESSION_STORAGE_KEY);
     }
   }, []);
+
+  // When the URL carries ?s=<entryId>, fetch and apply the shared design
+  useEffect(() => {
+    if (!sharedViewKey) return;
+    let cancelled = false;
+    fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (!data?.json_string) {
+          console.warn('Shared design not found:', sharedViewKey);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data.json_string);
+          useStudioStore.getState().updateState(parsed);
+          temporalStore.getState().clear();
+          setTimeout(() => fitCanvasToView(), 60);
+        } catch (err) {
+          console.error('Failed to parse shared design:', err);
+        }
+      })
+      .catch((err) => console.error('Failed to load shared design:', err));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedViewKey]);
 
   const restoreSession = () => {
     try {
@@ -255,7 +301,14 @@ export const Studio: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
-        setImage(e.target.result as string, file.name);
+        const src = e.target.result as string;
+        // Capture natural dimensions so shared designs can render an aspect placeholder
+        const img = new Image();
+        img.onload = () => {
+          setImage(src, file.name, img.naturalWidth, img.naturalHeight);
+        };
+        img.onerror = () => setImage(src, file.name);
+        img.src = src;
       }
     };
     reader.readAsDataURL(file);
@@ -356,6 +409,21 @@ export const Studio: React.FC = () => {
   };
 
   // Zoom preset: Fit computes the scale so the canvas fits inside the stage viewport
+  const fitCanvasToView = () => {
+    const container = centerStageRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+    const containerRect = container.getBoundingClientRect();
+    const canvasWidth = canvas.offsetWidth;
+    const canvasHeight = canvas.offsetHeight;
+    if (canvasWidth <= 0 || canvasHeight <= 0) return;
+    const scale = Math.min(
+      (containerRect.width - 24) / canvasWidth,
+      (containerRect.height - 24) / canvasHeight
+    );
+    updateState({ previewCanvasZoom: Math.max(25, Math.min(200, Math.round(scale * 100))) });
+  };
+
   const handleZoomPreset = (preset: 'fit' | '100' | '200') => {
     if (preset === '100') {
       updateState({ previewCanvasZoom: 100 });
@@ -365,19 +433,19 @@ export const Studio: React.FC = () => {
       updateState({ previewCanvasZoom: 200 });
       return;
     }
-    const container = centerStageRef.current;
-    const canvas = canvasRef.current;
-    if (!container || !canvas) return;
-    const containerRect = container.getBoundingClientRect();
-    const canvasWidth = canvas.offsetWidth;
-    const canvasHeight = canvas.offsetHeight;
-    if (canvasWidth <= 0 || canvasHeight <= 0) return;
-    const scale = Math.min(
-      (containerRect.width - 48) / canvasWidth,
-      (containerRect.height - 48) / canvasHeight
-    );
-    updateState({ previewCanvasZoom: Math.max(25, Math.min(200, Math.round(scale * 100))) });
+    fitCanvasToView();
   };
+
+  // Fit the canvas to the viewport on initial load (re-run once layout settles)
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => fitCanvasToView());
+    const t = setTimeout(() => fitCanvasToView(), 250);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="h-screen h-[100dvh] w-screen bg-neutral-950 text-slate-100 flex flex-col font-sans overflow-hidden">
@@ -885,6 +953,11 @@ export const Studio: React.FC = () => {
 
       {/* Mobile Install App Button */}
       <InstallPwaModal showFloatingButton={!isMobileMenuOpen} />
+
+      {/* Cross-project spotlight (random project ad) on shared designs */}
+      {isSpotlightOpen && (
+        <ProjectSpotlight onClose={() => setIsSpotlightOpen(false)} />
+      )}
     </div>
   );
 };

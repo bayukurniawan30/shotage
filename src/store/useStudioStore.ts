@@ -5,8 +5,13 @@ import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
   updateState: (updates: Partial<StudioState>) => void;
-  setImage: (src: string, name: string) => void;
-  setSecondImage: (src: string, name: string) => void;
+  setImage: (src: string, name: string, width?: number | null, height?: number | null) => void;
+  setSecondImage: (
+    src: string,
+    name: string,
+    width?: number | null,
+    height?: number | null
+  ) => void;
   reset3DPerspective: () => void;
   resetAll: () => void;
   togglePreviewMode: () => void;
@@ -105,6 +110,11 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     skewY,
     slot1Rotate,
     slot2Rotate,
+    slot2RotateX,
+    slot2RotateY,
+    slot2SkewX,
+    slot2SkewY,
+    slot2Perspective,
     perspective,
     offsetX,
     offsetY,
@@ -175,6 +185,11 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     skewY,
     slot1Rotate,
     slot2Rotate,
+    slot2RotateX,
+    slot2RotateY,
+    slot2SkewX,
+    slot2SkewY,
+    slot2Perspective,
     perspective,
     offsetX,
     offsetY,
@@ -342,8 +357,15 @@ export const useStudioStore = create<StudioStore>()(
 
           return nextState;
         }),
-      setImage: (src, name) => set({ imageSrc: src, imageName: name }),
-      setSecondImage: (src, name) => set({ secondImageSrc: src, secondImageName: name }),
+      setImage: (src, name, width, height) =>
+        set({ imageSrc: src, imageName: name, imageWidth: width, imageHeight: height }),
+      setSecondImage: (src, name, width, height) =>
+        set({
+          secondImageSrc: src,
+          secondImageName: name,
+          secondImageWidth: width,
+          secondImageHeight: height,
+        }),
       reset3DPerspective: () =>
         set({
           zoom: 100,
@@ -354,6 +376,11 @@ export const useStudioStore = create<StudioStore>()(
           skewY: 0,
           slot1Rotate: 0,
           slot2Rotate: 0,
+          slot2RotateX: 0,
+          slot2RotateY: 0,
+          slot2SkewX: 0,
+          slot2SkewY: 0,
+          slot2Perspective: 1000,
           perspective: 1000,
           offsetX: 0,
           offsetY: 0,

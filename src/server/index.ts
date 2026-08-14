@@ -4,6 +4,25 @@ import * as path from 'path';
 
 const app = new Hono();
 
+// In-memory identifier → entry id cache so UUID-keyed share URLs don't require
+// listing the whole collection on every page view. TTL keeps it fresh.
+const identifierCache = new Map<string, { entryId: string; cachedAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const cacheLookup = (identifier: string): string | null => {
+  const hit = identifierCache.get(identifier);
+  if (!hit) return null;
+  if (Date.now() - hit.cachedAt > CACHE_TTL_MS) {
+    identifierCache.delete(identifier);
+    return null;
+  }
+  return hit.entryId;
+};
+
+const cacheSet = (identifier: string, entryId: string) => {
+  identifierCache.set(identifier, { entryId, cachedAt: Date.now() });
+};
+
 // Serve static files from public or dist folders first (matches heylookatme architecture)
 app.get('/*', async (c, next) => {
   const reqPath = c.req.path;
@@ -47,11 +66,13 @@ app.get('/*', async (c, next) => {
 });
 
 // Inertia HTML Page Renderer
-const renderInertiaPage = (componentName: string, props = {}) => {
+const renderInertiaPage = (componentName: string, props = {}, search = '') => {
+  const baseUrl =
+    componentName === 'Home' ? '/' : componentName === 'Studio' ? '/studio' : '/terms';
   const pageData = JSON.stringify({
     component: componentName,
     props,
-    url: componentName === 'Home' ? '/' : componentName === 'Studio' ? '/studio' : '/terms',
+    url: baseUrl + search,
     version: null,
   });
 
@@ -104,6 +125,154 @@ app.get('/api/proxy-image', async (c) => {
     return c.text('Failed to fetch image', 500);
   }
 });
+// Fetch a shared design. The URL key is the identifier UUID (new links) or the
+// entry id (legacy links). Resolves identifiers through a cached map.
+app.get('/api/share/:id', async (c) => {
+  const apiKey = process.env.MORPHIC_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: 'Sharing is not configured yet' }, 500);
+  }
+
+  const cmsBase = 'https://main-workspace.morphic-cms.com';
+  const headers = { Authorization: `Bearer ${apiKey}` };
+  const id = c.req.param('id');
+
+  let entryId: string | null = null;
+  let fetchedEntry: any = null;
+
+  if (/^\d+$/.test(id)) {
+    // Legacy numeric entry id — fetch directly
+    entryId = id;
+  } else {
+    entryId = cacheLookup(id);
+  }
+
+  if (entryId) {
+    const res = await fetch(`${cmsBase}/api/entries/${entryId}`, { headers });
+    if (res.ok) fetchedEntry = await res.json();
+  }
+
+  // Miss (or stale cache): list the collection and match by identifier, then cache
+  if (!fetchedEntry) {
+    const listRes = await fetch(
+      `${cmsBase}/api/collections/shotage-shareables/entries?limit=1000`,
+      { headers }
+    );
+    if (listRes.ok) {
+      const list = await listRes.json();
+      const items = list?.entries || (Array.isArray(list) ? list : []);
+      const found =
+        items.find((item: any) => item?.content?.identifier === id || item?.identifier === id) ||
+        (entryId ? items.find((item: any) => String(item?.id) === entryId) : undefined);
+      if (found) {
+        fetchedEntry = found;
+        if (found?.content?.identifier && found?.id != null) {
+          cacheSet(found.content.identifier, String(found.id));
+        }
+      }
+    }
+  }
+
+  if (!fetchedEntry) {
+    return c.json({ error: 'Design not found' }, 404);
+  }
+
+  // Morphic CMS nests entry fields under .content
+  const entry = fetchedEntry?.entry || fetchedEntry?.data || fetchedEntry;
+  const content = entry?.content || entry;
+  const jsonString = content?.json_string;
+  if (!jsonString) {
+    return c.json({ error: 'Design has no data' }, 404);
+  }
+
+  return c.json({
+    name: content?.name || entry?.name || '',
+    publisher: content?.publisher || entry?.publisher || '',
+    identifier: content?.identifier || entry?.identifier || '',
+    json_string: jsonString,
+  });
+});
+
+// Share a design: verifies Cloudflare Turnstile, then stores in Morphic CMS.
+// Creates a new entry on first share, updates the same entry on re-shares (dedup).
+app.post('/api/share', async (c) => {
+  const body = await c.req.json();
+  const { name, publisher, identifier, json_string, turnstileToken, entryId } = body || {};
+
+  if (!name || !publisher || !identifier || !json_string) {
+    return c.json({ error: 'Missing required fields' }, 400);
+  }
+
+  // Verify Cloudflare Turnstile token server-side to prevent spam
+  const turnstileSecret = process.env.CLOUDFLARE_TURNSTILE_SECRET;
+  if (turnstileSecret) {
+    if (!turnstileToken) {
+      return c.json({ error: 'Captcha verification required' }, 400);
+    }
+    const verifyForm = new FormData();
+    verifyForm.append('secret', turnstileSecret);
+    verifyForm.append('response', turnstileToken);
+    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: verifyForm,
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyData.success) {
+      return c.json({ error: 'Captcha verification failed' }, 400);
+    }
+  }
+
+  const apiKey = process.env.MORPHIC_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: 'Sharing is not configured yet' }, 500);
+  }
+
+  const cmsBase = process.env.MORPHIC_API_URL || 'https://main-workspace.morphic-cms.com';
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${apiKey}`,
+  };
+  const payload = JSON.stringify({ name, publisher, identifier, json_string });
+
+  // Upsert: PUT to existing entry when entryId is provided, otherwise POST to create
+  const isUpdate = Boolean(entryId);
+  const cmsRes = isUpdate
+    ? await fetch(`${cmsBase}/api/entries/${entryId}`, {
+        method: 'PUT',
+        headers,
+        body: payload,
+      })
+    : await fetch(`${cmsBase}/api/collections/shotage-shareables/entries`, {
+        method: 'POST',
+        headers,
+        body: payload,
+      });
+
+  if (!cmsRes.ok) {
+    const detail = await cmsRes.text();
+    return c.json({ error: 'Failed to save design', detail }, 502);
+  }
+
+  // Extract the entry id from the CMS response (varies by API shape)
+  let createdId: string | null = entryId || null;
+  if (!isUpdate) {
+    try {
+      const cmsJson = await cmsRes.json();
+      createdId = cmsJson?.id || cmsJson?.data?.id || cmsJson?.['entry']?.id || null;
+    } catch (e) {
+      // ignore parse errors, fall back to null
+    }
+  }
+
+  const origin = new URL(c.req.url).origin;
+  // Key the shared URL on the identifier (a random UUID) so entry ids aren't guessable by visitors
+  if (createdId) cacheSet(identifier, createdId);
+  return c.json({
+    url: `${origin}/studio?s=${identifier}`,
+    identifier,
+    entryId: createdId,
+  });
+});
 
 // App Routes
 app.get('/', (c) => {
@@ -115,11 +284,13 @@ app.get('/', (c) => {
 });
 
 app.get('/studio', (c) => {
+  const s = c.req.query('s');
+  const search = s ? `?s=${encodeURIComponent(s as string)}` : '';
   if (c.req.header('X-Inertia')) {
     c.header('X-Inertia', 'true');
-    return c.json({ component: 'Studio', props: {}, url: '/studio' });
+    return c.json({ component: 'Studio', props: {}, url: `/studio${search}` });
   }
-  return c.html(renderInertiaPage('Studio'));
+  return c.html(renderInertiaPage('Studio', {}, search));
 });
 
 app.get('/terms', (c) => {

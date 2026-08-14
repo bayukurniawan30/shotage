@@ -494,9 +494,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                   const reader = new FileReader();
                   reader.onload = (ev) => {
                     if (ev.target?.result) {
-                      useStudioStore
-                        .getState()
-                        .setSecondImage(ev.target.result as string, file.name);
+                      const src = ev.target.result as string;
+                      const img = new Image();
+                      img.onload = () => {
+                        useStudioStore
+                          .getState()
+                          .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight);
+                      };
+                      img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name);
+                      img.src = src;
                     }
                   };
                   reader.readAsDataURL(file);

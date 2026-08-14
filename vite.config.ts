@@ -8,6 +8,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
+  // Load .env files into process.env so the Hono dev server can read
+  // server-side secrets (MORPHIC_API_KEY, CLOUDFLARE_TURNSTILE_SECRET)
+  const env = loadEnv(mode, process.cwd(), '');
+  for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+
   return {
     plugins: [
       react(),

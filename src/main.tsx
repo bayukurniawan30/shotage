@@ -21,7 +21,7 @@ const getInitialPage = () => {
   return {
     component: componentName,
     props: {},
-    url: currentPath,
+    url: currentPath + window.location.search,
     version: null,
   };
 };

@@ -6,6 +6,9 @@ import {
   XClose,
   LinkExternal01,
   Film01,
+  Image01,
+  Share01,
+  Copy01,
   Loading01,
   Check,
   Heart,
@@ -26,13 +29,77 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const [isSuccess, setIsSuccess] = useState(false);
   const [exportingType, setExportingType] = useState<'image' | 'video' | null>(null);
   const [videoFormat, setVideoFormat] = useState<'mp4' | 'webm'>('mp4');
-  const [activeTab, setActiveTab] = useState<'image' | 'video'>(
+  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'share'>(
     state.isAnimationMode ? 'video' : 'image'
   );
   const [exportProgress, setExportProgress] = useState(0);
   const [supportCountdown, setSupportCountdown] = useState(0);
   const [exportScope, setExportScope] = useState<'current' | 'all'>('current');
+  const [shareName, setShareName] = useState('');
+  const [sharePublisher, setSharePublisher] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareError, setShareError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [isShareCopied, setIsShareCopied] = useState(false);
+  const turnstileRef = useRef<HTMLDivElement>(null);
   const cancelVideoRef = useRef(false);
+
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setShareUrl('');
+    setShareError('');
+    setIsSharing(false);
+    setTurnstileToken('');
+    setIsShareCopied(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'share' || !turnstileRef.current || !turnstileSiteKey) return;
+    const scriptId = 'cf-turnstile-script';
+    const renderWidget = () => {
+      if (!turnstileRef.current) return;
+      // @ts-ignore
+      if (window.turnstile) {
+        // @ts-ignore
+        const widgetId = window.turnstile.render(turnstileRef.current, {
+          sitekey: turnstileSiteKey,
+          theme: 'dark',
+          callback: (token: string) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+        });
+        turnstileWidgetIdRef.current = widgetId;
+      }
+    };
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.onload = renderWidget;
+      document.body.appendChild(script);
+    } else {
+      renderWidget();
+    }
+    return () => {
+      removeTurnstileWidget();
+    };
+  }, [isOpen, activeTab, turnstileSiteKey]);
+
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+
+  const removeTurnstileWidget = () => {
+    // @ts-ignore
+    if (window.turnstile && turnstileWidgetIdRef.current) {
+      // @ts-ignore
+      window.turnstile.remove(turnstileWidgetIdRef.current);
+      turnstileWidgetIdRef.current = null;
+    }
+  };
 
   useEffect(() => {
     let timer: any;
@@ -79,7 +146,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     try {
-        const options = {
+      const options = {
         pixelRatio: state.exportScale,
         quality: 0.95,
         cacheBust: true,
@@ -325,6 +392,92 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     }
   };
 
+  // Share the current design to the community gallery via the server-side proxy
+  const handleShare = async () => {
+    setShareError('');
+    setIsShareCopied(false);
+
+    if (!shareName.trim() || !sharePublisher.trim()) {
+      setShareError('Please fill in both Design Name and Publisher.');
+      return;
+    }
+    if (turnstileSiteKey && !turnstileToken) {
+      setShareError('Please complete the security check first.');
+      return;
+    }
+
+    setIsSharing(true);
+    setShareUrl('');
+
+    try {
+      const storeState = useStudioStore.getState();
+      const {
+        imageSrc,
+        secondImageSrc,
+        isPreviewMode,
+        isPlaying,
+        isPositionDragging,
+        shareId,
+        shareIdentifier,
+        ...rest
+      } = storeState;
+
+      // Stable session identifier: generated once, reused so the share URL never changes
+      const identifier =
+        shareIdentifier ||
+        (crypto.randomUUID && crypto.randomUUID()) ||
+        `share-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: shareName.trim(),
+          publisher: sharePublisher.trim(),
+          identifier: identifier,
+          json_string: JSON.stringify(rest),
+          turnstileToken,
+          entryId: shareId,
+        }),
+      });
+
+      const data = await res.json();
+      console.log('Share POST response:', data);
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to share design. Please try again.');
+      }
+
+      // Persist the CMS entry id so the next share PUTs instead of creating a duplicate
+      if (data.entryId) {
+        useStudioStore.getState().updateState({ shareId: data.entryId });
+      }
+      if (data.identifier) {
+        useStudioStore.getState().updateState({ shareIdentifier: data.identifier });
+      }
+
+      removeTurnstileWidget();
+      setShareUrl(data.url);
+    } catch (err) {
+      console.error('Share error:', err);
+      setShareError(
+        err instanceof Error ? err.message : 'Failed to share design. Please try again.'
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setIsShareCopied(true);
+      setTimeout(() => setIsShareCopied(false), 3000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
   return (
     <div
       onClick={onClose}
@@ -346,12 +499,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-100">
-                {activeTab === 'video' ? 'Export Video Animation' : 'Export High-Res Graphics'}
+                {activeTab === 'video'
+                  ? 'Export Video Animation'
+                  : activeTab === 'share'
+                    ? 'Share Your Design'
+                    : 'Export High-Res Graphics'}
               </h3>
               <p className="text-xs text-slate-400">
                 {activeTab === 'video'
                   ? 'Record 3D motion animation as video'
-                  : 'Select file format and scale multiplier'}
+                  : activeTab === 'share'
+                    ? 'Publish your design to the community'
+                    : 'Select file format and scale multiplier'}
               </p>
             </div>
           </div>
@@ -364,19 +523,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           </button>
         </div>
 
-        {/* Category Tabs Header: Image vs Video */}
-        {state.isAnimationMode && (
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-            <button
-              onClick={() => setActiveTab('image')}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === 'image'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Image Export
-            </button>
+        {/* Category Tabs Header: Image vs Video vs Share */}
+        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button
+            onClick={() => setActiveTab('image')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'image'
+                ? 'bg-slate-800 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Image01 className="w-3.5 h-3.5" />
+            <span>Image Export</span>
+          </button>
+          {state.isAnimationMode && (
             <button
               onClick={() => setActiveTab('video')}
               className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -388,11 +548,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               <Film01 className="w-3.5 h-3.5" />
               <span>Video Animation</span>
             </button>
-          </div>
-        )}
+          )}
+          <button
+            onClick={() => setActiveTab('share')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'share'
+                ? 'bg-slate-800 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Share01 className="w-3.5 h-3.5" />
+            <span>Share</span>
+          </button>
+        </div>
 
         {/* Tab 1: Image Export */}
-        {(!state.isAnimationMode || activeTab === 'image') && (
+        {activeTab === 'image' && (
           <>
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -657,6 +828,125 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 </a>
               )}
             </div>
+          </>
+        )}
+
+        {/* Tab 3: Share */}
+        {activeTab === 'share' && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Design Name
+                </label>
+                <input
+                  type="text"
+                  value={shareName}
+                  onChange={(e) => setShareName(e.target.value)}
+                  placeholder="e.g. Product Showoff"
+                  disabled={isSharing}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink disabled:opacity-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Publisher
+                </label>
+                <input
+                  type="text"
+                  value={sharePublisher}
+                  onChange={(e) => setSharePublisher(e.target.value)}
+                  placeholder="e.g. Studio Name"
+                  disabled={isSharing}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            {shareUrl ? (
+              <div className="pt-1 space-y-2.5">
+                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/40 rounded-xl px-3 py-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs text-emerald-300 font-semibold">
+                    Design shared successfully!
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Share URL
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shareUrl}
+                      onFocus={(e) => e.target.select()}
+                      className="flex-1 min-w-0 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-[11px] font-mono text-pastel-pink focus:outline-none focus:border-pastel-pink truncate"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyShareUrl}
+                      title="Copy share URL"
+                      className={`shrink-0 w-9 h-9 rounded-xl border transition-all flex items-center justify-center cursor-pointer ${
+                        isShareCopied
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                          : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      {isShareCopied ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy01 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-2 space-y-3">
+                {turnstileSiteKey && (
+                  <div
+                    ref={turnstileRef}
+                    className="flex items-center justify-center scale-95 origin-center"
+                  />
+                )}
+                {shareError && (
+                  <div className="text-[11px] text-rose-400 text-center font-medium">
+                    {shareError}
+                  </div>
+                )}
+                <button
+                  disabled={isSharing}
+                  onClick={handleShare}
+                  className={`w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm ${
+                    isSharing
+                      ? 'opacity-60 cursor-not-allowed'
+                      : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
+                  }`}
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                  }}
+                >
+                  {isSharing ? (
+                    <>
+                      <Loading01 className="w-4 h-4 text-slate-950 animate-spin" />
+                      <span>Sharing Design...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LinkExternal01 className="w-4 h-4 text-slate-950" />
+                      <span>Share Design</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-slate-500 text-center leading-snug">
+                  Sharing will publish your design to the community gallery. Your Name and Publisher
+                  appear on the shared design.
+                </p>
+              </div>
+            )}
           </>
         )}
 

@@ -292,6 +292,237 @@ const ShapePreview: React.FC<{
   }
 };
 
+interface TiltValues {
+  rotateX: number;
+  rotateY: number;
+  skewX: number;
+  skewY: number;
+  perspective: number;
+  rotation: number;
+}
+
+interface TiltHandlers {
+  onRotateX: (v: number) => void;
+  onRotateY: (v: number) => void;
+  onSkewX: (v: number) => void;
+  onSkewY: (v: number) => void;
+  onPerspective: (v: number) => void;
+  onRotation: (v: number) => void;
+}
+
+const TiltSliderGroup: React.FC<{
+  slotLabel?: string;
+  values: TiltValues;
+  handlers: TiltHandlers;
+  defaultCollapsed?: boolean;
+}> = ({ slotLabel, values, handlers, defaultCollapsed = false }) => {
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
+
+  const sliders = (
+    <div className="space-y-3">
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
+          <span className="font-mono text-slate-400">{values.rotateX}°</span>
+        </div>
+        <input
+          type="range"
+          min="-30"
+          max="30"
+          value={values.rotateX}
+          onChange={(e) => handlers.onRotateX(Number(e.target.value))}
+          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+        />
+      </div>
+
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
+          <span className="font-mono text-slate-400">{values.rotateY}°</span>
+        </div>
+        <input
+          type="range"
+          min="-30"
+          max="30"
+          value={values.rotateY}
+          onChange={(e) => handlers.onRotateY(Number(e.target.value))}
+          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium text-slate-300">Skew X</span>
+            <span className="font-mono text-slate-400">{values.skewX}°</span>
+          </div>
+          <input
+            type="range"
+            min="-60"
+            max="60"
+            value={values.skewX}
+            onChange={(e) => handlers.onSkewX(Number(e.target.value))}
+            className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          />
+        </div>
+
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium text-slate-300">Skew Y</span>
+            <span className="font-mono text-slate-400">{values.skewY}°</span>
+          </div>
+          <input
+            type="range"
+            min="-60"
+            max="60"
+            value={values.skewY}
+            onChange={(e) => handlers.onSkewY(Number(e.target.value))}
+            className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="font-medium text-slate-300">Perspective Depth</span>
+          <span className="font-mono text-slate-400">{values.perspective}px</span>
+        </div>
+        <input
+          type="range"
+          min="500"
+          max="2000"
+          step="50"
+          value={values.perspective}
+          onChange={(e) => handlers.onPerspective(Number(e.target.value))}
+          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+        />
+      </div>
+
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="font-medium text-slate-300">Rotation</span>
+          <span className="font-mono text-slate-400">{values.rotation}°</span>
+        </div>
+        <input
+          type="range"
+          min="-180"
+          max="180"
+          value={values.rotation}
+          onChange={(e) => handlers.onRotation(Number(e.target.value))}
+          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+
+  if (!slotLabel) return sliders;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen((p) => !p)}
+        className="w-full flex items-center gap-2 pt-1 cursor-pointer group"
+      >
+        <span className="text-[11px] font-bold uppercase tracking-wider text-pastel-pink">
+          {slotLabel}
+        </span>
+        <div className="flex-1 h-px bg-slate-800/70" />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+            isOpen ? 'rotate-180 text-pastel-pink' : ''
+          }`}
+        />
+      </button>
+      {isOpen && sliders}
+    </div>
+  );
+};
+
+interface PositionValues {
+  offsetX: number;
+  offsetY: number;
+}
+
+interface PositionHandlers {
+  onOffsetX: (v: number) => void;
+  onOffsetY: (v: number) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}
+
+const PositionSliderGroup: React.FC<{
+  slotLabel?: string;
+  values: PositionValues;
+  handlers: PositionHandlers;
+  defaultCollapsed?: boolean;
+}> = ({ slotLabel, values, handlers, defaultCollapsed = false }) => {
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
+
+  const sliders = (
+    <div className="space-y-3">
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="font-medium text-slate-300">Horizontal Offset</span>
+          <span className="font-mono text-slate-400">{values.offsetX}px</span>
+        </div>
+        <input
+          type="range"
+          min="-200"
+          max="200"
+          value={values.offsetX}
+          onChange={(e) => handlers.onOffsetX(Number(e.target.value))}
+          onPointerDown={handlers.onDragStart}
+          onPointerUp={handlers.onDragEnd}
+          onPointerCancel={handlers.onDragEnd}
+          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+        />
+      </div>
+
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="font-medium text-slate-300">Vertical Offset</span>
+          <span className="font-mono text-slate-400">{values.offsetY}px</span>
+        </div>
+        <input
+          type="range"
+          min="-200"
+          max="200"
+          value={values.offsetY}
+          onChange={(e) => handlers.onOffsetY(Number(e.target.value))}
+          onPointerDown={handlers.onDragStart}
+          onPointerUp={handlers.onDragEnd}
+          onPointerCancel={handlers.onDragEnd}
+          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+
+  if (!slotLabel) return sliders;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen((p) => !p)}
+        className="w-full flex items-center gap-2 pt-1 cursor-pointer group"
+      >
+        <span className="text-[11px] font-bold uppercase tracking-wider text-pastel-pink">
+          {slotLabel}
+        </span>
+        <div className="flex-1 h-px bg-slate-800/70" />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+            isOpen ? 'rotate-180 text-pastel-pink' : ''
+          }`}
+        />
+      </button>
+      {isOpen && sliders}
+    </div>
+  );
+};
+
 interface RightSidebarProps {
   mobileSection?:
     | 'perspective'
@@ -435,204 +666,108 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       {/* Tab 2: 3D Tilt & Rotation */}
       {activeTab === 'tilt' && (
         <div className="space-y-3.5 pt-1">
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
-              <span className="font-mono text-slate-400">{state.rotateX}°</span>
-            </div>
-            <input
-              type="range"
-              min="-30"
-              max="30"
-              value={state.rotateX}
-              onChange={(e) => onChange({ rotateX: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-              <span className="font-mono text-slate-400">{state.rotateY}°</span>
-            </div>
-            <input
-              type="range"
-              min="-30"
-              max="30"
-              value={state.rotateY}
-              onChange={(e) => onChange({ rotateY: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
-            />
-          </div>
-
-          {/* Skew X & Y */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Skew X</span>
-                <span className="font-mono text-slate-400">{state.skewX}°</span>
-              </div>
-              <input
-                type="range"
-                min="-60"
-                max="60"
-                value={state.skewX}
-                onChange={(e) => onChange({ skewX: Number(e.target.value) })}
-                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          {state.layoutCount === 2 ? (
+            <>
+              <TiltSliderGroup
+                slotLabel="Slot 1"
+                values={{
+                  rotateX: state.rotateX,
+                  rotateY: state.rotateY,
+                  skewX: state.skewX,
+                  skewY: state.skewY,
+                  perspective: state.perspective,
+                  rotation: state.slot1Rotate || 0,
+                }}
+                handlers={{
+                  onRotateX: (v) => onChange({ rotateX: v }),
+                  onRotateY: (v) => onChange({ rotateY: v }),
+                  onSkewX: (v) => onChange({ skewX: v }),
+                  onSkewY: (v) => onChange({ skewY: v }),
+                  onPerspective: (v) => onChange({ perspective: v }),
+                  onRotation: (v) => onChange({ slot1Rotate: v }),
+                }}
               />
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Skew Y</span>
-                <span className="font-mono text-slate-400">{state.skewY}°</span>
-              </div>
-              <input
-                type="range"
-                min="-60"
-                max="60"
-                value={state.skewY}
-                onChange={(e) => onChange({ skewY: Number(e.target.value) })}
-                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              <TiltSliderGroup
+                slotLabel="Slot 2"
+                defaultCollapsed
+                values={{
+                  rotateX: state.slot2RotateX ?? 0,
+                  rotateY: state.slot2RotateY ?? 0,
+                  skewX: state.slot2SkewX ?? 0,
+                  skewY: state.slot2SkewY ?? 0,
+                  perspective: state.slot2Perspective ?? 1000,
+                  rotation: state.slot2Rotate || 0,
+                }}
+                handlers={{
+                  onRotateX: (v) => onChange({ slot2RotateX: v }),
+                  onRotateY: (v) => onChange({ slot2RotateY: v }),
+                  onSkewX: (v) => onChange({ slot2SkewX: v }),
+                  onSkewY: (v) => onChange({ slot2SkewY: v }),
+                  onPerspective: (v) => onChange({ slot2Perspective: v }),
+                  onRotation: (v) => onChange({ slot2Rotate: v }),
+                }}
               />
-            </div>
-          </div>
-
-          {/* Slot 1 Rotation */}
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">
-                {state.layoutCount === 2 ? 'Rotation (Slot 1)' : 'Rotation'}
-              </span>
-              <span className="font-mono text-slate-400">{state.slot1Rotate || 0}°</span>
-            </div>
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              value={state.slot1Rotate || 0}
-              onChange={(e) => onChange({ slot1Rotate: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            </>
+          ) : (
+            <TiltSliderGroup
+              values={{
+                rotateX: state.rotateX,
+                rotateY: state.rotateY,
+                skewX: state.skewX,
+                skewY: state.skewY,
+                perspective: state.perspective,
+                rotation: state.slot1Rotate || 0,
+              }}
+              handlers={{
+                onRotateX: (v) => onChange({ rotateX: v }),
+                onRotateY: (v) => onChange({ rotateY: v }),
+                onSkewX: (v) => onChange({ skewX: v }),
+                onSkewY: (v) => onChange({ skewY: v }),
+                onPerspective: (v) => onChange({ perspective: v }),
+                onRotation: (v) => onChange({ slot1Rotate: v }),
+              }}
             />
-          </div>
-
-          {/* Slot 2 Rotation (Only if 2 images selected) */}
-          {state.layoutCount === 2 && (
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Rotation (Slot 2)</span>
-                <span className="font-mono text-slate-400">{state.slot2Rotate || 0}°</span>
-              </div>
-              <input
-                type="range"
-                min="-180"
-                max="180"
-                value={state.slot2Rotate || 0}
-                onChange={(e) => onChange({ slot2Rotate: Number(e.target.value) })}
-                className="w-full bg-slate-800 rounded-lg cursor-pointer"
-              />
-            </div>
           )}
-
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">Perspective Depth</span>
-              <span className="font-mono text-slate-400">{state.perspective}px</span>
-            </div>
-            <input
-              type="range"
-              min="500"
-              max="2000"
-              step="50"
-              value={state.perspective}
-              onChange={(e) => onChange({ perspective: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
-            />
-          </div>
         </div>
       )}
 
       {/* Tab 3: Position Offset & Alignment */}
       {activeTab === 'position' && (
         <div className="space-y-3.5 pt-1">
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">
-                {state.layoutCount === 2 ? 'Horizontal (Slot 1)' : 'Horizontal Offset'}
-              </span>
-              <span className="font-mono text-slate-400">{state.offsetX}px</span>
-            </div>
-            <input
-              type="range"
-              min="-200"
-              max="200"
-              value={state.offsetX}
-              onChange={(e) => onChange({ offsetX: Number(e.target.value) })}
-              onPointerDown={() => onChange({ isPositionDragging: true })}
-              onPointerUp={() => onChange({ isPositionDragging: false })}
-              onPointerCancel={() => onChange({ isPositionDragging: false })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          {state.layoutCount === 2 ? (
+            <>
+              <PositionSliderGroup
+                slotLabel="Slot 1"
+                values={{ offsetX: state.offsetX, offsetY: state.offsetY }}
+                handlers={{
+                  onOffsetX: (v) => onChange({ offsetX: v }),
+                  onOffsetY: (v) => onChange({ offsetY: v }),
+                  onDragStart: () => onChange({ isPositionDragging: true }),
+                  onDragEnd: () => onChange({ isPositionDragging: false }),
+                }}
+              />
+              <PositionSliderGroup
+                slotLabel="Slot 2"
+                defaultCollapsed
+                values={{ offsetX: state.slot2OffsetX, offsetY: state.slot2OffsetY }}
+                handlers={{
+                  onOffsetX: (v) => onChange({ slot2OffsetX: v }),
+                  onOffsetY: (v) => onChange({ slot2OffsetY: v }),
+                  onDragStart: () => onChange({ isPositionDragging: true }),
+                  onDragEnd: () => onChange({ isPositionDragging: false }),
+                }}
+              />
+            </>
+          ) : (
+            <PositionSliderGroup
+              values={{ offsetX: state.offsetX, offsetY: state.offsetY }}
+              handlers={{
+                onOffsetX: (v) => onChange({ offsetX: v }),
+                onOffsetY: (v) => onChange({ offsetY: v }),
+                onDragStart: () => onChange({ isPositionDragging: true }),
+                onDragEnd: () => onChange({ isPositionDragging: false }),
+              }}
             />
-          </div>
-
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium text-slate-300">
-                {state.layoutCount === 2 ? 'Vertical (Slot 1)' : 'Vertical Offset'}
-              </span>
-              <span className="font-mono text-slate-400">{state.offsetY}px</span>
-            </div>
-            <input
-              type="range"
-              min="-200"
-              max="200"
-              value={state.offsetY}
-              onChange={(e) => onChange({ offsetY: Number(e.target.value) })}
-              onPointerDown={() => onChange({ isPositionDragging: true })}
-              onPointerUp={() => onChange({ isPositionDragging: false })}
-              onPointerCancel={() => onChange({ isPositionDragging: false })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
-            />
-          </div>
-
-          {state.layoutCount === 2 && (
-            <div className="pt-2 border-t border-neutral-800/80 space-y-3">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-slate-300">Horizontal (Slot 2)</span>
-                  <span className="font-mono text-slate-400">{state.slot2OffsetX}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="-200"
-                  max="200"
-                  value={state.slot2OffsetX}
-                  onChange={(e) => onChange({ slot2OffsetX: Number(e.target.value) })}
-                  onPointerDown={() => onChange({ isPositionDragging: true })}
-                  onPointerUp={() => onChange({ isPositionDragging: false })}
-                  onPointerCancel={() => onChange({ isPositionDragging: false })}
-                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-slate-300">Vertical (Slot 2)</span>
-                  <span className="font-mono text-slate-400">{state.slot2OffsetY}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="-200"
-                  max="200"
-                  value={state.slot2OffsetY}
-                  onChange={(e) => onChange({ slot2OffsetY: Number(e.target.value) })}
-                  onPointerDown={() => onChange({ isPositionDragging: true })}
-                  onPointerUp={() => onChange({ isPositionDragging: false })}
-                  onPointerCancel={() => onChange({ isPositionDragging: false })}
-                  className="w-full bg-slate-800 rounded-lg cursor-pointer"
-                />
-              </div>
-            </div>
           )}
         </div>
       )}
@@ -2150,10 +2285,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       { id: 'ui', label: 'UI & Web' },
       { id: 'shapes', label: 'Shapes' },
       { id: 'arrows', label: 'Arrows' },
+      { id: 'brands', label: 'Brands' },
+      { id: 'social', label: 'Social' },
+      { id: 'maps', label: 'Maps' },
       { id: 'tech', label: 'Tech' },
       { id: 'media', label: 'Media' },
       { id: 'commerce', label: 'Commerce' },
-      { id: 'social', label: 'Social' },
     ];
 
     const phosphorIconItems: { id: string; label: string; category: string }[] = [
@@ -2299,6 +2436,61 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       { id: 'Trophy', label: 'Trophy', category: 'commerce' },
       { id: 'Bank', label: 'Bank', category: 'commerce' },
 
+      // Brands & Logos
+      { id: 'MetaLogo', label: 'Meta', category: 'brands' },
+      { id: 'OpenAiLogo', label: 'OpenAI', category: 'brands' },
+      { id: 'XLogo', label: 'X', category: 'brands' },
+      { id: 'ThreadsLogo', label: 'Threads', category: 'brands' },
+      { id: 'AmazonLogo', label: 'Amazon', category: 'brands' },
+      { id: 'AppStoreLogo', label: 'App Store', category: 'brands' },
+      { id: 'AngularLogo', label: 'Angular', category: 'brands' },
+      { id: 'GoogleChromeLogo', label: 'Chrome', category: 'brands' },
+      { id: 'CodaLogo', label: 'Coda', category: 'brands' },
+      { id: 'CodepenLogo', label: 'CodePen', category: 'brands' },
+      { id: 'CodesandboxLogo', label: 'CodeSandbox', category: 'brands' },
+      { id: 'DevToLogo', label: 'Dev.to', category: 'brands' },
+      { id: 'DropboxLogo', label: 'Dropbox', category: 'brands' },
+      { id: 'FediverseLogo', label: 'Fediverse', category: 'brands' },
+      { id: 'FramerLogo', label: 'Framer', category: 'brands' },
+      { id: 'GitlabLogo', label: 'GitLab', category: 'brands' },
+      { id: 'GitlabLogoSimple', label: 'GitLab Simple', category: 'brands' },
+      { id: 'GoodreadsLogo', label: 'Goodreads', category: 'brands' },
+      { id: 'GoogleDriveLogo', label: 'Google Drive', category: 'brands' },
+      { id: 'GooglePhotosLogo', label: 'Google Photos', category: 'brands' },
+      { id: 'GooglePlayLogo', label: 'Google Play', category: 'brands' },
+      { id: 'LastfmLogo', label: 'Last.fm', category: 'brands' },
+      { id: 'LinktreeLogo', label: 'Linktree', category: 'brands' },
+      { id: 'LinuxLogo', label: 'Linux', category: 'brands' },
+      { id: 'MarkdownLogo', label: 'Markdown', category: 'brands' },
+      { id: 'MastodonLogo', label: 'Mastodon', category: 'brands' },
+      { id: 'MatrixLogo', label: 'Matrix', category: 'brands' },
+      { id: 'MessengerLogo', label: 'Messenger', category: 'brands' },
+      { id: 'MicrosoftExcelLogo', label: 'MS Excel', category: 'brands' },
+      { id: 'MicrosoftOutlookLogo', label: 'MS Outlook', category: 'brands' },
+      { id: 'MicrosoftPowerpointLogo', label: 'MS PowerPoint', category: 'brands' },
+      { id: 'MicrosoftTeamsLogo', label: 'MS Teams', category: 'brands' },
+      { id: 'MicrosoftWordLogo', label: 'MS Word', category: 'brands' },
+      { id: 'NotionLogo', label: 'Notion', category: 'brands' },
+      { id: 'NyTimesLogo', label: 'NY Times', category: 'brands' },
+      { id: 'PatreonLogo', label: 'Patreon', category: 'brands' },
+      { id: 'PaypalLogo', label: 'PayPal', category: 'brands' },
+      { id: 'PhosphorLogo', label: 'Phosphor', category: 'brands' },
+      { id: 'PixLogo', label: 'Pix', category: 'brands' },
+      { id: 'ReadCvLogo', label: 'Read.cv', category: 'brands' },
+      { id: 'ReplitLogo', label: 'Replit', category: 'brands' },
+      { id: 'SketchLogo', label: 'Sketch', category: 'brands' },
+      { id: 'SkypeLogo', label: 'Skype', category: 'brands' },
+      { id: 'SoundcloudLogo', label: 'SoundCloud', category: 'brands' },
+      { id: 'SquareLogo', label: 'Square', category: 'brands' },
+      { id: 'StackOverflowLogo', label: 'Stack Overflow', category: 'brands' },
+      { id: 'SteamLogo', label: 'Steam', category: 'brands' },
+      { id: 'StripeLogo', label: 'Stripe', category: 'brands' },
+      { id: 'TidalLogo', label: 'Tidal', category: 'brands' },
+      { id: 'TumblrLogo', label: 'Tumblr', category: 'brands' },
+      { id: 'WebhooksLogo', label: 'Webhooks', category: 'brands' },
+      { id: 'WechatLogo', label: 'WeChat', category: 'brands' },
+      { id: 'WindowsLogo', label: 'Windows', category: 'brands' },
+
       // Social, Brands & Chat
       { id: 'TwitterLogo', label: 'X / Twitter', category: 'social' },
       { id: 'InstagramLogo', label: 'Instagram', category: 'social' },
@@ -2330,6 +2522,17 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       { id: 'User', label: 'User', category: 'social' },
       { id: 'Users', label: 'Users', category: 'social' },
       { id: 'Globe', label: 'Globe', category: 'social' },
+
+      // Maps & Location
+      { id: 'MapTrifold', label: 'Map', category: 'maps' },
+      { id: 'MapPin', label: 'Map Pin', category: 'maps' },
+      { id: 'MapPinArea', label: 'Map Pin Area', category: 'maps' },
+      { id: 'MapPinLine', label: 'Map Pin Line', category: 'maps' },
+      { id: 'MapPinPlus', label: 'Map Pin Plus', category: 'maps' },
+      { id: 'MapPinSimple', label: 'Map Pin Simple', category: 'maps' },
+      { id: 'MapPinSimpleArea', label: 'Pin Area', category: 'maps' },
+      { id: 'MapPinSimpleLine', label: 'Pin Line', category: 'maps' },
+      { id: 'NavigationArrow', label: 'Navigation', category: 'maps' },
     ];
 
     const filteredItems = phosphorIconItems.filter((item) => {

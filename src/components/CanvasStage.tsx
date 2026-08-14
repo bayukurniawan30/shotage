@@ -28,6 +28,25 @@ interface CanvasStageProps {
   onImageUpload?: (file: File) => void;
 }
 
+// Generate a data-URI SVG placeholder at the exact dimensions of the missing
+// screenshot, so it occupies the same footprint the real image would.
+const buildPlaceholderSrc = (width: number, height: number): string => {
+  const s = Math.max(2, Math.round(Math.min(width, height) / 90));
+  const cx = width / 2;
+  const cy = height / 2;
+  const iconSize = s * 10;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    `<rect width="100%" height="100%" fill="#1e293b"/>` +
+    `<rect x="${width * 0.04}" y="${height * 0.04}" width="${width * 0.92}" height="${height * 0.92}" fill="none" stroke="#334155" stroke-width="${s}" stroke-dasharray="${s * 3} ${s * 2}" rx="${s * 2}"/>` +
+    `<g transform="translate(${cx - iconSize / 2}, ${cy - iconSize / 2})" fill="none" stroke="#64748b" stroke-width="${Math.max(1, s * 0.6)}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<rect x="0" y="0" width="${iconSize}" height="${iconSize}" rx="${s * 2}"/>` +
+    `<circle cx="${iconSize * 0.3}" cy="${iconSize * 0.3}" r="${s}"/>` +
+    `<path d="M0 ${iconSize * 0.7} L${iconSize * 0.28} ${iconSize * 0.42} L${iconSize * 0.45} ${iconSize * 0.6} L${iconSize * 0.62} ${iconSize * 0.38} L${iconSize} ${iconSize * 0.7}"/>` +
+    `</g></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
 export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUpload }) => {
   const state = useStudioStore();
 
@@ -52,7 +71,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       case 'ig-story':
         return isDual ? 'aspect-[9/16] w-[450px]' : 'aspect-[9/16] w-[450px]';
       case '4:3':
-        return isDual ? 'aspect-[4/3] w-[870px]' : 'aspect-[4/3] w-[565px]';
+        return isDual ? 'aspect-[4/3] w-[870px]' : 'aspect-[4/3] w-[760px]';
       case '3:2':
         return isDual ? 'aspect-[3/2] w-[900px]' : 'aspect-[3/2] w-[585px]';
       case '5:4':
@@ -63,7 +82,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       case 'ig-portrait':
         return isDual ? 'aspect-[4/5] w-[468px]' : 'aspect-[4/5] w-[468px]';
       case 'auto':
-        return 'w-auto h-auto min-h-[390px]';
+        return isDual
+          ? 'w-auto h-auto min-h-[900px] min-w-[1560px]'
+          : 'w-auto h-auto min-h-[700px] min-w-[1200px]';
       case 'custom':
         return '';
       default:
@@ -217,9 +238,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const animTransform = getAnimatedTransforms();
 
-  // 3D Perspective & Tilt transform matrix for the stage
+  // Per-slot tilt values. Slot 1 reuses the shared rotateX/rotateY/skew/perspective.
+  // Slot 2 defaults fall back to slot 1's values for old designs that lack the keys.
+  const animRX = animTransform.rotateX;
+  const animRY = animTransform.rotateY;
+  const slot2RotateX = state.slot2RotateX ?? state.rotateX;
+  const slot2RotateY = state.slot2RotateY ?? state.rotateY;
+  const slot2SkewX = state.slot2SkewX ?? state.skewX;
+  const slot2SkewY = state.slot2SkewY ?? state.skewY;
+  const slot2Perspective = state.slot2Perspective ?? state.perspective;
+  const slot2RX = state.isAnimationMode ? animRX : slot2RotateX;
+  const slot2RY = state.isAnimationMode ? animRY : slot2RotateY;
+
+  // 3D Perspective & Tilt is applied per mockup (slot), so the stage itself stays flat
   const transformStyle: React.CSSProperties = {
-    transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) skewX(${state.skewX}deg) skewY(${state.skewY}deg)`,
+    transform: 'none',
     transformStyle: 'preserve-3d',
     transition: state.isPlaying ? 'none' : 'transform 0.15s ease-out',
   };
@@ -649,6 +682,35 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       });
   };
 
+  const canvasAspectRatio = (() => {
+    switch (state.aspectRatio) {
+      case '16:9':
+      case 'yt-banner':
+      case 'yt-thumbnail':
+      case 'yt-video':
+        return '16 / 9';
+      case '1:1':
+      case 'ig-post':
+        return '1 / 1';
+      case '4:3':
+        return '4 / 3';
+      case '3:2':
+        return '3 / 2';
+      case '5:4':
+        return '5 / 4';
+      case '4:5':
+      case 'ig-portrait':
+        return '4 / 5';
+      case '3:4':
+        return '3 / 4';
+      case '9:16':
+      case 'ig-story':
+        return '9 / 16';
+      default:
+        return '16 / 10';
+    }
+  })();
+
   const renderSingleFrame = (
     imgSrc: string | null,
     imgName: string,
@@ -667,76 +729,98 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
     };
 
-    const content = imgSrc ? (
-      <div className="relative group overflow-hidden w-full h-full flex items-center justify-center">
-        <img
-          src={imgSrc}
-          alt={imgName}
-          className={`w-full h-full object-cover block transition-all group-hover:brightness-75 ${
-            isFrameless ? '' : 'rounded-none'
-          }`}
-          style={imageStyle}
-        />
-        <label className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center text-white cursor-pointer z-10">
-          <div className="w-10 h-10 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-1 group-hover:scale-110 transition-transform pointer-events-none">
-            <ImageUp className="w-5 h-5 text-brand-400 pointer-events-none" />
-          </div>
-          <span className="text-[11px] font-semibold tracking-wide text-slate-100 drop-shadow-md pointer-events-none">
-            Replace Slot {slotIndex}
-          </span>
-          <input type="file" accept="image/*" onChange={slotFileChange} className="hidden" />
-        </label>
-      </div>
-    ) : (
-      <label
-        className={`${
-          state.layoutCount === 2 ? 'w-[320px] p-4' : 'w-[480px] p-6'
-        } max-w-full aspect-[16/10] bg-slate-800/80 border-2 border-dashed border-slate-600 flex flex-col items-center justify-center text-center shadow-xl cursor-pointer hover:border-pastel-pink transition-all group ${
-          isFrameless ? 'rounded-xl' : 'rounded-none'
-        }`}
-        style={imageStyle}
-      >
-        <div
-          className={`${
-            state.layoutCount === 2 ? 'w-8 h-8 mb-1.5' : 'w-11 h-11 mb-2.5'
-          } rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:scale-105 transition-transform`}
-        >
-          <svg
-            className={`${state.layoutCount === 2 ? 'w-4 h-4' : 'w-6 h-6'} text-pastel-pink`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
+    const slotWidth = slotIndex === 2 ? state.secondImageWidth : state.imageWidth;
+    const slotHeight = slotIndex === 2 ? state.secondImageHeight : state.imageHeight;
+    const placeholderSrc =
+      slotWidth && slotHeight ? buildPlaceholderSrc(slotWidth, slotHeight) : null;
+
+    // Empty-state drop zone: match the canvas ratio (frameless) so it fills the canvas instead
+    // of a small 16:10 strip. Fitted with max-h-full so it never overflows the padded area.
+    const placeholderAspect =
+      slotIndex === 2
+        ? state.secondImageWidth && state.secondImageHeight
+          ? `${state.secondImageWidth} / ${state.secondImageHeight}`
+          : isFrameless
+            ? canvasAspectRatio
+            : '16 / 10'
+        : state.imageWidth && state.imageHeight
+          ? `${state.imageWidth} / ${state.imageHeight}`
+          : isFrameless
+            ? canvasAspectRatio
+            : '16 / 10';
+
+    const content =
+      imgSrc || placeholderSrc ? (
+        <div className="@container relative group overflow-hidden w-full h-full flex items-center justify-center">
+          <img
+            src={imgSrc || placeholderSrc!}
+            alt={imgName || 'Screenshot'}
+            className={`w-full h-full object-cover block transition-all group-hover:brightness-75 ${
+              isFrameless ? '' : 'rounded-none'
+            }`}
+            style={imageStyle}
+          />
+          <label className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center text-white cursor-pointer z-10 p-3">
+            <div className="w-[12cqmin] h-[12cqmin] min-w-[28px] min-h-[28px] max-w-[80px] max-h-[80px] rounded-[16%] bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-[1.5cqmin] group-hover:scale-110 transition-transform pointer-events-none">
+              <ImageUp className="w-[50%] h-[50%] text-brand-400 pointer-events-none" />
+            </div>
+            <span className="text-[clamp(10px,2.8cqmin,18px)] font-bold tracking-wide text-slate-100 drop-shadow-lg pointer-events-none text-center px-2 truncate max-w-full">
+              {imgSrc ? `Replace Slot ${slotIndex}` : `Add Screenshot ${slotIndex}`}
+            </span>
+            <input type="file" accept="image/*" onChange={slotFileChange} className="hidden" />
+          </label>
         </div>
-        <p
-          className={`${state.layoutCount === 2 ? 'text-xs' : 'text-sm'} font-bold text-slate-100`}
+      ) : (
+        <label
+          className={`@container w-full p-6 bg-slate-800/80 border-2 border-dashed border-slate-600 flex flex-col items-center justify-center text-center shadow-xl cursor-pointer hover:border-pastel-pink transition-all group ${
+            isFrameless ? 'rounded-xl' : 'rounded-none'
+          }`}
+          style={{
+            ...imageStyle,
+            aspectRatio: placeholderAspect,
+            minWidth: state.layoutCount === 2 ? '480px' : '420px',
+            minHeight: state.layoutCount === 2 ? '280px' : '240px',
+          }}
         >
-          Upload Slot {slotIndex}
-        </p>
-        <p
-          className={`${state.layoutCount === 2 ? 'text-[10px]' : 'text-[11px]'} text-slate-400 mt-0.5`}
-        >
-          Click or drop image
-        </p>
-        <input
-          type="file"
-          accept={
-            state.mediaType === 'video'
-              ? 'video/mp4,video/webm,video/quicktime,video/ogg'
-              : 'image/*'
-          }
-          onChange={slotFileChange}
-          className="hidden"
-        />
-      </label>
-    );
+          <div
+            className={`${state.layoutCount === 2 ? 'w-[22cqmin] h-[22cqmin] min-w-[56px] min-h-[56px] max-w-[200px] max-h-[200px]' : 'w-[14cqmin] h-[14cqmin] min-w-[40px] min-h-[40px] max-w-[120px] max-h-[120px]'} mb-[3cqmin] rounded-[22%] bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:scale-105 transition-transform`}
+          >
+            <svg
+              className="w-[55%] h-[55%] text-pastel-pink"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.75}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <p
+            className={`${state.layoutCount === 2 ? 'text-[clamp(14px,6cqmin,40px)]' : 'text-[clamp(12px,4cqmin,26px)]'} font-bold text-slate-100 tracking-tight`}
+          >
+            Upload Slot {slotIndex}
+          </p>
+          <p
+            className={`${state.layoutCount === 2 ? 'text-[clamp(10px,3.5cqmin,24px)]' : 'text-[clamp(10px,2.5cqmin,16px)]'} text-slate-400 mt-[1.5cqmin] font-semibold`}
+          >
+            Click or drop image
+          </p>
+          <input
+            type="file"
+            accept={
+              state.mediaType === 'video'
+                ? 'video/mp4,video/webm,video/quicktime,video/ogg'
+                : 'image/*'
+            }
+            onChange={slotFileChange}
+            className="hidden"
+          />
+        </label>
+      );
 
     let frameElement: React.ReactNode;
     if (state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') {
@@ -932,7 +1016,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
-          useStudioStore.getState().setSecondImage(e.target.result as string, file.name);
+          const src = e.target.result as string;
+          const img = new Image();
+          img.onload = () => {
+            useStudioStore
+              .getState()
+              .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight);
+          };
+          img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name);
+          img.src = src;
         }
       };
       reader.readAsDataURL(file);
@@ -950,7 +1042,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className="transition-all duration-200"
         style={{
-          transform: `scale(${state.isAnimationMode ? animTransform.zoom / 100 : state.zoom / 100}) translate(${state.isAnimationMode ? animTransform.offsetX : state.offsetX}px, ${state.isAnimationMode ? animTransform.offsetY : state.offsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot1Rotate ?? 0) : state.slot1Rotate || 0}deg)`,
+          transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) skewX(${state.skewX}deg) skewY(${state.skewY}deg) scale(${state.isAnimationMode ? animTransform.zoom / 100 : state.zoom / 100}) translate(${state.isAnimationMode ? animTransform.offsetX : state.offsetX}px, ${state.isAnimationMode ? animTransform.offsetY : state.offsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot1Rotate ?? 0) : state.slot1Rotate || 0}deg)`,
+          transformStyle: 'preserve-3d',
         }}
       >
         {firstFrame}
@@ -961,7 +1054,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       <div
         className="transition-all duration-200"
         style={{
-          transform: `scale(${state.isAnimationMode ? animTransform.slot2Zoom / 100 : state.slot2Zoom / 100}) translate(${state.isAnimationMode ? animTransform.slot2OffsetX : state.slot2OffsetX}px, ${state.isAnimationMode ? animTransform.slot2OffsetY : state.slot2OffsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot2Rotate ?? 0) : state.slot2Rotate || 0}deg)`,
+          transform: `perspective(${slot2Perspective}px) rotateX(${slot2RX}deg) rotateY(${slot2RY}deg) skewX(${slot2SkewX}deg) skewY(${slot2SkewY}deg) scale(${state.isAnimationMode ? animTransform.slot2Zoom / 100 : state.slot2Zoom / 100}) translate(${state.isAnimationMode ? animTransform.slot2OffsetX : state.slot2OffsetX}px, ${state.isAnimationMode ? animTransform.slot2OffsetY : state.slot2OffsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot2Rotate ?? 0) : state.slot2Rotate || 0}deg)`,
+          transformStyle: 'preserve-3d',
         }}
       >
         {secondFrame}
@@ -1022,8 +1116,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const isPortrait = ['9:16', '3:4', '4:5', 'ig-story', 'ig-portrait'].includes(
       state.aspectRatio
     );
-    const baseScale = state.layoutCount === 2 ? (isPortrait ? 0.65 : 1) : 0.95;
-    const paddingScale = Math.max(0.2, baseScale - (state.padding * 0.6) / 300);
+    const baseScale = state.layoutCount === 2 ? (isPortrait ? 0.65 : 1) : 1.0;
+    const paddingScale = Math.max(0.2, baseScale - (state.padding * 0.5) / 300);
 
     return (
       <div
@@ -1131,6 +1225,57 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   useEffect(() => {
     setPan({ x: 0, y: 0 });
   }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
+
+  // Auto-fit canvas zoom when aspect ratio changes
+  useEffect(() => {
+    // Canvas intrinsic width/height derived from getAspectRatioStyle (mirrors that function's logic)
+    const ar = state.aspectRatio;
+    const isDual = state.layoutCount === 2;
+    let intrinsicW = 832;
+    let intrinsicH = 832 * (9 / 16);
+
+    if (ar === '1:1' || ar === 'ig-post') {
+      intrinsicW = isDual ? 630 : 520; intrinsicH = intrinsicW;
+    } else if (ar === '9:16' || ar === 'ig-story') {
+      intrinsicW = 450; intrinsicH = 450 * (16 / 9);
+    } else if (ar === '4:3') {
+      intrinsicW = isDual ? 870 : 760; intrinsicH = intrinsicW * (3 / 4);
+    } else if (ar === '3:2') {
+      intrinsicW = isDual ? 900 : 585; intrinsicH = intrinsicW * (2 / 3);
+    } else if (ar === '5:4') {
+      intrinsicW = isDual ? 810 : 526; intrinsicH = intrinsicW * (4 / 5);
+    } else if (ar === '3:4') {
+      intrinsicW = isDual ? 428 : 428; intrinsicH = intrinsicW * (4 / 3);
+    } else if (ar === '4:5' || ar === 'ig-portrait') {
+      intrinsicW = isDual ? 468 : 468; intrinsicH = intrinsicW * (5 / 4);
+    } else if (ar === 'auto') {
+      intrinsicW = isDual ? 1560 : 1200; intrinsicH = isDual ? 900 : 700;
+    } else if (ar === 'custom') {
+      intrinsicW = (state.customWidth || 1280) * 0.45;
+      intrinsicH = (state.customHeight || 720) * 0.45;
+    } else {
+      // 16:9 and yt-* variants
+      intrinsicW = isDual ? 960 : 832; intrinsicH = intrinsicW * (9 / 16);
+    }
+
+    const containerEl = canvasRef.current?.closest('.absolute.inset-0') as HTMLElement | null
+      || canvasRef.current?.parentElement?.parentElement as HTMLElement | null;
+
+    // Fallback to window dimensions minus sidebar widths (~640px combined)
+    const containerW = containerEl ? containerEl.clientWidth : window.innerWidth - 640;
+    const containerH = containerEl ? containerEl.clientHeight : window.innerHeight - 120;
+
+    const padding = 96; // 6rem each side
+    const availW = containerW - padding;
+    const availH = containerH - padding;
+
+    const scaleW = availW / intrinsicW;
+    const scaleH = availH / intrinsicH;
+    const fitScale = Math.min(scaleW, scaleH, 1.0); // never zoom above 100%
+    const clampedZoom = Math.max(25, Math.min(100, Math.round(fitScale * 100)));
+
+    state.updateState({ previewCanvasZoom: clampedZoom });
+  }, [state.aspectRatio, state.layoutCount]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
@@ -1691,7 +1836,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`w-full h-full max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
+      className={`absolute inset-0 max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
         rotateDragItem || resizeDragItem || groupDrag || dragItem
           ? 'cursor-move select-none'
           : isPanning

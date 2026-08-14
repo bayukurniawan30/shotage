@@ -125,7 +125,6 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
       samsungStatusBar: 'none',
       iphoneStatusBar: 'none',
       urlText: 'shotage.studio',
-      secondUrlText: 'shotage.app/demo',
       backgroundType: 'linearSwatches',
       linearSwatchesPreset: 'ls-2',
       backgroundColor: '#0f172a',
