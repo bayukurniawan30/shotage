@@ -150,7 +150,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                 Browse Templates
               </div>
               <div className="text-[10px] text-slate-400 font-medium">
-                Presets for Product, Desktop & Mobile
+                Presets for Product, Social Media, Desktop & Mobile
               </div>
             </div>
           </div>
@@ -217,6 +217,47 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                           ) : null}
                         </div>
                         <div className="text-xs font-bold text-slate-200 group-hover:text-pastel-pink transition-colors">
+                          {tmpl.title}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          {tmpl.desc}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Social Media Category */}
+                <div>
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-xs font-bold text-pastel-pinkLight uppercase tracking-wider">
+                      Social Media
+                    </h3>
+                    <span className="text-[10px] text-slate-400">
+                      {TEMPLATE_PRESETS.filter((t) => t.category === 'social').length} Presets
+                    </span>
+                  </div>
+                  <div className="flex gap-3 sm:gap-4 overflow-x-auto p-2 sm:p-3 scrollbar-thin scrollbar-thumb-neutral-800">
+                    {TEMPLATE_PRESETS.filter((t) => t.category === 'social').map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        onClick={() => {
+                          onChange(tmpl.state);
+                          setIsTemplateModalOpen(false);
+                        }}
+                        className="group shrink-0 w-44 sm:w-52 bg-neutral-950 border border-neutral-800 hover:border-pastel-pinkLight/50 rounded-xl p-2.5 sm:p-3 cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        {/* Box Placeholder for Image */}
+                        <div className="w-full h-24 sm:h-28 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 border border-neutral-800 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5 group-hover:border-pastel-pinkLight/30 transition-all overflow-hidden">
+                          {tmpl.thumbnail ? (
+                            <img
+                              src={tmpl.thumbnail}
+                              alt={tmpl.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="text-xs font-bold text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
                           {tmpl.title}
                         </div>
                         <div className="text-[10px] text-slate-400 truncate mt-0.5">
