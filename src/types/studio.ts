@@ -344,6 +344,8 @@ export interface StudioState {
   // Stage Manager State
   stages?: Partial<StudioState>[];
   activeStageIndex: number;
+  // Global layer stack order (index 0 = topmost / highest z-index, Photoshop-style)
+  layerOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[];
   resetKey: number;
 }
 
@@ -474,5 +476,6 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   },
   activeStageIndex: 0,
   stages: [],
+  layerOrder: [],
   resetKey: 0,
 };

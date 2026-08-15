@@ -257,6 +257,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     transition: state.isPlaying ? 'none' : 'transform 0.15s ease-out',
   };
 
+  // Compute z-index for a layer based on its position in layerOrder.
+  // order[0] = topmost = highest z-index. Falls back gracefully for legacy designs.
+  const getLayerZIndex = (type: 'text' | 'phosphor' | 'element' | 'shape', id: string): number => {
+    const order = state.layerOrder || [];
+    if (order.length === 0) return 10; // legacy: no layerOrder, use static value
+    const idx = order.findIndex((e) => e.type === type && e.id === id);
+    if (idx === -1) return 10; // not in order yet, fallback
+    return order.length - idx + 10; // higher index in array = lower z-index
+  };
+
   const renderTextLayers = (positionFilter: 'above' | 'underneath') => {
     return state.textLayers
       .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
@@ -278,14 +288,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectTextLayer(layer.id);
               }
             }}
-            className={`text-layer-item absolute cursor-pointer select-none rounded-sm ${
-              positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`text-layer-item absolute cursor-pointer select-none rounded-sm ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected
                 ? 'ring-2 ring-pastel-blue ring-offset-2 ring-offset-neutral-950/40'
                 : 'hover:outline-1 hover:outline-dashed hover:outline-slate-400'
             }`}
             style={{
+              zIndex: getLayerZIndex('text', layer.id),
               transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
@@ -429,12 +438,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectPhosphorIconLayer(layer.id);
               }
             }}
-            className={`phosphor-icon-layer-item absolute cursor-pointer select-none transition-all ${roundedClass} ${
-              positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`phosphor-icon-layer-item absolute cursor-pointer select-none transition-all ${roundedClass} ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
+              zIndex: getLayerZIndex('phosphor', layer.id),
               transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation || 0}deg)`,
               opacity: (layer.opacity ?? 100) / 100,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
@@ -501,12 +509,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectCanvasElement(el.id);
               }
             }}
-            className={`canvas-element-item absolute cursor-pointer select-none transition-all rounded-lg ${
-              positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`canvas-element-item absolute cursor-pointer select-none transition-all rounded-lg ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
+              zIndex: getLayerZIndex('element', el.id),
               transform: `translate(${el.x}px, ${el.y}px) rotate(${el.rotation || 0}deg) scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
               opacity: (el.opacity ?? 100) / 100,
               filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
@@ -619,12 +626,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectShapeLayer(layer.id);
               }
             }}
-            className={`shape-layer-item absolute cursor-pointer select-none transition-all ${
-              positionFilter === 'underneath' ? 'z-0' : 'z-30'
-            } ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`shape-layer-item absolute cursor-pointer select-none transition-all ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
+              zIndex: getLayerZIndex('shape', layer.id),
               transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
               transformStyle: 'preserve-3d',
               opacity: (layer.opacity ?? 100) / 100,

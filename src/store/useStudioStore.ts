@@ -50,6 +50,7 @@ interface StudioStore extends StudioState {
   duplicateShapeLayer: (id: string) => void;
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
+  reorderLayers: (newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]) => void;
   alignCanvasElements: (align: 'left' | 'center' | 'right', canvasWidth: number) => void;
   selectStage: (index: number) => void;
   addStage: () => void;
@@ -418,6 +419,7 @@ export const useStudioStore = create<StudioStore>()(
             textLayers: [...state.textLayers, newLayer],
             selectedTextLayerId: newLayer.id,
             selectedTextLayerIds: [newLayer.id],
+            layerOrder: [{ type: 'text', id: newLayer.id }, ...(state.layerOrder || [])],
           };
         }),
       addSocialLayer: (platform, handle) =>
@@ -454,6 +456,7 @@ export const useStudioStore = create<StudioStore>()(
             textLayers: [...state.textLayers, newLayer],
             selectedTextLayerId: newLayer.id,
             selectedTextLayerIds: [newLayer.id],
+            layerOrder: [{ type: 'text', id: newLayer.id }, ...(state.layerOrder || [])],
           };
         }),
       updateTextLayer: (id, updates) =>
@@ -465,6 +468,7 @@ export const useStudioStore = create<StudioStore>()(
           textLayers: state.textLayers.filter((l) => l.id !== id),
           selectedTextLayerId: state.selectedTextLayerId === id ? null : state.selectedTextLayerId,
           selectedTextLayerIds: (state.selectedTextLayerIds || []).filter((i) => i !== id),
+          layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'text' && e.id === id)),
         })),
       duplicateTextLayer: (id) =>
         set((state) => {
@@ -476,10 +480,14 @@ export const useStudioStore = create<StudioStore>()(
             text: `${layerToDup.text} (Copy)`,
             y: layerToDup.y + 20,
           };
+          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'text' && e.id === id);
+          const newOrder = [...(state.layerOrder || [])];
+          newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'text', id: dup.id });
           return {
             textLayers: [...state.textLayers, dup],
             selectedTextLayerId: dup.id,
             selectedTextLayerIds: [dup.id],
+            layerOrder: newOrder,
           };
         }),
       selectTextLayer: (id) =>
@@ -520,6 +528,7 @@ export const useStudioStore = create<StudioStore>()(
             phosphorIconLayers: [...(state.phosphorIconLayers || []), newLayer],
             selectedPhosphorIconLayerId: newLayer.id,
             selectedPhosphorIconLayerIds: [newLayer.id],
+            layerOrder: [{ type: 'phosphor', id: newLayer.id }, ...(state.layerOrder || [])],
           };
         }),
       updatePhosphorIconLayer: (id, updates) =>
@@ -536,6 +545,7 @@ export const useStudioStore = create<StudioStore>()(
           selectedPhosphorIconLayerIds: (state.selectedPhosphorIconLayerIds || []).filter(
             (i) => i !== id
           ),
+          layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'phosphor' && e.id === id)),
         })),
       duplicatePhosphorIconLayer: (id) =>
         set((state) => {
@@ -547,10 +557,14 @@ export const useStudioStore = create<StudioStore>()(
             x: layerToDup.x + 20,
             y: layerToDup.y + 20,
           };
+          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'phosphor' && e.id === id);
+          const newOrder = [...(state.layerOrder || [])];
+          newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'phosphor', id: dup.id });
           return {
             phosphorIconLayers: [...(state.phosphorIconLayers || []), dup],
             selectedPhosphorIconLayerId: dup.id,
             selectedPhosphorIconLayerIds: [dup.id],
+            layerOrder: newOrder,
           };
         }),
       selectPhosphorIconLayer: (id) =>
@@ -592,6 +606,7 @@ export const useStudioStore = create<StudioStore>()(
             canvasElements: [...(state.canvasElements || []), newEl],
             selectedElementId: newEl.id,
             selectedElementIds: [newEl.id],
+            layerOrder: [{ type: 'element', id: newEl.id }, ...(state.layerOrder || [])],
           };
         }),
       updateCanvasElement: (id, updates) =>
@@ -605,6 +620,7 @@ export const useStudioStore = create<StudioStore>()(
           canvasElements: (state.canvasElements || []).filter((el) => el.id !== id),
           selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
           selectedElementIds: (state.selectedElementIds || []).filter((i) => i !== id),
+          layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'element' && e.id === id)),
         })),
       duplicateCanvasElement: (id) =>
         set((state) => {
@@ -616,10 +632,14 @@ export const useStudioStore = create<StudioStore>()(
             x: elToDup.x + 20,
             y: elToDup.y + 20,
           };
+          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'element' && e.id === id);
+          const newOrder = [...(state.layerOrder || [])];
+          newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'element', id: dup.id });
           return {
             canvasElements: [...(state.canvasElements || []), dup],
             selectedElementId: dup.id,
             selectedElementIds: [dup.id],
+            layerOrder: newOrder,
           };
         }),
       selectCanvasElement: (id) =>
@@ -672,6 +692,7 @@ export const useStudioStore = create<StudioStore>()(
             shapeLayers: [...(state.shapeLayers || []), newShape],
             selectedShapeId: newShape.id,
             selectedShapeIds: [newShape.id],
+            layerOrder: [{ type: 'shape', id: newShape.id }, ...(state.layerOrder || [])],
           };
         }),
       updateShapeLayer: (id, updates) =>
@@ -685,6 +706,7 @@ export const useStudioStore = create<StudioStore>()(
           shapeLayers: (state.shapeLayers || []).filter((s) => s.id !== id),
           selectedShapeId: state.selectedShapeId === id ? null : state.selectedShapeId,
           selectedShapeIds: (state.selectedShapeIds || []).filter((i) => i !== id),
+          layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'shape' && e.id === id)),
         })),
       duplicateShapeLayer: (id) =>
         set((state) => {
@@ -696,10 +718,14 @@ export const useStudioStore = create<StudioStore>()(
             x: shapeToDup.x + 20,
             y: shapeToDup.y + 20,
           };
+          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'shape' && e.id === id);
+          const newOrder = [...(state.layerOrder || [])];
+          newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'shape', id: dup.id });
           return {
             shapeLayers: [...(state.shapeLayers || []), dup],
             selectedShapeId: dup.id,
             selectedShapeIds: [dup.id],
+            layerOrder: newOrder,
           };
         }),
       selectShapeLayer: (id) =>
@@ -717,6 +743,7 @@ export const useStudioStore = create<StudioStore>()(
             selectedShapeId: nextIds.length ? id : null,
           };
         }),
+      reorderLayers: (newOrder) => set(() => ({ layerOrder: newOrder })),
       alignCanvasElements: (align, canvasWidth) =>
         set((state) => {
           const measureTextWidth = (
