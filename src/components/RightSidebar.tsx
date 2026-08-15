@@ -5155,10 +5155,15 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
       if (srcGlobalIdx === -1 || tgtGlobalIdx === -1) return;
 
-      // Remove src and re-insert before target
+      // Detect drag direction before mutating the array
+      const isDraggingDown = srcGlobalIdx < tgtGlobalIdx;
+
+      // Remove src, then find target's new index and insert:
+      //   dragging UP   → insert before target (target stays in place visually)
+      //   dragging DOWN → insert after  target (src lands below target)
       const [removed] = order.splice(srcGlobalIdx, 1);
       const newTgtIdx = order.findIndex((e) => e.type === targetRow.type && e.id === targetRow.id);
-      order.splice(newTgtIdx, 0, removed);
+      order.splice(isDraggingDown ? newTgtIdx + 1 : newTgtIdx, 0, removed);
 
       state.reorderLayers(order);
     };

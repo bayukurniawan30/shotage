@@ -259,12 +259,39 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // Compute z-index for a layer based on its position in layerOrder.
   // order[0] = topmost = highest z-index. Falls back gracefully for legacy designs.
-  const getLayerZIndex = (type: 'text' | 'phosphor' | 'element' | 'shape', id: string): number => {
+  // Two separate ranges ensure the mockup frame (z-10) always sits in between:
+  //   "underneath" layers → 1–9  (always behind the mockup)
+  //   "above"      layers → 30+  (always in front of the mockup)
+  const getLayerZIndex = (
+    type: 'text' | 'phosphor' | 'element' | 'shape',
+    id: string,
+    position: 'above' | 'underneath'
+  ): number => {
     const order = state.layerOrder || [];
-    if (order.length === 0) return 10; // legacy: no layerOrder, use static value
-    const idx = order.findIndex((e) => e.type === type && e.id === id);
-    if (idx === -1) return 10; // not in order yet, fallback
-    return order.length - idx + 10; // higher index in array = lower z-index
+    // Count only layers in the same position group
+    const groupOrder = order.filter((e) => {
+      const layer =
+        e.type === 'text'
+          ? (state.textLayers || []).find((l) => l.id === e.id)
+          : e.type === 'phosphor'
+            ? (state.phosphorIconLayers || []).find((l) => l.id === e.id)
+            : e.type === 'element'
+              ? (state.canvasElements || []).find((l) => l.id === e.id)
+              : (state.shapeLayers || []).find((l) => l.id === e.id);
+      if (!layer) return false;
+      return ((layer as any).position || 'above') === position;
+    });
+
+    const idx = groupOrder.findIndex((e) => e.type === type && e.id === id);
+    if (position === 'underneath') {
+      // Range 1–9: index 0 = highest within underneath group
+      if (idx === -1 || groupOrder.length === 0) return 5;
+      return Math.max(1, 9 - idx);
+    } else {
+      // Range 30+: index 0 = highest within above group
+      if (idx === -1 || groupOrder.length === 0) return 30;
+      return 30 + (groupOrder.length - idx);
+    }
   };
 
   const renderTextLayers = (positionFilter: 'above' | 'underneath') => {
@@ -294,7 +321,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 : 'hover:outline-1 hover:outline-dashed hover:outline-slate-400'
             }`}
             style={{
-              zIndex: getLayerZIndex('text', layer.id),
+              zIndex: getLayerZIndex('text', layer.id, positionFilter),
               transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
@@ -442,7 +469,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
-              zIndex: getLayerZIndex('phosphor', layer.id),
+              zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
               transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation || 0}deg)`,
               opacity: (layer.opacity ?? 100) / 100,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
@@ -513,7 +540,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
-              zIndex: getLayerZIndex('element', el.id),
+              zIndex: getLayerZIndex('element', el.id, positionFilter),
               transform: `translate(${el.x}px, ${el.y}px) rotate(${el.rotation || 0}deg) scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
               opacity: (el.opacity ?? 100) / 100,
               filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
@@ -630,7 +657,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
-              zIndex: getLayerZIndex('shape', layer.id),
+              zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
               transformStyle: 'preserve-3d',
               opacity: (layer.opacity ?? 100) / 100,
