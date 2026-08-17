@@ -741,6 +741,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const onChange = state.updateState;
   const reset3DPerspective = state.reset3DPerspective;
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [showAllAnimatedGradients, setShowAllAnimatedGradients] = useState(false);
+  const [showAllAnimatedMeshes, setShowAllAnimatedMeshes] = useState(false);
   const [showAllWaves, setShowAllWaves] = useState(false);
   const [showAllMeshes, setShowAllMeshes] = useState(false);
   const [showAllConfetti, setShowAllConfetti] = useState(false);
@@ -772,15 +774,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     };
     img.src = state.imageSrc;
   }, [state.imageSrc]);
-
-  const visibleGradients = showAllGradients ? GRADIENT_PRESETS : GRADIENT_PRESETS.slice(0, 4);
-  const visibleWaves = showAllWaves ? WAVE_PRESETS : WAVE_PRESETS.slice(0, 4);
-  const visibleMeshes = showAllMeshes ? MESH_PRESETS : MESH_PRESETS.slice(0, 4);
-  const visibleConfetti = showAllConfetti ? CONFETTI_PRESETS : CONFETTI_PRESETS.slice(0, 4);
-  const visibleRadiant = showAllRadiant ? RADIANT_PRESETS : RADIANT_PRESETS.slice(0, 4);
-  const visibleLinearSwatches = showAllLinearSwatches
-    ? LINEAR_SWATCH_PRESETS
-    : LINEAR_SWATCH_PRESETS.slice(0, 4);
 
   const renderPerspectiveSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
@@ -1009,10 +1002,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Animated Gradient Presets ({ANIMATED_GRADIENT_PRESETS.length})
             </span>
+            {showAllAnimatedGradients && (
+              <button
+                type="button"
+                onClick={() => setShowAllAnimatedGradients(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2 max-h-56 overflow-y-auto no-scrollbar pr-1">
-            {ANIMATED_GRADIENT_PRESETS.map((preset) => {
+          <div
+            className={`grid grid-cols-4 gap-2 ${
+              showAllAnimatedGradients ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllAnimatedGradients
+              ? ANIMATED_GRADIENT_PRESETS.slice(0, 3)
+              : ANIMATED_GRADIENT_PRESETS
+            ).map((preset) => {
               const isSelected = (state.animatedGradientPreset || 'anim-grad-1') === preset.id;
 
               return (
@@ -1035,6 +1045,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllAnimatedGradients && ANIMATED_GRADIENT_PRESETS.length > 3 && (
+              <div className="relative h-10">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllAnimatedGradients(true)}
+                  title={`Show all ${ANIMATED_GRADIENT_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <AnimatedGradientBackground presetId={ANIMATED_GRADIENT_PRESETS[3].id} />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{ANIMATED_GRADIENT_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1045,10 +1075,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Animated Mesh Presets ({ANIMATED_MESH_PRESETS.length})
             </span>
+            {showAllAnimatedMeshes && (
+              <button
+                type="button"
+                onClick={() => setShowAllAnimatedMeshes(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2 max-h-56 overflow-y-auto no-scrollbar pr-1">
-            {ANIMATED_MESH_PRESETS.map((preset) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllAnimatedMeshes ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllAnimatedMeshes
+              ? ANIMATED_MESH_PRESETS.slice(0, 3)
+              : ANIMATED_MESH_PRESETS
+            ).map((preset) => {
               const isSelected = (state.animatedMeshPreset || 'anim-mesh-1') === preset.id;
 
               return (
@@ -1071,6 +1118,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllAnimatedMeshes && ANIMATED_MESH_PRESETS.length > 3 && (
+              <div className="relative h-10">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllAnimatedMeshes(true)}
+                  title={`Show all ${ANIMATED_MESH_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <AnimatedMeshBackground presetId={ANIMATED_MESH_PRESETS[3].id} />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{ANIMATED_MESH_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1081,20 +1148,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Radiant Styles ({RADIANT_PRESETS.length})
             </span>
-            <button
-              onClick={() => setShowAllRadiant(!showAllRadiant)}
-              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  showAllRadiant ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {showAllRadiant && (
+              <button
+                type="button"
+                onClick={() => setShowAllRadiant(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {visibleRadiant.map((radiant) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllRadiant ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllRadiant ? RADIANT_PRESETS.slice(0, 3) : RADIANT_PRESETS).map((radiant) => {
               const isSelected = (state.radiantPreset || 'radiant-1') === radiant.id;
 
               return (
@@ -1117,6 +1188,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllRadiant && RADIANT_PRESETS.length > 3 && (
+              <div className="relative h-10">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllRadiant(true)}
+                  title={`Show all ${RADIANT_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <RadiantBackground presetId={RADIANT_PRESETS[3].id} />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{RADIANT_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1142,20 +1233,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Preset Styles ({CONFETTI_PRESETS.length})
             </span>
-            <button
-              onClick={() => setShowAllConfetti(!showAllConfetti)}
-              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  showAllConfetti ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {showAllConfetti && (
+              <button
+                type="button"
+                onClick={() => setShowAllConfetti(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {visibleConfetti.map((confetti) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllConfetti ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllConfetti ? CONFETTI_PRESETS.slice(0, 3) : CONFETTI_PRESETS).map((confetti) => {
               const isSelected =
                 !state.customConfettiObj && (state.confettiPreset || 'confetti-1') === confetti.id;
 
@@ -1184,6 +1279,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllConfetti && CONFETTI_PRESETS.length > 3 && (
+              <div className="relative h-10">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllConfetti(true)}
+                  title={`Show all ${CONFETTI_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <ConfettiBackground presetId={CONFETTI_PRESETS[3].id} />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{CONFETTI_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1194,20 +1309,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Mesh Styles ({MESH_PRESETS.length})
             </span>
-            <button
-              onClick={() => setShowAllMeshes(!showAllMeshes)}
-              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  showAllMeshes ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {showAllMeshes && (
+              <button
+                type="button"
+                onClick={() => setShowAllMeshes(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {visibleMeshes.map((mesh) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllMeshes ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllMeshes ? MESH_PRESETS.slice(0, 3) : MESH_PRESETS).map((mesh) => {
               const isSelected = (state.meshPreset || 'mesh-1') === mesh.id;
 
               return (
@@ -1230,6 +1349,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllMeshes && MESH_PRESETS.length > 3 && (
+              <div className="relative h-9">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllMeshes(true)}
+                  title={`Show all ${MESH_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <MeshBackground presetId={MESH_PRESETS[3].id} />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{MESH_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1240,20 +1379,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Wave Styles ({WAVE_PRESETS.length})
             </span>
-            <button
-              onClick={() => setShowAllWaves(!showAllWaves)}
-              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  showAllWaves ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {showAllWaves && (
+              <button
+                type="button"
+                onClick={() => setShowAllWaves(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {visibleWaves.map((wave) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllWaves ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllWaves ? WAVE_PRESETS.slice(0, 3) : WAVE_PRESETS).map((wave) => {
               const isSelected = (state.wavePreset || 'wave-1') === wave.id;
 
               return (
@@ -1276,6 +1419,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllWaves && WAVE_PRESETS.length > 3 && (
+              <div className="relative h-9">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllWaves(true)}
+                  title={`Show all ${WAVE_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <WaveBackground presetId={WAVE_PRESETS[3].id} />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{WAVE_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1328,20 +1491,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Gradient Palettes ({GRADIENT_PRESETS.length})
             </span>
-            <button
-              onClick={() => setShowAllGradients(!showAllGradients)}
-              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  showAllGradients ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {showAllGradients && (
+              <button
+                type="button"
+                onClick={() => setShowAllGradients(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {visibleGradients.map((preset) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllGradients ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllGradients ? GRADIENT_PRESETS.slice(0, 3) : GRADIENT_PRESETS).map((preset) => {
               const isSelected =
                 state.gradient.color1.toLowerCase() === preset.c1.toLowerCase() &&
                 state.gradient.color2.toLowerCase() === preset.c2.toLowerCase();
@@ -1372,6 +1539,30 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllGradients && GRADIENT_PRESETS.length > 3 && (
+              <div className="relative h-8">
+                {/* Tilted background card matching LeftSidebar card style */}
+                <div className="absolute inset-0 rounded-lg bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                {/* Foreground main card */}
+                <button
+                  type="button"
+                  onClick={() => setShowAllGradients(true)}
+                  title={`Show all ${GRADIENT_PRESETS.length} gradients`}
+                  className="relative z-10 w-full h-full rounded-lg border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${GRADIENT_PRESETS[3].c1}, ${GRADIENT_PRESETS[3].c2})`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{GRADIENT_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           <div>
@@ -1399,20 +1590,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
               Linear Swatches ({LINEAR_SWATCH_PRESETS.length})
             </span>
-            <button
-              onClick={() => setShowAllLinearSwatches(!showAllLinearSwatches)}
-              className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <ChevronDown
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  showAllLinearSwatches ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {showAllLinearSwatches && (
+              <button
+                type="button"
+                onClick={() => setShowAllLinearSwatches(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {visibleLinearSwatches.map((preset) => {
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllLinearSwatches ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllLinearSwatches
+              ? LINEAR_SWATCH_PRESETS.slice(0, 3)
+              : LINEAR_SWATCH_PRESETS
+            ).map((preset) => {
               const isSelected = (state.linearSwatchesPreset || 'ls-1') === preset.id;
 
               return (
@@ -1435,6 +1633,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               );
             })}
+
+            {!showAllLinearSwatches && LINEAR_SWATCH_PRESETS.length > 3 && (
+              <div className="relative h-8">
+                <div className="absolute inset-0 rounded-lg bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllLinearSwatches(true)}
+                  title={`Show all ${LINEAR_SWATCH_PRESETS.length} swatches`}
+                  className="relative z-10 w-full h-full rounded-lg border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                  style={{ background: LINEAR_SWATCH_PRESETS[3].css }}
+                >
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{LINEAR_SWATCH_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -3399,47 +3617,77 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                     <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
                       Presets ({GRADIENT_PRESETS.length})
                     </span>
-                    <button
-                      onClick={() => setShowAllGradients(!showAllGradients)}
-                      className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <ChevronDown
-                        className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                          showAllGradients ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
+                    {showAllGradients && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllGradients(false)}
+                        className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Collapse presets"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {visibleGradients.map((g) => {
-                      const isSelected =
-                        selectedLayer.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
-                        selectedLayer.gradient?.color2.toLowerCase() === g.c2.toLowerCase();
-                      return (
+                  <div
+                    className={`grid grid-cols-4 gap-2 ${
+                      showAllGradients ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+                    }`}
+                  >
+                    {(!showAllGradients ? GRADIENT_PRESETS.slice(0, 3) : GRADIENT_PRESETS).map(
+                      (g) => {
+                        const isSelected =
+                          selectedLayer.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
+                          selectedLayer.gradient?.color2.toLowerCase() === g.c2.toLowerCase();
+                        return (
+                          <button
+                            key={g.name}
+                            onClick={() =>
+                              state.updateTextLayer(selectedLayer.id, {
+                                gradient: {
+                                  ...selectedLayer.gradient!,
+                                  color1: g.c1,
+                                  color2: g.c2,
+                                },
+                              })
+                            }
+                            title={g.name}
+                            className={`h-8 rounded-lg border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-white ring-2 ring-pastel-pink scale-105'
+                                : 'border-slate-700/80 hover:scale-105'
+                            }`}
+                            style={{
+                              backgroundImage: `linear-gradient(135deg, ${g.c1}, ${g.c2})`,
+                            }}
+                          />
+                        );
+                      }
+                    )}
+
+                    {!showAllGradients && GRADIENT_PRESETS.length > 3 && (
+                      <div className="relative h-8">
+                        {/* Tilted background card matching LeftSidebar card style */}
+                        <div className="absolute inset-0 rounded-lg bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                        {/* Foreground main card */}
                         <button
-                          key={g.name}
-                          onClick={() =>
-                            state.updateTextLayer(selectedLayer.id, {
-                              gradient: {
-                                ...selectedLayer.gradient!,
-                                color1: g.c1,
-                                color2: g.c2,
-                              },
-                            })
-                          }
-                          title={g.name}
-                          className={`h-8 rounded-lg border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'border-white ring-2 ring-pastel-pink scale-105'
-                              : 'border-slate-700/80 hover:scale-105'
-                          }`}
+                          type="button"
+                          onClick={() => setShowAllGradients(true)}
+                          title={`Show all ${GRADIENT_PRESETS.length} gradients`}
+                          className="relative z-10 w-full h-full rounded-lg border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
                           style={{
-                            backgroundImage: `linear-gradient(135deg, ${g.c1}, ${g.c2})`,
+                            backgroundImage: `linear-gradient(135deg, ${GRADIENT_PRESETS[3].c1}, ${GRADIENT_PRESETS[3].c2})`,
                           }}
-                        />
-                      );
-                    })}
+                        >
+                          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white">
+                            <span className="text-[10px] font-bold tracking-tight">
+                              +{GRADIENT_PRESETS.length - 3}
+                            </span>
+                            <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                          </div>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
