@@ -667,6 +667,7 @@ export const useStudioStore = create<StudioStore>()(
             rectangle: { width: 160, height: 100 },
             circle: { width: 120, height: 120 },
             hexagon: { width: 140, height: 122 },
+            quote: { width: 120, height: 120 },
           };
           const newShape: import('../types/studio').ShapeLayer = {
             id: `shape-${Date.now()}`,

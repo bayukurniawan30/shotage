@@ -634,6 +634,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               return {
                 clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
               };
+            case 'quote':
+              return {
+                WebkitMaskImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='%23000' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z'/%3E%3C/svg%3E")`,
+                maskImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='%23000' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z'/%3E%3C/svg%3E")`,
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+              };
             case 'rectangle':
             case 'square':
             default:
@@ -669,13 +680,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div
               className="w-full h-full"
               style={{
-                backgroundColor: layer.color || '#a2d2ff',
+                backgroundColor: layer.bgImage ? 'transparent' : (layer.color || '#a2d2ff'),
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
                 ...(layer.bgImage
                   ? {
                       backgroundImage: `url(${layer.bgImage})`,
                       backgroundSize: `${layer.bgImageZoom ?? 100}%`,
                       backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
+                      backgroundRepeat: layer.bgImageRepeat ? 'repeat' : 'no-repeat',
                     }
                   : {}),
                 ...getShapeStyle(),
@@ -1208,6 +1220,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     initialFontSize: number;
     initialSize: number;
     scale: number;
+    rotation: number;
+    shapeType?: import('../types/studio').ShapeType;
   } | null>(null);
 
   // On-canvas drag of multiple selected layers together
@@ -1359,6 +1373,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             initialFontSize: layer.fontSize || 32,
             initialSize: 0,
             scale: currentScale,
+            rotation: layer.rotation || 0,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -1376,6 +1391,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             initialFontSize: 0,
             initialSize: layer.size || 36,
             scale: currentScale,
+            rotation: layer.rotation || 0,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -1393,6 +1409,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             initialFontSize: 0,
             initialSize: 0,
             scale: currentScale,
+            rotation: layer.rotation || 0,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -1410,6 +1427,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             initialFontSize: 0,
             initialSize: 0,
             scale: currentScale,
+            rotation: layer.rotation || 0,
+            shapeType: layer.shapeType,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -1698,8 +1717,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       }
     } else if (resizeDragItem) {
       const scale = resizeDragItem.scale || 1;
-      const deltaX = (e.clientX - resizeDragItem.startX) / scale;
-      const deltaY = (e.clientY - resizeDragItem.startY) / scale;
+      const screenDeltaX = (e.clientX - resizeDragItem.startX) / scale;
+      const screenDeltaY = (e.clientY - resizeDragItem.startY) / scale;
+
+      // Project screen delta into the element's local coordinate space rotated by -rotation
+      const rad = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+      const cos = Math.cos(-rad);
+      const sin = Math.sin(-rad);
+      const deltaX = screenDeltaX * cos - screenDeltaY * sin;
+      const deltaY = screenDeltaX * sin + screenDeltaY * cos;
       const delta = (deltaX + deltaY) / 2;
 
       if (resizeDragItem.type === 'text') {
@@ -1719,29 +1745,42 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           state.updatePhosphorIconLayer(resizeDragItem.id, { size: newSize })
         );
       } else if (resizeDragItem.type === 'element') {
+        const aspect =
+          resizeDragItem.initialHeight > 0
+            ? resizeDragItem.initialWidth / resizeDragItem.initialHeight
+            : 1;
         const newWidth = Math.max(
           20,
-          Math.min(600, Math.round(resizeDragItem.initialWidth + deltaX))
+          Math.min(600, Math.round(resizeDragItem.initialWidth + delta))
         );
-        const newHeight = Math.max(
-          20,
-          Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
-        );
+        const newHeight = Math.max(20, Math.min(600, Math.round(newWidth / aspect)));
         scheduleDragUpdate(() =>
           state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
         );
       } else if (resizeDragItem.type === 'shape') {
-        const newWidth = Math.max(
-          10,
-          Math.min(600, Math.round(resizeDragItem.initialWidth + deltaX))
-        );
-        const newHeight = Math.max(
-          10,
-          Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
-        );
-        scheduleDragUpdate(() =>
-          state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
-        );
+        const isUniform =
+          resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
+        if (isUniform) {
+          const newSize = Math.max(
+            10,
+            Math.min(600, Math.round(resizeDragItem.initialWidth + delta))
+          );
+          scheduleDragUpdate(() =>
+            state.updateShapeLayer(resizeDragItem.id, { width: newSize, height: newSize })
+          );
+        } else {
+          const newWidth = Math.max(
+            10,
+            Math.min(600, Math.round(resizeDragItem.initialWidth + deltaX))
+          );
+          const newHeight = Math.max(
+            10,
+            Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
+          );
+          scheduleDragUpdate(() =>
+            state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
+          );
+        }
       }
     } else if (groupDrag) {
       const scale = groupDrag.scale || 1;

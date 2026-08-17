@@ -64,7 +64,7 @@ export type PhosphorBadgeStyle =
 
 export type ElementCategory = 'arrow' | 'line' | 'emoji';
 
-export type ShapeType = 'square' | 'rectangle' | 'circle' | 'hexagon';
+export type ShapeType = 'square' | 'rectangle' | 'circle' | 'hexagon' | 'quote';
 
 export interface ShapeLayer {
   id: string;
@@ -74,6 +74,7 @@ export interface ShapeLayer {
   bgImageZoom?: number;
   bgImageOffsetX?: number;
   bgImageOffsetY?: number;
+  bgImageRepeat?: boolean;
   width: number;
   height: number;
   borderRadius?: number;
@@ -185,6 +186,19 @@ export type WatermarkPosition =
   'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'bottom-center' | 'top-center';
 export type WatermarkSize = 'sm' | 'md' | 'lg';
 
+export type BackgroundType =
+  | 'solid'
+  | 'gradient'
+  | 'animatedGradient'
+  | 'linearSwatches'
+  | 'wave'
+  | 'mesh'
+  | 'animatedMesh'
+  | 'confetti'
+  | 'radiant'
+  | 'transparent'
+  | 'image';
+
 export interface StudioState {
   imageSrc: string | null;
   imageName: string;
@@ -233,18 +247,7 @@ export interface StudioState {
   iphoneStatusBar?: 'none' | 'light' | 'dark';
   urlText: string;
   secondUrlText: string;
-  backgroundType:
-    | 'solid'
-    | 'gradient'
-    | 'animatedGradient'
-    | 'linearSwatches'
-    | 'wave'
-    | 'mesh'
-    | 'animatedMesh'
-    | 'confetti'
-    | 'radiant'
-    | 'transparent'
-    | 'image';
+  backgroundType: BackgroundType;
   wavePreset: string;
   meshPreset: string;
   animatedGradientPreset?: string;

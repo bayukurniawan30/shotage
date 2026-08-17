@@ -22,8 +22,12 @@ import {
   DotsVertical,
 } from '@untitledui/icons';
 
-const SESSION_STORAGE_KEY = 'shotage-session-v1';
-const SESSION_VERSION = 1;
+import {
+  saveSession,
+  loadSavedSession,
+  clearSavedSession,
+} from '../utils/sessionStore';
+
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
 
@@ -46,6 +50,11 @@ export const Studio: React.FC = () => {
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+
+  // Session restore refs
+  const savedSessionDataRef = useRef<Record<string, any> | null>(null);
+  const isRestoredOrDismissedRef = useRef(false);
+  const [isRestorePromptOpen, setIsRestorePromptOpen] = useState(false);
 
   useEffect(() => {
     if (PROJECT_SPOTLIGHT_GATED && sharedViewKey && !sessionStorage.getItem(SPOTLIGHT_SESSION_KEY)) {
@@ -70,26 +79,17 @@ export const Studio: React.FC = () => {
   const handleExportSettings = () => {
     setIsDesktopMenuOpen(false);
     setIsMobileMenuOpen(false);
-    const storeState = useStudioStore.getState();
-
-    // Extract canvas settings without image binary blobs or transient flags
-    const {
-      imageSrc,
-      secondImageSrc,
-      isPreviewMode,
-      isPlaying,
-      isPositionDragging,
-      ...settingsToSave
-    } = storeState;
-
-    const dataStr =
-      'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(settingsToSave, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `shotage-settings-${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    const state = useStudioStore.getState();
+    const jsonString = JSON.stringify(state, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shotage-settings-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleImportSettings = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,29 +117,27 @@ export const Studio: React.FC = () => {
   const confirmStartOver = () => {
     resetAll();
     temporalStore.getState().clear();
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    clearSavedSession();
+    savedSessionDataRef.current = null;
+    isRestoredOrDismissedRef.current = true;
     setIsStartOverModalOpen(false);
     setTimeout(() => fitCanvasToView(), 60);
     setTimeout(() => fitCanvasToView(), 400);
   };
 
-  // Auto-save session to localStorage (debounced so drag/scrub spam doesn't write every frame)
+  // Auto-save session to IndexedDB & LocalStorage (debounced, gated by user restore decision)
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const save = () => {
       try {
-        if (sharedViewKey) return; // don't overwrite the user's session while viewing a shared design
+        if (sharedViewKey) return; // don't overwrite session while viewing shared design
+        // CRITICAL: Never overwrite saved session while restore modal is waiting for user choice!
+        if (!isRestoredOrDismissedRef.current) return;
         const storeState = useStudioStore.getState();
-        if (storeState.isPlaying) return;
-        const { imageSrc, secondImageSrc, isPreviewMode, isPlaying, isPositionDragging, ...rest } =
-          storeState;
-        localStorage.setItem(
-          SESSION_STORAGE_KEY,
-          JSON.stringify({ ...rest, _version: SESSION_VERSION, savedAt: Date.now() })
-        );
-      } catch (err) {
-        // Quota exceeded / storage unavailable — silently skip autosave
+        saveSession(storeState);
+      } catch {
+        // Silently skip
       }
     };
 
@@ -164,25 +162,27 @@ export const Studio: React.FC = () => {
       window.removeEventListener('beforeunload', flush);
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [sharedViewKey]);
 
-  const [isRestorePromptOpen, setIsRestorePromptOpen] = useState(false);
-
-  // On mount, check for a previous session and offer to restore it
+  // On mount, check for a previous session in IndexedDB / LocalStorage and offer to restore it
   useEffect(() => {
-    if (sharedViewKey) return; // shared design should take precedence over a saved session
-    try {
-      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          setIsRestorePromptOpen(true);
-        }
-      }
-    } catch (err) {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
+    if (sharedViewKey) {
+      isRestoredOrDismissedRef.current = true;
+      return;
     }
-  }, []);
+    loadSavedSession()
+      .then((saved) => {
+        if (saved && Object.keys(saved).length > 0) {
+          savedSessionDataRef.current = saved;
+          setIsRestorePromptOpen(true);
+        } else {
+          isRestoredOrDismissedRef.current = true;
+        }
+      })
+      .catch(() => {
+        isRestoredOrDismissedRef.current = true;
+      });
+  }, [sharedViewKey]);
 
   // When the URL carries ?s=<entryId>, fetch and apply the shared design
   useEffect(() => {
@@ -213,23 +213,20 @@ export const Studio: React.FC = () => {
   }, [sharedViewKey]);
 
   const restoreSession = () => {
-    try {
-      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const { _version, savedAt, ...data } = parsed;
-        useStudioStore.getState().updateState(data);
-        temporalStore.getState().clear();
-      }
-    } catch (err) {
-      // Invalid saved data — fall through and just clear the session
+    const data = savedSessionDataRef.current;
+    if (data) {
+      useStudioStore.getState().updateState(data);
+      temporalStore.getState().clear();
+      setTimeout(() => fitCanvasToView(), 60);
     }
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    isRestoredOrDismissedRef.current = true;
     setIsRestorePromptOpen(false);
   };
 
   const discardSession = () => {
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    clearSavedSession();
+    savedSessionDataRef.current = null;
+    isRestoredOrDismissedRef.current = true;
     setIsRestorePromptOpen(false);
   };
 
@@ -246,7 +243,11 @@ export const Studio: React.FC = () => {
     return () => unsubscribe();
   }, [temporalStore]);
 
-  // Global keyboard shortcuts for undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+Y)
+  // Global keyboard shortcuts:
+  // - Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+Y: Undo / Redo
+  // - Arrow keys (ArrowLeft, ArrowRight, ArrowUp, ArrowDown): Move selected layer(s) by 1px (or 10px with Shift)
+  // - Delete / Backspace: Delete selected layer(s)
+  // - Escape: Deselect all layers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -254,25 +255,154 @@ export const Studio: React.FC = () => {
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.tagName === 'SELECT' ||
-        target.isContentEditable
+        target.isContentEditable ||
+        target.closest('input, textarea, select, [contenteditable="true"]')
       ) {
         return;
       }
 
       const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-
-      const key = e.key.toLowerCase();
-      if (key === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
+      if (mod) {
+        const key = e.key.toLowerCase();
+        if (key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            temporalStore.getState().redo();
+          } else {
+            temporalStore.getState().undo();
+          }
+        } else if (key === 'y') {
+          e.preventDefault();
           temporalStore.getState().redo();
-        } else {
-          temporalStore.getState().undo();
         }
-      } else if (key === 'y') {
-        e.preventDefault();
-        temporalStore.getState().redo();
+        return;
+      }
+
+      // Handle Arrow keys to nudge selected layers horizontally & vertically
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const state = useStudioStore.getState();
+        const textIds = state.selectedTextLayerIds?.length
+          ? state.selectedTextLayerIds
+          : state.selectedTextLayerId
+            ? [state.selectedTextLayerId]
+            : [];
+        const phosphorIds = state.selectedPhosphorIconLayerIds?.length
+          ? state.selectedPhosphorIconLayerIds
+          : state.selectedPhosphorIconLayerId
+            ? [state.selectedPhosphorIconLayerId]
+            : [];
+        const elementIds = state.selectedElementIds?.length
+          ? state.selectedElementIds
+          : state.selectedElementId
+            ? [state.selectedElementId]
+            : [];
+        const shapeIds = state.selectedShapeIds?.length
+          ? state.selectedShapeIds
+          : state.selectedShapeId
+            ? [state.selectedShapeId]
+            : [];
+
+        const hasSelectedLayers =
+          textIds.length > 0 ||
+          phosphorIds.length > 0 ||
+          elementIds.length > 0 ||
+          shapeIds.length > 0;
+
+        if (hasSelectedLayers) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+          const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+
+          textIds.forEach((id) => {
+            const l = (state.textLayers || []).find((item) => item.id === id);
+            if (l && !l.locked) {
+              state.updateTextLayer(id, {
+                x: Math.round(l.x + dx),
+                y: Math.round(l.y + dy),
+              });
+            }
+          });
+
+          phosphorIds.forEach((id) => {
+            const l = (state.phosphorIconLayers || []).find((item) => item.id === id);
+            if (l && !l.locked) {
+              state.updatePhosphorIconLayer(id, {
+                x: Math.round(l.x + dx),
+                y: Math.round(l.y + dy),
+              });
+            }
+          });
+
+          elementIds.forEach((id) => {
+            const el = (state.canvasElements || []).find((item) => item.id === id);
+            if (el && !el.locked) {
+              state.updateCanvasElement(id, {
+                x: Math.round(el.x + dx),
+                y: Math.round(el.y + dy),
+              });
+            }
+          });
+
+          shapeIds.forEach((id) => {
+            const s = (state.shapeLayers || []).find((item) => item.id === id);
+            if (s && !s.locked) {
+              state.updateShapeLayer(id, {
+                x: Math.round(s.x + dx),
+                y: Math.round(s.y + dy),
+              });
+            }
+          });
+        }
+        return;
+      }
+
+      // Handle Delete / Backspace to remove selected layer(s)
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const state = useStudioStore.getState();
+        const textIds = state.selectedTextLayerIds?.length
+          ? state.selectedTextLayerIds
+          : state.selectedTextLayerId
+            ? [state.selectedTextLayerId]
+            : [];
+        const phosphorIds = state.selectedPhosphorIconLayerIds?.length
+          ? state.selectedPhosphorIconLayerIds
+          : state.selectedPhosphorIconLayerId
+            ? [state.selectedPhosphorIconLayerId]
+            : [];
+        const elementIds = state.selectedElementIds?.length
+          ? state.selectedElementIds
+          : state.selectedElementId
+            ? [state.selectedElementId]
+            : [];
+        const shapeIds = state.selectedShapeIds?.length
+          ? state.selectedShapeIds
+          : state.selectedShapeId
+            ? [state.selectedShapeId]
+            : [];
+
+        if (
+          textIds.length > 0 ||
+          phosphorIds.length > 0 ||
+          elementIds.length > 0 ||
+          shapeIds.length > 0
+        ) {
+          e.preventDefault();
+          textIds.forEach((id) => state.removeTextLayer(id));
+          phosphorIds.forEach((id) => state.removePhosphorIconLayer(id));
+          elementIds.forEach((id) => state.removeCanvasElement(id));
+          shapeIds.forEach((id) => state.removeShapeLayer(id));
+        }
+        return;
+      }
+
+      // Handle Escape to deselect all layers
+      if (e.key === 'Escape') {
+        const state = useStudioStore.getState();
+        state.selectTextLayer(null);
+        state.selectPhosphorIconLayer(null);
+        state.selectCanvasElement(null);
+        state.selectShapeLayer(null);
       }
     };
 

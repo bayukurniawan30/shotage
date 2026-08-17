@@ -35,7 +35,7 @@ import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from './SocialIcons';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from './TechStackIcons';
 import { Toggle } from './Toggle';
 import * as PhosphorIcons from '@phosphor-icons/react';
-import { PhosphorWeight, ShapeType } from '../types/studio';
+import { PhosphorWeight, ShapeType, BackgroundType } from '../types/studio';
 
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
@@ -107,6 +107,197 @@ const FontSelect: React.FC<{
                 <span style={{ fontFamily: font.family }}>{font.name}</span>
                 {isSelected && <Check className="w-3.5 h-3.5 text-pastel-blue shrink-0" />}
               </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export interface BackgroundStyleOption {
+  id: BackgroundType;
+  label: string;
+  category: 'Animated & Dynamic' | 'Colors & Gradients' | 'Patterns & Shapes' | 'Special & Custom';
+  desc?: string;
+  iconNode?: React.ReactNode;
+}
+
+export const BACKGROUND_STYLE_OPTIONS: BackgroundStyleOption[] = [
+  {
+    id: 'animatedGradient',
+    label: 'Animated Gradient',
+    category: 'Animated & Dynamic',
+    desc: 'Fluid shifting color waves',
+    iconNode: <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-pink shrink-0" />,
+  },
+  {
+    id: 'animatedMesh',
+    label: 'Animated Mesh',
+    category: 'Animated & Dynamic',
+    desc: 'Flowing organic gradient blobs',
+    iconNode: <PhosphorIcons.Planet className="w-4 h-4 text-pastel-blue shrink-0" />,
+  },
+  {
+    id: 'gradient',
+    label: 'Curated Gradient',
+    category: 'Colors & Gradients',
+    desc: 'Smooth 2-3 stop color blends',
+    iconNode: <PhosphorIcons.Gradient className="w-4 h-4 text-pastel-green shrink-0" />,
+  },
+  {
+    id: 'linearSwatches',
+    label: 'Linear Swatches',
+    category: 'Colors & Gradients',
+    desc: 'Multi-stop designer color bars',
+    iconNode: <PhosphorIcons.Palette className="w-4 h-4 text-amber-300 shrink-0" />,
+  },
+  {
+    id: 'solid',
+    label: 'Solid Color',
+    category: 'Colors & Gradients',
+    desc: 'Single flat background color',
+    iconNode: <PhosphorIcons.PaintBrush className="w-4 h-4 text-slate-300 shrink-0" />,
+  },
+  {
+    id: 'wave',
+    label: 'Wave Pattern',
+    category: 'Patterns & Shapes',
+    desc: 'Layered vector curves',
+    iconNode: <PhosphorIcons.Waves className="w-4 h-4 text-cyan-300 shrink-0" />,
+  },
+  {
+    id: 'mesh',
+    label: 'Mesh Gradient',
+    category: 'Patterns & Shapes',
+    desc: 'Multi-point blend gradients',
+    iconNode: <PhosphorIcons.CirclesFour className="w-4 h-4 text-violet-300 shrink-0" />,
+  },
+  {
+    id: 'radiant',
+    label: 'Radiant Glow',
+    category: 'Patterns & Shapes',
+    desc: 'Luminous center radiance',
+    iconNode: <PhosphorIcons.SunHorizon className="w-4 h-4 text-amber-400 shrink-0" />,
+  },
+  {
+    id: 'confetti',
+    label: 'Confetti Shapes',
+    category: 'Patterns & Shapes',
+    desc: 'Scattered decorative geometry',
+    iconNode: <PhosphorIcons.Confetti className="w-4 h-4 text-rose-300 shrink-0" />,
+  },
+  {
+    id: 'image',
+    label: 'Custom Image',
+    category: 'Special & Custom',
+    desc: 'Upload custom photo or wallpaper',
+    iconNode: <PhosphorIcons.Image className="w-4 h-4 text-emerald-300 shrink-0" />,
+  },
+  {
+    id: 'transparent',
+    label: 'Transparent (No BG)',
+    category: 'Special & Custom',
+    desc: 'Export with transparent background',
+    iconNode: <PhosphorIcons.Checkerboard className="w-4 h-4 text-slate-400 shrink-0" />,
+  },
+];
+
+const BackgroundStyleSelect: React.FC<{
+  value: BackgroundType;
+  onChange: (bg: BackgroundType) => void;
+}> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption =
+    BACKGROUND_STYLE_OPTIONS.find((opt) => opt.id === value) || BACKGROUND_STYLE_OPTIONS[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const categories = [
+    'Animated & Dynamic',
+    'Colors & Gradients',
+    'Patterns & Shapes',
+    'Special & Custom',
+  ] as const;
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs flex items-center justify-between cursor-pointer hover:border-neutral-700 transition-all shadow-sm group"
+      >
+        <div className="flex items-center gap-2.5 truncate">
+          {selectedOption.iconNode}
+          <div className="flex flex-col text-left truncate">
+            <span className="font-bold text-slate-100 group-hover:text-pastel-blue transition-colors truncate">
+              {selectedOption.label}
+            </span>
+            <span className="text-[10px] text-slate-400 truncate">{selectedOption.desc}</span>
+          </div>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
+            isOpen ? 'rotate-180 text-pastel-pink' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-neutral-900/95 border border-neutral-800 rounded-xl p-1.5 shadow-2xl max-h-72 overflow-y-auto space-y-2 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 no-scrollbar">
+          {categories.map((cat) => {
+            const items = BACKGROUND_STYLE_OPTIONS.filter((opt) => opt.category === cat);
+            if (items.length === 0) return null;
+
+            return (
+              <div key={cat} className="space-y-0.5">
+                <div className="px-2 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  {cat}
+                </div>
+                {items.map((opt) => {
+                  const isSelected = opt.id === value;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(opt.id);
+                        setIsOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors text-left ${
+                        isSelected
+                          ? 'bg-[#a2d2ff]/20 text-pastel-blue font-bold border border-[#a2d2ff]/30 shadow-xs'
+                          : 'text-slate-200 hover:bg-neutral-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {opt.iconNode}
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate">{opt.label}</span>
+                          {opt.desc && (
+                            <span className="text-[10px] text-slate-400 font-normal truncate">
+                              {opt.desc}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-pastel-blue shrink-0 ml-2" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
@@ -274,6 +465,15 @@ const ShapePreview: React.FC<{
       return (
         <svg {...common}>
           <polygon points="12,2.5 20.5,7.25 20.5,16.75 12,21.5 3.5,16.75 3.5,7.25" fill={color} />
+        </svg>
+      );
+    case 'quote':
+      return (
+        <svg {...common}>
+          <path
+            d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"
+            fill={color}
+          />
         </svg>
       );
     case 'rectangle':
@@ -556,7 +756,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const layerDragOverKey = useRef<string | null>(null);
   const [layerDropIndicator, setLayerDropIndicator] = useState<string | null>(null);
 
-
   // Automatically extract primary image colors when imageSrc changes
   useEffect(() => {
     if (!state.imageSrc) {
@@ -794,53 +993,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         </h3>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5">
-        {(
-          [
-            'gradient',
-            'animatedGradient',
-            'linearSwatches',
-            'wave',
-            'mesh',
-            'animatedMesh',
-            'radiant',
-            'confetti',
-            'solid',
-            'transparent',
-            'image',
-          ] as const
-        ).map((bg) => (
-          <button
-            key={bg}
-            onClick={() => onChange({ backgroundType: bg })}
-            className={`py-1.5 px-0.5 text-[10px] sm:text-[11px] font-medium capitalize rounded-lg border transition-all truncate text-center ${
-              state.backgroundType === bg
-                ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
-            }`}
-            title={
-              bg === 'transparent'
-                ? 'No BG'
-                : bg === 'linearSwatches'
-                  ? 'Linear Swatches'
-                  : bg === 'animatedGradient'
-                    ? 'Anim Grad'
-                    : bg === 'animatedMesh'
-                      ? 'Anim Mesh'
-                      : bg
-            }
-          >
-            {bg === 'transparent'
-              ? 'No BG'
-              : bg === 'linearSwatches'
-                ? 'Swatches'
-                : bg === 'animatedGradient'
-                  ? 'Anim Grad'
-                  : bg === 'animatedMesh'
-                    ? 'Anim Mesh'
-                    : bg}
-          </button>
-        ))}
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          Style Type
+        </label>
+        <BackgroundStyleSelect
+          value={state.backgroundType}
+          onChange={(type) => onChange({ backgroundType: type })}
+        />
       </div>
 
       {state.backgroundType === 'animatedGradient' && (
@@ -3500,7 +3660,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             <div className="space-y-2 pt-1 border-t border-neutral-800/60">
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-slate-300">Position X</span>
+                  <span className="font-medium text-slate-300">Position X (Horizontal)</span>
                   <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
                 </div>
                 <input
@@ -3517,7 +3677,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-slate-300">Position Y</span>
+                  <span className="font-medium text-slate-300">Position Y (Vertical)</span>
                   <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
                 </div>
                 <input
@@ -4078,13 +4238,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             </span>
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+          <div className="grid grid-cols-5 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
             {(
               [
                 { id: 'square', label: 'Square' },
                 { id: 'rectangle', label: 'Rectangle' },
                 { id: 'circle', label: 'Circle' },
                 { id: 'hexagon', label: 'Hexagon' },
+                { id: 'quote', label: 'Quote' },
               ] as { id: ShapeType; label: string }[]
             ).map((item) => (
               <button
@@ -4442,6 +4603,41 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                         }
                         className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
                       />
+                    </div>
+                  </div>
+
+                  {/* Pattern Repeat */}
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                      Pattern Repeat
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          state.updateShapeLayer(selectedShape.id, { bgImageRepeat: false })
+                        }
+                        className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                          !selectedShape.bgImageRepeat
+                            ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                            : 'bg-transparent border-transparent text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        No Repeat (Single)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          state.updateShapeLayer(selectedShape.id, { bgImageRepeat: true })
+                        }
+                        className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                          selectedShape.bgImageRepeat
+                            ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                            : 'bg-transparent border-transparent text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Repeat (Tile)
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -5058,45 +5254,80 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     const allRows: ReturnType<typeof buildRow>[] = [];
 
     (state.textLayers || []).forEach((l) =>
-      allRows.push(buildRow(
-        'text', l.id, l.name || l.text || 'Text',
-        l.visible !== false, l.locked === true, l.position || 'above',
-        (state.selectedTextLayerIds || []).includes(l.id),
-        <PhosphorIcons.TextTIcon className="w-3.5 h-3.5 text-pastel-blue shrink-0" />
-      ))
+      allRows.push(
+        buildRow(
+          'text',
+          l.id,
+          l.name || l.text || 'Text',
+          l.visible !== false,
+          l.locked === true,
+          l.position || 'above',
+          (state.selectedTextLayerIds || []).includes(l.id),
+          <PhosphorIcons.TextTIcon className="w-3.5 h-3.5 text-pastel-blue shrink-0" />
+        )
+      )
     );
 
     (state.phosphorIconLayers || []).forEach((l) => {
       const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.Sparkle;
-      allRows.push(buildRow(
-        'phosphor', l.id, l.name || l.iconId || 'Icon',
-        l.visible !== false, l.locked === true, l.position || 'above',
-        (state.selectedPhosphorIconLayerIds || []).includes(l.id),
-        <IconComp className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
-      ));
+      allRows.push(
+        buildRow(
+          'phosphor',
+          l.id,
+          l.name || l.iconId || 'Icon',
+          l.visible !== false,
+          l.locked === true,
+          l.position || 'above',
+          (state.selectedPhosphorIconLayerIds || []).includes(l.id),
+          <IconComp className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+        )
+      );
     });
 
     (state.canvasElements || []).forEach((el) => {
-      const CatIcon = el.category === 'emoji' ? PhosphorIcons.Smiley
-        : el.category === 'line' ? PhosphorIcons.LineSegment : PhosphorIcons.ArrowRight;
-      allRows.push(buildRow(
-        'element', el.id, el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
-        el.visible !== false, el.locked === true, el.position || 'above',
-        (state.selectedElementIds || []).includes(el.id),
-        <CatIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-      ));
+      const CatIcon =
+        el.category === 'emoji'
+          ? PhosphorIcons.Smiley
+          : el.category === 'line'
+            ? PhosphorIcons.LineSegment
+            : PhosphorIcons.ArrowRight;
+      allRows.push(
+        buildRow(
+          'element',
+          el.id,
+          el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
+          el.visible !== false,
+          el.locked === true,
+          el.position || 'above',
+          (state.selectedElementIds || []).includes(el.id),
+          <CatIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+        )
+      );
     });
 
     (state.shapeLayers || []).forEach((s) => {
-      const ShapeCatIcon = s.shapeType === 'circle' ? PhosphorIcons.Circle
-        : s.shapeType === 'hexagon' ? PhosphorIcons.Hexagon
-        : s.shapeType === 'rectangle' ? PhosphorIcons.Rectangle : PhosphorIcons.Square;
-      allRows.push(buildRow(
-        'shape', s.id, s.name || s.shapeType || 'Shape',
-        s.visible !== false, s.locked === true, s.position || 'above',
-        (state.selectedShapeIds || []).includes(s.id),
-        <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
-      ));
+      const ShapeCatIcon =
+        s.shapeType === 'circle'
+          ? PhosphorIcons.Circle
+          : s.shapeType === 'hexagon'
+            ? PhosphorIcons.Hexagon
+            : s.shapeType === 'quote'
+              ? (PhosphorIcons as any).Quotes || PhosphorIcons.ChatCircle || PhosphorIcons.Square
+              : s.shapeType === 'rectangle'
+                ? PhosphorIcons.Rectangle
+                : PhosphorIcons.Square;
+      allRows.push(
+        buildRow(
+          'shape',
+          s.id,
+          s.name || s.shapeType || 'Shape',
+          s.visible !== false,
+          s.locked === true,
+          s.position || 'above',
+          (state.selectedShapeIds || []).includes(s.id),
+          <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
+        )
+      );
     });
 
     // Sort rows within each position group by layerOrder (index 0 = topmost)
@@ -5128,7 +5359,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     };
 
     // Use component-level drag refs (hooks cannot be called inside render functions)
-    const handleDragStart = (key: string) => { layerDragSrcKey.current = key; };
+    const handleDragStart = (key: string) => {
+      layerDragSrcKey.current = key;
+    };
 
     const handleDragOver = (e: React.DragEvent, key: string) => {
       e.preventDefault();
@@ -5151,7 +5384,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       // Build new layerOrder by moving src before target within the same group
       const order = [...layerOrder];
       const srcGlobalIdx = order.findIndex((e) => e.type === srcRow.type && e.id === srcRow.id);
-      const tgtGlobalIdx = order.findIndex((e) => e.type === targetRow.type && e.id === targetRow.id);
+      const tgtGlobalIdx = order.findIndex(
+        (e) => e.type === targetRow.type && e.id === targetRow.id
+      );
 
       if (srcGlobalIdx === -1 || tgtGlobalIdx === -1) return;
 
@@ -5207,41 +5442,66 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         {/* Above/Behind toggle */}
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); update(row, { position: row.position === 'above' ? 'underneath' : 'above' }); }}
-          title={row.position === 'above' ? 'Above mockup — click to move behind' : 'Behind mockup — click to move above'}
+          onClick={(e) => {
+            e.stopPropagation();
+            update(row, { position: row.position === 'above' ? 'underneath' : 'above' });
+          }}
+          title={
+            row.position === 'above'
+              ? 'Above mockup — click to move behind'
+              : 'Behind mockup — click to move above'
+          }
           className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
-            row.position === 'above' ? 'text-pastel-pink hover:bg-neutral-800' : 'text-slate-500 hover:bg-neutral-800'
+            row.position === 'above'
+              ? 'text-pastel-pink hover:bg-neutral-800'
+              : 'text-slate-500 hover:bg-neutral-800'
           }`}
         >
-          {row.position === 'above'
-            ? <PhosphorIcons.ArrowLineUpIcon className="w-3.5 h-3.5" />
-            : <PhosphorIcons.ArrowLineDownIcon className="w-3.5 h-3.5" />}
+          {row.position === 'above' ? (
+            <PhosphorIcons.ArrowLineUpIcon className="w-3.5 h-3.5" />
+          ) : (
+            <PhosphorIcons.ArrowLineDownIcon className="w-3.5 h-3.5" />
+          )}
         </button>
         {/* Visibility */}
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); update(row, { visible: !row.visible }); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            update(row, { visible: !row.visible });
+          }}
           title={row.visible ? 'Hide layer' : 'Show layer'}
           className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
-            row.visible ? 'text-slate-400 hover:text-white hover:bg-neutral-800' : 'text-slate-600 hover:bg-neutral-800'
+            row.visible
+              ? 'text-slate-400 hover:text-white hover:bg-neutral-800'
+              : 'text-slate-600 hover:bg-neutral-800'
           }`}
         >
-          {row.visible
-            ? <PhosphorIcons.EyeIcon className="w-3.5 h-3.5" />
-            : <PhosphorIcons.EyeSlashIcon className="w-3.5 h-3.5" />}
+          {row.visible ? (
+            <PhosphorIcons.EyeIcon className="w-3.5 h-3.5" />
+          ) : (
+            <PhosphorIcons.EyeSlashIcon className="w-3.5 h-3.5" />
+          )}
         </button>
         {/* Lock */}
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); update(row, { locked: !row.locked }); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            update(row, { locked: !row.locked });
+          }}
           title={row.locked ? 'Unlock layer' : 'Lock layer'}
           className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
-            row.locked ? 'text-amber-300 hover:bg-neutral-800' : 'text-slate-500 hover:text-white hover:bg-neutral-800'
+            row.locked
+              ? 'text-amber-300 hover:bg-neutral-800'
+              : 'text-slate-500 hover:text-white hover:bg-neutral-800'
           }`}
         >
-          {row.locked
-            ? <PhosphorIcons.LockSimpleIcon className="w-3.5 h-3.5" />
-            : <PhosphorIcons.LockSimpleOpenIcon className="w-3.5 h-3.5" />}
+          {row.locked ? (
+            <PhosphorIcons.LockSimpleIcon className="w-3.5 h-3.5" />
+          ) : (
+            <PhosphorIcons.LockSimpleOpenIcon className="w-3.5 h-3.5" />
+          )}
         </button>
         {/* Duplicate */}
         <button
@@ -5297,12 +5557,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5 px-1">
                   <PhosphorIcons.ArrowLineUpIcon className="w-3 h-3 text-pastel-pink/70" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Above Mockup</span>
-                  <span className="text-[10px] font-mono text-slate-600 ml-auto">{aboveRows.length}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Above Mockup
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-600 ml-auto">
+                    {aboveRows.length}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  {aboveRows.map(renderRow)}
-                </div>
+                <div className="space-y-1">{aboveRows.map(renderRow)}</div>
               </div>
             )}
 
@@ -5310,7 +5572,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
             {aboveRows.length > 0 && underRows.length > 0 && (
               <div className="flex items-center gap-2 py-0.5 px-1">
                 <div className="flex-1 border-t border-dashed border-neutral-700/60" />
-                <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-600">Mockup Frame</span>
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-600">
+                  Mockup Frame
+                </span>
                 <div className="flex-1 border-t border-dashed border-neutral-700/60" />
               </div>
             )}
@@ -5320,12 +5584,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5 px-1">
                   <PhosphorIcons.ArrowLineDownIcon className="w-3 h-3 text-slate-500" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Behind Mockup</span>
-                  <span className="text-[10px] font-mono text-slate-600 ml-auto">{underRows.length}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Behind Mockup
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-600 ml-auto">
+                    {underRows.length}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  {underRows.map(renderRow)}
-                </div>
+                <div className="space-y-1">{underRows.map(renderRow)}</div>
               </div>
             )}
           </div>
