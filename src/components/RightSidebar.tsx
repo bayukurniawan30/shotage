@@ -19,12 +19,16 @@ import { WAVE_PRESETS } from '../utils/wavePresets';
 import { MESH_PRESETS } from '../utils/meshPresets';
 import { CONFETTI_PRESETS, generateRandomConfettiPreset } from '../utils/confettiPresets';
 import { RADIANT_PRESETS } from '../utils/radiantPresets';
+import { SHADESHIFTER_PRESETS } from '../utils/shadeshifterPresets';
+import { SPECTRAL_PRESETS } from '../utils/spectralPresets';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { GRADIENT_PRESETS } from '../utils/gradientPresets';
 import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import { ShadeshifterBackground } from './ShadeshifterBackground';
+import { SpectralBackground } from './SpectralBackground';
 import {
   ANIMATED_GRADIENT_PRESETS,
   ANIMATED_MESH_PRESETS,
@@ -144,6 +148,20 @@ export const BACKGROUND_STYLE_OPTIONS: BackgroundStyleOption[] = [
     category: 'Colors & Gradients',
     desc: 'Smooth 2-3 stop color blends',
     iconNode: <PhosphorIcons.Gradient className="w-4 h-4 text-pastel-green shrink-0" />,
+  },
+  {
+    id: 'shadeshifter',
+    label: 'Shadeshifter (Grainient)',
+    category: 'Colors & Gradients',
+    desc: 'Grainy iridescent multi-mesh gradients',
+    iconNode: <PhosphorIcons.Sparkle className="w-4 h-4 text-violet-400 shrink-0" />,
+  },
+  {
+    id: 'spectral',
+    label: 'Spectral Prism',
+    category: 'Colors & Gradients',
+    desc: 'Chromatic prism refractions (Dark & Light)',
+    iconNode: <PhosphorIcons.Rainbow className="w-4 h-4 text-emerald-400 shrink-0" />,
   },
   {
     id: 'linearSwatches',
@@ -741,6 +759,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const onChange = state.updateState;
   const reset3DPerspective = state.reset3DPerspective;
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [showAllShadeshifter, setShowAllShadeshifter] = useState(false);
+  const [showAllSpectral, setShowAllSpectral] = useState(false);
   const [showAllAnimatedGradients, setShowAllAnimatedGradients] = useState(false);
   const [showAllAnimatedMeshes, setShowAllAnimatedMeshes] = useState(false);
   const [showAllWaves, setShowAllWaves] = useState(false);
@@ -1138,6 +1158,241 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'shadeshifter' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Shadeshifter Styles ({SHADESHIFTER_PRESETS.length})
+            </span>
+            {showAllShadeshifter && (
+              <button
+                type="button"
+                onClick={() => setShowAllShadeshifter(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
+          </div>
+
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllShadeshifter ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllShadeshifter
+              ? SHADESHIFTER_PRESETS.slice(0, 3)
+              : SHADESHIFTER_PRESETS
+            ).map((preset) => {
+              const isSelected =
+                (state.shadeshifterPreset || 'shadeshifter-1') === preset.id;
+
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => onChange({ shadeshifterPreset: preset.id })}
+                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={preset.name}
+                >
+                  <ShadeshifterBackground
+                    presetId={preset.id}
+                    grainOpacity={state.shadeshifterGrain ?? 35}
+                    blur={state.shadeshifterBlur ?? 40}
+                  />
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {!showAllShadeshifter && SHADESHIFTER_PRESETS.length > 3 && (
+              <div className="relative h-10">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllShadeshifter(true)}
+                  title={`Show all ${SHADESHIFTER_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <ShadeshifterBackground
+                    presetId={SHADESHIFTER_PRESETS[3].id}
+                    grainOpacity={state.shadeshifterGrain ?? 35}
+                    blur={state.shadeshifterBlur ?? 40}
+                  />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{SHADESHIFTER_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Grain Texture Intensity Slider */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Grain Noise Texture</span>
+              <span className="font-mono text-slate-400">{state.shadeshifterGrain ?? 35}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={state.shadeshifterGrain ?? 35}
+              onChange={(e) => onChange({ shadeshifterGrain: Number(e.target.value) })}
+              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            />
+          </div>
+
+          {/* Mesh Blur Depth Slider */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Mesh Blur Depth</span>
+              <span className="font-mono text-slate-400">{state.shadeshifterBlur ?? 40}px</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="80"
+              value={state.shadeshifterBlur ?? 40}
+              onChange={(e) => onChange({ shadeshifterBlur: Number(e.target.value) })}
+              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            />
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'spectral' && (
+        <div className="space-y-3 pt-1 border-t border-slate-800/60">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Spectral Styles ({SPECTRAL_PRESETS.length})
+            </span>
+            {showAllSpectral && (
+              <button
+                type="button"
+                onClick={() => setShowAllSpectral(false)}
+                className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Collapse presets"
+              >
+                <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+              </button>
+            )}
+          </div>
+
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllSpectral ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllSpectral
+              ? SPECTRAL_PRESETS.slice(0, 3)
+              : SPECTRAL_PRESETS
+            ).map((preset) => {
+              const isSelected =
+                (state.spectralPreset || 'spectral-1') === preset.id;
+
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() =>
+                    onChange({
+                      spectralPreset: preset.id,
+                      spectralAngle: preset.angle ?? 135,
+                      spectralBlur: preset.blur ?? 45,
+                    })
+                  }
+                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={`${preset.name} (${preset.theme === 'dark' ? 'Dark' : 'Light'})`}
+                >
+                  <SpectralBackground
+                    presetId={preset.id}
+                    blur={state.spectralBlur}
+                    angle={state.spectralAngle}
+                  />
+
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                      <Check className="w-3 h-3 text-pastel-pink" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {!showAllSpectral && SPECTRAL_PRESETS.length > 3 && (
+              <div className="relative h-10">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllSpectral(true)}
+                  title={`Show all ${SPECTRAL_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <SpectralBackground
+                    presetId={SPECTRAL_PRESETS[3].id}
+                    blur={state.spectralBlur}
+                    angle={state.spectralAngle}
+                  />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{SPECTRAL_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Spectrum Angle Slider */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Spectrum Angle</span>
+              <span className="font-mono text-slate-400">{state.spectralAngle ?? 135}°</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              value={state.spectralAngle ?? 135}
+              onChange={(e) => onChange({ spectralAngle: Number(e.target.value) })}
+              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            />
+          </div>
+
+          {/* Prism Blur Depth Slider */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Prism Blur Depth</span>
+              <span className="font-mono text-slate-400">{state.spectralBlur ?? 45}px</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="80"
+              value={state.spectralBlur ?? 45}
+              onChange={(e) => onChange({ spectralBlur: Number(e.target.value) })}
+              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            />
           </div>
         </div>
       )}

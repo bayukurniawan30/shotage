@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-interface Project {
+export interface Project {
   name: string;
   tagline: string;
   url: string;
@@ -9,7 +9,7 @@ interface Project {
   accent: string;
 }
 
-const PROJECTS: Project[] = [
+export const PROJECTS: Project[] = [
   {
     name: 'Morphic CMS',
     tagline: 'Modern, Edge-Ready Headless CMS',

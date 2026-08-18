@@ -6,6 +6,8 @@ import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
 import { RadiantBackground } from './RadiantBackground';
+import { ShadeshifterBackground } from './ShadeshifterBackground';
+import { SpectralBackground } from './SpectralBackground';
 import { AnimatedGradientBackground, AnimatedMeshBackground } from './AnimatedBackgrounds';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { WatermarkOverlay } from './WatermarkOverlay';
@@ -1978,6 +1980,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               <ConfettiBackground
                 presetId={state.confettiPreset || 'confetti-1'}
                 customPreset={state.customConfettiObj}
+              />
+            )}
+
+            {/* Shadeshifter Grainient Mesh Layer */}
+            {state.backgroundType === 'shadeshifter' && (
+              <ShadeshifterBackground
+                presetId={state.shadeshifterPreset || 'shadeshifter-1'}
+                grainOpacity={state.shadeshifterGrain ?? 35}
+                blur={state.shadeshifterBlur ?? 40}
+              />
+            )}
+
+            {/* Spectral Chromatic Prism Layer */}
+            {state.backgroundType === 'spectral' && (
+              <SpectralBackground
+                presetId={state.spectralPreset || 'spectral-1'}
+                blur={state.spectralBlur}
+                angle={state.spectralAngle}
               />
             )}
 

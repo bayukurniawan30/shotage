@@ -189,6 +189,8 @@ export type WatermarkSize = 'sm' | 'md' | 'lg';
 export type BackgroundType =
   | 'solid'
   | 'gradient'
+  | 'shadeshifter'
+  | 'spectral'
   | 'animatedGradient'
   | 'linearSwatches'
   | 'wave'
@@ -250,6 +252,12 @@ export interface StudioState {
   backgroundType: BackgroundType;
   wavePreset: string;
   meshPreset: string;
+  shadeshifterPreset?: string;
+  shadeshifterGrain?: number;
+  shadeshifterBlur?: number;
+  spectralPreset?: string;
+  spectralBlur?: number;
+  spectralAngle?: number;
   animatedGradientPreset?: string;
   animatedMeshPreset?: string;
   confettiPreset: string;
@@ -386,6 +394,12 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   backgroundType: 'gradient',
   wavePreset: 'wave-1',
   meshPreset: 'mesh-1',
+  shadeshifterPreset: 'shadeshifter-1',
+  shadeshifterGrain: 35,
+  shadeshifterBlur: 40,
+  spectralPreset: 'spectral-1',
+  spectralBlur: 45,
+  spectralAngle: 215,
   animatedGradientPreset: 'anim-grad-1',
   animatedMeshPreset: 'anim-mesh-1',
   confettiPreset: 'confetti-1',

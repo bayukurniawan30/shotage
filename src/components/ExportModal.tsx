@@ -15,6 +15,7 @@ import {
 } from '@untitledui/icons';
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
+import { PROJECTS } from './ProjectSpotlight';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const [shareName, setShareName] = useState('');
   const [sharePublisher, setSharePublisher] = useState('');
   const [isSharing, setIsSharing] = useState(false);
+  const [sponsoredProject] = useState(() => PROJECTS[Math.floor(Math.random() * PROJECTS.length)]);
   const [shareUrl, setShareUrl] = useState('');
   const [shareError, setShareError] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -951,36 +953,38 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         )}
 
         {/* Sponsorer Box */}
-        <div className="pt-3 border-t border-slate-800/80">
-          <a
-            href="https://morphic-cms.com?ref=shotage.studio"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group block p-3 bg-slate-950/60 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl transition-all shadow-inner"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                Sponsored
-              </span>
-              <LinkExternal01 className="w-3 h-3 text-slate-500 group-hover:text-pastel-pink transition-colors" />
-            </div>
-            <div className="flex items-center gap-2.5">
-              <img
-                src="https://morphic-cms.com/favicon.png"
-                alt="Morphic CMS Logo"
-                className="w-6 h-6 rounded-md shrink-0 object-contain"
-              />
-              <div className="overflow-hidden">
-                <h4 className="text-xs font-bold text-slate-200 group-hover:text-pastel-pink transition-colors leading-tight">
-                  Morphic CMS
-                </h4>
-                <p className="text-[11px] text-slate-400 truncate leading-tight mt-0.5">
-                  Modern, Edge-Ready Headless CMS.
-                </p>
+        {sponsoredProject && (
+          <div className="pt-3 border-t border-slate-800/80">
+            <a
+              href={sponsoredProject.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group block p-3 bg-slate-950/60 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl transition-all shadow-inner"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Sponsored
+                </span>
+                <LinkExternal01 className="w-3 h-3 text-slate-500 group-hover:text-pastel-pink transition-colors" />
               </div>
-            </div>
-          </a>
-        </div>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src={sponsoredProject.favicon}
+                  alt={`${sponsoredProject.name} Logo`}
+                  className="w-6 h-6 rounded-md shrink-0 object-contain"
+                />
+                <div className="overflow-hidden">
+                  <h4 className="text-xs font-bold text-slate-200 group-hover:text-pastel-pink transition-colors leading-tight">
+                    {sponsoredProject.name}
+                  </h4>
+                  <p className="text-[11px] text-slate-400 truncate leading-tight mt-0.5">
+                    {sponsoredProject.tagline}
+                  </p>
+                </div>
+              </div>
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
