@@ -198,7 +198,12 @@ export const Studio: React.FC = () => {
         }
         try {
           const parsed = JSON.parse(data.json_string);
-          useStudioStore.getState().updateState(parsed);
+          useStudioStore.getState().updateState({
+            ...parsed,
+            shareIdentifier: data.identifier || sharedViewKey,
+            sharedDesignName: data.name || null,
+            sharedDesignPublisher: data.publisher || null,
+          });
           temporalStore.getState().clear();
           setTimeout(() => fitCanvasToView(), 60);
         } catch (err) {

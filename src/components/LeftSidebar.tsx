@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useStudioStore } from '../store/useStudioStore';
-import { UploadCloud01, ChevronDown, Check, XClose } from '@untitledui/icons';
+import { UploadCloud01, ChevronDown, Check, XClose, Share01 } from '@untitledui/icons';
 import { SocialIcon } from './SocialIcons';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { DocumentsIllustration } from './shared-assets/illustrations';
@@ -354,6 +354,33 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           </div>,
           document.body
         )}
+
+      {/* Shared Design Info (when loaded via ?s=...) */}
+      {(state.sharedDesignName || state.sharedDesignPublisher) && (
+        <div className="p-3 bg-gradient-to-br from-pastel-pink/10 via-purple-500/10 to-pastel-blue/10 border border-pastel-pink/30 rounded-xl space-y-1 shadow-sm">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-pastel-pink uppercase tracking-wider">
+            <Share01 className="w-3.5 h-3.5" />
+            <span>Shared Design</span>
+          </div>
+          {state.sharedDesignName && (
+            <h4
+              className="text-xs font-bold text-slate-100 leading-tight truncate"
+              title={state.sharedDesignName}
+            >
+              {state.sharedDesignName}
+            </h4>
+          )}
+          {state.sharedDesignPublisher && (
+            <p
+              className="text-[11px] text-slate-400 leading-tight truncate flex items-center gap-1"
+              title={state.sharedDesignPublisher}
+            >
+              <span className="text-slate-500 font-medium">By</span>
+              <span className="font-semibold text-slate-200">{state.sharedDesignPublisher}</span>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="border-b border-slate-800/80 pb-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">

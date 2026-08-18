@@ -430,6 +430,58 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         (crypto.randomUUID && crypto.randomUUID()) ||
         `share-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+      // Generate optimized thumbnail image (max 350px, < 200KB)
+      let thumbnailDataUrl: string | null = null;
+      if (canvasRef.current) {
+        try {
+          storeState.selectTextLayer(null);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          if ('fonts' in document) await document.fonts.ready;
+
+          const rawCanvas = await toCanvas(canvasRef.current, {
+            pixelRatio: 1,
+            cacheBust: true,
+            ...(storeState.backgroundType === 'transparent'
+              ? { backgroundColor: 'transparent' }
+              : {}),
+          });
+
+          const maxDim = 350;
+          let targetWidth = rawCanvas.width;
+          let targetHeight = rawCanvas.height;
+
+          if (targetWidth > targetHeight) {
+            if (targetWidth > maxDim) {
+              targetHeight = Math.max(1, Math.round((targetHeight * maxDim) / targetWidth));
+              targetWidth = maxDim;
+            }
+          } else {
+            if (targetHeight > maxDim) {
+              targetWidth = Math.max(1, Math.round((targetWidth * maxDim) / targetHeight));
+              targetHeight = maxDim;
+            }
+          }
+
+          const thumbCanvas = document.createElement('canvas');
+          thumbCanvas.width = targetWidth;
+          thumbCanvas.height = targetHeight;
+          const ctx = thumbCanvas.getContext('2d');
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(rawCanvas, 0, 0, targetWidth, targetHeight);
+          }
+
+          let thumbUrl = thumbCanvas.toDataURL('image/webp', 0.82);
+          if (!thumbUrl.startsWith('data:image/webp')) {
+            thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.82);
+          }
+          thumbnailDataUrl = thumbUrl;
+        } catch (thumbErr) {
+          console.warn('Could not generate thumbnail for share:', thumbErr);
+        }
+      }
+
       const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -440,6 +492,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           json_string: JSON.stringify(rest),
           turnstileToken,
           entryId: shareId,
+          thumbnail: thumbnailDataUrl,
         }),
       });
 

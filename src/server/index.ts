@@ -72,10 +72,10 @@ const renderInertiaPage = (componentName: string, props = {}, search = '') => {
     componentName === 'Home'
       ? '/'
       : componentName === 'Studio'
-      ? '/studio'
-      : componentName === 'Faq'
-      ? '/faq'
-      : '/terms';
+        ? '/studio'
+        : componentName === 'Faq'
+          ? '/faq'
+          : '/terms';
   const pageData = JSON.stringify({
     component: componentName,
     props,
@@ -197,6 +197,9 @@ app.get('/api/share/:id', async (c) => {
     publisher: content?.publisher || entry?.publisher || '',
     identifier: content?.identifier || entry?.identifier || '',
     json_string: jsonString,
+    is_in_review: content?.is_in_review || entry?.is_in_review || 'no',
+    is_in_explore: content?.is_in_explore || entry?.is_in_explore || 'no',
+    thumbnail: content?.thumbnail || entry?.thumbnail || null,
   });
 });
 
@@ -204,7 +207,8 @@ app.get('/api/share/:id', async (c) => {
 // Creates a new entry on first share, updates the same entry on re-shares (dedup).
 app.post('/api/share', async (c) => {
   const body = await c.req.json();
-  const { name, publisher, identifier, json_string, turnstileToken, entryId } = body || {};
+  const { name, publisher, identifier, json_string, turnstileToken, entryId, thumbnail } =
+    body || {};
 
   if (!name || !publisher || !identifier || !json_string) {
     return c.json({ error: 'Missing required fields' }, 400);
@@ -235,11 +239,68 @@ app.post('/api/share', async (c) => {
   }
 
   const cmsBase = process.env.MORPHIC_API_URL || 'https://main-workspace.morphic-cms.com';
+  const MEDIA_FOLDER_ID = 22;
+
+  // Upload thumbnail to Morphic CMS media endpoint if provided
+  let thumbnailMedia: any = null;
+  if (thumbnail && typeof thumbnail === 'string') {
+    try {
+      const match = thumbnail.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+      let fileBlob: Blob;
+      let fileName = `${identifier}.webp`;
+
+      if (match) {
+        const mimeType = match[1];
+        const base64Data = match[2];
+        const ext = mimeType.includes('png')
+          ? 'png'
+          : mimeType.includes('jpeg') || mimeType.includes('jpg')
+            ? 'jpg'
+            : 'webp';
+        fileName = `${identifier}.${ext}`;
+        const buffer = Buffer.from(base64Data, 'base64');
+        fileBlob = new Blob([buffer], { type: mimeType });
+      } else {
+        fileBlob = new Blob([thumbnail], { type: 'image/webp' });
+      }
+
+      const mediaForm = new FormData();
+      mediaForm.append('file', fileBlob, fileName);
+      mediaForm.append('folderId', String(MEDIA_FOLDER_ID));
+
+      const uploadRes = await fetch(`${cmsBase}/api/media/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: mediaForm,
+      });
+
+      if (uploadRes.ok) {
+        const uploadJson = await uploadRes.json();
+        thumbnailMedia = uploadJson?.media || uploadJson?.data || uploadJson;
+      } else {
+        console.error('Media upload failed:', await uploadRes.text());
+      }
+    } catch (err) {
+      console.error('Error uploading thumbnail media:', err);
+    }
+  }
+
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
   };
-  const payload = JSON.stringify({ name, publisher, identifier, json_string });
+
+  const payload = JSON.stringify({
+    name,
+    publisher,
+    identifier,
+    json_string,
+    is_in_review: 'no',
+    is_in_explore: 'no',
+    thumbnail: thumbnailMedia,
+  });
 
   // Upsert: PUT to existing entry when entryId is provided, otherwise POST to create
   const isUpdate = Boolean(entryId);

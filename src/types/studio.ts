@@ -210,6 +210,8 @@ export interface StudioState {
   secondImageHeight: number | null;
   shareId: string | null;
   shareIdentifier: string | null;
+  sharedDesignName?: string | null;
+  sharedDesignPublisher?: string | null;
   zoom: number; // 50 to 150
   slot2Zoom: number; // 50 to 150
   previewCanvasZoom: number; // 50 to 150
@@ -391,6 +393,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   iphoneStatusBar: 'none',
   urlText: 'shotage.app/preview',
   secondUrlText: 'shotage.app/demo',
+  sharedDesignName: null,
+  sharedDesignPublisher: null,
   backgroundType: 'gradient',
   wavePreset: 'wave-1',
   meshPreset: 'mesh-1',
