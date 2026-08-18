@@ -181,6 +181,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           link.download = `shotage-stage-${i + 1}-${Date.now()}.${format}`;
           link.href = dataUrl;
           link.click();
+          if (format === 'webp') {
+            setTimeout(() => URL.revokeObjectURL(dataUrl), 2000);
+          }
           await new Promise((resolve) => setTimeout(resolve, 300));
         }
 
@@ -209,6 +212,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           link.download = `shotage-${Date.now()}.${format}`;
           link.href = dataUrl;
           link.click();
+          if (format === 'webp') {
+            setTimeout(() => URL.revokeObjectURL(dataUrl), 2000);
+          }
           setSupportCountdown(10);
         }
       }
@@ -229,6 +235,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setExportingType('video');
     setExportProgress(0);
 
+    let exportCanvas: HTMLCanvasElement | null = null;
+    let ctx: CanvasRenderingContext2D | null = null;
+    let videoEncoder: VideoEncoder | null = null;
+    let muxer: any = null;
+    let cachedFontEmbedCSS = '';
+
     try {
       state.selectTextLayer(null);
       const durationSec = state.durationSec || 10;
@@ -236,13 +248,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       const totalFrames = Math.floor(durationSec * fps);
 
       const rect = canvasRef.current.getBoundingClientRect();
-      const exportCanvas = document.createElement('canvas');
+      exportCanvas = document.createElement('canvas');
       const scale = Math.max(1, state.exportScale || 1.5);
 
       // Ensure even pixel dimensions required by video codecs
       exportCanvas.width = Math.floor((rect.width * scale) / 2) * 2;
       exportCanvas.height = Math.floor((rect.height * scale) / 2) * 2;
-      const ctx = exportCanvas.getContext('2d');
+      ctx = exportCanvas.getContext('2d');
 
       if (!ctx) throw new Error('Could not create canvas 2d context');
 
@@ -269,7 +281,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         }
       }
 
-      let muxer: any;
       let encoderCodec = 'vp09.00.10.08';
       let extension = 'webm';
       let mimeType = 'video/webm';
@@ -298,8 +309,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         });
       }
 
-      const videoEncoder = new VideoEncoder({
-        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+      videoEncoder = new VideoEncoder({
+        output: (chunk, meta) => muxer?.addVideoChunk(chunk, meta),
         error: (e) => console.error('VideoEncoder error:', e),
       });
 
@@ -319,7 +330,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }
 
       // Pre-compute font embed CSS ONCE to prevent html-to-image from downloading/converting fonts on every frame (300x)
-      let cachedFontEmbedCSS = '';
       try {
         cachedFontEmbedCSS = await getFontEmbedCSS(canvasRef.current);
       } catch (err) {
@@ -352,11 +362,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           const videoFrame = new VideoFrame(exportCanvas, { timestamp: timestampMicros });
           videoEncoder.encode(videoFrame, { keyFrame: frame % (fps * 2) === 0 });
           videoFrame.close();
+
+          // CRITICAL MEMORY RELEASE:
+          // Immediately zero-out intermediate frame canvas dimensions to reclaim GPU/RAM bitmap memory
+          renderedCanvas.width = 0;
+          renderedCanvas.height = 0;
         } catch (e) {
           console.warn('Frame render skipped:', e);
         }
 
         setExportProgress(Math.round((frame / totalFrames) * 100));
+
+        // Yield to browser event loop every 8 frames so browser GC can reclaim memory
+        if (frame % 8 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
       }
 
       if (cancelVideoRef.current) {
@@ -366,16 +386,28 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         return;
       }
 
-      await videoEncoder.flush();
-      muxer.finalize();
+      if (videoEncoder && videoEncoder.state !== 'closed') {
+        await videoEncoder.flush();
+        try {
+          videoEncoder.close();
+        } catch (e) {
+          // already closed
+        }
+      }
 
-      const { buffer } = muxer.target;
-      const blob = new Blob([buffer], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `shotage-animation-${Date.now()}.${extension}`;
-      link.href = url;
-      link.click();
+      if (muxer) {
+        muxer.finalize();
+        const { buffer } = muxer.target;
+        const blob = new Blob([buffer], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `shotage-animation-${Date.now()}.${extension}`;
+        link.href = url;
+        link.click();
+
+        // Revoke the blob URL after download triggers to release the video buffer from RAM
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
 
       // Trigger 3D Success State
       setIsSuccess(true);
@@ -391,6 +423,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       setIsExporting(false);
       setExportingType(null);
       setExportProgress(0);
+    } finally {
+      // Complete memory purge
+      if (exportCanvas) {
+        exportCanvas.width = 0;
+        exportCanvas.height = 0;
+        exportCanvas = null;
+      }
+      ctx = null;
+      if (videoEncoder && videoEncoder.state !== 'closed') {
+        try {
+          videoEncoder.close();
+        } catch (e) {}
+      }
+      videoEncoder = null;
+      muxer = null;
+      cachedFontEmbedCSS = '';
     }
   };
 

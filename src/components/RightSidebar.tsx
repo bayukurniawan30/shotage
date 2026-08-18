@@ -23,6 +23,7 @@ import { SHADESHIFTER_PRESETS } from '../utils/shadeshifterPresets';
 import { SPECTRAL_PRESETS } from '../utils/spectralPresets';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { GRADIENT_PRESETS } from '../utils/gradientPresets';
+import { PATTERN_PRESETS } from '../utils/patternPresets';
 import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
@@ -768,6 +769,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const [showAllConfetti, setShowAllConfetti] = useState(false);
   const [showAllRadiant, setShowAllRadiant] = useState(false);
   const [showAllLinearSwatches, setShowAllLinearSwatches] = useState(false);
+  const [showAllPatterns, setShowAllPatterns] = useState(false);
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
   const [customEmojiInput, setCustomEmojiInput] = useState('');
   const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
@@ -2150,6 +2152,185 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   max="80"
                   value={state.lensBlurRadius || 20}
                   onChange={(e) => onChange({ lensBlurRadius: Number(e.target.value) })}
+                  className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pattern Overlay Add-on Controls */}
+        <div className="pt-3 border-t border-slate-800/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <Toggle
+              isSelected={state.bgPatternEnabled}
+              onChange={(checked) => onChange({ bgPatternEnabled: checked })}
+              label="PATTERN OVERLAY"
+              size="sm"
+            />
+          </div>
+
+          {state.bgPatternEnabled && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              {/* Pattern Presets Grid with Box Preview */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+                    Pattern Styles ({PATTERN_PRESETS.length})
+                  </span>
+                  {showAllPatterns && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllPatterns(false)}
+                      className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Collapse patterns"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+                    </button>
+                  )}
+                </div>
+
+                <div
+                  className={`grid grid-cols-4 gap-2.5 ${
+                    showAllPatterns ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+                  }`}
+                >
+                  {(!showAllPatterns ? PATTERN_PRESETS.slice(0, 3) : PATTERN_PRESETS).map(
+                    (pattern) => {
+                      const isSelected =
+                        (state.bgPatternPreset || 'pattern-1') === pattern.id;
+
+                      return (
+                        <button
+                          key={pattern.id}
+                          type="button"
+                          onClick={() => onChange({ bgPatternPreset: pattern.id })}
+                          className={`h-8 rounded-lg border shadow-sm transition-all flex items-center justify-center cursor-pointer relative bg-slate-900 overflow-hidden ${
+                            isSelected
+                              ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                              : 'border-slate-700/80 hover:border-slate-500 hover:scale-105 opacity-90 hover:opacity-100'
+                          }`}
+                          style={{
+                            backgroundImage: pattern.getSvgUrl(state.bgPatternColor || '#9C92AC'),
+                            backgroundRepeat: 'repeat',
+                          }}
+                          title={pattern.name}
+                        >
+                          {isSelected && (
+                            <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
+                              <Check className="w-3 h-3 text-pastel-pink" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    }
+                  )}
+
+                  {!showAllPatterns && PATTERN_PRESETS.length > 3 && (
+                    <div className="relative h-8">
+                      {/* Tilted background card */}
+                      <div className="absolute inset-0 rounded-lg bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                      {/* Foreground main card */}
+                      <button
+                        type="button"
+                        onClick={() => setShowAllPatterns(true)}
+                        title={`Show all ${PATTERN_PRESETS.length} patterns`}
+                        className="relative z-10 w-full h-full rounded-lg border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden bg-slate-900"
+                        style={{
+                          backgroundImage: PATTERN_PRESETS[3].getSvgUrl(
+                            state.bgPatternColor || '#9C92AC'
+                          ),
+                          backgroundRepeat: 'repeat',
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white">
+                          <span className="text-[10px] font-bold tracking-tight">
+                            +{PATTERN_PRESETS.length - 3}
+                          </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pattern Color Picker */}
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-medium text-slate-300">Pattern Color</span>
+                  <span className="font-mono text-xs text-slate-300 uppercase">
+                    {state.bgPatternColor || '#9C92AC'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-700/80 rounded-xl shadow-inner group hover:border-slate-600 transition-colors">
+                  <label
+                    className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative"
+                    style={{ backgroundColor: state.bgPatternColor || '#9C92AC' }}
+                    title="Choose pattern color"
+                  >
+                    <input
+                      type="color"
+                      value={state.bgPatternColor || '#9C92AC'}
+                      onChange={(e) => onChange({ bgPatternColor: e.target.value })}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    />
+                  </label>
+                  <div className="flex-1 flex items-center gap-1.5 px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono">
+                    <span className="text-slate-500">#</span>
+                    <input
+                      type="text"
+                      value={(state.bgPatternColor || '#9C92AC').replace('#', '')}
+                      onChange={(e) => {
+                        const hex = e.target.value.trim();
+                        onChange({ bgPatternColor: `#${hex}` });
+                      }}
+                      className="w-full bg-transparent text-slate-200 focus:outline-none uppercase font-mono"
+                      maxLength={6}
+                    />
+                  </div>
+                </div>
+
+                {/* Pattern Color Quick Swatches */}
+                <div className="grid grid-cols-7 gap-1.5 mt-2">
+                  {[
+                    '#9C92AC',
+                    '#FFFFFF',
+                    '#94A3B8',
+                    '#F472B6',
+                    '#38BDF8',
+                    '#F59E0B',
+                    '#0F172A',
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => onChange({ bgPatternColor: color })}
+                      className={`h-6 rounded-md border transition-all cursor-pointer ${
+                        (state.bgPatternColor || '#9C92AC').toLowerCase() === color.toLowerCase()
+                          ? 'border-pastel-pink ring-2 ring-pastel-pink/30 scale-105'
+                          : 'border-slate-700 hover:border-slate-500'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Pattern Opacity Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Pattern Opacity</span>
+                  <span className="font-mono text-slate-400">{state.bgPatternOpacity ?? 40}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  value={state.bgPatternOpacity ?? 40}
+                  onChange={(e) => onChange({ bgPatternOpacity: Number(e.target.value) })}
                   className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
                 />
               </div>

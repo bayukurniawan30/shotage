@@ -99,3 +99,22 @@ export const ANIMATION_PRESETS: AnimationPresetTemplate[] = [
     ],
   },
 ];
+
+export type ElementLoopAnimation = 'none' | 'pulse' | 'float' | 'spin' | 'blink' | 'wiggle';
+
+export interface ElementLoopPreset {
+  id: ElementLoopAnimation;
+  name: string;
+  description: string;
+  badge: string;
+}
+
+export const ELEMENT_LOOP_PRESETS: ElementLoopPreset[] = [
+  { id: 'none', name: 'None', description: 'Static layer (no animation)', badge: 'Static' },
+  { id: 'pulse', name: 'Pulse (Zoom)', description: 'Smooth pulsing push-in and push-out loop', badge: 'Pulse' },
+  { id: 'float', name: 'Float (Hover)', description: 'Gentle vertical floating wave motion', badge: 'Float' },
+  { id: 'spin', name: 'Spin (360°)', description: 'Continuous smooth 360-degree rotation', badge: 'Spin' },
+  { id: 'blink', name: 'Fade (Blink)', description: 'Rhythmic opacity fading in and out', badge: 'Fade' },
+  { id: 'wiggle', name: 'Wiggle (Shake)', description: 'Playful oscillating wobble tilt loop', badge: 'Wiggle' },
+];
+

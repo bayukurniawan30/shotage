@@ -10,18 +10,32 @@ import {
   ChevronDown,
   ChevronUp,
 } from '@untitledui/icons';
-import { ANIMATION_PRESETS, AnimationKeyframe } from '../types/animationTypes';
+import * as PhosphorIcons from '@phosphor-icons/react';
+import {
+  ANIMATION_PRESETS,
+  AnimationKeyframe,
+  ELEMENT_LOOP_PRESETS,
+  ElementLoopAnimation,
+} from '../types/animationTypes';
 
 export const AnimationTimeline: React.FC = () => {
   const state = useStudioStore();
   const onChange = state.updateState;
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const trackContainerRef = useRef<HTMLDivElement>(null);
+  const mockupTrackRef = useRef<HTMLDivElement>(null);
 
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Selected track state: 'mockup' or a specific layer
+  const [selectedTrack, setSelectedTrack] = useState<{
+    type: 'mockup' | 'text' | 'phosphor' | 'element' | 'shape';
+    id: string;
+    name: string;
+  }>({ type: 'mockup', id: 'mockup', name: 'Mockup' });
 
   // Initialize default keyframes with Start (0s) and End (10s) keyframes capturing current canvas pose
   useEffect(() => {
@@ -111,7 +125,7 @@ export const AnimationTimeline: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.isPlaying, onChange]);
 
-  // Load animation preset template
+  // Load animation preset template for Mockup
   const applyPreset = (presetId: string) => {
     const preset = ANIMATION_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
@@ -128,10 +142,9 @@ export const AnimationTimeline: React.FC = () => {
     });
   };
 
-  // Add current canvas state as a new keyframe
+  // Add current canvas state as a new keyframe for Mockup
   const addCurrentStateKeyframe = () => {
     const currentT = Math.round(state.currentTimeSec * 10) / 10;
-    // Check if keyframe exists at current time
     const existingIndex = state.keyframes.findIndex((kf) => Math.abs(kf.timeSec - currentT) < 0.2);
 
     const newKf: AnimationKeyframe = {
@@ -177,8 +190,8 @@ export const AnimationTimeline: React.FC = () => {
   };
 
   const handleMarkerPointerMove = (e: React.PointerEvent, kfId: string) => {
-    if (draggingKfId !== kfId || !trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
+    if (draggingKfId !== kfId || !mockupTrackRef.current) return;
+    const rect = mockupTrackRef.current.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
     const newTime = Math.round(percentage * state.durationSec * 10) / 10;
@@ -228,6 +241,165 @@ export const AnimationTimeline: React.FC = () => {
     });
   };
 
+  // Set Loop Animation for an individual layer
+  const setLayerLoopAnimation = (
+    type: 'text' | 'phosphor' | 'element' | 'shape',
+    id: string,
+    anim: ElementLoopAnimation
+  ) => {
+    if (type === 'text') {
+      onChange({
+        textLayers: (state.textLayers || []).map((l) =>
+          l.id === id ? { ...l, loopAnimation: anim } : l
+        ),
+      });
+    } else if (type === 'phosphor') {
+      onChange({
+        phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
+          l.id === id ? { ...l, loopAnimation: anim } : l
+        ),
+      });
+    } else if (type === 'element') {
+      onChange({
+        canvasElements: (state.canvasElements || []).map((l) =>
+          l.id === id ? { ...l, loopAnimation: anim } : l
+        ),
+      });
+    } else if (type === 'shape') {
+      onChange({
+        shapeLayers: (state.shapeLayers || []).map((l) =>
+          l.id === id ? { ...l, loopAnimation: anim } : l
+        ),
+      });
+    }
+  };
+
+  // Build Layer Track Rows matching the exact order in RightSidebar Layers panel
+  const buildLayerRows = () => {
+    const buildRow = (
+      type: 'text' | 'phosphor' | 'element' | 'shape',
+      id: string,
+      name: string,
+      loopAnimation: ElementLoopAnimation,
+      indicator: React.ReactNode
+    ) => ({ key: `${type}-${id}`, type, id, name, loopAnimation, indicator });
+
+    const allRows: ReturnType<typeof buildRow>[] = [];
+
+    (state.textLayers || []).forEach((l) =>
+      allRows.push(
+        buildRow(
+          'text',
+          l.id,
+          l.name || l.text || 'Text',
+          l.loopAnimation || 'none',
+          <PhosphorIcons.TextTIcon className="w-3.5 h-3.5 text-pastel-blue shrink-0" />
+        )
+      )
+    );
+
+    (state.phosphorIconLayers || []).forEach((l) => {
+      const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.Sparkle;
+      allRows.push(
+        buildRow(
+          'phosphor',
+          l.id,
+          l.name || l.iconId || 'Icon',
+          l.loopAnimation || 'none',
+          <IconComp className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+        )
+      );
+    });
+
+    (state.canvasElements || []).forEach((el) => {
+      const CatIcon =
+        el.category === 'emoji'
+          ? PhosphorIcons.Smiley
+          : el.category === 'line'
+            ? PhosphorIcons.LineSegment
+            : PhosphorIcons.ArrowRight;
+      allRows.push(
+        buildRow(
+          'element',
+          el.id,
+          el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
+          el.loopAnimation || 'none',
+          <CatIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+        )
+      );
+    });
+
+    (state.shapeLayers || []).forEach((s) => {
+      const ShapeCatIcon =
+        s.shapeType === 'circle'
+          ? PhosphorIcons.Circle
+          : s.shapeType === 'hexagon'
+            ? PhosphorIcons.Hexagon
+            : s.shapeType === 'quote'
+              ? (PhosphorIcons as any).Quotes || PhosphorIcons.ChatCircle || PhosphorIcons.Square
+              : s.shapeType === 'rectangle'
+                ? PhosphorIcons.Rectangle
+                : PhosphorIcons.Square;
+      allRows.push(
+        buildRow(
+          'shape',
+          s.id,
+          s.name || s.shapeType || 'Shape',
+          s.loopAnimation || 'none',
+          <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
+        )
+      );
+    });
+
+    // Sort by layerOrder (topmost layer on top)
+    const layerOrder = state.layerOrder || [];
+    return [...allRows].sort((a, b) => {
+      const idxA = layerOrder.findIndex((item) => item.type === a.type && item.id === a.id);
+      const idxB = layerOrder.findIndex((item) => item.type === b.type && item.id === b.id);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+  };
+
+  const layerTracks = buildLayerRows();
+
+  // Find currently active loop animation for selected layer
+  const getSelectedLayerActiveLoop = (): ElementLoopAnimation => {
+    if (selectedTrack.type === 'text') {
+      return (
+        (state.textLayers || []).find((l) => l.id === selectedTrack.id)?.loopAnimation || 'none'
+      );
+    }
+    if (selectedTrack.type === 'phosphor') {
+      return (
+        (state.phosphorIconLayers || []).find((l) => l.id === selectedTrack.id)?.loopAnimation ||
+        'none'
+      );
+    }
+    if (selectedTrack.type === 'element') {
+      return (
+        (state.canvasElements || []).find((l) => l.id === selectedTrack.id)?.loopAnimation || 'none'
+      );
+    }
+    if (selectedTrack.type === 'shape') {
+      return (
+        (state.shapeLayers || []).find((l) => l.id === selectedTrack.id)?.loopAnimation || 'none'
+      );
+    }
+    return 'none';
+  };
+
+  // Seeker click on timeline track area
+  const handleTimelineSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
+    const newTime = Math.round(percentage * state.durationSec * 10) / 10;
+    onChange({ currentTimeSec: newTime });
+  };
+
   if (isCollapsed) {
     return (
       <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl px-3 py-2 flex items-center justify-between z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200">
@@ -252,237 +424,433 @@ export const AnimationTimeline: React.FC = () => {
             )}
           </button>
 
-          <span className="font-mono text-xs font-bold text-slate-200">
+          <span className="font-mono text-xs text-slate-300">
             {state.currentTimeSec.toFixed(1)}s / {state.durationSec}s
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={addCurrentStateKeyframe}
-            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5 text-pastel-pink" />
-            <span className="hidden sm:inline">Add Keyframe</span>
-          </button>
-
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 rounded-lg border border-neutral-700 transition-all cursor-pointer flex items-center gap-1 text-xs font-medium"
-            title="Expand Timeline Track"
-          >
-            <ChevronUp className="w-4 h-4 text-pastel-pink" />
-            <span className="text-[11px] text-slate-300 hidden xs:inline">Expand</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="text-xs text-slate-400 hover:text-pastel-pink flex items-center gap-1 font-semibold cursor-pointer transition-colors"
+        >
+          <span>Open Timeline</span>
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
       </div>
     );
   }
 
+  const playheadPercent = (state.currentTimeSec / state.durationSec) * 100;
+
   return (
-    <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4 space-y-2.5 z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200">
-      {/* Header Bar: Title Row + Presets Row */}
-      <div className="border-b border-neutral-800/80 pb-2.5 space-y-2">
-        {/* Row 1: Title on left, Arrow collapse btn on right */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-pastel-pink/20 text-pastel-pink flex items-center justify-center">
-              <Film01 className="w-4 h-4" />
-            </div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-              Animation Timeline
-            </h3>
+    <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-2.5">
+      {/* Top Header Row: Play Controls, Duration, Minimize */}
+      <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2 gap-2">
+        {/* Left: Play/Pause, Time, Reset */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => onChange({ isPlaying: !state.isPlaying })}
+            className="p-1.5 hover:bg-neutral-800 bg-neutral-900 border border-neutral-800 text-pastel-pink rounded-lg transition-all cursor-pointer shrink-0"
+            title={state.isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+          >
+            {state.isPlaying ? (
+              <PauseSquare className="w-4 h-4 fill-pastel-pink text-pastel-pink" />
+            ) : (
+              <Play className="w-4 h-4 fill-pastel-pink text-pastel-pink ml-0.5" />
+            )}
+          </button>
+
+          <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-200 bg-neutral-900/80 border border-neutral-800 px-2 py-1 rounded-lg">
+            <span className="text-pastel-pink">{state.currentTimeSec.toFixed(1)}s</span>
+            <span className="text-slate-500">/</span>
+            <span className="text-slate-400">{state.durationSec}s</span>
           </div>
 
           <button
-            onClick={() => setIsCollapsed(true)}
+            onClick={() => onChange({ currentTimeSec: 0, isPlaying: false })}
             className="p-1.5 bg-neutral-900 hover:bg-neutral-800 text-slate-400 hover:text-white rounded-lg border border-neutral-800 transition-all cursor-pointer"
-            title="Minimize Timeline"
+            title="Reset Timeline to 0s"
           >
-            <ChevronDown className="w-4 h-4 text-pastel-pink" />
+            <RefreshCw01 className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Row 2: Preset Animation Selector Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar">
-          <span className="text-[10px] uppercase font-semibold text-slate-400 mr-1 shrink-0">
-            Presets:
-          </span>
-          {ANIMATION_PRESETS.map((preset) => {
-            const isSelected = state.activePresetId === preset.id;
-            return (
-              <button
-                key={preset.id}
-                onClick={() => applyPreset(preset.id)}
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  isSelected
-                    ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold shadow-xs'
-                    : 'bg-neutral-900 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
-                }`}
-              >
-                {preset.name}
-              </button>
-            );
-          })}
+        {/* Right: Length Selector, Add Keyframe (for Mockup), Collapse */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-2 py-1 text-xs text-slate-300 shrink-0">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase hidden sm:inline">
+              Duration:
+            </span>
+            <select
+              value={state.durationSec}
+              onChange={(e) => handleDurationChange(Number(e.target.value))}
+              className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer"
+            >
+              {[3, 5, 8, 9, 10, 12, 15, 20].includes(state.durationSec) ? null : (
+                <option value={state.durationSec} className="bg-neutral-900 text-white">
+                  {state.durationSec}s
+                </option>
+              )}
+              <option value={3} className="bg-neutral-900 text-white">
+                3s
+              </option>
+              <option value={5} className="bg-neutral-900 text-white">
+                5s
+              </option>
+              <option value={8} className="bg-neutral-900 text-white">
+                8s
+              </option>
+              <option value={9} className="bg-neutral-900 text-white">
+                9s
+              </option>
+              <option value={10} className="bg-neutral-900 text-white">
+                10s
+              </option>
+              <option value={12} className="bg-neutral-900 text-white">
+                12s
+              </option>
+              <option value={15} className="bg-neutral-900 text-white">
+                15s
+              </option>
+              <option value={20} className="bg-neutral-900 text-white">
+                20s (Max)
+              </option>
+            </select>
+          </div>
+
+          {selectedTrack.type === 'mockup' && (
+            <button
+              onClick={addCurrentStateKeyframe}
+              className="px-2.5 py-1 bg-pastel-pink/15 hover:bg-pastel-pink/25 text-pastel-pink border border-pastel-pink/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Add a 3D keyframe pose at current time"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add Keyframe</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-1.5 hover:bg-neutral-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer"
+            title="Minimize Timeline"
+          >
+            <ChevronDown className="w-4 h-4 text-slate-400 hover:text-pastel-pink" />
+          </button>
         </div>
       </div>
 
-      {/* Main Scrubber Track & Keyframe Controls */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          {/* Play / Pause Toggle Button */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onChange({ isPlaying: !state.isPlaying })}
-              className="p-1 hover:bg-neutral-800 text-pastel-pink rounded-lg transition-all cursor-pointer shrink-0"
-              title={state.isPlaying ? 'Pause' : 'Play'}
-            >
-              {state.isPlaying ? (
-                <PauseSquare className="w-5 h-5 fill-pastel-pink text-pastel-pink" />
-              ) : (
-                <Play className="w-5 h-5 fill-pastel-pink text-pastel-pink ml-0.5" />
-              )}
-            </button>
-            <span className="font-mono text-xs font-bold text-slate-200">
-              {state.currentTimeSec.toFixed(1)}s / {state.durationSec}s
+      {/* Row 2: Context-Aware Presets Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar bg-neutral-900/50 p-1.5 rounded-xl border border-neutral-800/80">
+        {selectedTrack.type === 'mockup' ? (
+          <>
+            <span className="text-[10px] uppercase font-bold text-pastel-pink mr-1 shrink-0 flex items-center gap-1">
+              <PhosphorIcons.Cube className="w-3.5 h-3.5" />
+              <span>Mockup Motions:</span>
             </span>
+            {ANIMATION_PRESETS.map((preset) => {
+              const isSelected = state.activePresetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => applyPreset(preset.id)}
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isSelected
+                      ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
+                  }`}
+                  title={preset.description}
+                >
+                  {preset.name}
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            <span className="text-[10px] uppercase font-bold text-pastel-blue mr-1 shrink-0 flex items-center gap-1">
+              <PhosphorIcons.Sparkle className="w-3.5 h-3.5" />
+              <span>{selectedTrack.name} Loops:</span>
+            </span>
+            {ELEMENT_LOOP_PRESETS.map((preset) => {
+              const activeLoop = getSelectedLayerActiveLoop();
+              const isSelected = activeLoop === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() =>
+                    setLayerLoopAnimation(selectedTrack.type as any, selectedTrack.id, preset.id)
+                  }
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isSelected
+                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue font-bold shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
+                  }`}
+                  title={preset.description}
+                >
+                  {preset.name}
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
+
+      {/* Multi-Track Video Editor Timeline Grid */}
+      <div className="border border-neutral-800/90 rounded-xl bg-neutral-950/80 overflow-hidden flex flex-row">
+        {/* LEFT COLUMN: Track Headers */}
+        <div className="w-36 sm:w-44 border-r border-neutral-800/80 bg-neutral-900/40 shrink-0 flex flex-col select-none">
+          {/* Top Header */}
+          <div className="h-6 px-2.5 flex items-center justify-between border-b border-neutral-800/80 font-sans font-bold text-[10px] text-slate-400 uppercase tracking-wider bg-neutral-900/60">
+            <span>Tracks ({layerTracks.length + 1})</span>
           </div>
 
-          {/* Keyframe Action Buttons & Duration Selector */}
-          <div className="flex items-center gap-2">
-            <div className="w-14 md:w-auto flex items-center justify-between md:justify-start gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-2 py-1 text-xs text-slate-300 shrink-0">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase hidden md:inline">
-                Length:
-              </span>
-              <select
-                value={state.durationSec}
-                onChange={(e) => handleDurationChange(Number(e.target.value))}
-                className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer w-full md:w-auto"
-              >
-                {[3, 5, 8, 9, 10, 12, 15, 20].includes(state.durationSec) ? null : (
-                  <option value={state.durationSec} className="bg-neutral-900 text-white">
-                    {state.durationSec}s
-                  </option>
-                )}
-                <option value={3} className="bg-neutral-900 text-white">
-                  3s
-                </option>
-                <option value={5} className="bg-neutral-900 text-white">
-                  5s
-                </option>
-                <option value={8} className="bg-neutral-900 text-white">
-                  8s
-                </option>
-                <option value={9} className="bg-neutral-900 text-white">
-                  9s
-                </option>
-                <option value={10} className="bg-neutral-900 text-white">
-                  10s
-                </option>
-                <option value={12} className="bg-neutral-900 text-white">
-                  12s
-                </option>
-                <option value={15} className="bg-neutral-900 text-white">
-                  15s
-                </option>
-                <option value={20} className="bg-neutral-900 text-white">
-                  20s (Max)
-                </option>
-              </select>
-            </div>
-
-            <button
-              onClick={addCurrentStateKeyframe}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5 text-pastel-pink" />
-              <span>Add Keyframe</span>
-            </button>
-
-            <button
-              onClick={() => onChange({ currentTimeSec: 0, isPlaying: false })}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg border border-slate-700 transition-all cursor-pointer"
-              title="Reset Timeline to 0s"
-            >
-              <RefreshCw01 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Scrubber Range Input & Keyframe Marker Track */}
-        <div className="relative pt-2">
-          {/* Keyframe Marker Nodes Track */}
-          <div ref={trackRef} className="relative w-full h-5 mb-1 select-none">
-            {state.keyframes.map((kf) => {
-              const posPercent = (kf.timeSec / state.durationSec) * 100;
-              const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
-              const isSelected = selectedKfId === kf.id;
-              const isDragging = draggingKfId === kf.id;
-
-              let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
-              if (posPercent < 18) {
-                tooltipAlignClass = 'left-0 translate-x-0';
-              } else if (posPercent > 82) {
-                tooltipAlignClass = 'right-0 left-auto translate-x-0';
-              }
-
+          {/* Track Header Items */}
+          <div className="max-h-44 overflow-hidden divide-y divide-neutral-800/40">
+            {layerTracks.map((row) => {
+              const isSelected = selectedTrack.id === row.id;
               return (
                 <div
-                  key={kf.id}
-                  style={{ left: `${posPercent}%` }}
-                  onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
-                  onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
-                  onPointerUp={handleMarkerPointerUp}
-                  className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-0.5 pt-2 -mt-2 ${
-                    isDragging ? 'z-50' : 'z-20'
+                  key={row.key}
+                  onClick={() =>
+                    setSelectedTrack({
+                      type: row.type,
+                      id: row.id,
+                      name: row.name,
+                    })
+                  }
+                  className={`h-8 px-2.5 flex items-center gap-2 overflow-hidden transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-pastel-blue/15 border-l-2 border-pastel-blue'
+                      : 'hover:bg-neutral-900/50'
                   }`}
                 >
-                  <div
-                    className={`w-3 h-3 rotate-45 border transition-all ${
-                      isActive || isSelected || isDragging
-                        ? 'bg-pastel-blue border-white scale-125 shadow-md shadow-pastel-blue/50'
-                        : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
+                  {row.indicator}
+                  <span
+                    className={`truncate text-[11px] font-medium leading-tight ${
+                      isSelected ? 'text-pastel-blue font-bold' : 'text-slate-300'
                     }`}
-                  />
-
-                  {/* Tooltip & Delete Keyframe Popover with hover bridge */}
-                  <div
-                    className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
-                      isActive || isSelected || isDragging
-                        ? 'opacity-100 pointer-events-auto'
-                        : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
-                    }`}
+                    title={row.name}
                   >
-                    <span className="font-mono text-pastel-blue font-semibold">
-                      {kf.timeSec.toFixed(1)}s
-                    </span>
-                    <button
-                      type="button"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteKeyframe(kf.id);
-                      }}
-                      className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
-                      title="Delete Keyframe"
-                    >
-                      <Trash01 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    {row.name}
+                  </span>
                 </div>
               );
             })}
+
+            {/* Mockup Track Header */}
+            <div
+              onClick={() =>
+                setSelectedTrack({
+                  type: 'mockup',
+                  id: 'mockup',
+                  name: 'Mockup',
+                })
+              }
+              className={`h-9 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer bg-neutral-950/90 ${
+                selectedTrack.type === 'mockup'
+                  ? 'bg-pastel-pink/15 border-l-2 border-pastel-pink'
+                  : 'hover:bg-neutral-900/50'
+              }`}
+            >
+              <div className="flex items-center gap-2 overflow-hidden">
+                <PhosphorIcons.Cube className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+                <span
+                  className={`truncate text-[11px] font-bold leading-tight ${
+                    selectedTrack.type === 'mockup' ? 'text-pastel-pink' : 'text-slate-200'
+                  }`}
+                >
+                  Mockup
+                </span>
+              </div>
+              <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                {state.keyframes.length} kf
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Time Ruler & Track Lanes */}
+        <div className="flex-1 relative flex flex-col select-none overflow-hidden">
+          {/* Track Time Ruler Header */}
+          <div className="h-6 border-b border-neutral-800/80 bg-neutral-900/60 px-3.5 sm:px-4 flex items-center">
+            <div
+              onClick={handleTimelineSeek}
+              className="relative w-full h-full flex items-center cursor-pointer"
+            >
+              {/* Time markers across ruler (100% equal distance between all ticks) */}
+              {Array.from({ length: 6 }).map((_, i) => {
+                const fraction = i / 5;
+                const timeMark = (fraction * state.durationSec).toFixed(1);
+                return (
+                  <div
+                    key={i}
+                    style={{ left: `${fraction * 100}%` }}
+                    className="absolute -translate-x-1/2 flex flex-col items-center pointer-events-none"
+                  >
+                    <div className="h-1.5 w-px bg-neutral-700" />
+                    <span className="text-[9px] text-slate-400 font-mono tracking-tight">
+                      {timeMark}s
+                    </span>
+                  </div>
+                );
+              })}
+
+              {/* Top Scrubber Playhead Handle (Downward-pointing triangle) */}
+              <div
+                style={{ left: `${playheadPercent}%` }}
+                className="absolute -translate-x-1/2 top-0 z-30 pointer-events-none flex flex-col items-center"
+              >
+                <svg
+                  width="8"
+                  height="6"
+                  viewBox="0 0 8 6"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="drop-shadow-xs"
+                >
+                  <path
+                    d="M0.5 0.5H7.5L4 5L0.5 0.5Z"
+                    fill="#f472b6"
+                    stroke="#ffffff"
+                    strokeWidth="0.8"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
           </div>
 
-          <input
-            type="range"
-            min="0"
-            max={state.durationSec}
-            step="0.1"
-            value={state.currentTimeSec}
-            onChange={(e) => onChange({ currentTimeSec: parseFloat(e.target.value) })}
-            className="w-full bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
-          />
+          {/* Track Lanes with Shared Vertical Playhead Needle */}
+          <div
+            ref={trackContainerRef}
+            className="relative max-h-44 overflow-y-auto no-scrollbar divide-y divide-neutral-800/40 px-3.5 sm:px-4 cursor-pointer select-none"
+          >
+            {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
+            <div
+              style={{ left: `calc(14px + (100% - 28px) * ${playheadPercent / 100})` }}
+              className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
+            />
+
+            {/* 1. Element Layer Lanes */}
+            {layerTracks.map((row) => (
+              <div
+                key={row.key}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTrack({
+                    type: row.type,
+                    id: row.id,
+                    name: row.name,
+                  });
+                }}
+                className="h-8 flex items-center relative group"
+              >
+                <div
+                  onClick={handleTimelineSeek}
+                  className="relative w-full h-full flex items-center"
+                >
+                  {row.loopAnimation && row.loopAnimation !== 'none' ? (
+                    <div className="w-full h-5 rounded-md bg-gradient-to-r from-pastel-blue/25 via-indigo-500/20 to-pastel-blue/25 border border-pastel-blue/40 flex items-center justify-between px-2 text-[10px] text-pastel-blue font-semibold shadow-xs pointer-events-none">
+                      <span className="capitalize flex items-center gap-1">
+                        <PhosphorIcons.SparkleIcon className="w-3 h-3" />
+                        <span>{row.loopAnimation} loop</span>
+                      </span>
+                      <span className="font-mono text-[9px] text-slate-400">
+                        0s - {state.durationSec}s
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="w-full h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-400 font-mono pointer-events-none">
+                      <span>Static (No Loop)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* 2. Mockup Camera Lane */}
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTrack({
+                  type: 'mockup',
+                  id: 'mockup',
+                  name: 'Mockup',
+                });
+              }}
+              className="h-9 flex items-center relative bg-neutral-950/90"
+            >
+              <div
+                ref={mockupTrackRef}
+                onClick={handleTimelineSeek}
+                className="relative w-full h-full flex items-center"
+              >
+                {/* Horizontal connecting track line */}
+                <div className="absolute left-0 right-0 h-1.5 rounded-full bg-neutral-900 border border-neutral-800" />
+
+                {/* Keyframe Nodes */}
+                {state.keyframes.map((kf) => {
+                  const posPercent = (kf.timeSec / state.durationSec) * 100;
+                  const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
+                  const isSelected = selectedKfId === kf.id;
+                  const isDragging = draggingKfId === kf.id;
+
+                  let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
+                  if (posPercent < 18) {
+                    tooltipAlignClass = 'left-0 translate-x-0';
+                  } else if (posPercent > 82) {
+                    tooltipAlignClass = 'right-0 left-auto translate-x-0';
+                  }
+
+                  return (
+                    <div
+                      key={kf.id}
+                      style={{ left: `${posPercent}%` }}
+                      onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
+                      onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
+                      onPointerUp={handleMarkerPointerUp}
+                      className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
+                        isDragging ? 'z-50' : 'z-20'
+                      }`}
+                    >
+                      <div
+                        className={`w-2.5 h-2.5 rotate-45 border transition-all ${
+                          isActive || isSelected || isDragging
+                            ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
+                            : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
+                        }`}
+                      />
+
+                      {/* Tooltip & Delete Popover */}
+                      <div
+                        className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                          isActive || isSelected || isDragging
+                            ? 'opacity-100 pointer-events-auto'
+                            : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+                        }`}
+                      >
+                        <span className="font-mono text-pastel-pink font-semibold">
+                          {kf.timeSec.toFixed(1)}s
+                        </span>
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteKeyframe(kf.id);
+                          }}
+                          className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
+                          title="Delete Keyframe"
+                        >
+                          <Trash01 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

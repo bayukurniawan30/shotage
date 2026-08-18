@@ -126,12 +126,18 @@ const Terms: React.FC = () => {
 
           <section className="space-y-2">
             <h2 className="text-base font-bold text-slate-100">
-              3. Privacy & Zero-Server Data Guarantee
+              3. Privacy, Client-Side Processing & Shared Designs
             </h2>
             <p className="text-slate-400">
               Your privacy is fundamental. All canvas manipulations, 3D perspective transforms,
               custom font styling, and video encoding loops execute strictly client-side on your
-              local device. We do not store, inspect, or transmit your media.
+              local device.
+            </p>
+            <p className="text-slate-400">
+              When using the optional <strong className="text-slate-200 font-semibold">Share Design</strong> feature
+              to publish a layout to the community showcase, a low-resolution canvas preview thumbnail
+              and styling settings are saved. However, the original raw image files used inside the mockup
+              screens or shape elements are never uploaded, extracted, or stored on our servers.
             </p>
           </section>
 

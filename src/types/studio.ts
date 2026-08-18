@@ -1,4 +1,5 @@
 import { getRandomGradientPreset } from '../utils/gradientPresets';
+import { ElementLoopAnimation } from './animationTypes';
 
 export type SocialPlatform =
   | 'instagram'
@@ -92,6 +93,7 @@ export interface ShapeLayer {
   name?: string;
   visible?: boolean;
   locked?: boolean;
+  loopAnimation?: ElementLoopAnimation;
 }
 
 export interface CanvasElement {
@@ -114,6 +116,7 @@ export interface CanvasElement {
   name?: string;
   visible?: boolean;
   locked?: boolean;
+  loopAnimation?: ElementLoopAnimation;
 }
 
 export interface PhosphorIconLayer {
@@ -132,6 +135,7 @@ export interface PhosphorIconLayer {
   name?: string;
   visible?: boolean;
   locked?: boolean;
+  loopAnimation?: ElementLoopAnimation;
 }
 
 export interface PhosphorIconConfig {
@@ -179,6 +183,7 @@ export interface TextLayer {
   name?: string;
   visible?: boolean;
   locked?: boolean;
+  loopAnimation?: ElementLoopAnimation;
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
@@ -275,6 +280,10 @@ export interface StudioState {
   bgImageUrl: string | null;
   bgBlur: number; // 0 to 20
   bgGrain: number; // 0 to 100
+  bgPatternEnabled: boolean;
+  bgPatternPreset: string;
+  bgPatternColor: string;
+  bgPatternOpacity: number; // 0 to 100
   lensBlurEnabled: boolean;
   lensBlurAmount: number; // 0 to 50
   lensBlurFocalX: number; // 0 to 100 (%)
@@ -422,6 +431,10 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   })(),
   bgImageUrl: null,
   bgBlur: 0,
+  bgPatternEnabled: false,
+  bgPatternPreset: 'pattern-1',
+  bgPatternColor: '#9C92AC',
+  bgPatternOpacity: 40,
   lensBlurEnabled: false,
   lensBlurAmount: 24,
   lensBlurFocalX: 50,

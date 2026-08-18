@@ -10,6 +10,7 @@ import { ShadeshifterBackground } from './ShadeshifterBackground';
 import { SpectralBackground } from './SpectralBackground';
 import { AnimatedGradientBackground, AnimatedMeshBackground } from './AnimatedBackgrounds';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
+import { getPatternSvgUrl } from '../utils/patternPresets';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
@@ -296,6 +297,40 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     }
   };
 
+  const getElementLoopTransform = (
+    anim: import('../types/animationTypes').ElementLoopAnimation | undefined
+  ) => {
+    if (!state.isAnimationMode || !anim || anim === 'none') {
+      return { dx: 0, dy: 0, scale: 1, rotate: 0, opacityMul: 1 };
+    }
+    const t = state.currentTimeSec;
+
+    switch (anim) {
+      case 'pulse': {
+        const scale = 1 + 0.12 * Math.sin(t * Math.PI * 2 * 0.5);
+        return { dx: 0, dy: 0, scale, rotate: 0, opacityMul: 1 };
+      }
+      case 'float': {
+        const dy = Math.sin(t * Math.PI * 2 * 0.4) * 14;
+        return { dx: 0, dy, scale: 1, rotate: 0, opacityMul: 1 };
+      }
+      case 'spin': {
+        const rotate = (t * 90) % 360;
+        return { dx: 0, dy: 0, scale: 1, rotate, opacityMul: 1 };
+      }
+      case 'blink': {
+        const opacityMul = 0.35 + 0.65 * ((Math.sin(t * Math.PI * 2 * 0.5) + 1) / 2);
+        return { dx: 0, dy: 0, scale: 1, rotate: 0, opacityMul };
+      }
+      case 'wiggle': {
+        const rotate = Math.sin(t * Math.PI * 2 * 0.8) * 12;
+        return { dx: 0, dy: 0, scale: 1, rotate, opacityMul: 1 };
+      }
+      default:
+        return { dx: 0, dy: 0, scale: 1, rotate: 0, opacityMul: 1 };
+    }
+  };
+
   const renderTextLayers = (positionFilter: 'above' | 'underneath') => {
     return state.textLayers
       .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
@@ -304,6 +339,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const layerLocked = layer.locked === true;
         const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
         const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
+        const loop = getElementLoopTransform(layer.loopAnimation);
 
         return (
           <div
@@ -324,7 +360,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
+              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
@@ -349,7 +385,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     }
                   : {}),
               textAlign: layer.textAlign,
-              opacity: (layer.opacity ?? 100) / 100,
+              opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
               textShadow:
                 layer.bgImage || layer.gradient
                   ? 'none'
@@ -427,6 +463,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
         const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
+        const loop = getElementLoopTransform(layer.loopAnimation);
 
         const getBadgeClass = (style: import('../types/studio').PhosphorBadgeStyle) => {
           switch (style) {
@@ -472,8 +509,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
-              transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation || 0}deg)`,
-              opacity: (layer.opacity ?? 100) / 100,
+              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${(layer.rotation || 0) + loop.rotate}deg) scale(${loop.scale})`,
+              opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
             }}
           >
@@ -525,6 +562,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((el) => {
         const isSelected = (state.selectedElementIds || []).includes(el.id);
         const layerLocked = el.locked === true;
+        const loop = getElementLoopTransform(el.loopAnimation);
 
         return (
           <div
@@ -543,8 +581,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
-              transform: `translate(${el.x}px, ${el.y}px) rotate(${el.rotation || 0}deg) scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-              opacity: (el.opacity ?? 100) / 100,
+              transform: `translate(${el.x + loop.dx}px, ${el.y + loop.dy}px) rotate(${(el.rotation || 0) + loop.rotate}deg) scale(${el.flipX ? -loop.scale : loop.scale}, ${el.flipY ? -loop.scale : loop.scale})`,
+              opacity: ((el.opacity ?? 100) / 100) * loop.opacityMul,
               filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${el.width || 90}px`,
               height: `${el.height || 90}px`,
@@ -628,6 +666,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
+        const loop = getElementLoopTransform(layer.loopAnimation);
         const getShapeStyle = (): React.CSSProperties => {
           switch (layer.shapeType) {
             case 'circle':
@@ -671,9 +710,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
-              transform: `translate(${layer.x}px, ${layer.y}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${layer.rotation || 0}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg)`,
+              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
               transformStyle: 'preserve-3d',
-              opacity: (layer.opacity ?? 100) / 100,
+              opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${layer.width || 120}px`,
               height: `${layer.height || 120}px`,
@@ -2028,6 +2067,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               />
             )}
           </div>
+
+          {/* Pattern Add-on Overlay Layer */}
+          {state.bgPatternEnabled && (
+            <div
+              className="absolute inset-0 pointer-events-none z-[1]"
+              style={{
+                opacity: (state.bgPatternOpacity ?? 40) / 100,
+                backgroundImage: getPatternSvgUrl(
+                  state.bgPatternPreset || 'pattern-1',
+                  state.bgPatternColor || '#9C92AC'
+                ),
+                backgroundRepeat: 'repeat',
+              }}
+            />
+          )}
 
           {/* Grain Effect Noise Overlay Layer */}
           {(state.bgGrain ?? 0) > 0 && (
