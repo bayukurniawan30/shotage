@@ -357,14 +357,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
       {/* Shared Design Info (when loaded via ?s=...) */}
       {(state.sharedDesignName || state.sharedDesignPublisher) && (
-        <div className="p-3 bg-gradient-to-br from-pastel-pink/10 via-purple-500/10 to-pastel-blue/10 border border-pastel-pink/30 rounded-xl space-y-1 shadow-sm">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-pastel-pink uppercase tracking-wider">
-            <Share01 className="w-3.5 h-3.5" />
+        <div className="p-2.5 bg-neutral-900/50 border border-neutral-800/90 rounded-xl space-y-1 shadow-inner">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
             <span>Shared Design</span>
           </div>
           {state.sharedDesignName && (
             <h4
-              className="text-xs font-bold text-slate-100 leading-tight truncate"
+              className="text-xs font-semibold text-slate-200 leading-tight truncate"
               title={state.sharedDesignName}
             >
               {state.sharedDesignName}
@@ -375,8 +374,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               className="text-[11px] text-slate-400 leading-tight truncate flex items-center gap-1"
               title={state.sharedDesignPublisher}
             >
-              <span className="text-slate-500 font-medium">By</span>
-              <span className="font-semibold text-slate-200">{state.sharedDesignPublisher}</span>
+              <span className="text-slate-500 font-normal">By</span>
+              <span className="font-medium text-slate-300">{state.sharedDesignPublisher}</span>
             </p>
           )}
         </div>
