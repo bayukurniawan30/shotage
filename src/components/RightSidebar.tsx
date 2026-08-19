@@ -3895,7 +3895,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 <input
                   type="range"
                   min="12"
-                  max="200"
+                  max="500"
                   value={selectedLayer.fontSize}
                   onChange={(e) =>
                     state.updateTextLayer(selectedLayer.id, { fontSize: Number(e.target.value) })
@@ -5749,7 +5749,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 <input
                   type="range"
                   min={20}
-                  max={300}
+                  max={800}
                   value={selectedElement.width || 90}
                   onChange={(e) =>
                     state.updateCanvasElement(selectedElement.id, {
@@ -5768,7 +5768,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 <input
                   type="range"
                   min={20}
-                  max={300}
+                  max={800}
                   value={selectedElement.height || 90}
                   onChange={(e) =>
                     state.updateCanvasElement(selectedElement.id, {
