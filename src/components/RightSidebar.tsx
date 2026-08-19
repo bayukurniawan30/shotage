@@ -1014,7 +1014,13 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
         </label>
         <BackgroundStyleSelect
           value={state.backgroundType}
-          onChange={(type) => onChange({ backgroundType: type })}
+          onChange={(type) => {
+            if (type === 'shadeshifter' && (state.bgGrain === undefined || state.bgGrain === 0)) {
+              onChange({ backgroundType: type, bgGrain: 35 });
+            } else {
+              onChange({ backgroundType: type });
+            }
+          }}
         />
       </div>
 
@@ -1207,7 +1213,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 >
                   <ShadeshifterBackground
                     presetId={preset.id}
-                    grainOpacity={state.shadeshifterGrain ?? 35}
+                    grainOpacity={state.bgGrain ?? 35}
                     blur={state.shadeshifterBlur ?? 40}
                   />
                   {isSelected && (
@@ -1230,7 +1236,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 >
                   <ShadeshifterBackground
                     presetId={SHADESHIFTER_PRESETS[3].id}
-                    grainOpacity={state.shadeshifterGrain ?? 35}
+                    grainOpacity={state.bgGrain ?? 35}
                     blur={state.shadeshifterBlur ?? 40}
                   />
                   <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
@@ -1242,22 +1248,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 </button>
               </div>
             )}
-          </div>
-
-          {/* Grain Texture Intensity Slider */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-300">Grain Noise Texture</span>
-              <span className="font-mono text-slate-400">{state.shadeshifterGrain ?? 35}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={state.shadeshifterGrain ?? 35}
-              onChange={(e) => onChange({ shadeshifterGrain: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
-            />
           </div>
 
           {/* Mesh Blur Depth Slider */}

@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useStudioStore } from '../store/useStudioStore';
-import { UploadCloud01, ChevronDown, Check, XClose, Share01 } from '@untitledui/icons';
+import {
+  UploadCloud01,
+  ChevronDown,
+  Check,
+  XClose,
+  Share01,
+  Columns01,
+  Copy02,
+  Copy03,
+  Divider,
+} from '@untitledui/icons';
 import { SocialIcon } from './SocialIcons';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { DocumentsIllustration } from './shared-assets/illustrations';
@@ -428,23 +438,25 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {[
-              { id: 'side-by-side', label: 'Side by Side' },
-              { id: 'overlap-right', label: 'Overlap Right' },
-              { id: 'overlap-left', label: 'Overlap Left' },
-              { id: 'stacked', label: 'Stacked' },
+              { id: 'side-by-side', label: 'Side by Side', icon: Columns01 },
+              { id: 'overlap-right', label: 'Overlap Right', icon: Copy02 },
+              { id: 'overlap-left', label: 'Overlap Left', icon: Copy03 },
+              { id: 'stacked', label: 'Stacked', icon: Divider },
             ].map((preset) => {
               const isSelected = state.layoutPreset === preset.id;
+              const Icon = preset.icon;
               return (
                 <button
                   key={preset.id}
                   onClick={() => onChange({ layoutPreset: preset.id as any })}
-                  className={`py-1.5 px-2 text-[11px] font-medium rounded-lg border transition-all cursor-pointer ${
+                  className={`py-1.5 px-2 text-[11px] font-medium rounded-lg border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     isSelected
                       ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
                       : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
                   }`}
                 >
-                  {preset.label}
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{preset.label}</span>
                 </button>
               );
             })}

@@ -2026,7 +2026,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             {state.backgroundType === 'shadeshifter' && (
               <ShadeshifterBackground
                 presetId={state.shadeshifterPreset || 'shadeshifter-1'}
-                grainOpacity={state.shadeshifterGrain ?? 35}
+                grainOpacity={0}
                 blur={state.shadeshifterBlur ?? 40}
               />
             )}
