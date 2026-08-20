@@ -25,6 +25,7 @@ const FRAME_LABELS: Record<string, string> = {
   iphone: 'iPhone 15',
   iphone14pro: 'iPhone 14 Pro',
   iphone16: 'iPhone 16',
+  'iphone17-dual-side': 'iPhone 17 Pro Dual side',
   'samsung-s21': 'Samsung S21',
   macbookair13: 'MacBook Air 13"',
   macbook: 'MacBook Pro',
@@ -948,11 +949,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'iphone', label: 'iPhone 15', file: 'iphone-15' },
-                  { id: 'iphone14pro', label: 'iPhone 14 Pro', file: 'iphone-14-pro' },
-                  { id: 'iphone16', label: 'iPhone 16', file: 'iphone-16' },
-                  { id: 'samsung-s21', label: 'Samsung S21', file: 'samsung-s21' },
-                  { id: 'macbookair13', label: 'MacBook Air 13"', file: 'macbook-air-13' },
+                  { id: 'iphone', label: 'iPhone 15', file: 'iphone-15', ext: 'png' },
+                  { id: 'iphone14pro', label: 'iPhone 14 Pro', file: 'iphone-14-pro', ext: 'png' },
+                  { id: 'iphone16', label: 'iPhone 16', file: 'iphone-16', ext: 'png' },
+                  {
+                    id: 'iphone17-dual-side',
+                    label: 'iPhone 17 Pro Dual side',
+                    file: 'iphone-17-dual-side',
+                    ext: 'webp',
+                  },
+                  { id: 'samsung-s21', label: 'Samsung S21', file: 'samsung-s21', ext: 'png' },
+                  {
+                    id: 'macbookair13',
+                    label: 'MacBook Air 13"',
+                    file: 'macbook-air-13',
+                    ext: 'png',
+                  },
                 ].map((item) => {
                   const isSelected = state.frameType === item.id;
                   return (
@@ -963,7 +975,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                           frameType: item.id as any,
                           borderRadius: 0,
                           shadow: 'none',
-                          ...(item.id === 'iphone16' && (state.iphoneStatusBar || 'none') === 'none'
+                          ...((item.id === 'iphone16' || item.id === 'iphone17-dual-side') &&
+                          (state.iphoneStatusBar || 'none') === 'none'
                             ? { iphoneStatusBar: 'light' }
                             : {}),
                         });
@@ -979,7 +992,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                         }`}
                       >
                         <img
-                          src={`/frame/frame-${item.file}.png`}
+                          src={`/frame/frame-${item.file}.${item.ext || 'png'}`}
                           alt={`${item.label} preview`}
                           className="w-full h-full object-contain pointer-events-none"
                         />
@@ -1187,7 +1200,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       {/* option to show system status bar for iPhone */}
       {(state.frameType === 'iphone' ||
         state.frameType === 'iphone14pro' ||
-        state.frameType === 'iphone16') && (
+        state.frameType === 'iphone16' ||
+        state.frameType === 'iphone17-dual-side') && (
         <div className="pt-2 space-y-2 border-t border-neutral-800/80">
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
             System Status Bar
@@ -1638,6 +1652,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       const isDeviceFrame = [
         'iphone',
         'iphone14pro',
+        'iphone16',
+        'iphone17-dual-side',
         'macbook',
         'macbookair13',
         'samsung-s21',
@@ -1659,9 +1675,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       {renderAspectSection()}
       {renderFrameSection()}
       {state.frameType === 'frameless' && renderStyleSection()}
-      {!['iphone', 'iphone14pro', 'macbook', 'macbookair13', 'samsung-s21', 'tablet'].includes(
-        state.frameType
-      ) && renderShadowSection()}
+      {![
+        'iphone',
+        'iphone14pro',
+        'iphone16',
+        'iphone17-dual-side',
+        'macbook',
+        'macbookair13',
+        'samsung-s21',
+        'tablet',
+      ].includes(state.frameType) && renderShadowSection()}
       {renderShadowOverlaySection()}
     </div>
   );

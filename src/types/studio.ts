@@ -246,6 +246,7 @@ export interface StudioState {
     | 'iphone'
     | 'iphone14pro'
     | 'iphone16'
+    | 'iphone17-dual-side'
     | 'samsung-s21'
     | 'tablet'
     | 'polaroid'

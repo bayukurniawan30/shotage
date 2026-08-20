@@ -124,9 +124,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   // Shadow class mappings
   const getShadowClass = () => {
     if (
-      ['iphone', 'iphone14pro', 'macbook', 'macbookair13', 'samsung-s21', 'tablet'].includes(
-        state.frameType
-      )
+      [
+        'iphone',
+        'iphone14pro',
+        'iphone16',
+        'iphone17-dual-side',
+        'macbook',
+        'macbookair13',
+        'samsung-s21',
+        'tablet',
+      ].includes(state.frameType)
     ) {
       return '';
     }
@@ -926,6 +933,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       state.frameType === 'iphone' ||
       state.frameType === 'iphone14pro' ||
       state.frameType === 'iphone16' ||
+      state.frameType === 'iphone17-dual-side' ||
       state.frameType === 'samsung-s21'
     ) {
       frameElement = <DeviceFrame type={state.frameType}>{content}</DeviceFrame>;

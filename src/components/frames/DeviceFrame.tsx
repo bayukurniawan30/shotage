@@ -4,7 +4,14 @@ import { useStudioStore } from '../../store/useStudioStore';
 
 interface DeviceFrameProps {
   type:
-    'macbook' | 'macbookair13' | 'iphone' | 'iphone14pro' | 'iphone16' | 'samsung-s21' | 'tablet';
+    | 'macbook'
+    | 'macbookair13'
+    | 'iphone'
+    | 'iphone14pro'
+    | 'iphone16'
+    | 'iphone17-dual-side'
+    | 'samsung-s21'
+    | 'tablet';
   children: React.ReactNode;
 }
 
@@ -163,6 +170,58 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
         <img
           src="/mockup/apple-iphone-16-portrait.webp"
           alt="iPhone 16 Frame Mockup"
+          className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
+        />
+      </div>
+    );
+  }
+
+  if (type === 'iphone17-dual-side') {
+    const iphoneStatusBar = useStudioStore((state) => state.iphoneStatusBar || 'none');
+    const isStatusBarActive = iphoneStatusBar !== 'none';
+    const isLightBar = iphoneStatusBar === 'light';
+
+    return (
+      <div className="relative mx-auto w-[270px] sm:w-[320px] select-none flex items-center justify-center">
+        {/* Screen Content Wrapper for iPhone 17 Dual Side */}
+        <div
+          className="absolute z-0 overflow-hidden"
+          style={{
+            top: '3.5%',
+            bottom: '3.8%',
+            left: '37.2%',
+            right: '12.5%',
+            borderRadius: '20px',
+          }}
+        >
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+            {/* Top Status Bar (Transparent Overlay) */}
+            {isStatusBarActive && (
+              <div
+                className={`absolute -top-1 left-0 right-0 z-20 px-3 pt-2.5 flex items-center justify-between pointer-events-none ${
+                  isLightBar ? 'text-white' : 'text-slate-900'
+                }`}
+              >
+                {/* Time (Left) */}
+                <span className="text-[8px] font-semibold tracking-tight font-sans">9:41</span>
+
+                {/* Right Status Icons */}
+                <div className="flex items-center gap-1">
+                  <BarChart05 className="w-2 h-2" />
+                  <Wifi className="w-2 h-2" />
+                  <BatteryMid className="w-2.5 h-2.5" />
+                </div>
+              </div>
+            )}
+
+            {children}
+          </div>
+        </div>
+
+        {/* Real iPhone 17 Dual Side Overlay WebP */}
+        <img
+          src="/mockup/apple-iphone-17-dual-side.webp"
+          alt="iPhone 17 Dual Side Frame Mockup"
           className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
         />
       </div>
