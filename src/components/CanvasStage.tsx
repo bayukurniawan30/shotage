@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
+import { VideoCanvasScreen } from './VideoCanvasScreen';
+import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
 import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
 import { ConfettiBackground } from './ConfettiBackground';
@@ -842,25 +844,58 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ? canvasAspectRatio
             : '16 / 10';
 
+    const isSlotVideo =
+      slotIndex === 2 ? state.secondMediaType === 'video' : state.mediaType === 'video';
+
     const content =
       imgSrc || placeholderSrc ? (
         <div className="@container relative group overflow-hidden w-full h-full flex items-center justify-center">
-          <img
-            src={imgSrc || placeholderSrc!}
-            alt={imgName || 'Screenshot'}
-            className={`w-full h-full object-cover block transition-all group-hover:brightness-75 ${
-              isFrameless ? '' : 'rounded-none'
-            }`}
-            style={imageStyle}
-          />
+          {isSlotVideo && imgSrc ? (
+            <VideoCanvasScreen
+              src={imgSrc}
+              slotIndex={slotIndex}
+              isPlaying={state.isPlaying}
+              currentTimeSec={state.currentTimeSec}
+              className={`transition-all group-hover:brightness-75 ${
+                isFrameless ? '' : 'rounded-none'
+              }`}
+              style={imageStyle}
+            />
+          ) : (
+            <img
+              src={imgSrc || placeholderSrc!}
+              alt={imgName || 'Screenshot'}
+              className={`w-full h-full object-cover block transition-all group-hover:brightness-75 ${
+                isFrameless ? '' : 'rounded-none'
+              }`}
+              style={imageStyle}
+            />
+          )}
           <label className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center text-white cursor-pointer z-10 p-3">
             <div className="w-[12cqmin] h-[12cqmin] min-w-[28px] min-h-[28px] max-w-[80px] max-h-[80px] rounded-[16%] bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-[1.5cqmin] group-hover:scale-110 transition-transform pointer-events-none">
               <ImageUp className="w-[50%] h-[50%] text-brand-400 pointer-events-none" />
             </div>
             <span className="text-[clamp(10px,2.8cqmin,18px)] font-bold tracking-wide text-slate-100 drop-shadow-lg pointer-events-none text-center px-2 truncate max-w-full">
-              {imgSrc ? `Replace Slot ${slotIndex}` : `Add Screenshot ${slotIndex}`}
+              {imgSrc
+                ? isSlotVideo && state.layoutCount === 1
+                  ? 'Replace Video'
+                  : state.layoutCount === 2
+                    ? `Replace Slot ${slotIndex} Image`
+                    : 'Replace Image or Video'
+                : state.layoutCount === 2
+                  ? `Add Slot ${slotIndex} Image`
+                  : 'Add Screenshot or Video'}
             </span>
-            <input type="file" accept="image/*" onChange={slotFileChange} className="hidden" />
+            <input
+              type="file"
+              accept={
+                state.layoutCount === 2
+                  ? 'image/*'
+                  : 'image/*,video/mp4,video/webm,video/quicktime,video/ogg'
+              }
+              onChange={slotFileChange}
+              className="hidden"
+            />
           </label>
         </div>
       ) : (
@@ -900,14 +935,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           <p
             className={`${state.layoutCount === 2 ? 'text-[clamp(10px,3.5cqmin,24px)]' : 'text-[clamp(10px,2.5cqmin,16px)]'} text-slate-400 mt-[1.5cqmin] font-semibold`}
           >
-            Click or drop image
+            {state.layoutCount === 2 ? 'Click or drop image' : 'Click or drop image / video'}
           </p>
           <input
             type="file"
             accept={
-              state.mediaType === 'video'
-                ? 'video/mp4,video/webm,video/quicktime,video/ogg'
-                : 'image/*'
+              state.layoutCount === 2
+                ? 'image/*'
+                : 'image/*,video/mp4,video/webm,video/quicktime,video/ogg'
             }
             onChange={slotFileChange}
             className="hidden"
@@ -1107,21 +1142,32 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderFrameContent = () => {
     const handleFirstUpload = (file: File) => onImageUpload && onImageUpload(file);
     const handleSecondUpload = (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          const src = e.target.result as string;
-          const img = new Image();
-          img.onload = () => {
-            useStudioStore
-              .getState()
-              .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight);
-          };
-          img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name);
-          img.src = src;
-        }
-      };
-      reader.readAsDataURL(file);
+      if (!isValidMediaFile(file)) {
+        alert('Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)');
+        return;
+      }
+
+      if (isVideoFile(file)) {
+        validateAndLoadVideo(file, ({ src, name, width, height, duration }) => {
+          useStudioStore.getState().setSecondImage(src, name, width, height, 'video', duration);
+        });
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            const src = e.target.result as string;
+            const img = new Image();
+            img.onload = () => {
+              useStudioStore
+                .getState()
+                .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight, 'image');
+            };
+            img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name, null, null, 'image');
+            img.src = src;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     };
 
     const firstFrame = renderSingleFrame(state.imageSrc, state.imageName, handleFirstUpload, 1);
@@ -1321,6 +1367,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   useEffect(() => {
     setPan({ x: 0, y: 0 });
   }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
+
+  // Synchronize video elements with timeline playback and current time
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const videoElements = canvasRef.current.querySelectorAll('video');
+    videoElements.forEach((vid) => {
+      if (state.isPlaying) {
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+        if (state.currentTimeSec !== undefined && vid.duration) {
+          const targetTime = state.currentTimeSec % vid.duration;
+          if (Math.abs(vid.currentTime - targetTime) > 0.05) {
+            vid.currentTime = targetTime;
+          }
+        }
+      }
+    });
+  }, [state.isPlaying, state.currentTimeSec]);
 
   // Auto-fit canvas zoom when aspect ratio changes
   useEffect(() => {

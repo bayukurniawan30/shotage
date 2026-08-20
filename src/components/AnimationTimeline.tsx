@@ -25,6 +25,11 @@ export const AnimationTimeline: React.FC = () => {
   const lastTimeRef = useRef<number | null>(null);
   const trackContainerRef = useRef<HTMLDivElement>(null);
   const mockupTrackRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const PX_PER_SECOND = 72;
+  const PAD_PX = 20;
+  const totalTrackWidth = Math.max(state.durationSec * PX_PER_SECOND + PAD_PX * 2, 400);
 
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
@@ -36,6 +41,22 @@ export const AnimationTimeline: React.FC = () => {
     id: string;
     name: string;
   }>({ type: 'mockup', id: 'mockup', name: 'Mockup' });
+
+  // Auto-scroll when playing if playhead reaches edge of scroll container
+  useEffect(() => {
+    if (state.isPlaying && scrollContainerRef.current) {
+      const playheadX = PAD_PX + state.currentTimeSec * PX_PER_SECOND;
+      const container = scrollContainerRef.current;
+      const scrollLeft = container.scrollLeft;
+      const visibleWidth = container.clientWidth;
+
+      if (playheadX > scrollLeft + visibleWidth - 80) {
+        container.scrollLeft = playheadX - 80;
+      } else if (playheadX < scrollLeft) {
+        container.scrollLeft = Math.max(0, playheadX - 40);
+      }
+    }
+  }, [state.currentTimeSec, state.isPlaying]);
 
   // Initialize default keyframes with Start (0s) and End (10s) keyframes capturing current canvas pose
   useEffect(() => {
@@ -180,6 +201,13 @@ export const AnimationTimeline: React.FC = () => {
     if (selectedKfId === id) setSelectedKfId(null);
   };
 
+  const getTimeFromX = (clientX: number, targetEl: HTMLElement) => {
+    const rect = targetEl.getBoundingClientRect();
+    const relativeX = clientX - rect.left;
+    const time = (relativeX - PAD_PX) / PX_PER_SECOND;
+    return Math.max(0, Math.min(state.durationSec, time));
+  };
+
   // Keyframe Dragging Pointer Handlers
   const handleMarkerPointerDown = (e: React.PointerEvent, kf: AnimationKeyframe) => {
     e.stopPropagation();
@@ -191,10 +219,7 @@ export const AnimationTimeline: React.FC = () => {
 
   const handleMarkerPointerMove = (e: React.PointerEvent, kfId: string) => {
     if (draggingKfId !== kfId || !mockupTrackRef.current) return;
-    const rect = mockupTrackRef.current.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
-    const newTime = Math.round(percentage * state.durationSec * 10) / 10;
+    const newTime = Math.round(getTimeFromX(e.clientX, mockupTrackRef.current) * 10) / 10;
 
     const updatedKeyframes = state.keyframes
       .map((kf) => (kf.id === kfId ? { ...kf, timeSec: newTime } : kf))
@@ -393,10 +418,7 @@ export const AnimationTimeline: React.FC = () => {
 
   // Seeker click on timeline track area
   const handleTimelineSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
-    const newTime = Math.round(percentage * state.durationSec * 10) / 10;
+    const newTime = Math.round(getTimeFromX(e.clientX, e.currentTarget) * 10) / 10;
     onChange({ currentTimeSec: newTime });
   };
 
@@ -669,185 +691,211 @@ export const AnimationTimeline: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Time Ruler & Track Lanes */}
-        <div className="flex-1 relative flex flex-col select-none overflow-hidden">
-          {/* Track Time Ruler Header */}
-          <div className="h-6 border-b border-neutral-800/80 bg-neutral-900/60 px-3.5 sm:px-4 flex items-center">
-            <div
-              onClick={handleTimelineSeek}
-              className="relative w-full h-full flex items-center cursor-pointer"
-            >
-              {/* Time markers across ruler (100% equal distance between all ticks) */}
-              {Array.from({ length: 6 }).map((_, i) => {
-                const fraction = i / 5;
-                const timeMark = (fraction * state.durationSec).toFixed(1);
-                return (
-                  <div
-                    key={i}
-                    style={{ left: `${fraction * 100}%` }}
-                    className="absolute -translate-x-1/2 flex flex-col items-center pointer-events-none"
-                  >
-                    <div className="h-1.5 w-px bg-neutral-700" />
-                    <span className="text-[9px] text-slate-400 font-mono tracking-tight">
-                      {timeMark}s
-                    </span>
-                  </div>
-                );
-              })}
-
-              {/* Top Scrubber Playhead Handle (Downward-pointing triangle) */}
+        {/* RIGHT COLUMN: Time Ruler & Track Lanes (Horizontally Scrollable) */}
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 relative flex flex-col select-none overflow-x-auto overflow-y-hidden"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          <div style={{ width: `${totalTrackWidth}px`, minWidth: '100%' }} className="relative flex flex-col">
+            {/* Track Time Ruler Header */}
+            <div className="h-6 border-b border-neutral-800/80 bg-neutral-900/60 relative flex items-center">
               <div
-                style={{ left: `${playheadPercent}%` }}
-                className="absolute -translate-x-1/2 top-0 z-30 pointer-events-none flex flex-col items-center"
+                onClick={handleTimelineSeek}
+                className="relative w-full h-full flex items-center cursor-pointer"
               >
-                <svg
-                  width="8"
-                  height="6"
-                  viewBox="0 0 8 6"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="drop-shadow-xs"
+                {/* Fixed 1-Second Grid Intervals & Half-Second Subticks */}
+                {Array.from({ length: Math.floor(state.durationSec) + 1 }).map((_, i) => {
+                  const tickX = PAD_PX + i * PX_PER_SECOND;
+                  return (
+                    <React.Fragment key={i}>
+                      {/* Major 1s Tick */}
+                      <div
+                        style={{ left: `${tickX}px` }}
+                        className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center pointer-events-none"
+                      >
+                        <span className="text-[9px] text-slate-400 font-mono font-medium tracking-tight mb-0.5 select-none">
+                          {i}s
+                        </span>
+                        <div className="h-1.5 w-px bg-neutral-600" />
+                      </div>
+
+                      {/* Half-second Sub-tick */}
+                      {i < state.durationSec && (
+                        <div
+                          style={{ left: `${tickX + PX_PER_SECOND / 2}px` }}
+                          className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center pointer-events-none"
+                        >
+                          <div className="h-1 w-px bg-neutral-800" />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+
+                {/* Top Scrubber Playhead Handle (Downward-pointing triangle) */}
+                <div
+                  style={{ left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px` }}
+                  className="absolute -translate-x-1/2 top-0 z-30 pointer-events-none flex flex-col items-center"
                 >
-                  <path
-                    d="M0.5 0.5H7.5L4 5L0.5 0.5Z"
-                    fill="#f472b6"
-                    stroke="#ffffff"
-                    strokeWidth="0.8"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                  <svg
+                    width="8"
+                    height="6"
+                    viewBox="0 0 8 6"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="drop-shadow-xs"
+                  >
+                    <path
+                      d="M0.5 0.5H7.5L4 5L0.5 0.5Z"
+                      fill="#f472b6"
+                      stroke="#ffffff"
+                      strokeWidth="0.8"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Track Lanes with Shared Vertical Playhead Needle */}
-          <div
-            ref={trackContainerRef}
-            className="relative max-h-44 overflow-y-auto no-scrollbar divide-y divide-neutral-800/40 px-3.5 sm:px-4 cursor-pointer select-none"
-          >
-            {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
+            {/* Track Lanes with Shared Vertical Playhead Needle */}
             <div
-              style={{ left: `calc(14px + (100% - 28px) * ${playheadPercent / 100})` }}
-              className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
-            />
-
-            {/* 1. Element Layer Lanes */}
-            {layerTracks.map((row) => (
+              ref={trackContainerRef}
+              className="relative max-h-44 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
+            >
+              {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
               <div
-                key={row.key}
+                style={{ left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px` }}
+                className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
+              />
+
+              {/* 1. Element Layer Lanes */}
+              {layerTracks.map((row) => (
+                <div
+                  key={row.key}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTrack({
+                      type: row.type,
+                      id: row.id,
+                      name: row.name,
+                    });
+                  }}
+                  className="h-8 flex items-center relative group"
+                >
+                  <div
+                    onClick={handleTimelineSeek}
+                    className="relative w-full h-full flex items-center"
+                  >
+                    {row.loopAnimation && row.loopAnimation !== 'none' ? (
+                      <div
+                        style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
+                        className="absolute h-5 rounded-md bg-gradient-to-r from-pastel-blue/25 via-indigo-500/20 to-pastel-blue/25 border border-pastel-blue/40 flex items-center justify-between px-2 text-[10px] text-pastel-blue font-semibold shadow-xs pointer-events-none"
+                      >
+                        <span className="capitalize flex items-center gap-1">
+                          <PhosphorIcons.SparkleIcon className="w-3 h-3" />
+                          <span>{row.loopAnimation} loop</span>
+                        </span>
+                        <span className="font-mono text-[9px] text-slate-400">
+                          0s - {state.durationSec}s
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
+                        className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-400 font-mono pointer-events-none"
+                      >
+                        <span>Static (No Loop)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* 2. Mockup Camera Lane */}
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedTrack({
-                    type: row.type,
-                    id: row.id,
-                    name: row.name,
+                    type: 'mockup',
+                    id: 'mockup',
+                    name: 'Mockup',
                   });
                 }}
-                className="h-8 flex items-center relative group"
+                className="h-9 flex items-center relative bg-neutral-950/90"
               >
                 <div
+                  ref={mockupTrackRef}
                   onClick={handleTimelineSeek}
                   className="relative w-full h-full flex items-center"
                 >
-                  {row.loopAnimation && row.loopAnimation !== 'none' ? (
-                    <div className="w-full h-5 rounded-md bg-gradient-to-r from-pastel-blue/25 via-indigo-500/20 to-pastel-blue/25 border border-pastel-blue/40 flex items-center justify-between px-2 text-[10px] text-pastel-blue font-semibold shadow-xs pointer-events-none">
-                      <span className="capitalize flex items-center gap-1">
-                        <PhosphorIcons.SparkleIcon className="w-3 h-3" />
-                        <span>{row.loopAnimation} loop</span>
-                      </span>
-                      <span className="font-mono text-[9px] text-slate-400">
-                        0s - {state.durationSec}s
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="w-full h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-400 font-mono pointer-events-none">
-                      <span>Static (No Loop)</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                  {/* Horizontal connecting track line */}
+                  <div
+                    style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
+                    className="absolute h-1.5 rounded-full bg-neutral-900 border border-neutral-800"
+                  />
 
-            {/* 2. Mockup Camera Lane */}
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedTrack({
-                  type: 'mockup',
-                  id: 'mockup',
-                  name: 'Mockup',
-                });
-              }}
-              className="h-9 flex items-center relative bg-neutral-950/90"
-            >
-              <div
-                ref={mockupTrackRef}
-                onClick={handleTimelineSeek}
-                className="relative w-full h-full flex items-center"
-              >
-                {/* Horizontal connecting track line */}
-                <div className="absolute left-0 right-0 h-1.5 rounded-full bg-neutral-900 border border-neutral-800" />
+                  {/* Keyframe Nodes */}
+                  {state.keyframes.map((kf) => {
+                    const nodeX = PAD_PX + kf.timeSec * PX_PER_SECOND;
+                    const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
+                    const isSelected = selectedKfId === kf.id;
+                    const isDragging = draggingKfId === kf.id;
 
-                {/* Keyframe Nodes */}
-                {state.keyframes.map((kf) => {
-                  const posPercent = (kf.timeSec / state.durationSec) * 100;
-                  const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
-                  const isSelected = selectedKfId === kf.id;
-                  const isDragging = draggingKfId === kf.id;
+                    let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
+                    if (nodeX < PAD_PX + 40) {
+                      tooltipAlignClass = 'left-0 translate-x-0';
+                    } else if (nodeX > totalTrackWidth - 60) {
+                      tooltipAlignClass = 'right-0 left-auto translate-x-0';
+                    }
 
-                  let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
-                  if (posPercent < 18) {
-                    tooltipAlignClass = 'left-0 translate-x-0';
-                  } else if (posPercent > 82) {
-                    tooltipAlignClass = 'right-0 left-auto translate-x-0';
-                  }
-
-                  return (
-                    <div
-                      key={kf.id}
-                      style={{ left: `${posPercent}%` }}
-                      onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
-                      onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
-                      onPointerUp={handleMarkerPointerUp}
-                      className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
-                        isDragging ? 'z-50' : 'z-20'
-                      }`}
-                    >
+                    return (
                       <div
-                        className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                          isActive || isSelected || isDragging
-                            ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
-                            : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
-                        }`}
-                      />
-
-                      {/* Tooltip & Delete Popover */}
-                      <div
-                        className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
-                          isActive || isSelected || isDragging
-                            ? 'opacity-100 pointer-events-auto'
-                            : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+                        key={kf.id}
+                        style={{ left: `${nodeX}px` }}
+                        onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
+                        onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
+                        onPointerUp={handleMarkerPointerUp}
+                        className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
+                          isDragging ? 'z-50' : 'z-20'
                         }`}
                       >
-                        <span className="font-mono text-pastel-pink font-semibold">
-                          {kf.timeSec.toFixed(1)}s
-                        </span>
-                        <button
-                          type="button"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteKeyframe(kf.id);
-                          }}
-                          className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
-                          title="Delete Keyframe"
+                        <div
+                          className={`w-2.5 h-2.5 rotate-45 border transition-all ${
+                            isActive || isSelected || isDragging
+                              ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
+                              : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
+                          }`}
+                        />
+
+                        {/* Tooltip & Delete Popover */}
+                        <div
+                          className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                            isActive || isSelected || isDragging
+                              ? 'opacity-100 pointer-events-auto'
+                              : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+                          }`}
                         >
-                          <Trash01 className="w-3.5 h-3.5" />
-                        </button>
+                          <span className="font-mono text-pastel-pink font-semibold">
+                            {kf.timeSec.toFixed(1)}s
+                          </span>
+                          <button
+                            type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteKeyframe(kf.id);
+                            }}
+                            className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
+                            title="Delete Keyframe"
+                          >
+                            <Trash01 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

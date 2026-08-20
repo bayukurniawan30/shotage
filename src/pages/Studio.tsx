@@ -6,6 +6,7 @@ import { RightSidebar } from '../components/RightSidebar';
 import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
 import { ExportModal } from '../components/ExportModal';
 import { InstallPwaModal } from '../components/InstallPwaModal';
+import { VideoBetaModal } from '../components/VideoBetaModal';
 import { AnimationTimeline } from '../components/AnimationTimeline';
 import { StageManagerToolbar } from '../components/StageManagerToolbar';
 import { ProjectSpotlight } from '../components/ProjectSpotlight';
@@ -27,6 +28,7 @@ import {
   loadSavedSession,
   clearSavedSession,
 } from '../utils/sessionStore';
+import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
 
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
@@ -45,6 +47,7 @@ export const Studio: React.FC = () => {
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isStartOverModalOpen, setIsStartOverModalOpen] = useState(false);
+  const [isVideoBetaModalOpen, setIsVideoBetaModalOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
@@ -55,6 +58,17 @@ export const Studio: React.FC = () => {
   const savedSessionDataRef = useRef<Record<string, any> | null>(null);
   const isRestoredOrDismissedRef = useRef(false);
   const [isRestorePromptOpen, setIsRestorePromptOpen] = useState(false);
+
+  // Listen for video upload event to trigger VideoBetaModal
+  useEffect(() => {
+    const handleOpenVideoBeta = () => {
+      if (localStorage.getItem('shotage_video_beta_dismissed') !== 'true') {
+        setIsVideoBetaModalOpen(true);
+      }
+    };
+    window.addEventListener('shotage:open-video-beta-modal', handleOpenVideoBeta);
+    return () => window.removeEventListener('shotage:open-video-beta-modal', handleOpenVideoBeta);
+  }, []);
 
   useEffect(() => {
     if (PROJECT_SPOTLIGHT_GATED && sharedViewKey && !sessionStorage.getItem(SPOTLIGHT_SESSION_KEY)) {
@@ -421,32 +435,36 @@ export const Studio: React.FC = () => {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounter = useRef(0);
 
-  const isValidImage = (file: File) => {
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
-    if (validTypes.includes(file.type.toLowerCase())) return true;
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    return ['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext || '');
-  };
-
   const handleImageUpload = (file: File) => {
-    if (!isValidImage(file)) {
-      alert('Please upload a valid image file (.png, .jpg, .jpeg, .webp, .svg)');
+    if (!isValidMediaFile(file)) {
+      alert('Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        const src = e.target.result as string;
-        // Capture natural dimensions so shared designs can render an aspect placeholder
-        const img = new Image();
-        img.onload = () => {
-          setImage(src, file.name, img.naturalWidth, img.naturalHeight);
-        };
-        img.onerror = () => setImage(src, file.name);
-        img.src = src;
+
+    if (isVideoFile(file)) {
+      if (useStudioStore.getState().layoutCount === 2) {
+        alert('Video upload is only available in Single Image/Video layout mode.');
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+      validateAndLoadVideo(file, ({ src, name, width, height, duration }) => {
+        setImage(src, name, width, height, 'video', duration);
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const src = e.target.result as string;
+          // Capture natural dimensions so shared designs can render an aspect placeholder
+          const img = new Image();
+          img.onload = () => {
+            setImage(src, file.name, img.naturalWidth, img.naturalHeight, 'image');
+          };
+          img.onerror = () => setImage(src, file.name, null, null, 'image');
+          img.src = src;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Drag and Drop Fullscreen Handler
@@ -1084,6 +1102,12 @@ export const Studio: React.FC = () => {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         canvasRef={canvasRef}
+      />
+
+      {/* Video Feature Beta Notice Modal */}
+      <VideoBetaModal
+        isOpen={isVideoBetaModalOpen}
+        onClose={() => setIsVideoBetaModalOpen(false)}
       />
 
       {/* Mobile Install App Button */}

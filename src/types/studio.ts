@@ -332,6 +332,9 @@ export interface StudioState {
   slot2OffsetY: number; // -200 to 200
   layoutCount: 1 | 2;
   mediaType: 'image' | 'video';
+  secondMediaType?: 'image' | 'video';
+  videoDuration?: number;
+  secondVideoDuration?: number;
   layoutPreset: 'side-by-side' | 'overlap-right' | 'overlap-left' | 'stacked';
   secondImageSrc: string | null;
   secondImageName: string;

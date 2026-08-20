@@ -15,6 +15,7 @@ import {
 } from '@untitledui/icons';
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
+import { activeVideoDecoders } from './VideoCanvasScreen';
 import { PROJECTS } from './ProjectSpotlight';
 
 interface ExportModalProps {
@@ -247,48 +248,129 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       const fps = 30; // 30 FPS for crisp frame delivery
       const totalFrames = Math.floor(durationSec * fps);
 
-      const rect = canvasRef.current.getBoundingClientRect();
-      exportCanvas = document.createElement('canvas');
-      const scale = Math.max(1, state.exportScale || 1.5);
+      const rawWidth = canvasRef.current.offsetWidth || canvasRef.current.clientWidth || 1200;
+      const rawHeight = canvasRef.current.offsetHeight || canvasRef.current.clientHeight || 800;
+      const scale = Math.max(1, state.exportScale || 2);
 
-      // Ensure even pixel dimensions required by video codecs
-      exportCanvas.width = Math.floor((rect.width * scale) / 2) * 2;
-      exportCanvas.height = Math.floor((rect.height * scale) / 2) * 2;
+      let width = Math.floor((rawWidth * scale) / 2) * 2;
+      let height = Math.floor((rawHeight * scale) / 2) * 2;
+
+      // Ensure max dimension does not exceed 3840 (4K UHD)
+      if (width > 3840 || height > 2160) {
+        const r = Math.min(3840 / width, 2160 / height);
+        width = Math.floor((width * r) / 2) * 2;
+        height = Math.floor((height * r) / 2) * 2;
+      }
+
+      let targetBitrate = Math.max(
+        10_000_000,
+        Math.min(30_000_000, Math.round(width * height * fps * 0.15))
+      );
+
+      let wantMp4 = videoFormat === 'mp4';
+      let extension = wantMp4 ? 'mp4' : 'webm';
+      let mimeType = wantMp4 ? 'video/mp4' : 'video/webm';
+      let webmMuxerCodec: 'V_VP9' | 'V_VP8' = 'V_VP9';
+
+      const mp4Candidates = [
+        'avc1.640033', // High Profile Level 5.1 (Up to 4K)
+        'avc1.64002a', // High Profile Level 4.2
+        'avc1.640028', // High Profile Level 4.0 (1080p)
+        'avc1.4d0033', // Main Profile Level 5.1
+        'avc1.4d002a', // Main Profile Level 4.2
+        'avc1.4d0028', // Main Profile Level 4.0
+        'avc1.420033', // Baseline Level 5.1
+        'avc1.42002a', // Baseline Level 4.2
+        'avc1.42001f', // Baseline Level 3.1
+        'avc1.42001e', // Baseline Level 3.0
+      ];
+
+      const webmCandidates: { codec: string; muxerCodec: 'V_VP9' | 'V_VP8' }[] = [
+        { codec: 'vp09.00.10.08', muxerCodec: 'V_VP9' },
+        { codec: 'vp9', muxerCodec: 'V_VP9' },
+        { codec: 'vp8', muxerCodec: 'V_VP8' },
+      ];
+
+      // Test configuration support with automatic resolution negotiation
+      let supportedConfig: VideoEncoderConfig | null = null;
+
+      while (!supportedConfig && width >= 480 && height >= 320) {
+        if (wantMp4) {
+          for (const c of mp4Candidates) {
+            const cfg: VideoEncoderConfig = {
+              codec: c,
+              width,
+              height,
+              bitrate: targetBitrate,
+              avc: { format: 'avc' },
+            };
+            try {
+              const res = await VideoEncoder.isConfigSupported(cfg);
+              if (res.supported) {
+                supportedConfig = res.config || cfg;
+                break;
+              }
+            } catch (e) {}
+          }
+        } else {
+          for (const item of webmCandidates) {
+            const cfg: VideoEncoderConfig = {
+              codec: item.codec,
+              width,
+              height,
+              bitrate: targetBitrate,
+            };
+            try {
+              const res = await VideoEncoder.isConfigSupported(cfg);
+              if (res.supported) {
+                supportedConfig = res.config || cfg;
+                webmMuxerCodec = item.muxerCodec;
+                break;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (!supportedConfig) {
+          // If GPU hardware encoder rejected excessive resolution, step down slightly
+          width = Math.floor((width * 0.85) / 2) * 2;
+          height = Math.floor((height * 0.85) / 2) * 2;
+          targetBitrate = Math.max(
+            6_000_000,
+            Math.min(25_000_000, Math.round(width * height * fps * 0.15))
+          );
+        }
+      }
+
+      if (!supportedConfig) {
+        // Fallback default
+        if (wantMp4) {
+          supportedConfig = {
+            codec: 'avc1.42001f',
+            width: Math.min(1920, width),
+            height: Math.min(1080, height),
+            bitrate: 8_000_000,
+            avc: { format: 'avc' },
+          };
+        } else {
+          supportedConfig = {
+            codec: 'vp8',
+            width: Math.min(1920, width),
+            height: Math.min(1080, height),
+            bitrate: 8_000_000,
+          };
+          webmMuxerCodec = 'V_VP8';
+        }
+      }
+
+      exportCanvas = document.createElement('canvas');
+      exportCanvas.width = supportedConfig.width;
+      exportCanvas.height = supportedConfig.height;
       ctx = exportCanvas.getContext('2d');
 
       if (!ctx) throw new Error('Could not create canvas 2d context');
 
-      // Check WebCodecs VideoEncoder support for requested videoFormat
-      let wantMp4 = videoFormat === 'mp4';
-      let supportedCodec = '';
-
-      if (wantMp4 && 'VideoEncoder' in window) {
-        for (const codecStr of ['avc1.42001E', 'avc1.4d401f', 'avc1.42E01E', 'avc1.640028']) {
-          try {
-            const support = await VideoEncoder.isConfigSupported({
-              codec: codecStr,
-              width: exportCanvas.width,
-              height: exportCanvas.height,
-              bitrate: 12_000_000,
-            });
-            if (support.supported) {
-              supportedCodec = codecStr;
-              break;
-            }
-          } catch (e) {
-            // try next profile
-          }
-        }
-      }
-
-      let encoderCodec = 'vp09.00.10.08';
-      let extension = 'webm';
-      let mimeType = 'video/webm';
-
       if (wantMp4) {
-        extension = 'mp4';
-        mimeType = 'video/mp4';
-        encoderCodec = supportedCodec || 'avc1.42001E';
         muxer = new Mp4Muxer.Muxer({
           target: new Mp4Muxer.ArrayBufferTarget(),
           video: {
@@ -302,24 +384,28 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         muxer = new WebMMuxer.Muxer({
           target: new WebMMuxer.ArrayBufferTarget(),
           video: {
-            codec: 'V_VP9',
+            codec: webmMuxerCodec,
             width: exportCanvas.width,
             height: exportCanvas.height,
           },
         });
       }
 
+      let encodedChunksCount = 0;
+      let encoderError: Error | null = null;
+
       videoEncoder = new VideoEncoder({
-        output: (chunk, meta) => muxer?.addVideoChunk(chunk, meta),
-        error: (e) => console.error('VideoEncoder error:', e),
+        output: (chunk, meta) => {
+          encodedChunksCount++;
+          muxer?.addVideoChunk(chunk, meta);
+        },
+        error: (e) => {
+          console.error('VideoEncoder error:', e);
+          encoderError = e instanceof Error ? e : new Error(String(e));
+        },
       });
 
-      videoEncoder.configure({
-        codec: encoderCodec,
-        width: exportCanvas.width,
-        height: exportCanvas.height,
-        bitrate: 12_000_000,
-      });
+      videoEncoder.configure(supportedConfig);
 
       // Pause live player during frame rendering
       onChange({ isPlaying: false, currentTimeSec: 0 });
@@ -336,21 +422,53 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         console.warn('Could not pre-cache font embed CSS:', err);
       }
 
+      const framePixelRatio = exportCanvas.width / (canvasRef.current.offsetWidth || exportCanvas.width);
+
       // Frame-by-Frame High Speed Pipeline using direct canvas capture
       for (let frame = 0; frame <= totalFrames; frame++) {
-        if (cancelVideoRef.current) {
-          console.log('Video export cancelled by user.');
+        if (cancelVideoRef.current || encoderError) {
+          if (encoderError) console.error('Video export aborted due to encoder error:', encoderError);
           break;
         }
 
         const targetTimeSec = (frame / totalFrames) * durationSec;
         onChange({ currentTimeSec: targetTimeSec });
 
+        // Synchronize any mockup video decoders to exact target timestamp
+        if (activeVideoDecoders.size > 0) {
+          await Promise.all(
+            Array.from(activeVideoDecoders.values()).map(({ video, drawFrame }) => {
+              return new Promise<void>((resolve) => {
+                const vidDuration = video.duration || durationSec;
+                const vidTarget = targetTimeSec % vidDuration;
+
+                if (Math.abs(video.currentTime - vidTarget) < 0.03) {
+                  drawFrame();
+                  return resolve();
+                }
+
+                const onSeeked = () => {
+                  video.removeEventListener('seeked', onSeeked);
+                  drawFrame();
+                  resolve();
+                };
+                video.addEventListener('seeked', onSeeked, { once: true });
+                video.currentTime = vidTarget;
+                setTimeout(() => {
+                  drawFrame();
+                  resolve();
+                }, 80);
+              });
+            })
+          );
+        }
+
         try {
           const renderedCanvas = await toCanvas(canvasRef.current, {
-            pixelRatio: scale,
+            pixelRatio: framePixelRatio,
             cacheBust: false,
             fontEmbedCSS: cachedFontEmbedCSS,
+            filter: (node) => (node as HTMLElement).tagName !== 'VIDEO',
           });
 
           // Draw directly to even-dimension exportCanvas
@@ -368,7 +486,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           renderedCanvas.width = 0;
           renderedCanvas.height = 0;
         } catch (e) {
-          console.warn('Frame render skipped:', e);
+          console.error('Frame render failed at frame', frame, e);
         }
 
         setExportProgress(Math.round((frame / totalFrames) * 100));
@@ -386,6 +504,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         return;
       }
 
+      if (encoderError) {
+        throw encoderError;
+      }
+
       if (videoEncoder && videoEncoder.state !== 'closed') {
         await videoEncoder.flush();
         try {
@@ -393,6 +515,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         } catch (e) {
           // already closed
         }
+      }
+
+      if (encodedChunksCount === 0) {
+        throw new Error('No video frames were encoded by the browser.');
       }
 
       if (muxer) {
@@ -419,7 +545,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }, 2500);
     } catch (err) {
       console.error('Video Export error:', err);
-      alert('Failed to encode video animation. Please try again.');
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to encode video: ${msg}`);
       setIsExporting(false);
       setExportingType(null);
       setExportProgress(0);

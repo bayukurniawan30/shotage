@@ -16,6 +16,7 @@ import { SocialIcon } from './SocialIcons';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { DocumentsIllustration } from './shared-assets/illustrations';
 import { TEMPLATE_PRESETS } from '../utils/templatePresets';
+import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
 
 const FRAME_LABELS: Record<string, string> = {
   frameless: 'No Frame',
@@ -400,7 +401,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
       <div>
         <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-          Layout Count (1 or 2 Images)
+          Layout Count (Single or 2 Images)
         </label>
         <div className="grid grid-cols-2 gap-2">
           {[1, 2].map((count) => {
@@ -417,7 +418,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                     'ig-portrait',
                   ].includes(state.aspectRatio);
                   const newPreset = count === 2 && isPortraitRatio ? 'stacked' : state.layoutPreset;
-                  onChange({ layoutCount: count as 1 | 2, layoutPreset: newPreset });
+                  onChange({
+                    layoutCount: count as 1 | 2,
+                    layoutPreset: newPreset,
+                    ...(count === 2 && state.mediaType === 'video' ? { mediaType: 'image' } : {}),
+                  });
                 }}
                 className={`py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   isSelected
@@ -425,7 +430,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                     : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
                 }`}
               >
-                {count === 1 ? 'Single Image' : '2 Images'}
+                {count === 1 ? 'Single Image/Video' : '2 Images'}
               </button>
             );
           })}
@@ -467,32 +472,67 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
 
       <div>
         <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-          Primary Image Upload (Slot 1)
+          {state.layoutCount === 2 ? 'Primary Image Upload (Slot 1)' : 'Single Image/Video Upload'}
         </label>
         {state.imageSrc && (
           <div className="mb-2 p-1.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
-              <img
-                src={state.imageSrc}
-                alt="Slot 1 Preview"
-                className="max-w-full max-h-full object-contain"
-              />
+            <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 relative">
+              {state.mediaType === 'video' && state.layoutCount === 1 ? (
+                <video
+                  src={state.imageSrc}
+                  className="max-w-full max-h-full object-contain pointer-events-none"
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={state.imageSrc}
+                  alt="Slot 1 Preview"
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+              {state.mediaType === 'video' && state.layoutCount === 1 && (
+                <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-pastel-pink text-slate-950 font-extrabold text-[8px] rounded uppercase shadow-xs">
+                  MP4
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-slate-200 truncate">
-                {state.imageName || 'Slot 1 Image'}
+                {state.imageName || (state.mediaType === 'video' && state.layoutCount === 1 ? 'Slot 1 Video' : 'Slot 1 Image')}
               </p>
-              <p className="text-[10px] text-pastel-pink font-medium">Uploaded & Active</p>
+              <p className="text-[10px] text-pastel-pink font-medium">
+                {state.mediaType === 'video' && state.layoutCount === 1 ? 'Video Active' : 'Uploaded & Active'}
+              </p>
             </div>
           </div>
         )}
         <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all text-center">
           <UploadCloud01 className="w-5 h-5 text-pastel-pink mb-1" />
           <span className="text-xs font-medium text-slate-200">
-            {state.imageSrc ? 'Replace Slot 1 Image' : 'Choose file or drop here'}
+            {state.imageSrc
+              ? state.layoutCount === 2
+                ? 'Replace Slot 1 Image'
+                : 'Replace Image or Video'
+              : state.layoutCount === 2
+                ? 'Choose Slot 1 image'
+                : 'Choose image or video'}
           </span>
-          <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WebP, SVG</span>
-          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+          <span className="text-[10px] text-slate-400 mt-0.5">
+            {state.layoutCount === 2
+              ? 'PNG, JPG, WebP, SVG'
+              : 'PNG, JPG, WebP, MP4 (Max 1080p, 20s)'}
+          </span>
+          <input
+            type="file"
+            accept={
+              state.layoutCount === 2
+                ? 'image/*'
+                : 'image/*,video/mp4,video/webm,video/quicktime,video/ogg'
+            }
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </label>
       </div>
 
@@ -503,7 +543,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
           </label>
           {state.secondImageSrc && (
             <div className="mb-2 p-1.5 bg-neutral-900 border border-neutral-800 rounded-xl flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 relative">
                 <img
                   src={state.secondImageSrc}
                   alt="Slot 2 Preview"
@@ -530,6 +570,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
                   const file = e.target.files[0];
+                  if (isVideoFile(file)) {
+                    alert('Video upload is only available in Single Image/Video layout mode.');
+                    return;
+                  }
+                  if (!isValidMediaFile(file)) {
+                    alert('Please upload a valid image file (.png, .jpg, .jpeg, .webp, .svg)');
+                    return;
+                  }
+
                   const reader = new FileReader();
                   reader.onload = (ev) => {
                     if (ev.target?.result) {
@@ -538,9 +587,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
                       img.onload = () => {
                         useStudioStore
                           .getState()
-                          .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight);
+                          .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight, 'image');
                       };
-                      img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name);
+                      img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name, null, null, 'image');
                       img.src = src;
                     }
                   };

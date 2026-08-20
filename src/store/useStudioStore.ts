@@ -5,12 +5,21 @@ import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
   updateState: (updates: Partial<StudioState>) => void;
-  setImage: (src: string, name: string, width?: number | null, height?: number | null) => void;
+  setImage: (
+    src: string,
+    name: string,
+    width?: number | null,
+    height?: number | null,
+    mediaType?: 'image' | 'video',
+    duration?: number
+  ) => void;
   setSecondImage: (
     src: string,
     name: string,
     width?: number | null,
-    height?: number | null
+    height?: number | null,
+    mediaType?: 'image' | 'video',
+    duration?: number
   ) => void;
   reset3DPerspective: () => void;
   resetAll: () => void;
@@ -366,14 +375,26 @@ export const useStudioStore = create<StudioStore>()(
 
           return nextState;
         }),
-      setImage: (src, name, width, height) =>
-        set({ imageSrc: src, imageName: name, imageWidth: width, imageHeight: height }),
-      setSecondImage: (src, name, width, height) =>
+      setImage: (src, name, width, height, mediaType = 'image', duration) =>
+        set((s) => ({
+          imageSrc: src,
+          imageName: name,
+          imageWidth: width,
+          imageHeight: height,
+          mediaType: mediaType || 'image',
+          videoDuration: duration,
+          ...(mediaType === 'video' && duration && !s.isAnimationMode
+            ? { durationSec: Math.min(60, Math.max(3, Math.ceil(duration))) }
+            : {}),
+        })),
+      setSecondImage: (src, name, width, height, mediaType = 'image', duration) =>
         set({
           secondImageSrc: src,
           secondImageName: name,
           secondImageWidth: width,
           secondImageHeight: height,
+          secondMediaType: mediaType || 'image',
+          secondVideoDuration: duration,
         }),
       reset3DPerspective: () =>
         set({
