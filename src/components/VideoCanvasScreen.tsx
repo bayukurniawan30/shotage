@@ -9,6 +9,18 @@ export const activeVideoDecoders = new Map<
   }
 >();
 
+// Explicitly stop, release memory, and clear all video decoder instances
+export const purgeAllVideoDecoders = () => {
+  activeVideoDecoders.forEach(({ video }) => {
+    try {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    } catch (e) {}
+  });
+  activeVideoDecoders.clear();
+};
+
 interface VideoCanvasScreenProps {
   src: string;
   slotIndex: number;

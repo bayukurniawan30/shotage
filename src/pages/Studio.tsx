@@ -29,6 +29,7 @@ import {
   clearSavedSession,
 } from '../utils/sessionStore';
 import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
+import { purgeAllVideoDecoders } from '../components/VideoCanvasScreen';
 
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
@@ -129,11 +130,39 @@ export const Studio: React.FC = () => {
   };
 
   const confirmStartOver = () => {
-    resetAll();
+    const currentState = useStudioStore.getState();
+
+    // 1. Revoke any memory-allocated Blob URLs
+    if (currentState.imageSrc && currentState.imageSrc.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(currentState.imageSrc);
+      } catch (e) {}
+    }
+    if (currentState.secondImageSrc && currentState.secondImageSrc.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(currentState.secondImageSrc);
+      } catch (e) {}
+    }
+    (currentState.canvasElements || []).forEach((el) => {
+      if (el.src && el.src.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(el.src);
+        } catch (e) {}
+      }
+    });
+
+    // 2. Stop and purge all active in-memory video decoders
+    purgeAllVideoDecoders();
+
+    // 3. Clear temporal undo/redo history and stored sessions
     temporalStore.getState().clear();
     clearSavedSession();
     savedSessionDataRef.current = null;
     isRestoredOrDismissedRef.current = true;
+
+    // 4. Reset studio store to clean defaults
+    resetAll();
+
     setIsStartOverModalOpen(false);
     setTimeout(() => fitCanvasToView(), 60);
     setTimeout(() => fitCanvasToView(), 400);
