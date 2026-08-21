@@ -8,14 +8,31 @@ interface BeforeInstallPromptEvent extends Event {
 
 interface InstallPwaModalProps {
   showFloatingButton?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({ showFloatingButton = true }) => {
+export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
+  showFloatingButton = true,
+  isOpen,
+  onClose,
+}) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
+
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setShowIosGuide(isOpen);
+    }
+  }, [isOpen]);
+
+  const handleCloseGuide = () => {
+    setShowIosGuide(false);
+    onClose?.();
+  };
 
   useEffect(() => {
     // Detect if already installed / running in standalone window
@@ -87,8 +104,8 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({ showFloatingBu
                 <h3 className="font-bold text-slate-100 text-sm">Install Shotage App</h3>
               </div>
               <button
-                onClick={() => setShowIosGuide(false)}
-                className="p-1 text-slate-400 hover:text-white"
+                onClick={handleCloseGuide}
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
               >
                 <XClose className="w-5 h-5" />
               </button>
@@ -128,8 +145,8 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({ showFloatingBu
             </div>
 
             <button
-              onClick={() => setShowIosGuide(false)}
-              className="w-full py-2.5 bg-slate-800 text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-700 transition-colors"
+              onClick={handleCloseGuide}
+              className="w-full py-2.5 bg-slate-800 text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Got it!
             </button>

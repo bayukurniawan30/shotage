@@ -306,13 +306,23 @@ export const Home: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
                 <a
                   href="/studio"
+                  onClick={handleHeaderAction}
                   className="w-full sm:w-auto px-7 py-3.5 text-slate-950 font-extrabold text-sm rounded-2xl shadow-xl shadow-[#ffafcc]/25 transition-all flex items-center justify-center gap-2.5 hover:brightness-110 active:scale-[0.98] cursor-pointer"
                   style={{
                     backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
                   }}
                 >
-                  <span>Open Studio Editor</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  {/* Mobile View: Install Shotage */}
+                  <span className="sm:hidden flex items-center gap-2">
+                    <DownloadCloud01 className="w-4 h-4 stroke-[2.5]" />
+                    <span>Install Shotage</span>
+                  </span>
+
+                  {/* Desktop View: Open Studio Editor */}
+                  <span className="hidden sm:flex items-center gap-2.5">
+                    <span>Open Studio Editor</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </span>
                 </a>
 
                 <a
@@ -1351,7 +1361,11 @@ export const Home: React.FC = () => {
         <Footer />
 
         {/* Mobile Install PWA Prompt */}
-        <InstallPwaModal showFloatingButton={false} />
+        <InstallPwaModal
+          showFloatingButton={false}
+          isOpen={showIosGuide}
+          onClose={() => setShowIosGuide(false)}
+        />
       </div>
     </>
   );
