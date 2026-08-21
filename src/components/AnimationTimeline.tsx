@@ -23,9 +23,33 @@ export const AnimationTimeline: React.FC = () => {
   const onChange = state.updateState;
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const leftTracksRef = useRef<HTMLDivElement>(null);
   const trackContainerRef = useRef<HTMLDivElement>(null);
   const mockupTrackRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isSyncingScrollRef = useRef(false);
+
+  const handleLeftTracksScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isSyncingScrollRef.current) return;
+    isSyncingScrollRef.current = true;
+    if (trackContainerRef.current) {
+      trackContainerRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    requestAnimationFrame(() => {
+      isSyncingScrollRef.current = false;
+    });
+  };
+
+  const handleRightTracksScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isSyncingScrollRef.current) return;
+    isSyncingScrollRef.current = true;
+    if (leftTracksRef.current) {
+      leftTracksRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    requestAnimationFrame(() => {
+      isSyncingScrollRef.current = false;
+    });
+  };
 
   const PX_PER_SECOND = 72;
   const PAD_PX = 20;
@@ -626,8 +650,12 @@ export const AnimationTimeline: React.FC = () => {
             <span>Tracks ({layerTracks.length + 1})</span>
           </div>
 
-          {/* Track Header Items */}
-          <div className="max-h-44 overflow-hidden divide-y divide-neutral-800/40">
+          {/* Track Header Items (Vertically Scrollable & Synced) */}
+          <div
+            ref={leftTracksRef}
+            onScroll={handleLeftTracksScroll}
+            className="max-h-44 overflow-y-auto divide-y divide-neutral-800/40 no-scrollbar"
+          >
             {layerTracks.map((row) => {
               const isSelected = selectedTrack.id === row.id;
               return (
@@ -761,6 +789,7 @@ export const AnimationTimeline: React.FC = () => {
             {/* Track Lanes with Shared Vertical Playhead Needle */}
             <div
               ref={trackContainerRef}
+              onScroll={handleRightTracksScroll}
               className="relative max-h-44 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
             >
               {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
