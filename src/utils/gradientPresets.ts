@@ -53,9 +53,68 @@ export const GRADIENT_PRESETS: GradientPreset[] = [
   { name: 'Emerald Isle', c1: '#0ba360', c2: '#3cba92' },
   { name: 'Candy Floss', c1: '#fbc2eb', c2: '#a6c1ee' },
   { name: 'Zenith Blue', c1: '#1a2a6c', c2: '#b21f1f' },
+  { name: 'White Fade', c1: '#ffffff', c2: 'transparent' },
+  { name: 'Black Fade', c1: '#000000', c2: 'transparent' },
+  { name: 'Pink Fade', c1: '#ffafcc', c2: 'transparent' },
+  { name: 'Sky Fade', c1: '#a2d2ff', c2: 'transparent' },
+  { name: 'Glass Fade', c1: 'rgba(255,255,255,0.7)', c2: 'rgba(255,255,255,0.05)' },
+  { name: 'Dark Vignette', c1: 'rgba(0,0,0,0.85)', c2: 'transparent' },
 ];
 
 export const getRandomGradientPreset = (): GradientPreset => {
   const randomIndex = Math.floor(Math.random() * GRADIENT_PRESETS.length);
   return GRADIENT_PRESETS[randomIndex];
+};
+
+export const parseColorAndAlpha = (
+  colorStr: string = '#ffffff'
+): { hex: string; alpha: number } => {
+  if (!colorStr || colorStr === 'transparent') {
+    return { hex: '#000000', alpha: 0 };
+  }
+
+  // Check rgba(r, g, b, a) or rgb(r, g, b)
+  const rgbaMatch = colorStr.match(
+    /rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\)/i
+  );
+  if (rgbaMatch) {
+    const r = Math.min(255, parseInt(rgbaMatch[1], 10)).toString(16).padStart(2, '0');
+    const g = Math.min(255, parseInt(rgbaMatch[2], 10)).toString(16).padStart(2, '0');
+    const b = Math.min(255, parseInt(rgbaMatch[3], 10)).toString(16).padStart(2, '0');
+    const a = rgbaMatch[4] !== undefined ? Math.round(parseFloat(rgbaMatch[4]) * 100) : 100;
+    return { hex: `#${r}${g}${b}`, alpha: Math.max(0, Math.min(100, a)) };
+  }
+
+  // Check 8-digit hex #rrggbbaa
+  if (colorStr.startsWith('#') && colorStr.length === 9) {
+    const hex = colorStr.slice(0, 7);
+    const alphaHex = parseInt(colorStr.slice(7, 9), 16);
+    const alpha = Math.round((alphaHex / 255) * 100);
+    return { hex, alpha };
+  }
+
+  // Standard 6-digit or 3-digit hex
+  if (colorStr.startsWith('#')) {
+    if (colorStr.length === 4) {
+      const r = colorStr[1] + colorStr[1];
+      const g = colorStr[2] + colorStr[2];
+      const b = colorStr[3] + colorStr[3];
+      return { hex: `#${r}${g}${b}`, alpha: 100 };
+    }
+    return { hex: colorStr.slice(0, 7), alpha: 100 };
+  }
+
+  return { hex: '#ffffff', alpha: 100 };
+};
+
+export const formatColorWithAlpha = (hex: string, alpha: number): string => {
+  const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+  if (alpha === 0) return 'transparent';
+  if (alpha >= 100) return `#${cleanHex}`;
+
+  const r = parseInt(cleanHex.slice(0, 2) || '00', 16);
+  const g = parseInt(cleanHex.slice(2, 4) || '00', 16);
+  const b = parseInt(cleanHex.slice(4, 6) || '00', 16);
+  const a = Math.round((alpha / 100) * 100) / 100;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 };

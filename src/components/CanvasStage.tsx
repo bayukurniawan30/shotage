@@ -349,6 +349,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
         const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
         const loop = getElementLoopTransform(layer.loopAnimation);
+        const sx = layer.scaleX ?? 1;
+        const sy = layer.scaleY ?? 1;
 
         return (
           <div
@@ -362,11 +364,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectTextLayer(layer.id);
               }
             }}
-            className={`text-layer-item absolute cursor-pointer select-none rounded-sm ${layerLocked ? 'pointer-events-none' : ''} ${
-              isSelected
-                ? 'ring-2 ring-pastel-blue ring-offset-2 ring-offset-neutral-950/40'
-                : 'hover:outline-1 hover:outline-dashed hover:outline-slate-400'
-            }`}
+            className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
               transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
@@ -406,30 +404,63 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               maxWidth: 'none',
             }}
           >
-            {layer.socialPlatform ? (
+            {/* Selection Bounding Box (Constant 2px border thickness) */}
+            {isSelected && (
               <div
-                className={`flex items-center gap-2.5 ${
-                  layer.socialStyle === 'badge-light'
-                    ? 'bg-white text-slate-900 border border-slate-200/90 shadow-md rounded-lg px-3.5 py-1.5'
-                    : layer.socialStyle === 'badge-dark'
-                      ? 'bg-neutral-950/90 text-white border border-neutral-800 shadow-md rounded-lg px-3.5 py-1.5'
-                      : layer.socialStyle === 'glass-dark'
-                        ? 'bg-neutral-950/40 backdrop-blur-md border border-white/15 text-white shadow-xl rounded-lg px-3.5 py-1.5'
-                        : layer.socialStyle === 'glass-light'
-                          ? 'bg-white/30 backdrop-blur-md border border-white/50 text-slate-900 shadow-xl rounded-lg px-3.5 py-1.5'
-                          : ''
-                }`}
-              >
-                <SocialIcon
-                  platform={layer.socialPlatform}
-                  size={layer.iconSize || layer.fontSize * 1.1}
-                  color={layer.iconColor || layer.color}
-                />
-                <span style={{ fontFamily: fontFamilyCss }}>{layer.text}</span>
-              </div>
-            ) : (
-              layer.text
+                className="absolute -top-1 -left-1 border-2 border-pastel-blue rounded-md pointer-events-none z-30"
+                style={{
+                  width: `calc(100% * ${sx} + 8px)`,
+                  height: `calc(100% * ${sy} + 8px)`,
+                }}
+              />
             )}
+
+            {/* Hover Bounding Box (Constant 1px dashed border) */}
+            {!isSelected && !layerLocked && (
+              <div
+                className="absolute -top-1 -left-1 border border-dashed border-slate-400 rounded-md pointer-events-none z-10 opacity-0 group-hover/textlayer:opacity-100 transition-opacity"
+                style={{
+                  width: `calc(100% * ${sx} + 8px)`,
+                  height: `calc(100% * ${sy} + 8px)`,
+                }}
+              />
+            )}
+
+            {/* Stretched Text Content */}
+            <div
+              style={{
+                transform: `scale(${sx}, ${sy})`,
+                transformOrigin: 'top left',
+                display: 'inline-block',
+              }}
+            >
+              {layer.socialPlatform ? (
+                <div
+                  className={`flex items-center gap-2.5 ${
+                    layer.socialStyle === 'badge-light'
+                      ? 'bg-white text-slate-900 border border-slate-200/90 shadow-md rounded-lg px-3.5 py-1.5'
+                      : layer.socialStyle === 'badge-dark'
+                        ? 'bg-neutral-950/90 text-white border border-neutral-800 shadow-md rounded-lg px-3.5 py-1.5'
+                        : layer.socialStyle === 'glass-dark'
+                          ? 'bg-neutral-950/40 backdrop-blur-md border border-white/15 text-white shadow-xl rounded-lg px-3.5 py-1.5'
+                          : layer.socialStyle === 'glass-light'
+                            ? 'bg-white/30 backdrop-blur-md border border-white/50 text-slate-900 shadow-xl rounded-lg px-3.5 py-1.5'
+                            : ''
+                  }`}
+                >
+                  <SocialIcon
+                    platform={layer.socialPlatform}
+                    size={layer.iconSize || layer.fontSize * 1.1}
+                    color={layer.iconColor || layer.color}
+                  />
+                  <span style={{ fontFamily: fontFamilyCss }}>{layer.text}</span>
+                </div>
+              ) : (
+                layer.text
+              )}
+            </div>
+
+            {/* Selection Action Handles at corners of the stretched bounding box */}
             {isSelected && (
               <>
                 <div
@@ -439,21 +470,30 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     e.stopPropagation();
                     state.removeTextLayer(layer.id);
                   }}
-                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+                  style={{ top: '-14px', left: '-14px' }}
+                  className="delete-handle absolute w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
                   <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
                 </div>
                 <div
                   data-action="rotate"
                   title="Drag to rotate"
-                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                  style={{
+                    top: '-14px',
+                    left: `calc(100% * ${sx} - 10px)`,
+                  }}
+                  className="rotate-handle absolute w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
                   <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
                 </div>
                 <div
                   data-action="resize"
-                  title="Drag to resize font"
-                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                  title="Drag to stretch text (Hold Shift for proportional scale)"
+                  style={{
+                    top: `calc(100% * ${sy} - 10px)`,
+                    left: `calc(100% * ${sx} - 10px)`,
+                  }}
+                  className="resize-handle absolute w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
                   <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
                 </div>
@@ -513,7 +553,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectPhosphorIconLayer(layer.id);
               }
             }}
-            className={`phosphor-icon-layer-item absolute cursor-pointer select-none transition-all ${roundedClass} ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
@@ -585,7 +625,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectCanvasElement(el.id);
               }
             }}
-            className={`canvas-element-item absolute cursor-pointer select-none transition-all rounded-lg ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
@@ -714,7 +754,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectShapeLayer(layer.id);
               }
             }}
-            className={`shape-layer-item absolute cursor-pointer select-none transition-all ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
@@ -730,7 +770,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div
               className="w-full h-full"
               style={{
-                backgroundColor: layer.bgImage ? 'transparent' : (layer.color || '#a2d2ff'),
+                backgroundColor: layer.bgImage || layer.gradient ? 'transparent' : (layer.color || '#a2d2ff'),
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
                 ...(layer.bgImage
                   ? {
@@ -739,7 +779,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                       backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
                       backgroundRepeat: layer.bgImageRepeat ? 'repeat' : 'no-repeat',
                     }
-                  : {}),
+                  : layer.gradient
+                    ? {
+                        backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
+                      }
+                    : {}),
                 ...getShapeStyle(),
               }}
             />
@@ -1314,6 +1358,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     initialHeight: number;
     initialFontSize: number;
     initialSize: number;
+    initialScaleX?: number;
+    initialScaleY?: number;
     scale: number;
     rotation: number;
     shapeType?: import('../types/studio').ShapeType;
@@ -1477,14 +1523,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const id = textLayerEl.dataset.layerId || '';
         const layer = (state.textLayers || []).find((l) => l.id === id);
         if (layer) {
+          const currentScaleX = layer.scaleX ?? 1;
+          const currentScaleY = layer.scaleY ?? 1;
+          const baseW = textLayerEl.offsetWidth || 100;
+          const baseH = textLayerEl.offsetHeight || 30;
+
           setResizeDragItem({
             type: 'text',
             id: layer.id,
             startX: e.clientX,
             startY: e.clientY,
-            initialWidth: 0,
-            initialHeight: 0,
+            initialWidth: baseW,
+            initialHeight: baseH,
             initialFontSize: layer.fontSize || 32,
+            initialScaleX: currentScaleX,
+            initialScaleY: currentScaleY,
             initialSize: 0,
             scale: currentScale,
             rotation: layer.rotation || 0,
@@ -1843,54 +1896,86 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const delta = (deltaX + deltaY) / 2;
 
       if (resizeDragItem.type === 'text') {
-        const newFontSize = Math.max(
-          12,
-          Math.min(200, Math.round(resizeDragItem.initialFontSize + delta * 0.5))
-        );
-        scheduleDragUpdate(() =>
-          state.updateTextLayer(resizeDragItem.id, { fontSize: newFontSize })
-        );
+        const baseW = Math.max(resizeDragItem.initialWidth || 100, 20);
+        const baseH = Math.max(resizeDragItem.initialHeight || 30, 10);
+        const initScaleX = resizeDragItem.initialScaleX ?? 1;
+        const initScaleY = resizeDragItem.initialScaleY ?? 1;
+
+        if (e.shiftKey) {
+          // Proportional Uniform Scaling when holding Shift
+          const initVisualW = baseW * initScaleX;
+          const initVisualH = baseH * initScaleY;
+          const avgVisualDelta = (deltaX + deltaY) / 2;
+          const scaleRatio = 1 + avgVisualDelta / Math.max(initVisualW, initVisualH, 30);
+          const nextScaleX = Math.max(0.1, Math.min(20.0, initScaleX * scaleRatio));
+          const nextScaleY = Math.max(0.1, Math.min(20.0, initScaleY * scaleRatio));
+          scheduleDragUpdate(() =>
+            state.updateTextLayer(resizeDragItem.id, {
+              scaleX: Math.round(nextScaleX * 100) / 100,
+              scaleY: Math.round(nextScaleY * 100) / 100,
+            })
+          );
+        } else {
+          // 1:1 Pixel-Perfect Cursor Tracking (nextVisualW = initVisualW + deltaX => nextScaleX = initScaleX + deltaX / baseW)
+          const nextScaleX = Math.max(0.1, Math.min(20.0, initScaleX + deltaX / baseW));
+          const nextScaleY = Math.max(0.1, Math.min(20.0, initScaleY + deltaY / baseH));
+          scheduleDragUpdate(() =>
+            state.updateTextLayer(resizeDragItem.id, {
+              scaleX: Math.round(nextScaleX * 100) / 100,
+              scaleY: Math.round(nextScaleY * 100) / 100,
+            })
+          );
+        }
       } else if (resizeDragItem.type === 'phosphor') {
+        // 1:1 Pixel-Perfect Cursor Tracking for Phosphor Icons (diagonal displacement on square aspect)
         const newSize = Math.max(
           16,
-          Math.min(300, Math.round(resizeDragItem.initialSize + delta * 0.5))
+          Math.min(600, Math.round(resizeDragItem.initialSize + (deltaX + deltaY) / 2))
         );
         scheduleDragUpdate(() =>
           state.updatePhosphorIconLayer(resizeDragItem.id, { size: newSize })
         );
       } else if (resizeDragItem.type === 'element') {
-        const aspect =
-          resizeDragItem.initialHeight > 0
-            ? resizeDragItem.initialWidth / resizeDragItem.initialHeight
-            : 1;
-        const newWidth = Math.max(
-          20,
-          Math.min(600, Math.round(resizeDragItem.initialWidth + delta))
-        );
-        const newHeight = Math.max(20, Math.min(600, Math.round(newWidth / aspect)));
-        scheduleDragUpdate(() =>
-          state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
-        );
-      } else if (resizeDragItem.type === 'shape') {
-        const isUniform =
-          resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
-        if (isUniform) {
-          const newSize = Math.max(
-            10,
-            Math.min(600, Math.round(resizeDragItem.initialWidth + delta))
-          );
+        // 1:1 Pixel-Perfect Cursor Tracking for Canvas Elements (emojis, arrows, lines)
+        const initW = resizeDragItem.initialWidth || 90;
+        const initH = resizeDragItem.initialHeight || 90;
+        const isSquare = Math.abs(initW - initH) < 2;
+
+        if (isSquare || e.shiftKey) {
+          // Uniform 1:1 aspect scaling (e.g. emojis)
+          const avgDelta = (deltaX + deltaY) / 2;
+          const aspect = initH > 0 ? initW / initH : 1;
+          const newWidth = Math.max(10, Math.min(1200, Math.round(initW + avgDelta)));
+          const newHeight = Math.max(10, Math.min(1200, Math.round(newWidth / aspect)));
           scheduleDragUpdate(() =>
-            state.updateShapeLayer(resizeDragItem.id, { width: newSize, height: newSize })
+            state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
           );
         } else {
-          const newWidth = Math.max(
-            10,
-            Math.min(600, Math.round(resizeDragItem.initialWidth + deltaX))
+          // Freeform 2D sizing
+          const newWidth = Math.max(10, Math.min(1200, Math.round(initW + deltaX)));
+          const newHeight = Math.max(10, Math.min(1200, Math.round(initH + deltaY)));
+          scheduleDragUpdate(() =>
+            state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
           );
-          const newHeight = Math.max(
-            10,
-            Math.min(600, Math.round(resizeDragItem.initialHeight + deltaY))
+        }
+      } else if (resizeDragItem.type === 'shape') {
+        // 1:1 Pixel-Perfect Cursor Tracking for Shapes
+        const isUniform =
+          resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
+        const initW = resizeDragItem.initialWidth || 120;
+        const initH = resizeDragItem.initialHeight || 120;
+
+        if (isUniform || e.shiftKey) {
+          const avgDelta = (deltaX + deltaY) / 2;
+          const aspect = initH > 0 ? initW / initH : 1;
+          const newWidth = Math.max(10, Math.min(2000, Math.round(initW + avgDelta)));
+          const newHeight = Math.max(10, Math.min(2000, Math.round(newWidth / aspect)));
+          scheduleDragUpdate(() =>
+            state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
           );
+        } else {
+          const newWidth = Math.max(10, Math.min(2000, Math.round(initW + deltaX)));
+          const newHeight = Math.max(10, Math.min(2000, Math.round(initH + deltaY)));
           scheduleDragUpdate(() =>
             state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
           );

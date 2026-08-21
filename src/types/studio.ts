@@ -71,6 +71,7 @@ export interface ShapeLayer {
   id: string;
   shapeType: ShapeType;
   color: string;
+  gradient?: { color1: string; color2: string; angle: number } | null;
   bgImage?: string | null;
   bgImageZoom?: number;
   bgImageOffsetX?: number;
@@ -175,6 +176,8 @@ export interface TextLayer {
   yaw?: number;
   skewX?: number;
   skewY?: number;
+  scaleX?: number; // 0.1 to 10.0 (default 1)
+  scaleY?: number; // 0.1 to 10.0 (default 1)
   position: 'above' | 'underneath'; // 'above' (front overlay) or 'underneath' (behind mockup)
   socialPlatform?: SocialPlatform;
   socialStyle?: SocialStyleVariant;

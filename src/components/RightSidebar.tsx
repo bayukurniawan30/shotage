@@ -22,7 +22,11 @@ import { RADIANT_PRESETS } from '../utils/radiantPresets';
 import { SHADESHIFTER_PRESETS } from '../utils/shadeshifterPresets';
 import { SPECTRAL_PRESETS } from '../utils/spectralPresets';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
-import { GRADIENT_PRESETS } from '../utils/gradientPresets';
+import {
+  GRADIENT_PRESETS,
+  parseColorAndAlpha,
+  formatColorWithAlpha,
+} from '../utils/gradientPresets';
 import { PATTERN_PRESETS } from '../utils/patternPresets';
 import { WaveBackground } from './WaveBackground';
 import { MeshBackground } from './MeshBackground';
@@ -760,6 +764,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const onChange = state.updateState;
   const reset3DPerspective = state.reset3DPerspective;
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [showAllShapeGradients, setShowAllShapeGradients] = useState(false);
   const [showAllShadeshifter, setShowAllShadeshifter] = useState(false);
   const [showAllSpectral, setShowAllSpectral] = useState(false);
   const [showAllAnimatedGradients, setShowAllAnimatedGradients] = useState(false);
@@ -4116,44 +4121,203 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 flex-1">
-                      <input
-                        type="color"
-                        value={selectedLayer.gradient.color1}
-                        onChange={(e) =>
-                          state.updateTextLayer(selectedLayer.id, {
-                            gradient: {
-                              ...selectedLayer.gradient!,
-                              color1: e.target.value,
-                            },
-                          })
-                        }
-                        className="w-7 h-7 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0"
-                        title="Gradient Color 1"
-                      />
-                      <span className="text-[10px] font-mono text-slate-500 uppercase">
-                        {selectedLayer.gradient.color1}
-                      </span>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {/* Color 1 */}
+                    <div className="p-2 rounded-xl bg-neutral-950/70 border border-neutral-800/80 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-semibold text-slate-400">Color 1</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const parsed = parseColorAndAlpha(selectedLayer.gradient!.color1);
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color1:
+                                  parsed.alpha === 0
+                                    ? formatColorWithAlpha(parsed.hex, 100)
+                                    : 'transparent',
+                              },
+                            });
+                          }}
+                          className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                            parseColorAndAlpha(selectedLayer.gradient.color1).alpha === 0
+                              ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold'
+                              : 'bg-neutral-900 border-neutral-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                          title="Toggle transparent"
+                        >
+                          {parseColorAndAlpha(selectedLayer.gradient.color1).alpha === 0
+                            ? 'Transparent'
+                            : 'Make Clear'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 border border-slate-700">
+                          <div className="absolute inset-0 bg-[linear-gradient(45deg,#262626_25%,transparent_25%),linear-gradient(-45deg,#262626_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#262626_75%),linear-gradient(-45deg,transparent_75%,#262626_75%)] bg-[size:6px_6px] bg-[position:0_0,0_3px,3px_-3px,-3px_0]" />
+                          <div
+                            className="absolute inset-0"
+                            style={{ backgroundColor: selectedLayer.gradient.color1 }}
+                          />
+                          <input
+                            type="color"
+                            value={parseColorAndAlpha(selectedLayer.gradient.color1).hex}
+                            onChange={(e) => {
+                              const currentAlpha = parseColorAndAlpha(
+                                selectedLayer.gradient!.color1
+                              ).alpha;
+                              state.updateTextLayer(selectedLayer.id, {
+                                gradient: {
+                                  ...selectedLayer.gradient!,
+                                  color1: formatColorWithAlpha(
+                                    e.target.value,
+                                    currentAlpha === 0 ? 100 : currentAlpha
+                                  ),
+                                },
+                              });
+                            }}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={selectedLayer.gradient.color1}
+                          onChange={(e) =>
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color1: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono rounded px-1.5 py-0.5 text-slate-200"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[10px] mb-0.5 text-slate-400">
+                          <span>Opacity</span>
+                          <span className="font-mono font-medium">
+                            {parseColorAndAlpha(selectedLayer.gradient.color1).alpha}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={parseColorAndAlpha(selectedLayer.gradient.color1).alpha}
+                          onChange={(e) => {
+                            const hex = parseColorAndAlpha(selectedLayer.gradient!.color1).hex;
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color1: formatColorWithAlpha(hex, Number(e.target.value)),
+                              },
+                            });
+                          }}
+                          className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-1 justify-end">
-                      <span className="text-[10px] font-mono text-slate-500 uppercase">
-                        {selectedLayer.gradient.color2}
-                      </span>
-                      <input
-                        type="color"
-                        value={selectedLayer.gradient.color2}
-                        onChange={(e) =>
-                          state.updateTextLayer(selectedLayer.id, {
-                            gradient: {
-                              ...selectedLayer.gradient!,
-                              color2: e.target.value,
-                            },
-                          })
-                        }
-                        className="w-7 h-7 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0"
-                        title="Gradient Color 2"
-                      />
+
+                    {/* Color 2 */}
+                    <div className="p-2 rounded-xl bg-neutral-950/70 border border-neutral-800/80 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-semibold text-slate-400">Color 2</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const parsed = parseColorAndAlpha(selectedLayer.gradient!.color2);
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color2:
+                                  parsed.alpha === 0
+                                    ? formatColorWithAlpha(parsed.hex, 100)
+                                    : 'transparent',
+                              },
+                            });
+                          }}
+                          className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                            parseColorAndAlpha(selectedLayer.gradient.color2).alpha === 0
+                              ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold'
+                              : 'bg-neutral-900 border-neutral-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                          title="Toggle transparent"
+                        >
+                          {parseColorAndAlpha(selectedLayer.gradient.color2).alpha === 0
+                            ? 'Transparent'
+                            : 'Make Clear'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 border border-slate-700">
+                          <div className="absolute inset-0 bg-[linear-gradient(45deg,#262626_25%,transparent_25%),linear-gradient(-45deg,#262626_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#262626_75%),linear-gradient(-45deg,transparent_75%,#262626_75%)] bg-[size:6px_6px] bg-[position:0_0,0_3px,3px_-3px,-3px_0]" />
+                          <div
+                            className="absolute inset-0"
+                            style={{ backgroundColor: selectedLayer.gradient.color2 }}
+                          />
+                          <input
+                            type="color"
+                            value={parseColorAndAlpha(selectedLayer.gradient.color2).hex}
+                            onChange={(e) => {
+                              const currentAlpha = parseColorAndAlpha(
+                                selectedLayer.gradient!.color2
+                              ).alpha;
+                              state.updateTextLayer(selectedLayer.id, {
+                                gradient: {
+                                  ...selectedLayer.gradient!,
+                                  color2: formatColorWithAlpha(
+                                    e.target.value,
+                                    currentAlpha === 0 ? 100 : currentAlpha
+                                  ),
+                                },
+                              });
+                            }}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={selectedLayer.gradient.color2}
+                          onChange={(e) =>
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color2: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono rounded px-1.5 py-0.5 text-slate-200"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[10px] mb-0.5 text-slate-400">
+                          <span>Opacity</span>
+                          <span className="font-mono font-medium">
+                            {parseColorAndAlpha(selectedLayer.gradient.color2).alpha}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={parseColorAndAlpha(selectedLayer.gradient.color2).alpha}
+                          onChange={(e) => {
+                            const hex = parseColorAndAlpha(selectedLayer.gradient!.color2).hex;
+                            state.updateTextLayer(selectedLayer.id, {
+                              gradient: {
+                                ...selectedLayer.gradient!,
+                                color2: formatColorWithAlpha(hex, Number(e.target.value)),
+                              },
+                            });
+                          }}
+                          className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -4459,6 +4623,53 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                     onChange={(e) =>
                       state.updateTextLayer(selectedLayer.id, {
                         skewY: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Stretch X / Stretch Y Sliders */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Stretch X</span>
+                    <span className="font-mono text-slate-400">
+                      {(selectedLayer.scaleX ?? 1).toFixed(2)}x
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="8.0"
+                    step="0.05"
+                    value={selectedLayer.scaleX ?? 1}
+                    onChange={(e) =>
+                      state.updateTextLayer(selectedLayer.id, {
+                        scaleX: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300">Stretch Y</span>
+                    <span className="font-mono text-slate-400">
+                      {(selectedLayer.scaleY ?? 1).toFixed(2)}x
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="8.0"
+                    step="0.05"
+                    value={selectedLayer.scaleY ?? 1}
+                    onChange={(e) =>
+                      state.updateTextLayer(selectedLayer.id, {
+                        scaleY: Number(e.target.value),
                       })
                     }
                     className="w-full bg-slate-800 rounded-lg cursor-pointer"
@@ -5109,28 +5320,398 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               </div>
 
               {/* Shape Color */}
+              {/* Shape Color */}
               <div>
                 <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
                   Color
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                  {[
+                    '#ffffff',
+                    '#000000',
+                    '#ffafcc',
+                    '#a2d2ff',
+                    '#cdb4db',
+                    '#fef08a',
+                    '#4ade80',
+                    '#f87171',
+                    '#38bdf8',
+                  ].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() =>
+                        state.updateShapeLayer(selectedShape.id, { color: c, gradient: null })
+                      }
+                      style={{ backgroundColor: c }}
+                      className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
+                        !selectedShape.gradient && selectedShape.color === c
+                          ? 'border-white scale-110 shadow-md ring-2 ring-pastel-pink/50'
+                          : 'border-slate-700/60 hover:scale-105'
+                      }`}
+                    />
+                  ))}
                   <input
                     type="color"
                     value={selectedShape.color || '#a2d2ff'}
                     onChange={(e) =>
-                      state.updateShapeLayer(selectedShape.id, { color: e.target.value })
+                      state.updateShapeLayer(selectedShape.id, {
+                        color: e.target.value,
+                        gradient: null,
+                      })
                     }
-                    className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
+                    className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
+                    title="Custom Color"
                   />
+                </div>
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={selectedShape.color || '#a2d2ff'}
                     onChange={(e) =>
-                      state.updateShapeLayer(selectedShape.id, { color: e.target.value })
+                      state.updateShapeLayer(selectedShape.id, {
+                        color: e.target.value,
+                        gradient: null,
+                      })
                     }
-                    className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
+                    placeholder="#a2d2ff"
+                    className="w-full bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
                   />
                 </div>
+              </div>
+
+              {/* Gradient Shape */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-semibold text-slate-300">
+                    Gradient Fill
+                  </label>
+                  <button
+                    onClick={() =>
+                      state.updateShapeLayer(selectedShape.id, {
+                        gradient: selectedShape.gradient
+                          ? null
+                          : { color1: '#ffafcc', color2: '#a2d2ff', angle: 135 },
+                      })
+                    }
+                    className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                      selectedShape.gradient ? 'bg-pastel-pink' : 'bg-slate-800'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                        selectedShape.gradient ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {selectedShape.gradient && (
+                  <div className="space-y-2.5 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                        Presets ({GRADIENT_PRESETS.length})
+                      </span>
+                      {showAllShapeGradients && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllShapeGradients(false)}
+                          className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Collapse presets"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div
+                      className={`grid grid-cols-4 gap-2 ${
+                        showAllShapeGradients
+                          ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5'
+                          : 'p-1'
+                      }`}
+                    >
+                      {(
+                        !showAllShapeGradients
+                          ? GRADIENT_PRESETS.slice(0, 3)
+                          : GRADIENT_PRESETS
+                      ).map((g) => {
+                        const isSelected =
+                          selectedShape.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
+                          selectedShape.gradient?.color2.toLowerCase() === g.c2.toLowerCase();
+                        return (
+                          <button
+                            key={g.name}
+                            onClick={() =>
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color1: g.c1,
+                                  color2: g.c2,
+                                },
+                              })
+                            }
+                            title={g.name}
+                            className={`h-8 rounded-lg border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-white ring-2 ring-pastel-pink scale-105'
+                                : 'border-slate-700/80 hover:scale-105'
+                            }`}
+                            style={{
+                              backgroundImage: `linear-gradient(135deg, ${g.c1}, ${g.c2})`,
+                            }}
+                          />
+                        );
+                      })}
+
+                      {!showAllShapeGradients && GRADIENT_PRESETS.length > 3 && (
+                        <div className="relative h-8">
+                          <div className="absolute inset-0 rounded-lg bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                          <button
+                            type="button"
+                            onClick={() => setShowAllShapeGradients(true)}
+                            title={`Show all ${GRADIENT_PRESETS.length} gradients`}
+                            className="relative z-10 w-full h-full rounded-lg border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                            style={{
+                              backgroundImage: `linear-gradient(135deg, ${GRADIENT_PRESETS[3].c1}, ${GRADIENT_PRESETS[3].c2})`,
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white">
+                              <span className="text-[10px] font-bold tracking-tight">
+                                +{GRADIENT_PRESETS.length - 3}
+                              </span>
+                              <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* Color 1 */}
+                      <div className="p-2 rounded-xl bg-neutral-950/70 border border-neutral-800/80 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-semibold text-slate-400">Color 1</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const parsed = parseColorAndAlpha(selectedShape.gradient!.color1);
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color1:
+                                    parsed.alpha === 0
+                                      ? formatColorWithAlpha(parsed.hex, 100)
+                                      : 'transparent',
+                                },
+                              });
+                            }}
+                            className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                              parseColorAndAlpha(selectedShape.gradient.color1).alpha === 0
+                                ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold'
+                                : 'bg-neutral-900 border-neutral-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                            title="Toggle transparent"
+                          >
+                            {parseColorAndAlpha(selectedShape.gradient.color1).alpha === 0
+                              ? 'Transparent'
+                              : 'Make Clear'}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 border border-slate-700">
+                            <div className="absolute inset-0 bg-[linear-gradient(45deg,#262626_25%,transparent_25%),linear-gradient(-45deg,#262626_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#262626_75%),linear-gradient(-45deg,transparent_75%,#262626_75%)] bg-[size:6px_6px] bg-[position:0_0,0_3px,3px_-3px,-3px_0]" />
+                            <div
+                              className="absolute inset-0"
+                              style={{ backgroundColor: selectedShape.gradient.color1 }}
+                            />
+                            <input
+                              type="color"
+                              value={parseColorAndAlpha(selectedShape.gradient.color1).hex}
+                              onChange={(e) => {
+                                const currentAlpha = parseColorAndAlpha(
+                                  selectedShape.gradient!.color1
+                                ).alpha;
+                                state.updateShapeLayer(selectedShape.id, {
+                                  gradient: {
+                                    ...selectedShape.gradient!,
+                                    color1: formatColorWithAlpha(
+                                      e.target.value,
+                                      currentAlpha === 0 ? 100 : currentAlpha
+                                    ),
+                                  },
+                                });
+                              }}
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            value={selectedShape.gradient.color1}
+                            onChange={(e) =>
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color1: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono rounded px-1.5 py-0.5 text-slate-200"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between text-[10px] mb-0.5 text-slate-400">
+                            <span>Opacity</span>
+                            <span className="font-mono font-medium">
+                              {parseColorAndAlpha(selectedShape.gradient.color1).alpha}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={parseColorAndAlpha(selectedShape.gradient.color1).alpha}
+                            onChange={(e) => {
+                              const hex = parseColorAndAlpha(selectedShape.gradient!.color1).hex;
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color1: formatColorWithAlpha(hex, Number(e.target.value)),
+                                },
+                              });
+                            }}
+                            className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Color 2 */}
+                      <div className="p-2 rounded-xl bg-neutral-950/70 border border-neutral-800/80 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-semibold text-slate-400">Color 2</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const parsed = parseColorAndAlpha(selectedShape.gradient!.color2);
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color2:
+                                    parsed.alpha === 0
+                                      ? formatColorWithAlpha(parsed.hex, 100)
+                                      : 'transparent',
+                                },
+                              });
+                            }}
+                            className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                              parseColorAndAlpha(selectedShape.gradient.color2).alpha === 0
+                                ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold'
+                                : 'bg-neutral-900 border-neutral-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                            title="Toggle transparent"
+                          >
+                            {parseColorAndAlpha(selectedShape.gradient.color2).alpha === 0
+                              ? 'Transparent'
+                              : 'Make Clear'}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 border border-slate-700">
+                            <div className="absolute inset-0 bg-[linear-gradient(45deg,#262626_25%,transparent_25%),linear-gradient(-45deg,#262626_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#262626_75%),linear-gradient(-45deg,transparent_75%,#262626_75%)] bg-[size:6px_6px] bg-[position:0_0,0_3px,3px_-3px,-3px_0]" />
+                            <div
+                              className="absolute inset-0"
+                              style={{ backgroundColor: selectedShape.gradient.color2 }}
+                            />
+                            <input
+                              type="color"
+                              value={parseColorAndAlpha(selectedShape.gradient.color2).hex}
+                              onChange={(e) => {
+                                const currentAlpha = parseColorAndAlpha(
+                                  selectedShape.gradient!.color2
+                                ).alpha;
+                                state.updateShapeLayer(selectedShape.id, {
+                                  gradient: {
+                                    ...selectedShape.gradient!,
+                                    color2: formatColorWithAlpha(
+                                      e.target.value,
+                                      currentAlpha === 0 ? 100 : currentAlpha
+                                    ),
+                                  },
+                                });
+                              }}
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            value={selectedShape.gradient.color2}
+                            onChange={(e) =>
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color2: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono rounded px-1.5 py-0.5 text-slate-200"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between text-[10px] mb-0.5 text-slate-400">
+                            <span>Opacity</span>
+                            <span className="font-mono font-medium">
+                              {parseColorAndAlpha(selectedShape.gradient.color2).alpha}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={parseColorAndAlpha(selectedShape.gradient.color2).alpha}
+                            onChange={(e) => {
+                              const hex = parseColorAndAlpha(selectedShape.gradient!.color2).hex;
+                              state.updateShapeLayer(selectedShape.id, {
+                                gradient: {
+                                  ...selectedShape.gradient!,
+                                  color2: formatColorWithAlpha(hex, Number(e.target.value)),
+                                },
+                              });
+                            }}
+                            className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gradient Angle */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Angle</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedShape.gradient.angle}°
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={selectedShape.gradient.angle}
+                        onChange={(e) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            gradient: {
+                              ...selectedShape.gradient!,
+                              angle: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Image Fill (Clip Shape) */}
