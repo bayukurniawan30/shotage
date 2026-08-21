@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield01, CheckCircle, Lock01, Stars02, ArrowLeft } from '@untitledui/icons';
+import { Footer } from '../components/Footer';
 
 const Terms: React.FC = () => {
   return (
@@ -170,27 +171,7 @@ const Terms: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-8 text-xs font-medium text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <a
-            href="/faq"
-            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
-          >
-            FAQ
-          </a>
-          <a
-            href="/terms"
-            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
-          >
-            Terms of Service
-          </a>
-        </div>
-
-        <div className="text-center sm:text-right">
-          © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
-          reserved.
-        </div>
-      </footer>
+      <Footer className="w-full" />
     </div>
   );
 };

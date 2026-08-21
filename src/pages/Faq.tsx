@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import { MessageQuestionCircle, ArrowRight } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
+import { Footer } from '../components/Footer';
 
 const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
@@ -253,27 +254,7 @@ const Faq: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-md py-6 px-6 md:px-12 text-xs font-medium text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <a
-            href="/faq"
-            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
-          >
-            FAQ
-          </a>
-          <a
-            href="/terms"
-            className="hover:text-slate-100 transition-colors cursor-pointer text-slate-300 font-semibold"
-          >
-            Terms of Service
-          </a>
-        </div>
-
-        <div className="text-center sm:text-right">
-          © {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio. All rights
-          reserved.
-        </div>
-      </footer>
+      <Footer className="w-full" />
     </div>
     </>
   );
