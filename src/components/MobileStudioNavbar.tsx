@@ -23,6 +23,7 @@ interface MobileStudioNavbarProps {
 }
 
 export type MobileTab =
+  | 'quick'
   | 'image'
   | 'aspect'
   | 'frame'
@@ -43,6 +44,16 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
   const frameType = useStudioStore((state) => state.frameType);
 
   const tabs: { id: MobileTab; label: string; icon: React.FC<{ className?: string }> }[] = [
+    {
+      id: 'quick',
+      label: 'Quick Mode',
+      icon: (props) => (
+        <PhosphorIcons.Lightning
+          weight="fill"
+          className={props.className || 'w-5 h-5 text-pastel-pink'}
+        />
+      ),
+    },
     { id: 'image', label: 'Image & Layout', icon: Image01 },
     { id: 'aspect', label: 'Aspect Ratio', icon: Monitor05 },
     { id: 'frame', label: 'Frame Mockups', icon: Cube01 },
@@ -154,6 +165,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
 
           {/* Panel Content per selected section */}
           <div className="mobile-drawer-content p-4">
+            {activeTab === 'quick' && <RightSidebar mobileSection="quick" />}
             {activeTab === 'image' && (
               <LeftSidebar onImageUpload={onImageUpload} mobileSection="image" />
             )}

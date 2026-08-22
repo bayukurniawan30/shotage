@@ -45,6 +45,7 @@ import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from './TechStackIcons';
 import { Toggle } from './Toggle';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { PhosphorWeight, ShapeType, BackgroundType } from '../types/studio';
+import { QuickModeSection } from './QuickModeSection';
 
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
@@ -748,6 +749,7 @@ const PositionSliderGroup: React.FC<{
 
 interface RightSidebarProps {
   mobileSection?:
+    | 'quick'
     | 'perspective'
     | 'watermark'
     | 'background'
@@ -777,6 +779,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const [showAllPatterns, setShowAllPatterns] = useState(false);
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
   const [customEmojiInput, setCustomEmojiInput] = useState('');
+  const [phosphorSelectedCategory, setPhosphorSelectedCategory] = useState<string>('all');
+  const [phosphorSearchQuery, setPhosphorSearchQuery] = useState<string>('');
   const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
     []
   );
@@ -3087,8 +3091,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   const renderPhosphorIconsSection = () => {
     const iconLayers = state.phosphorIconLayers || [];
     const selectedLayer = iconLayers.find((l) => l.id === state.selectedPhosphorIconLayerId);
-    const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [searchQuery, setSearchQuery] = useState<string>('');
+    const selectedCategory = phosphorSelectedCategory;
+    const setSelectedCategory = setPhosphorSelectedCategory;
+    const searchQuery = phosphorSearchQuery;
+    const setSearchQuery = setPhosphorSearchQuery;
 
     const categories = [
       { id: 'all', label: 'All' },
@@ -6977,6 +6983,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
   };
 
   if (mobileSection) {
+    if (mobileSection === 'quick') return <QuickModeSection />;
     if (mobileSection === 'perspective') return renderPerspectiveSection();
     if (mobileSection === 'social') return renderSocialSection();
     if (mobileSection === 'techstack') return renderTechStackSection();
@@ -6989,17 +6996,60 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
     return null;
   }
 
+  const sidebarMode = state.sidebarMode || 'quick';
+
   return (
     <div className="w-80 bg-neutral-900 border-l border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
-      {renderPerspectiveSection()}
-      {renderBackgroundSection()}
-      {renderSocialSection()}
-      {renderTechStackSection()}
-      {renderPhosphorIconsSection()}
-      {renderTextSection()}
-      {renderElementsSection()}
-      {renderLayersSection()}
-      {renderWatermarkSection()}
+      {/* Quick vs Advanced Mode Switcher */}
+      <div className="grid grid-cols-2 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800 shrink-0">
+        <button
+          type="button"
+          onClick={() => onChange({ sidebarMode: 'quick' })}
+          className={`py-1.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            sidebarMode === 'quick'
+              ? 'bg-pastel-pink text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900'
+          }`}
+        >
+          <PhosphorIcons.Lightning
+            weight={sidebarMode === 'quick' ? 'fill' : 'bold'}
+            className="w-3.5 h-3.5"
+          />
+          <span>Quick Mode</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange({ sidebarMode: 'advanced' })}
+          className={`py-1.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            sidebarMode === 'advanced'
+              ? 'bg-pastel-pink text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900'
+          }`}
+        >
+          <PhosphorIcons.SlidersHorizontal
+            weight={sidebarMode === 'advanced' ? 'fill' : 'bold'}
+            className="w-3.5 h-3.5"
+          />
+          <span>Advanced</span>
+        </button>
+      </div>
+
+      {/* Mode Content */}
+      {sidebarMode === 'quick' ? (
+        <QuickModeSection />
+      ) : (
+        <>
+          {renderPerspectiveSection()}
+          {renderBackgroundSection()}
+          {renderSocialSection()}
+          {renderTechStackSection()}
+          {renderPhosphorIconsSection()}
+          {renderTextSection()}
+          {renderElementsSection()}
+          {renderLayersSection()}
+          {renderWatermarkSection()}
+        </>
+      )}
     </div>
   );
 };

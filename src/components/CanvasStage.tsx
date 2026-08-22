@@ -433,6 +433,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 transform: `scale(${sx}, ${sy})`,
                 transformOrigin: 'top left',
                 display: 'inline-block',
+                fontFamily: 'inherit',
               }}
             >
               {layer.socialPlatform ? (

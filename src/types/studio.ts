@@ -369,6 +369,7 @@ export interface StudioState {
   shapeLayers: ShapeLayer[];
   selectedShapeId: string | null;
   selectedShapeIds: string[];
+  sidebarMode: 'quick' | 'advanced';
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
   // Phosphor Icons Overlay (Grouped)
@@ -494,6 +495,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shapeLayers: [],
   selectedShapeId: null,
   selectedShapeIds: [],
+  sidebarMode: 'quick',
   techStackConfig: {
     enabled: false,
     selectedIcons: ['react', 'nextjs', 'typescript', 'tailwindcss'],
