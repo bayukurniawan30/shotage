@@ -91,6 +91,9 @@ export interface ShapeLayer {
   position: 'above' | 'underneath';
   shadow?: boolean;
   blur?: number;
+  glassmorphism?: boolean;
+  glassmorphismBlur?: number;
+  glassmorphismBorder?: boolean;
   name?: string;
   visible?: boolean;
   locked?: boolean;

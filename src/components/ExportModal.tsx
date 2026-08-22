@@ -139,10 +139,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const handleExport = async (format: 'png' | 'jpeg' | 'webp', isCopy = false) => {
     if (!canvasRef.current) return;
     state.selectTextLayer(null);
+    state.selectShapeLayer(null);
+    state.selectPhosphorIconLayer(null);
+    state.selectCanvasElement(null);
     setIsExporting(true);
     setExportingType('image');
 
-    // Ensure all web fonts are loaded and DOM has reflowed after deselecting text layers
+    // Ensure all web fonts are loaded and DOM has reflowed after deselecting layers
     if ('fonts' in document) {
       await document.fonts.ready;
     }
@@ -153,6 +156,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         pixelRatio: state.exportScale,
         quality: 0.95,
         cacheBust: true,
+        filter: (node: HTMLElement) => {
+          if (node && node.classList) {
+            if (
+              node.classList.contains('delete-handle') ||
+              node.classList.contains('rotate-handle') ||
+              node.classList.contains('resize-handle')
+            ) {
+              return false;
+            }
+          }
+          return true;
+        },
         ...(state.backgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
       };
 
@@ -244,6 +259,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
     try {
       state.selectTextLayer(null);
+      state.selectShapeLayer(null);
+      state.selectPhosphorIconLayer(null);
+      state.selectCanvasElement(null);
       const durationSec = state.durationSec || 10;
       const fps = 30; // 30 FPS for crisp frame delivery
       const totalFrames = Math.floor(durationSec * fps);
@@ -610,6 +628,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       if (canvasRef.current) {
         try {
           storeState.selectTextLayer(null);
+          storeState.selectShapeLayer(null);
+          storeState.selectPhosphorIconLayer(null);
+          storeState.selectCanvasElement(null);
           await new Promise((resolve) => setTimeout(resolve, 50));
           if ('fonts' in document) await document.fonts.ready;
 

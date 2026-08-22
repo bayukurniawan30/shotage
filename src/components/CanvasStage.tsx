@@ -12,6 +12,7 @@ import { ShadeshifterBackground } from './ShadeshifterBackground';
 import { SpectralBackground } from './SpectralBackground';
 import { AnimatedGradientBackground, AnimatedMeshBackground } from './AnimatedBackgrounds';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
+import { parseColorAndAlpha, formatColorWithAlpha } from '../utils/gradientPresets';
 import { getPatternSvgUrl } from '../utils/patternPresets';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
@@ -742,6 +743,54 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           }
         };
 
+        const isGlass = !!layer.glassmorphism;
+        const blurAmount = layer.glassmorphismBlur ?? 16;
+
+        const getGlassOrSolidBackground = (): React.CSSProperties => {
+          if (layer.bgImage) {
+            return {
+              backgroundImage: `url(${layer.bgImage})`,
+              backgroundSize: `${layer.bgImageZoom ?? 100}%`,
+              backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
+              backgroundRepeat: layer.bgImageRepeat ? 'repeat' : 'no-repeat',
+            };
+          }
+
+          if (isGlass) {
+            const userAlpha = (layer.opacity ?? 50) / 100;
+            if (layer.gradient) {
+              const p1 = parseColorAndAlpha(layer.gradient.color1);
+              const p2 = parseColorAndAlpha(layer.gradient.color2);
+              const a1 = Math.round((p1.alpha / 100) * userAlpha * 100);
+              const a2 = Math.round((p2.alpha / 100) * userAlpha * 100);
+              return {
+                backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${formatColorWithAlpha(p1.hex, a1)}, ${formatColorWithAlpha(p2.hex, a2)})`,
+                backgroundColor: 'transparent',
+              };
+            }
+            const p = parseColorAndAlpha(layer.color || '#ffffff');
+            const finalAlpha = Math.round((p.alpha / 100) * userAlpha * 100);
+            return {
+              backgroundColor: formatColorWithAlpha(p.hex, finalAlpha),
+            };
+          }
+
+          if (layer.gradient) {
+            return {
+              backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
+            };
+          }
+
+          return {
+            backgroundColor: layer.color || '#a2d2ff',
+          };
+        };
+
+        const has3D = (layer.pitch ?? 0) !== 0 || (layer.yaw ?? 0) !== 0;
+        const transformStr = has3D
+          ? `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`
+          : `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`;
+
         return (
           <div
             key={layer.id}
@@ -759,35 +808,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
-              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
-              transformStyle: 'preserve-3d',
-              opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
-              filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              transform: transformStr,
+              transformStyle: has3D ? 'preserve-3d' : undefined,
+              opacity: isGlass ? loop.opacityMul : ((layer.opacity ?? 100) / 100) * loop.opacityMul,
+              filter: !isGlass && layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${layer.width || 120}px`,
               height: `${layer.height || 120}px`,
+              overflow: 'hidden',
+              ...getShapeStyle(),
             }}
           >
             <div
               className="w-full h-full"
               style={{
-                backgroundColor: layer.bgImage || layer.gradient ? 'transparent' : (layer.color || '#a2d2ff'),
+                ...getGlassOrSolidBackground(),
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
-                ...(layer.bgImage
+                borderRadius: 'inherit',
+                ...(isGlass
                   ? {
-                      backgroundImage: `url(${layer.bgImage})`,
-                      backgroundSize: `${layer.bgImageZoom ?? 100}%`,
-                      backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
-                      backgroundRepeat: layer.bgImageRepeat ? 'repeat' : 'no-repeat',
+                      backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
+                      WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
+                      border:
+                        layer.glassmorphismBorder !== false
+                          ? '1px solid rgba(255, 255, 255, 0.35)'
+                          : 'none',
+                      boxShadow:
+                        layer.glassmorphismBorder !== false
+                          ? layer.shadow
+                            ? 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4), 0 12px 36px 0 rgba(0, 0, 0, 0.45)'
+                            : 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4), 0 8px 32px 0 rgba(0, 0, 0, 0.25)'
+                          : layer.shadow
+                            ? '0 12px 36px 0 rgba(0, 0, 0, 0.45)'
+                            : '0 8px 32px 0 rgba(0, 0, 0, 0.2)',
                     }
-                  : layer.gradient
-                    ? {
-                        backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
-                      }
-                    : {}),
-                ...getShapeStyle(),
+                  : {}),
               }}
             />
-            {isSelected && (
+            {isSelected && !isGlass && (
               <>
                 <div
                   data-action="delete"

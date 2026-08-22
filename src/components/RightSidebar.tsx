@@ -1198,37 +1198,35 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               showAllShadeshifter ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
             }`}
           >
-            {(!showAllShadeshifter
-              ? SHADESHIFTER_PRESETS.slice(0, 3)
-              : SHADESHIFTER_PRESETS
-            ).map((preset) => {
-              const isSelected =
-                (state.shadeshifterPreset || 'shadeshifter-1') === preset.id;
+            {(!showAllShadeshifter ? SHADESHIFTER_PRESETS.slice(0, 3) : SHADESHIFTER_PRESETS).map(
+              (preset) => {
+                const isSelected = (state.shadeshifterPreset || 'shadeshifter-1') === preset.id;
 
-              return (
-                <button
-                  key={preset.id}
-                  onClick={() => onChange({ shadeshifterPreset: preset.id })}
-                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
-                    isSelected
-                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
-                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
-                  }`}
-                  title={preset.name}
-                >
-                  <ShadeshifterBackground
-                    presetId={preset.id}
-                    grainOpacity={state.bgGrain ?? 35}
-                    blur={state.shadeshifterBlur ?? 40}
-                  />
-                  {isSelected && (
-                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
-                      <Check className="w-3 h-3 text-pastel-pink" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => onChange({ shadeshifterPreset: preset.id })}
+                    className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                      isSelected
+                        ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                        : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                    }`}
+                    title={preset.name}
+                  >
+                    <ShadeshifterBackground
+                      presetId={preset.id}
+                      grainOpacity={state.bgGrain ?? 35}
+                      blur={state.shadeshifterBlur ?? 40}
+                    />
+                    {isSelected && (
+                      <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                        <Check className="w-3 h-3 text-pastel-pink" />
+                      </div>
+                    )}
+                  </button>
+                );
+              }
+            )}
 
             {!showAllShadeshifter && SHADESHIFTER_PRESETS.length > 3 && (
               <div className="relative h-10">
@@ -1296,12 +1294,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               showAllSpectral ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
             }`}
           >
-            {(!showAllSpectral
-              ? SPECTRAL_PRESETS.slice(0, 3)
-              : SPECTRAL_PRESETS
-            ).map((preset) => {
-              const isSelected =
-                (state.spectralPreset || 'spectral-1') === preset.id;
+            {(!showAllSpectral ? SPECTRAL_PRESETS.slice(0, 3) : SPECTRAL_PRESETS).map((preset) => {
+              const isSelected = (state.spectralPreset || 'spectral-1') === preset.id;
 
               return (
                 <button
@@ -1502,35 +1496,38 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               showAllConfetti ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
             }`}
           >
-            {(!showAllConfetti ? CONFETTI_PRESETS.slice(0, 3) : CONFETTI_PRESETS).map((confetti) => {
-              const isSelected =
-                !state.customConfettiObj && (state.confettiPreset || 'confetti-1') === confetti.id;
+            {(!showAllConfetti ? CONFETTI_PRESETS.slice(0, 3) : CONFETTI_PRESETS).map(
+              (confetti) => {
+                const isSelected =
+                  !state.customConfettiObj &&
+                  (state.confettiPreset || 'confetti-1') === confetti.id;
 
-              return (
-                <button
-                  key={confetti.id}
-                  onClick={() =>
-                    onChange({
-                      confettiPreset: confetti.id,
-                      customConfettiObj: null,
-                    })
-                  }
-                  className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
-                    isSelected
-                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
-                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
-                  }`}
-                  title={confetti.name}
-                >
-                  <ConfettiBackground presetId={confetti.id} />
-                  {isSelected && (
-                    <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
-                      <Check className="w-3 h-3 text-pastel-pink" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={confetti.id}
+                    onClick={() =>
+                      onChange({
+                        confettiPreset: confetti.id,
+                        customConfettiObj: null,
+                      })
+                    }
+                    className={`h-10 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                      isSelected
+                        ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                        : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                    }`}
+                    title={confetti.name}
+                  >
+                    <ConfettiBackground presetId={confetti.id} />
+                    {isSelected && (
+                      <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
+                        <Check className="w-3 h-3 text-pastel-pink" />
+                      </div>
+                    )}
+                  </button>
+                );
+              }
+            )}
 
             {!showAllConfetti && CONFETTI_PRESETS.length > 3 && (
               <div className="relative h-10">
@@ -2192,8 +2189,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                 >
                   {(!showAllPatterns ? PATTERN_PRESETS.slice(0, 3) : PATTERN_PRESETS).map(
                     (pattern) => {
-                      const isSelected =
-                        (state.bgPatternPreset || 'pattern-1') === pattern.id;
+                      const isSelected = (state.bgPatternPreset || 'pattern-1') === pattern.id;
 
                       return (
                         <button
@@ -5430,10 +5426,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                           : 'p-1'
                       }`}
                     >
-                      {(
-                        !showAllShapeGradients
-                          ? GRADIENT_PRESETS.slice(0, 3)
-                          : GRADIENT_PRESETS
+                      {(!showAllShapeGradients
+                        ? GRADIENT_PRESETS.slice(0, 3)
+                        : GRADIENT_PRESETS
                       ).map((g) => {
                         const isSelected =
                           selectedShape.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
@@ -6138,6 +6133,132 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
                   }
                   size="sm"
                 />
+              </div>
+
+              {/* Glassmorphic Option */}
+              <div className="space-y-2.5 pt-2 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[11px] font-semibold text-slate-300">Glassmorphic</label>
+                  </div>
+                  <Toggle
+                    isSelected={!!selectedShape.glassmorphism}
+                    onChange={(checked) => {
+                      state.updateShapeLayer(selectedShape.id, {
+                        glassmorphism: checked,
+                        // If enabling glassmorphism and opacity is 100%, set a nice translucent default
+                        ...(checked && (selectedShape.opacity ?? 100) === 100
+                          ? { opacity: 50 }
+                          : {}),
+                      });
+                    }}
+                    size="sm"
+                  />
+                </div>
+
+                {selectedShape.glassmorphism && (
+                  <div className="space-y-3 pl-2.5 border-l-2 border-pastel-pink/40 pt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {/* Glass Blur Slider */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Glass Blur</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedShape.glassmorphismBlur ?? 16}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={4}
+                        max={50}
+                        value={selectedShape.glassmorphismBlur ?? 16}
+                        onChange={(e) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            glassmorphismBlur: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      />
+                    </div>
+
+                    {/* Frosted Border Highlight Toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-slate-300">
+                        Frosted Border Highlight
+                      </span>
+                      <Toggle
+                        isSelected={selectedShape.glassmorphismBorder !== false}
+                        onChange={(checked) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            glassmorphismBorder: checked,
+                          })
+                        }
+                        size="sm"
+                      />
+                    </div>
+
+                    {/* Quick Glass Presets */}
+                    <div>
+                      <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Glass Presets
+                      </span>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, {
+                              color: 'rgba(255, 255, 255, 0.25)',
+                              gradient: null,
+                              opacity: 70,
+                              glassmorphismBlur: 20,
+                              glassmorphismBorder: true,
+                            })
+                          }
+                          className="py-1 px-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded-lg text-[10px] font-semibold text-slate-200 text-center transition-all cursor-pointer hover:border-pastel-pink"
+                        >
+                          Frosted White
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, {
+                              color: 'rgba(15, 23, 42, 0.45)',
+                              gradient: null,
+                              opacity: 80,
+                              glassmorphismBlur: 24,
+                              glassmorphismBorder: true,
+                            })
+                          }
+                          className="py-1 px-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded-lg text-[10px] font-semibold text-slate-200 text-center transition-all cursor-pointer hover:border-pastel-pink"
+                        >
+                          Smoky Dark
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, {
+                              color: 'rgba(255, 255, 255, 0.08)',
+                              gradient: null,
+                              opacity: 40,
+                              glassmorphismBlur: 32,
+                              glassmorphismBorder: true,
+                            })
+                          }
+                          className="py-1 px-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 rounded-lg text-[10px] font-semibold text-slate-200 text-center transition-all cursor-pointer hover:border-pastel-pink"
+                        >
+                          Crystal Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Note: Canvas handles hidden for pristine glass rendering */}
+                    <div className="flex items-start gap-1.5 p-2 rounded-lg bg-neutral-900/90 border border-neutral-800 text-[11px] text-slate-400 leading-snug">
+                      <PhosphorIcons.Info className="w-3.5 h-3.5 text-pastel-pink shrink-0 mt-0.5" />
+                      <span>
+                        When Glassmorphic is enabled, on-canvas delete, rotate, and resize handles are hidden. Use sidebar controls to adjust or delete this shape.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Layering Depth */}
