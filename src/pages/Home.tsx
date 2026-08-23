@@ -33,7 +33,9 @@ export const Home: React.FC = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [heroZoomProgress, setHeroZoomProgress] = useState(0);
+  const [effectiveHeroScroll, setEffectiveHeroScroll] = useState(0);
   const [activeFrameTab, setActiveFrameTab] = useState<
     'iphone17' | 'iphone15' | 'iphone14' | 'samsungS21' | 'macbook'
   >('iphone17');
@@ -83,28 +85,58 @@ export const Home: React.FC = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     setIsIOS(/iphone|ipad|ipod/.test(userAgent));
 
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop, { passive: true });
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
+    let rafId: number | null = null;
+    let lastScrolledState = false;
+
     const handleScroll = () => {
-      const currentY = window.scrollY;
-      setIsScrolled(currentY > 50);
-      setScrollY(currentY);
+      if (rafId !== null) return;
+
+      rafId = window.requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const scrolled = currentY > 50;
+
+        if (scrolled !== lastScrolledState) {
+          lastScrolledState = scrolled;
+          setIsScrolled(scrolled);
+        }
+
+        // Only calculate hero parallax and zoom on desktop screens
+        if (window.innerWidth >= 768 && currentY < 1100) {
+          const heroScrollThreshold = 200;
+          const effScroll = Math.max(currentY - heroScrollThreshold, 0);
+          const zoomProg = Math.min(effScroll / 450, 1);
+          setEffectiveHeroScroll(effScroll);
+          setHeroZoomProgress(zoomProg);
+        }
+
+        rafId = null;
+      });
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', checkDesktop);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
   const handleHeroMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!heroCardRef.current) return;
+    if (!heroCardRef.current || !isDesktop) return;
     const rect = heroCardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
@@ -167,11 +199,6 @@ export const Home: React.FC = () => {
     },
   };
 
-  // Scroll Zoom calculation with initial gap threshold (starts scaling after 35px scroll)
-  const heroScrollThreshold = 200;
-  const effectiveHeroScroll = Math.max(scrollY - heroScrollThreshold, 0);
-  const heroZoomProgress = Math.min(effectiveHeroScroll / 450, 1);
-
   return (
     <>
       <Head>
@@ -186,12 +213,12 @@ export const Home: React.FC = () => {
       <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-[#ffafcc] selection:text-slate-950 relative overflow-x-hidden">
         {/* Dynamic Background Ambient Gradient Orbs */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/4 w-[700px] h-[500px] bg-[#cdb4db]/15 blur-[160px] rounded-full animate-pulse duration-3000" />
-          <div className="absolute top-1/3 -right-40 w-[600px] h-[600px] bg-[#ffafcc]/12 blur-[180px] rounded-full" />
-          <div className="absolute bottom-10 left-10 w-[800px] h-[500px] bg-[#a2d2ff]/10 blur-[170px] rounded-full" />
-          {/* Subtle noise grain texture overlay */}
+          <div className="absolute -top-40 left-1/4 w-[350px] sm:w-[700px] h-[300px] sm:h-[500px] bg-[#cdb4db]/10 sm:bg-[#cdb4db]/15 blur-[60px] sm:blur-[160px] rounded-full sm:animate-pulse duration-3000" />
+          <div className="absolute top-1/3 -right-20 sm:-right-40 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-[#ffafcc]/10 sm:bg-[#ffafcc]/12 blur-[60px] sm:blur-[180px] rounded-full" />
+          <div className="absolute bottom-10 left-10 w-[350px] sm:w-[800px] h-[300px] sm:h-[500px] bg-[#a2d2ff]/8 sm:bg-[#a2d2ff]/10 blur-[60px] sm:blur-[170px] rounded-full" />
+          {/* Subtle noise grain texture overlay - Desktop only for GPU efficiency */}
           <div
-            className="absolute inset-0 opacity-[0.035] mix-blend-overlay pointer-events-none"
+            className="hidden md:block absolute inset-0 opacity-[0.035] mix-blend-overlay pointer-events-none"
             style={{
               backgroundImage:
                 "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
@@ -203,7 +230,7 @@ export const Home: React.FC = () => {
         <nav
           className={`fixed left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isScrolled
-              ? 'top-4 w-[92%] sm:w-auto max-w-md px-3.5 py-2 bg-neutral-950/85 backdrop-blur-2xl border border-neutral-800/90 rounded-full shadow-2xl shadow-black/80'
+              ? 'top-4 w-[92%] sm:w-auto max-w-md px-3.5 py-2 bg-neutral-950/90 sm:bg-neutral-950/85 backdrop-blur-md sm:backdrop-blur-2xl border border-neutral-800/90 rounded-full shadow-2xl shadow-black/80'
               : 'top-0 w-full max-w-7xl px-6 py-4 bg-transparent border-b border-transparent rounded-none'
           }`}
         >
@@ -281,10 +308,14 @@ export const Home: React.FC = () => {
         <main className="relative z-10">
           {/* SECTION 1: Hero Stage & 3D Interactive Mockup */}
           <section
-            className="min-h-screen flex flex-col justify-center items-center pt-28 px-6 max-w-7xl mx-auto transition-[padding] duration-75 ease-out"
-            style={{
-              paddingBottom: `${80 + heroZoomProgress * 220}px`,
-            }}
+            className="min-h-screen flex flex-col justify-center items-center pt-28 pb-16 sm:pb-24 px-6 max-w-7xl mx-auto transition-[padding] duration-75 ease-out"
+            style={
+              isDesktop
+                ? {
+                    paddingBottom: `${80 + heroZoomProgress * 220}px`,
+                  }
+                : undefined
+            }
           >
             <div className="text-center max-w-5xl mx-auto mb-10 space-y-6">
               {/* Hero Headline */}
@@ -342,112 +373,121 @@ export const Home: React.FC = () => {
               onMouseLeave={handleHeroMouseLeave}
               className="w-full max-w-3xl relative mt-4 perspective-[1200px]"
             >
-              {/* Floating Decorative Hand-Drawn Arrow (Left: public/element/arrow/3.svg) */}
-              <div
-                className="absolute left-2 sm:-left-6 top-[350px] -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
-                style={{ opacity: Math.max(1 - heroZoomProgress * 2.5, 0) }}
-              >
-                <div
-                  className="w-16 h-16 sm:w-20 sm:h-20 bg-[#a2d2ff] drop-shadow-[0_4px_16px_rgba(162,210,255,0.6)] transform rotate-[4deg] scale-x-[-1]"
-                  style={{
-                    maskImage: 'url(/element/arrow/3.svg)',
-                    WebkitMaskImage: 'url(/element/arrow/3.svg)',
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskPosition: 'center',
-                    WebkitMaskPosition: 'center',
-                  }}
-                />
-              </div>
-
-              {/* Floating Studio Frame Mockups Video Preview (Left Side with Subtle Parallax) */}
-              <div
-                className="absolute -left-18 sm:-left-52 lg:-left-56 top-32 -translate-y-1/2 hidden md:block z-30 select-none transition-all duration-75 ease-out"
-                style={{
-                  transform: `translate3d(${-heroZoomProgress * 40}px, ${-effectiveHeroScroll * 0.1}px, 0)`,
-                  opacity: Math.max(1 - heroZoomProgress * 2.5, 0),
-                  pointerEvents: effectiveHeroScroll > 150 ? 'none' : 'auto',
-                }}
-              >
-                <div className="w-44 sm:w-52 rounded-2xl border border-neutral-700/80 bg-neutral-950/95 p-2 shadow-2xl shadow-black/90 backdrop-blur-xl transition-transform duration-300 hover:scale-105">
-                  <div className="relative rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[10/16]">
-                    <video
-                      src="/video/frame-mockups-section-video.mp4"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover"
+              {/* Desktop-only floating side assets (Videos & Hand-drawn arrows) */}
+              {isDesktop && (
+                <>
+                  {/* Floating Decorative Hand-Drawn Arrow (Left: public/element/arrow/3.svg) */}
+                  <div
+                    className="absolute left-2 sm:-left-6 top-[350px] -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
+                    style={{ opacity: Math.max(1 - heroZoomProgress * 2.5, 0) }}
+                  >
+                    <div
+                      className="w-16 h-16 sm:w-20 sm:h-20 bg-[#a2d2ff] drop-shadow-[0_4px_16px_rgba(162,210,255,0.6)] transform rotate-[4deg] scale-x-[-1]"
+                      style={{
+                        maskImage: 'url(/element/arrow/3.svg)',
+                        WebkitMaskImage: 'url(/element/arrow/3.svg)',
+                        maskSize: 'contain',
+                        WebkitMaskSize: 'contain',
+                        maskRepeat: 'no-repeat',
+                        WebkitMaskRepeat: 'no-repeat',
+                        maskPosition: 'center',
+                        WebkitMaskPosition: 'center',
+                      }}
                     />
                   </div>
-                  <div className="px-2 py-1.5 flex items-center justify-between text-xs font-bold text-slate-300">
-                    <span>Frame Mockups</span>
-                    <span className="text-[10px] text-[#a2d2ff] bg-[#a2d2ff]/15 px-2 py-0.5 rounded font-bold">
-                      Vector & 3D
-                    </span>
+
+                  {/* Floating Studio Frame Mockups Video Preview */}
+                  <div
+                    className="absolute -left-18 sm:-left-52 lg:-left-56 top-32 -translate-y-1/2 hidden md:block z-30 select-none transition-all duration-75 ease-out"
+                    style={{
+                      transform: `translate3d(${-heroZoomProgress * 40}px, ${-effectiveHeroScroll * 0.1}px, 0)`,
+                      opacity: Math.max(1 - heroZoomProgress * 2.5, 0),
+                      pointerEvents: effectiveHeroScroll > 150 ? 'none' : 'auto',
+                    }}
+                  >
+                    <div className="w-44 sm:w-52 rounded-2xl border border-neutral-700/80 bg-neutral-950/95 p-2 shadow-2xl shadow-black/90 backdrop-blur-xl transition-transform duration-300 hover:scale-105">
+                      <div className="relative rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[10/16]">
+                        <video
+                          src="/video/frame-mockups-section-video.mp4"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="px-2 py-1.5 flex items-center justify-between text-xs font-bold text-slate-300">
+                        <span>Frame Mockups</span>
+                        <span className="text-[10px] text-[#a2d2ff] bg-[#a2d2ff]/15 px-2 py-0.5 rounded font-bold">
+                          Vector & 3D
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Floating Decorative Hand-Drawn Arrow (Right: public/element/arrow/9.svg) */}
-              <div
-                className="absolute right-2 sm:-right-6 top-60 -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
-                style={{ opacity: Math.max(1 - heroZoomProgress * 2.5, 0) }}
-              >
-                <div
-                  className="w-16 h-16 sm:w-20 sm:h-20 bg-pastel-pink drop-shadow-[0_4px_16px_rgba(255,175,204,0.6)] transform rotate-[30deg]"
-                  style={{
-                    maskImage: 'url(/element/arrow/9.svg)',
-                    WebkitMaskImage: 'url(/element/arrow/9.svg)',
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskPosition: 'center',
-                    WebkitMaskPosition: 'center',
-                  }}
-                />
-              </div>
-
-              {/* Floating Studio Background Style Video Preview (Right Side with Subtle Parallax) */}
-              <div
-                className="absolute -right-20 sm:-right-48 lg:-right-52 top-32 -translate-y-1/2 hidden md:block z-30 select-none transition-all duration-75 ease-out"
-                style={{
-                  transform: `translate3d(${heroZoomProgress * 40}px, ${-effectiveHeroScroll * 0.1}px, 0)`,
-                  opacity: Math.max(1 - heroZoomProgress * 2.5, 0),
-                  pointerEvents: effectiveHeroScroll > 150 ? 'none' : 'auto',
-                }}
-              >
-                <div className="w-36 sm:w-44 rounded-2xl border border-neutral-700/80 bg-neutral-950/95 p-1.5 shadow-2xl shadow-black/90 backdrop-blur-xl transition-transform duration-300 hover:scale-105">
-                  <div className="relative rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[9/16]">
-                    <video
-                      src="/video/background-style-section-video.mp4"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover"
+                  {/* Floating Decorative Hand-Drawn Arrow (Right: public/element/arrow/9.svg) */}
+                  <div
+                    className="absolute right-2 sm:-right-6 top-60 -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
+                    style={{ opacity: Math.max(1 - heroZoomProgress * 2.5, 0) }}
+                  >
+                    <div
+                      className="w-16 h-16 sm:w-20 sm:h-20 bg-pastel-pink drop-shadow-[0_4px_16px_rgba(255,175,204,0.6)] transform rotate-[30deg]"
+                      style={{
+                        maskImage: 'url(/element/arrow/9.svg)',
+                        WebkitMaskImage: 'url(/element/arrow/9.svg)',
+                        maskSize: 'contain',
+                        WebkitMaskSize: 'contain',
+                        maskRepeat: 'no-repeat',
+                        WebkitMaskRepeat: 'no-repeat',
+                        maskPosition: 'center',
+                        WebkitMaskPosition: 'center',
+                      }}
                     />
                   </div>
-                  <div className="px-1.5 py-1.5 flex items-center justify-between text-[10px] font-bold text-slate-300">
-                    <span>Background Style</span>
-                    <span className="text-[9px] text-pastel-pink bg-pastel-pink/15 px-1.5 py-0.5 rounded font-bold">
-                      12+ Types
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Centerpiece 3D Mockup Studio Card (Scales up to Full Width on scroll with threshold gap) */}
+                  {/* Floating Studio Background Style Video Preview */}
+                  <div
+                    className="absolute -right-20 sm:-right-48 lg:-right-52 top-32 -translate-y-1/2 hidden md:block z-30 select-none transition-all duration-75 ease-out"
+                    style={{
+                      transform: `translate3d(${heroZoomProgress * 40}px, ${-effectiveHeroScroll * 0.1}px, 0)`,
+                      opacity: Math.max(1 - heroZoomProgress * 2.5, 0),
+                      pointerEvents: effectiveHeroScroll > 150 ? 'none' : 'auto',
+                    }}
+                  >
+                    <div className="w-36 sm:w-44 rounded-2xl border border-neutral-700/80 bg-neutral-950/95 p-1.5 shadow-2xl shadow-black/90 backdrop-blur-xl transition-transform duration-300 hover:scale-105">
+                      <div className="relative rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[9/16]">
+                        <video
+                          src="/video/background-style-section-video.mp4"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="px-1.5 py-1.5 flex items-center justify-between text-[10px] font-bold text-slate-300">
+                        <span>Background Style</span>
+                        <span className="text-[9px] text-pastel-pink bg-pastel-pink/15 px-1.5 py-0.5 rounded font-bold">
+                          12+ Types
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Centerpiece 3D Mockup Studio Card (Scales up to Full Width on scroll on Desktop) */}
               <div
-                style={{
-                  transform: `rotateY(${mousePos.x * Math.max(1 - heroZoomProgress, 0) * 16}deg) rotateX(${-mousePos.y * Math.max(1 - heroZoomProgress, 0) * 16}deg) scale(${1 + heroZoomProgress * 0.65})`,
-                  transition: 'transform 0.12s ease-out',
-                  transformOrigin: 'center center',
-                }}
-                className="relative rounded-3xl border border-neutral-800/80 bg-neutral-950/80 backdrop-blur-xl p-2 sm:p-4 shadow-2xl shadow-black/90 overflow-hidden z-20 will-change-transform"
+                style={
+                  isDesktop
+                    ? {
+                        transform: `rotateY(${mousePos.x * Math.max(1 - heroZoomProgress, 0) * 16}deg) rotateX(${-mousePos.y * Math.max(1 - heroZoomProgress, 0) * 16}deg) scale(${1 + heroZoomProgress * 0.65})`,
+                        transition: 'transform 0.12s ease-out',
+                        transformOrigin: 'center center',
+                      }
+                    : undefined
+                }
+                className="relative rounded-3xl border border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md sm:backdrop-blur-xl p-2 sm:p-4 shadow-2xl shadow-black/90 overflow-hidden z-20 will-change-transform"
               >
                 {/* Internal Card Mesh Glow */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-[#cdb4db]/10 via-transparent to-[#a2d2ff]/10 pointer-events-none" />
@@ -511,7 +551,7 @@ export const Home: React.FC = () => {
             </div>
 
             {/* Frame Stage Preview Card */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 sm:p-10 backdrop-blur-xl">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 sm:p-10 backdrop-blur-sm sm:backdrop-blur-xl">
               <div className="lg:col-span-7 relative flex items-center justify-center min-h-[360px] rounded-2xl border border-white/10 p-8 overflow-hidden shadow-2xl group">
                 {/* Dynamic Animated Gradient Background */}
                 <div
@@ -683,7 +723,7 @@ export const Home: React.FC = () => {
 
               {/* Mobile/Tablet Fallback Feature Grid (Visible below lg) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 lg:hidden">
-                <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl space-y-2">
+                <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#ffafcc]/15 border border-[#ffafcc]/30 flex items-center justify-center">
                       <PhosphorIcons.FilmStrip className="w-4 h-4 text-pastel-pink" />
@@ -694,7 +734,7 @@ export const Home: React.FC = () => {
                     Scrub horizontally across tracks with 1s grid ticks and live 3D keyframe nodes.
                   </p>
                 </div>
-                <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl space-y-2">
+                <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#a2d2ff]/15 border border-[#a2d2ff]/30 flex items-center justify-center">
                       <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-blue" />
@@ -706,7 +746,7 @@ export const Home: React.FC = () => {
                     effects.
                   </p>
                 </div>
-                <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl space-y-2">
+                <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#cdb4db]/15 border border-[#cdb4db]/30 flex items-center justify-center">
                       <PhosphorIcons.Cpu className="w-4 h-4 text-pastel-purple" />
@@ -741,7 +781,7 @@ export const Home: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Bento 1: Backgrounds Carousel (Curated, Linear Swatch, Shadeshifter, Spectral Prism, Confetti) */}
-              <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between group min-h-[360px]">
+              <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl relative overflow-hidden flex flex-col justify-between group min-h-[360px]">
                 {/* Header & Controls */}
                 <div className="flex items-start justify-between gap-4 z-10">
                   <div className="space-y-2">
@@ -960,7 +1000,7 @@ export const Home: React.FC = () => {
               </div>
 
               {/* Bento 2: Mockup Style & Shadow Elevation Carousel */}
-              <div className="p-7 sm:p-8 rounded-3xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl flex flex-col justify-between space-y-4">
+              <div className="p-7 sm:p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-1 rounded-md bg-[#a2d2ff]/20 text-[#a2d2ff] font-bold text-[10px] uppercase">
@@ -1175,7 +1215,7 @@ export const Home: React.FC = () => {
               </div>
 
               {/* Bento 3: 100% Client-Side Privacy */}
-              <div className="p-8 rounded-3xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl space-y-4 flex flex-col justify-between">
+              <div className="p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-4 flex flex-col justify-between">
                 <div className="space-y-4">
                   <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 font-bold text-[10px] uppercase">
                     Zero Server Storage
@@ -1199,7 +1239,7 @@ export const Home: React.FC = () => {
               </div>
 
               {/* Bento 4: Elements, Badges, Emojis & Shapes */}
-              <div className="relative md:col-span-2 p-8 rounded-3xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl space-y-4 overflow-hidden group">
+              <div className="relative md:col-span-2 p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-4 overflow-hidden group">
                 <span className="px-2.5 py-1 rounded-md bg-amber-400/20 text-amber-300 font-bold text-[10px] uppercase">
                   Studio Elements & Annotations
                 </span>
@@ -1267,7 +1307,7 @@ export const Home: React.FC = () => {
                     transitionDelay: `${idx * 160 + 100}ms`,
                     transformOrigin: 'bottom center',
                   }}
-                  className={`group relative p-6 sm:p-8 rounded-3xl bg-neutral-950/80 border border-neutral-800 backdrop-blur-xl hover:border-neutral-700 shadow-xl space-y-5 flex flex-col justify-between overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  className={`group relative p-6 sm:p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl hover:border-neutral-700 shadow-xl space-y-5 flex flex-col justify-between overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     isSponsoredVisible
                       ? 'opacity-100 translate-y-0 rotate-x-0 rotate-0 scale-100'
                       : idx === 0
@@ -1330,7 +1370,7 @@ export const Home: React.FC = () => {
 
           {/* SECTION 6: Final CTA Launchpad */}
           <section className="py-28 px-6 max-w-5xl mx-auto text-center">
-            <div className="rounded-3xl border border-neutral-800 bg-gradient-to-b from-neutral-900/80 via-neutral-950/90 to-neutral-950 p-8 sm:p-14 backdrop-blur-2xl space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="rounded-3xl border border-neutral-800 bg-gradient-to-b from-neutral-900/80 via-neutral-950/90 to-neutral-950 p-8 sm:p-14 backdrop-blur-md sm:backdrop-blur-2xl space-y-6 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-[#ffafcc]/20 blur-[100px] rounded-full pointer-events-none" />
 
               <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight relative z-10">
