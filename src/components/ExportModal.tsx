@@ -331,12 +331,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             } catch (e) {}
           }
         } else {
-          for (const item of webmCandidates) {
+          const isTransparent = state.backgroundType === 'transparent';
+          // When transparent, only try VP9 candidates (VP8 does not support alpha)
+          const candidates = isTransparent
+            ? webmCandidates.filter((c) => c.muxerCodec === 'V_VP9')
+            : webmCandidates;
+          for (const item of candidates) {
             const cfg: VideoEncoderConfig = {
               codec: item.codec,
               width,
               height,
               bitrate: targetBitrate,
+              ...(isTransparent ? { alpha: 'keep' } : {}),
             };
             try {
               const res = await VideoEncoder.isConfigSupported(cfg);
@@ -371,20 +377,69 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             avc: { format: 'avc' },
           };
         } else {
+          const isTransparent = state.backgroundType === 'transparent';
           supportedConfig = {
-            codec: 'vp8',
+            codec: isTransparent ? 'vp09.00.10.08' : 'vp8',
             width: Math.min(1920, width),
             height: Math.min(1080, height),
             bitrate: 8_000_000,
+            ...(isTransparent ? { alpha: 'keep' } : {}),
           };
-          webmMuxerCodec = 'V_VP8';
+          webmMuxerCodec = isTransparent ? 'V_VP9' : 'V_VP8';
+        }
+      }
+
+      // At this point supportedConfig is guaranteed non-null (set by negotiation or fallback above)
+      if (!supportedConfig) throw new Error('No supported video encoder configuration found.');
+
+      // Pre-flight: test if the browser's encoder ACTUALLY supports alpha encoding.
+      // Chrome's isConfigSupported() can return true for alpha:'keep' but the encoder
+      // throws "Alpha encoding is not currently supported" at runtime.
+      let isTransparentExport = state.backgroundType === 'transparent' && !wantMp4;
+      if (isTransparentExport && supportedConfig.alpha === 'keep') {
+        const testConfig = supportedConfig; // captured for closure
+        const alphaWorks = await new Promise<boolean>((resolve) => {
+          let failed = false;
+          const testEnc = new VideoEncoder({
+            output: () => {},
+            error: () => { failed = true; },
+          });
+          try {
+            testEnc.configure(testConfig);
+            const tc = document.createElement('canvas');
+            tc.width = 4;
+            tc.height = 4;
+            const tf = new VideoFrame(tc, { timestamp: 0, alpha: 'keep' });
+            testEnc.encode(tf, { keyFrame: true });
+            tf.close();
+            tc.width = 0;
+            tc.height = 0;
+            testEnc.flush().then(() => {
+              try { testEnc.close(); } catch {}
+              resolve(!failed);
+            }).catch(() => {
+              try { testEnc.close(); } catch {}
+              resolve(false);
+            });
+          } catch {
+            try { testEnc.close(); } catch {}
+            resolve(false);
+          }
+        });
+
+        if (!alphaWorks) {
+          console.warn('Browser does not support VP9 alpha encoding – falling back to opaque video.');
+          // Strip alpha from encoder config
+          const { alpha: _a, ...opaqueConfig } = supportedConfig;
+          supportedConfig = opaqueConfig as VideoEncoderConfig;
+          isTransparentExport = false;
         }
       }
 
       exportCanvas = document.createElement('canvas');
       exportCanvas.width = supportedConfig.width;
       exportCanvas.height = supportedConfig.height;
-      ctx = exportCanvas.getContext('2d');
+      ctx = exportCanvas.getContext('2d', { alpha: isTransparentExport });
 
       if (!ctx) throw new Error('Could not create canvas 2d context');
 
@@ -405,6 +460,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             codec: webmMuxerCodec,
             width: exportCanvas.width,
             height: exportCanvas.height,
+            ...(isTransparentExport ? { alpha: true } : {}),
           },
         });
       }
@@ -486,6 +542,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             pixelRatio: framePixelRatio,
             cacheBust: false,
             fontEmbedCSS: cachedFontEmbedCSS,
+            ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
             filter: (node) => (node as HTMLElement).tagName !== 'VIDEO',
           });
 
@@ -495,7 +552,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
           // Compute exact timestamp in microseconds for video output
           const timestampMicros = Math.round((frame / fps) * 1_000_000);
-          const videoFrame = new VideoFrame(exportCanvas, { timestamp: timestampMicros });
+          const videoFrame = new VideoFrame(exportCanvas, {
+            timestamp: timestampMicros,
+            alpha: isTransparentExport ? 'keep' : 'discard',
+          });
           videoEncoder.encode(videoFrame, { keyFrame: frame % (fps * 2) === 0 });
           videoFrame.close();
 
@@ -509,10 +569,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
         setExportProgress(Math.round((frame / totalFrames) * 100));
 
-        // Yield to browser event loop every 8 frames so browser GC can reclaim memory
-        if (frame % 8 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
+        // Yield to browser event loop on every frame so user cancellation and UI clicks process immediately
+        await new Promise((resolve) => setTimeout(resolve, 8));
+        if (cancelVideoRef.current) break;
       }
 
       if (cancelVideoRef.current) {
@@ -785,7 +844,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             }`}
           >
             <Image01 className="w-3.5 h-3.5" />
-            <span>Image Export</span>
+            <span>
+              <span className="inline sm:hidden">Image</span>
+              <span className="hidden sm:inline">Image Export</span>
+            </span>
           </button>
           {state.isAnimationMode && (
             <button
@@ -797,7 +859,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               }`}
             >
               <Film01 className="w-3.5 h-3.5" />
-              <span>Video Animation</span>
+              <span>
+                <span className="inline sm:hidden">Video</span>
+                <span className="hidden sm:inline">Video Animation</span>
+              </span>
             </button>
           )}
           <button
@@ -991,29 +1056,57 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
             </div>
 
-            <div className="pt-2 w-full" style={{ perspective: '1000px' }}>
-              <div
-                className="relative w-full h-11"
-                style={{
-                  transformStyle: 'preserve-3d',
-                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform:
-                    isExporting && exportingType === 'video' ? 'rotateX(-90deg)' : 'rotateX(0deg)',
-                }}
-              >
-                {/* 1. FRONT FACE: Idle or Success State */}
+            <div className="pt-2 w-full">
+              {isExporting && exportingType === 'video' ? (
+                /* Active Video Export Progress & 100% Clickable Stop Button */
+                <div className="w-full h-11 bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden shadow-inner flex items-center justify-between p-1.5 animate-in fade-in duration-200">
+                  {/* Progress Track */}
+                  <div className="relative flex-1 h-full bg-neutral-900 rounded-lg overflow-hidden border border-neutral-800/80 flex items-center min-w-0">
+                    <div
+                      className="h-full bg-gradient-to-r from-pastel-pink via-[#bde0fe] to-[#a2d2ff] transition-all duration-150 ease-out shadow-[0_0_15px_#a2d2ff]"
+                      style={{ width: `${exportProgress}%` }}
+                    />
+                  </div>
+
+                  {/* Percentage & Stop Button */}
+                  <div className="flex items-center gap-2 pl-2 shrink-0">
+                    <span className="font-mono text-xs font-bold text-pastel-pink px-1">
+                      {exportProgress}%
+                    </span>
+                    <button
+                      type="button"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        cancelVideoRef.current = true;
+                        setIsExporting(false);
+                        setExportingType(null);
+                        setExportProgress(0);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelVideoRef.current = true;
+                        setIsExporting(false);
+                        setExportingType(null);
+                        setExportProgress(0);
+                      }}
+                      className="flex px-3 py-1.5 text-xs font-bold bg-rose-500/25 hover:bg-rose-600 active:scale-95 text-rose-300 hover:text-white border border-rose-500/50 rounded-lg transition-all items-center gap-1.5 cursor-pointer shadow-sm"
+                      title="Cancel Video Export"
+                    >
+                      <XClose className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Stop</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Idle or Success Action Button */
                 <button
                   disabled={isExporting}
                   onClick={handleExportVideo}
-                  className={`absolute inset-0 w-full h-full rounded-xl transition-all flex items-center justify-center gap-2 font-extrabold text-xs shadow-lg ${
+                  className={`w-full h-11 rounded-xl transition-all flex items-center justify-center gap-2 font-extrabold text-xs shadow-lg cursor-pointer ${
                     isSuccess
                       ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30 font-black'
-                      : 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 hover:brightness-110 cursor-pointer'
+                      : 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 hover:brightness-110'
                   }`}
-                  style={{
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateX(0deg) translateZ(22px)',
-                  }}
                 >
                   {isSuccess ? (
                     <>
@@ -1027,44 +1120,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                     </>
                   )}
                 </button>
-
-                {/* 2. BOTTOM/PROGRESS FACE: 3D Side-Down Progress Track */}
-                <div
-                  className="absolute inset-0 w-full h-full bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden shadow-inner flex items-center justify-between p-1.5 group relative"
-                  style={{
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateX(90deg) translateZ(22px)',
-                  }}
-                >
-                  {/* Clean 3D Progress Track */}
-                  <div className="relative flex-1 h-full bg-neutral-900 rounded-lg overflow-hidden border border-neutral-800/80 flex items-center">
-                    {/* Glowing Progress Fill Bar */}
-                    <div
-                      className="h-full bg-gradient-to-r from-pastel-pink via-[#bde0fe] to-[#a2d2ff] transition-all duration-150 ease-out shadow-[0_0_15px_#a2d2ff]"
-                      style={{ width: `${exportProgress}%` }}
-                    />
-                  </div>
-
-                  {/* Percentage Indicator Badge & Hover Cancel/Stop Button */}
-                  <div className="flex items-center gap-1.5 pl-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cancelVideoRef.current = true;
-                      }}
-                      className="hidden group-hover:flex px-2 py-0.5 text-[11px] font-bold bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-lg transition-all items-center gap-1 cursor-pointer shadow-sm"
-                      title="Cancel Video Export"
-                    >
-                      <XClose className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Stop</span>
-                    </button>
-                    <span className="font-mono text-xs font-bold text-pastel-pink group-hover:text-rose-300 px-1 transition-colors">
-                      {exportProgress}%
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
+            </div>
 
               {/* Support Me Link displayed while Video Export is running */}
               {isExporting && exportingType === 'video' && (
@@ -1078,7 +1135,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   <span>Support Me</span>
                 </a>
               )}
-            </div>
           </>
         )}
 

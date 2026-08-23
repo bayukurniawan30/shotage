@@ -55,10 +55,11 @@ export const VideoCanvasScreen: React.FC<VideoCanvasScreenProps> = ({
         canvas.width = vw;
         canvas.height = vh;
       }
-      const ctx = canvas.getContext('2d', { alpha: false });
+      const ctx = canvas.getContext('2d', { alpha: true });
       if (ctx) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
+        ctx.clearRect(0, 0, vw, vh);
         ctx.drawImage(video, 0, 0, vw, vh);
       }
     }

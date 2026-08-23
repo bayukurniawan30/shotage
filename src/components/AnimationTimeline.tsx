@@ -522,15 +522,15 @@ export const AnimationTimeline: React.FC = () => {
         </div>
 
         {/* Right: Length Selector, Add Keyframe (for Mockup), Collapse */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-2 py-1 text-xs text-slate-300 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 sm:px-2 py-1 text-xs text-slate-300 shrink-0">
             <span className="text-[10px] text-slate-400 font-semibold uppercase hidden sm:inline">
               Duration:
             </span>
             <select
               value={state.durationSec}
               onChange={(e) => handleDurationChange(Number(e.target.value))}
-              className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer"
+              className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer w-auto min-w-[32px] text-center sm:text-left"
             >
               {[3, 5, 8, 9, 10, 12, 15, 20].includes(state.durationSec) ? null : (
                 <option value={state.durationSec} className="bg-neutral-900 text-white">
@@ -559,7 +559,7 @@ export const AnimationTimeline: React.FC = () => {
                 15s
               </option>
               <option value={20} className="bg-neutral-900 text-white">
-                20s (Max)
+                20s
               </option>
             </select>
           </div>

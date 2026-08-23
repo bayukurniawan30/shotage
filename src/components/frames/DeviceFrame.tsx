@@ -21,7 +21,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
       <div className="relative mx-auto w-[440px] sm:w-[480px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper for MacBook Air 13" */}
         <div className="absolute inset-0 top-[10.2%] bottom-[10.2%] left-[10%] right-[10%] z-0 overflow-hidden rounded-[4px]">
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-transparent">
             {children}
           </div>
         </div>
@@ -45,7 +45,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
       <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper for iPhone 14 Pro */}
         <div className="absolute inset-0 top-[2.6%] bottom-[2.6%] left-[4.4%] right-[4.4%] z-0 overflow-hidden rounded-[36px]">
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-transparent relative">
             {/* Top Status Bar (Transparent Overlay) */}
             {isStatusBarActive && (
               <div
@@ -88,7 +88,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
       <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper placed precisely inside bezel bounds */}
         <div className="absolute inset-0 top-[2.8%] bottom-[2.8%] left-[4.2%] right-[4.2%] z-0 overflow-hidden rounded-[48px]">
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-transparent relative">
             {/* Top Status Bar (Transparent Overlay) */}
             {isStatusBarActive && (
               <div
@@ -142,7 +142,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
             transformOrigin: 'center center',
           }}
         >
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-transparent relative">
             {/* Top Status Bar (Transparent Overlay) */}
             {isStatusBarActive && (
               <div
@@ -194,7 +194,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
             borderRadius: '20px',
           }}
         >
-          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-black relative">
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-transparent relative">
             {/* Top Status Bar (Transparent Overlay) */}
             {isStatusBarActive && (
               <div
@@ -237,7 +237,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
       <div className="relative mx-auto w-[240px] sm:w-[260px] select-none flex items-center justify-center">
         {/* Screen Content Wrapper for Samsung Galaxy S21 */}
         <div className="absolute inset-0 top-[6%] bottom-[6%] left-[11%] right-[11%] z-0 overflow-hidden rounded-[22px]">
-          <div className="w-full h-full overflow-hidden flex flex-col bg-black">
+          <div className="w-full h-full overflow-hidden flex flex-col bg-transparent">
             {/* Top Status Bar */}
             {isStatusBarActive && (
               <div

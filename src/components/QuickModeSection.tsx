@@ -695,31 +695,99 @@ export const QuickModeSection: React.FC = () => {
                       transformStyle: 'preserve-3d',
                     }}
                   >
-                    {/* Device Miniature Frame Box */}
-                    <div className="w-20 h-36 rounded-xl border-2 border-slate-700/80 bg-slate-900/90 shadow-2xl overflow-hidden flex flex-col items-center justify-center relative">
-                      {/* Dynamic Island / Camera Notch */}
-                      <div className="w-6 h-1.5 rounded-full bg-neutral-950 absolute top-1.5 shadow-xs" />
+                    {/* Miniature Mockup Silhouette: Phone bezel/notch for phone frames, frameless preview for all others */}
+                    {!(
+                      state.frameType === 'iphone' ||
+                      state.frameType === 'iphone14pro' ||
+                      state.frameType === 'iphone16' ||
+                      state.frameType === 'iphone17-dual-side' ||
+                      state.frameType === 'samsung-s21'
+                    ) ? (
+                      /* Frameless / Non-Phone Screenshot Media Preview */
+                      <div
+                        className="rounded-lg shadow-2xl overflow-hidden flex flex-col items-center justify-center relative border border-white/10 bg-slate-900/90"
+                        style={{
+                          width:
+                            state.imageWidth && state.imageHeight && state.imageWidth < state.imageHeight
+                              ? '64px'
+                              : '96px',
+                          aspectRatio:
+                            state.imageWidth && state.imageHeight
+                              ? `${state.imageWidth} / ${state.imageHeight}`
+                              : '16 / 10',
+                          maxHeight: '90px',
+                          borderRadius: `${Math.max(4, Math.min(10, Math.round((state.borderRadius ?? 12) * 0.4)))}px`,
+                        }}
+                      >
+                        {/* Screen Content */}
+                        {state.imageSrc ? (
+                          state.mediaType === 'video' ? (
+                            <video
+                              src={state.imageSrc}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <img
+                              src={state.imageSrc}
+                              alt="preview"
+                              className="w-full h-full object-cover"
+                            />
+                          )
+                        ) : (
+                          <div className="w-full h-full p-2 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90 min-h-[56px]">
+                            <div className="space-y-1">
+                              <div className="w-8 h-1 bg-white/30 rounded-full" />
+                              <div className="w-12 h-1 bg-white/20 rounded-full" />
+                            </div>
+                            <div className="w-full h-6 rounded-md bg-pastel-pink/20 border border-pastel-pink/30 flex items-center justify-center">
+                              <PhosphorIcons.Sparkle className="w-3.5 h-3.5 text-pastel-pink" />
+                            </div>
+                            <div className="w-6 h-0.5 bg-white/40 rounded-full self-center" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Device Miniature Frame Box (iPhone / Samsung S21 Phone Frame) */
+                      <div className="w-20 h-36 rounded-xl border-2 border-slate-700/80 bg-slate-900/90 shadow-2xl overflow-hidden flex flex-col items-center justify-center relative">
+                        {/* Dynamic Island / Camera Notch */}
+                        <div className="w-6 h-1.5 rounded-full bg-neutral-950 absolute top-1.5 shadow-xs" />
 
-                      {/* Screen Content */}
-                      {state.imageSrc ? (
-                        <img
-                          src={state.imageSrc}
-                          alt="preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full p-2 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90">
-                          <div className="space-y-1 mt-3">
-                            <div className="w-8 h-1 bg-white/30 rounded-full" />
-                            <div className="w-12 h-1 bg-white/20 rounded-full" />
+                        {/* Screen Content */}
+                        {state.imageSrc ? (
+                          state.mediaType === 'video' ? (
+                            <video
+                              src={state.imageSrc}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <img
+                              src={state.imageSrc}
+                              alt="preview"
+                              className="w-full h-full object-cover"
+                            />
+                          )
+                        ) : (
+                          <div className="w-full h-full p-2 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90">
+                            <div className="space-y-1 mt-3">
+                              <div className="w-8 h-1 bg-white/30 rounded-full" />
+                              <div className="w-12 h-1 bg-white/20 rounded-full" />
+                            </div>
+                            <div className="w-full h-10 rounded-lg bg-pastel-pink/20 border border-pastel-pink/30 flex items-center justify-center">
+                              <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-pink" />
+                            </div>
+                            <div className="w-6 h-0.5 bg-white/40 rounded-full self-center mb-1" />
                           </div>
-                          <div className="w-full h-10 rounded-lg bg-pastel-pink/20 border border-pastel-pink/30 flex items-center justify-center">
-                            <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-pink" />
-                          </div>
-                          <div className="w-6 h-0.5 bg-white/40 rounded-full self-center mb-1" />
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Active Selection Badge */}

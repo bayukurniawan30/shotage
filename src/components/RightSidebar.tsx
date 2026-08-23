@@ -791,7 +791,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
 
   // Automatically extract primary image colors when imageSrc changes
   useEffect(() => {
-    if (!state.imageSrc) {
+    if (!state.imageSrc || state.mediaType === 'video') {
       setAutoGradients([]);
       return;
     }
@@ -804,7 +804,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
       setAutoGradients(variations);
     };
     img.src = state.imageSrc;
-  }, [state.imageSrc]);
+  }, [state.imageSrc, state.mediaType]);
 
   const renderPerspectiveSection = () => (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
