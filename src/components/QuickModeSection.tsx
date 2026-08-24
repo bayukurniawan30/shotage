@@ -110,9 +110,22 @@ interface MockupVariation {
   offsetX: number;
   offsetY: number;
   perspective: number;
+  skewX?: number;
+  skewY?: number;
+  // Dual-slot properties (when layoutCount === 2)
+  layoutPreset?: 'side-by-side' | 'overlap-right' | 'overlap-left' | 'stacked';
+  slot2RotateX?: number;
+  slot2RotateY?: number;
+  slot2Rotate?: number;
+  slot2Zoom?: number;
+  slot2OffsetX?: number;
+  slot2OffsetY?: number;
+  slot2Perspective?: number;
+  slot2SkewX?: number;
+  slot2SkewY?: number;
 }
 
-const MOCKUP_VARIATIONS: MockupVariation[] = [
+const SINGLE_MOCKUP_VARIATIONS: MockupVariation[] = [
   {
     id: 'standard-center',
     name: 'Standard Centered',
@@ -208,6 +221,189 @@ const MOCKUP_VARIATIONS: MockupVariation[] = [
     offsetX: 0,
     offsetY: 0,
     perspective: 1000,
+  },
+];
+
+const DUAL_MOCKUP_VARIATIONS: MockupVariation[] = [
+  {
+    id: 'dual-side-clean',
+    name: 'Side-by-Side Balanced',
+    desc: 'Clean dual front-facing mockups',
+    layoutPreset: 'side-by-side',
+    rotateX: 0,
+    rotateY: 0,
+    slot1Rotate: 0,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: 0,
+    perspective: 1000,
+    slot2RotateX: 0,
+    slot2RotateY: 0,
+    slot2Rotate: 0,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: 0,
+    slot2Perspective: 1000,
+  },
+  {
+    id: 'dual-v-angle',
+    name: 'Inward Perspective Angle',
+    desc: 'Symmetrical inward 3D perspective fold',
+    layoutPreset: 'side-by-side',
+    rotateX: 6,
+    rotateY: 15,
+    slot1Rotate: 3,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: 0,
+    perspective: 850,
+    slot2RotateX: 6,
+    slot2RotateY: -15,
+    slot2Rotate: -3,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: 0,
+    slot2Perspective: 850,
+  },
+  {
+    id: 'dual-overlap-right',
+    name: 'Right Layered Overlap',
+    desc: 'Primary screen layered in front on right',
+    layoutPreset: 'overlap-right',
+    rotateX: 4,
+    rotateY: -8,
+    slot1Rotate: -4,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: 0,
+    perspective: 950,
+    slot2RotateX: 0,
+    slot2RotateY: 0,
+    slot2Rotate: 0,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: 0,
+    slot2Perspective: 1000,
+  },
+  {
+    id: 'dual-overlap-left',
+    name: 'Left Layered Overlap',
+    desc: 'Primary screen layered in front on left',
+    layoutPreset: 'overlap-left',
+    rotateX: 0,
+    rotateY: 0,
+    slot1Rotate: 0,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: 0,
+    perspective: 1000,
+    slot2RotateX: 4,
+    slot2RotateY: 8,
+    slot2Rotate: 4,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: 0,
+    slot2Perspective: 950,
+  },
+  {
+    id: 'dual-dynamic-tilt',
+    name: 'Dynamic Dual Tilt',
+    desc: 'Synchronized angled flow with elevation',
+    layoutPreset: 'side-by-side',
+    rotateX: 8,
+    rotateY: -10,
+    slot1Rotate: -14,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: -10,
+    perspective: 900,
+    slot2RotateX: 8,
+    slot2RotateY: -10,
+    slot2Rotate: -14,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: 10,
+    slot2Perspective: 900,
+  },
+  {
+    id: 'dual-isometric-twin',
+    name: 'Isometric 3D Twin',
+    desc: 'Floating dimensional dual perspective tilt',
+    layoutPreset: 'overlap-right',
+    rotateX: 18,
+    rotateY: -20,
+    slot1Rotate: -8,
+    zoom: 120,
+    offsetX: -12,
+    offsetY: -10,
+    perspective: 700,
+    slot2RotateX: 18,
+    slot2RotateY: -20,
+    slot2Rotate: -8,
+    slot2Zoom: 120,
+    slot2OffsetX: 12,
+    slot2OffsetY: 10,
+    slot2Perspective: 700,
+  },
+  {
+    id: 'dual-stacked',
+    name: 'Vertical Stack Showcase',
+    desc: 'Top-to-bottom vertical flow layout',
+    layoutPreset: 'stacked',
+    rotateX: 0,
+    rotateY: 0,
+    slot1Rotate: 0,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: 0,
+    perspective: 1000,
+    slot2RotateX: 0,
+    slot2RotateY: 0,
+    slot2Rotate: 0,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: 0,
+    slot2Perspective: 1000,
+  },
+  {
+    id: 'dual-hero-focus',
+    name: 'Hero & Detail Pair',
+    desc: 'Prominent front focus with angled companion',
+    layoutPreset: 'overlap-right',
+    rotateX: 8,
+    rotateY: -14,
+    slot1Rotate: -8,
+    zoom: 120,
+    offsetX: -16,
+    offsetY: -6,
+    perspective: 850,
+    slot2RotateX: 0,
+    slot2RotateY: 0,
+    slot2Rotate: 0,
+    slot2Zoom: 120,
+    slot2OffsetX: 16,
+    slot2OffsetY: 8,
+    slot2Perspective: 1000,
+  },
+  {
+    id: 'dual-staggered-cascade',
+    name: 'Staggered Cascade',
+    desc: 'Offset depth cascade with modern tilt',
+    layoutPreset: 'side-by-side',
+    rotateX: 6,
+    rotateY: 8,
+    slot1Rotate: 6,
+    zoom: 120,
+    offsetX: 0,
+    offsetY: 12,
+    perspective: 900,
+    slot2RotateX: 6,
+    slot2RotateY: 8,
+    slot2Rotate: 6,
+    slot2Zoom: 120,
+    slot2OffsetX: 0,
+    slot2OffsetY: -12,
+    slot2Perspective: 900,
   },
 ];
 
@@ -546,8 +742,28 @@ export const QuickModeSection: React.FC = () => {
     return <div className="absolute inset-0 bg-neutral-900" />;
   };
 
+  const isDual = state.layoutCount === 2;
+  const activeVariations = isDual ? DUAL_MOCKUP_VARIATIONS : SINGLE_MOCKUP_VARIATIONS;
+
   // Check if a variation is currently applied to canvas
   const isVariationActive = (v: MockupVariation) => {
+    if (isDual) {
+      return (
+        (v.layoutPreset ? state.layoutPreset === v.layoutPreset : true) &&
+        state.rotateX === v.rotateX &&
+        state.rotateY === v.rotateY &&
+        (state.slot1Rotate ?? 0) === v.slot1Rotate &&
+        state.zoom === v.zoom &&
+        state.offsetX === v.offsetX &&
+        state.offsetY === v.offsetY &&
+        (state.slot2RotateX ?? state.rotateX) === (v.slot2RotateX ?? v.rotateX) &&
+        (state.slot2RotateY ?? state.rotateY) === (v.slot2RotateY ?? v.rotateY) &&
+        (state.slot2Rotate ?? 0) === (v.slot2Rotate ?? v.slot1Rotate) &&
+        (state.slot2Zoom ?? state.zoom) === (v.slot2Zoom ?? v.zoom) &&
+        (state.slot2OffsetX ?? 0) === (v.slot2OffsetX ?? 0) &&
+        (state.slot2OffsetY ?? 0) === (v.slot2OffsetY ?? 0)
+      );
+    }
     return (
       state.rotateX === v.rotateX &&
       state.rotateY === v.rotateY &&
@@ -560,15 +776,258 @@ export const QuickModeSection: React.FC = () => {
 
   // Apply mockup variation to canvas
   const handleApplyVariation = (v: MockupVariation) => {
-    onChange({
-      rotateX: v.rotateX,
-      rotateY: v.rotateY,
-      slot1Rotate: v.slot1Rotate,
-      zoom: v.zoom,
-      offsetX: v.offsetX,
-      offsetY: v.offsetY,
-      perspective: v.perspective,
-    });
+    if (isDual) {
+      onChange({
+        layoutPreset: v.layoutPreset || state.layoutPreset,
+        rotateX: v.rotateX,
+        rotateY: v.rotateY,
+        slot1Rotate: v.slot1Rotate,
+        zoom: v.zoom,
+        offsetX: v.offsetX,
+        offsetY: v.offsetY,
+        perspective: v.perspective,
+        skewX: v.skewX ?? 0,
+        skewY: v.skewY ?? 0,
+        slot2RotateX: v.slot2RotateX ?? v.rotateX,
+        slot2RotateY: v.slot2RotateY ?? v.rotateY,
+        slot2Rotate: v.slot2Rotate ?? v.slot1Rotate,
+        slot2Zoom: v.slot2Zoom ?? v.zoom,
+        slot2OffsetX: v.slot2OffsetX ?? 0,
+        slot2OffsetY: v.slot2OffsetY ?? 0,
+        slot2Perspective: v.slot2Perspective ?? v.perspective,
+        slot2SkewX: v.slot2SkewX ?? 0,
+        slot2SkewY: v.slot2SkewY ?? 0,
+      });
+    } else {
+      onChange({
+        rotateX: v.rotateX,
+        rotateY: v.rotateY,
+        slot1Rotate: v.slot1Rotate,
+        zoom: v.zoom,
+        offsetX: v.offsetX,
+        offsetY: v.offsetY,
+        perspective: v.perspective,
+        skewX: v.skewX ?? 0,
+        skewY: v.skewY ?? 0,
+      });
+    }
+  };
+
+  const isPhoneFrame =
+    state.frameType === 'iphone' ||
+    state.frameType === 'iphone14pro' ||
+    state.frameType === 'iphone16' ||
+    state.frameType === 'iphone17-dual-side' ||
+    state.frameType === 'samsung-s21';
+
+  // Helper to render a single slot miniature mockup (phone or frameless)
+  const renderMiniMockupSlot = (slotNumber: 1 | 2) => {
+    const src = slotNumber === 1 ? state.imageSrc : state.secondImageSrc;
+    const mediaType =
+      slotNumber === 1 ? state.mediaType : state.secondMediaType || state.mediaType;
+    const isPortraitImage =
+      slotNumber === 1
+        ? state.imageWidth && state.imageHeight && state.imageWidth < state.imageHeight
+        : state.secondImageWidth &&
+          state.secondImageHeight &&
+          state.secondImageWidth < state.secondImageHeight;
+
+    if (isPhoneFrame) {
+      // Phone Frame Preview
+      return (
+        <div
+          className={`${
+            isDual ? 'w-12 h-22 rounded-lg border-[1.5px]' : 'w-20 h-36 rounded-xl border-2'
+          } border-slate-700/80 bg-slate-900/90 shadow-2xl overflow-hidden flex flex-col items-center justify-center relative shrink-0`}
+        >
+          {/* Dynamic Island / Notch */}
+          <div
+            className={`${
+              isDual ? 'w-4 h-1 top-1' : 'w-6 h-1.5 top-1.5'
+            } rounded-full bg-neutral-950 absolute shadow-xs`}
+          />
+
+          {/* Screen Content */}
+          {src ? (
+            mediaType === 'video' ? (
+              <video
+                src={src}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img src={src} alt={`slot-${slotNumber}`} className="w-full h-full object-cover" />
+            )
+          ) : (
+            <div className="w-full h-full p-1.5 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90">
+              <div className="space-y-0.5 mt-2">
+                <div className="w-5 h-0.5 bg-white/30 rounded-full" />
+                <div className="w-8 h-0.5 bg-white/20 rounded-full" />
+              </div>
+              <div
+                className={`w-full ${
+                  isDual ? 'h-6 rounded' : 'h-10 rounded-lg'
+                } ${
+                  slotNumber === 1
+                    ? 'bg-pastel-pink/20 border-pastel-pink/30 text-pastel-pink'
+                    : 'bg-[#a2d2ff]/20 border-[#a2d2ff]/30 text-[#a2d2ff]'
+                } border flex items-center justify-center`}
+              >
+                <PhosphorIcons.Sparkle className={`${isDual ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              </div>
+              <div className="w-4 h-0.5 bg-white/40 rounded-full self-center mb-0.5" />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Frameless / Non-Phone Media Preview
+    return (
+      <div
+        className={`rounded-md shadow-2xl overflow-hidden flex flex-col items-center justify-center relative border border-white/10 bg-slate-900/90 shrink-0`}
+        style={{
+          width: isDual ? (isPortraitImage ? '40px' : '56px') : isPortraitImage ? '64px' : '96px',
+          aspectRatio:
+            slotNumber === 1 && state.imageWidth && state.imageHeight
+              ? `${state.imageWidth} / ${state.imageHeight}`
+              : slotNumber === 2 && state.secondImageWidth && state.secondImageHeight
+                ? `${state.secondImageWidth} / ${state.secondImageHeight}`
+                : isPortraitImage
+                  ? '9 / 16'
+                  : '16 / 10',
+          maxHeight: isDual ? '52px' : '90px',
+          borderRadius: `${Math.max(
+            3,
+            Math.min(8, Math.round((state.borderRadius ?? 12) * (isDual ? 0.25 : 0.4)))
+          )}px`,
+        }}
+      >
+        {src ? (
+          mediaType === 'video' ? (
+            <video
+              src={src}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img src={src} alt={`slot-${slotNumber}`} className="w-full h-full object-cover" />
+          )
+        ) : (
+          <div className="w-full h-full p-1.5 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90 min-h-[40px]">
+            <div className="space-y-0.5">
+              <div className="w-5 h-0.5 bg-white/30 rounded-full" />
+              <div className="w-7 h-0.5 bg-white/20 rounded-full" />
+            </div>
+            <div
+              className={`w-full ${
+                isDual ? 'h-4 rounded' : 'h-6 rounded-md'
+              } ${
+                slotNumber === 1
+                  ? 'bg-pastel-pink/20 border-pastel-pink/30 text-pastel-pink'
+                  : 'bg-[#a2d2ff]/20 border-[#a2d2ff]/30 text-[#a2d2ff]'
+              } border flex items-center justify-center`}
+            >
+              <PhosphorIcons.Sparkle className={`${isDual ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'}`} />
+            </div>
+            <div className="w-4 h-0.5 bg-white/40 rounded-full self-center" />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render miniature composition inside variation card
+  const renderVariationPreview = (v: MockupVariation) => {
+    if (!isDual) {
+      // Single Mockup Preview
+      return (
+        <div
+          className="relative transition-transform duration-300 pointer-events-none"
+          style={{
+            transform: `perspective(350px) rotateX(${v.rotateX}deg) rotateY(${
+              v.rotateY
+            }deg) scale(${v.zoom / 100}) translate(${v.offsetX * 0.35}px, ${
+              v.offsetY * 0.35
+            }px) rotate(${v.slot1Rotate}deg)`,
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          {renderMiniMockupSlot(1)}
+        </div>
+      );
+    }
+
+    // 2-Images Mockup Preview
+    const slot1Element = (
+      <div
+        className="transition-transform duration-300 pointer-events-none"
+        style={{
+          transform: `perspective(280px) rotateX(${v.rotateX}deg) rotateY(${
+            v.rotateY
+          }deg) scale(${((v.zoom / 100) * 0.7)}) translate(${v.offsetX * 0.3}px, ${
+            v.offsetY * 0.3
+          }px) rotate(${v.slot1Rotate}deg)`,
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {renderMiniMockupSlot(1)}
+      </div>
+    );
+
+    const slot2Element = (
+      <div
+        className="transition-transform duration-300 pointer-events-none"
+        style={{
+          transform: `perspective(280px) rotateX(${v.slot2RotateX ?? v.rotateX}deg) rotateY(${
+            v.slot2RotateY ?? v.rotateY
+          }deg) scale(${(((v.slot2Zoom ?? v.zoom) / 100) * 0.7)}) translate(${
+            (v.slot2OffsetX ?? 0) * 0.3
+          }px, ${(v.slot2OffsetY ?? 0) * 0.3}px) rotate(${v.slot2Rotate ?? v.slot1Rotate}deg)`,
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {renderMiniMockupSlot(2)}
+      </div>
+    );
+
+    switch (v.layoutPreset) {
+      case 'overlap-right':
+        return (
+          <div className="relative flex items-center justify-center w-full h-full pointer-events-none">
+            <div className="relative z-10 scale-95 opacity-90">{slot1Element}</div>
+            <div className="relative z-20 -ml-5 mt-2.5 shadow-2xl">{slot2Element}</div>
+          </div>
+        );
+      case 'overlap-left':
+        return (
+          <div className="relative flex items-center justify-center w-full h-full pointer-events-none">
+            <div className="relative z-20 mt-2.5 shadow-2xl">{slot1Element}</div>
+            <div className="relative z-10 -ml-5 scale-95 opacity-90">{slot2Element}</div>
+          </div>
+        );
+      case 'stacked':
+        return (
+          <div className="flex flex-col items-center justify-center gap-1 w-full h-full p-1 pointer-events-none">
+            <div className="flex justify-center items-center scale-80 -my-1.5">{slot1Element}</div>
+            <div className="flex justify-center items-center scale-80 -my-1.5">{slot2Element}</div>
+          </div>
+        );
+      case 'side-by-side':
+      default:
+        return (
+          <div className="flex items-center justify-center gap-3.5 w-full h-full p-1 pointer-events-none">
+            <div className="flex justify-center items-center">{slot1Element}</div>
+            <div className="flex justify-center items-center">{slot2Element}</div>
+          </div>
+        );
+    }
   };
 
   return (
@@ -655,17 +1114,17 @@ export const QuickModeSection: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <PhosphorIcons.DeviceMobile weight="duotone" className="w-4 h-4 text-pastel-blue" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-              Mockup Variations
+              Mockup Variations {isDual ? '(2 Images)' : ''}
             </span>
           </div>
           <span className="text-[10px] font-mono text-slate-500">
-            {MOCKUP_VARIATIONS.length} Poses
+            {activeVariations.length} {isDual ? 'Dual Poses' : 'Poses'}
           </span>
         </div>
 
         {/* Scrollable List of Variation Cards */}
         <div className="space-y-2.5">
-          {MOCKUP_VARIATIONS.map((v) => {
+          {activeVariations.map((v) => {
             const active = isVariationActive(v);
             return (
               <button
@@ -683,112 +1142,8 @@ export const QuickModeSection: React.FC = () => {
                   {/* Canvas Background Preview */}
                   {renderCardBackground()}
 
-                  {/* Miniature Mockup Silhouette */}
-                  <div
-                    className="relative transition-transform duration-300 pointer-events-none"
-                    style={{
-                      transform: `perspective(350px) rotateX(${v.rotateX}deg) rotateY(${
-                        v.rotateY
-                      }deg) scale(${v.zoom / 100}) translate(${v.offsetX * 0.35}px, ${
-                        v.offsetY * 0.35
-                      }px) rotate(${v.slot1Rotate}deg)`,
-                      transformStyle: 'preserve-3d',
-                    }}
-                  >
-                    {/* Miniature Mockup Silhouette: Phone bezel/notch for phone frames, frameless preview for all others */}
-                    {!(
-                      state.frameType === 'iphone' ||
-                      state.frameType === 'iphone14pro' ||
-                      state.frameType === 'iphone16' ||
-                      state.frameType === 'iphone17-dual-side' ||
-                      state.frameType === 'samsung-s21'
-                    ) ? (
-                      /* Frameless / Non-Phone Screenshot Media Preview */
-                      <div
-                        className="rounded-lg shadow-2xl overflow-hidden flex flex-col items-center justify-center relative border border-white/10 bg-slate-900/90"
-                        style={{
-                          width:
-                            state.imageWidth && state.imageHeight && state.imageWidth < state.imageHeight
-                              ? '64px'
-                              : '96px',
-                          aspectRatio:
-                            state.imageWidth && state.imageHeight
-                              ? `${state.imageWidth} / ${state.imageHeight}`
-                              : '16 / 10',
-                          maxHeight: '90px',
-                          borderRadius: `${Math.max(4, Math.min(10, Math.round((state.borderRadius ?? 12) * 0.4)))}px`,
-                        }}
-                      >
-                        {/* Screen Content */}
-                        {state.imageSrc ? (
-                          state.mediaType === 'video' ? (
-                            <video
-                              src={state.imageSrc}
-                              autoPlay
-                              loop
-                              muted
-                              playsInline
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <img
-                              src={state.imageSrc}
-                              alt="preview"
-                              className="w-full h-full object-cover"
-                            />
-                          )
-                        ) : (
-                          <div className="w-full h-full p-2 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90 min-h-[56px]">
-                            <div className="space-y-1">
-                              <div className="w-8 h-1 bg-white/30 rounded-full" />
-                              <div className="w-12 h-1 bg-white/20 rounded-full" />
-                            </div>
-                            <div className="w-full h-6 rounded-md bg-pastel-pink/20 border border-pastel-pink/30 flex items-center justify-center">
-                              <PhosphorIcons.Sparkle className="w-3.5 h-3.5 text-pastel-pink" />
-                            </div>
-                            <div className="w-6 h-0.5 bg-white/40 rounded-full self-center" />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      /* Device Miniature Frame Box (iPhone / Samsung S21 Phone Frame) */
-                      <div className="w-20 h-36 rounded-xl border-2 border-slate-700/80 bg-slate-900/90 shadow-2xl overflow-hidden flex flex-col items-center justify-center relative">
-                        {/* Dynamic Island / Camera Notch */}
-                        <div className="w-6 h-1.5 rounded-full bg-neutral-950 absolute top-1.5 shadow-xs" />
-
-                        {/* Screen Content */}
-                        {state.imageSrc ? (
-                          state.mediaType === 'video' ? (
-                            <video
-                              src={state.imageSrc}
-                              autoPlay
-                              loop
-                              muted
-                              playsInline
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <img
-                              src={state.imageSrc}
-                              alt="preview"
-                              className="w-full h-full object-cover"
-                            />
-                          )
-                        ) : (
-                          <div className="w-full h-full p-2 flex flex-col justify-between bg-gradient-to-b from-slate-800/80 to-slate-900/90">
-                            <div className="space-y-1 mt-3">
-                              <div className="w-8 h-1 bg-white/30 rounded-full" />
-                              <div className="w-12 h-1 bg-white/20 rounded-full" />
-                            </div>
-                            <div className="w-full h-10 rounded-lg bg-pastel-pink/20 border border-pastel-pink/30 flex items-center justify-center">
-                              <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-pink" />
-                            </div>
-                            <div className="w-6 h-0.5 bg-white/40 rounded-full self-center mb-1" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {/* Miniature Mockup Composition (1 or 2 slots) */}
+                  {renderVariationPreview(v)}
 
                   {/* Active Selection Badge */}
                   {active && (
@@ -814,8 +1169,12 @@ export const QuickModeSection: React.FC = () => {
                     <p className="text-[10px] text-slate-400 font-normal">{v.desc}</p>
                   </div>
 
-                  <div className="text-[10px] font-mono text-slate-500 opacity-60 group-hover:opacity-100 transition-opacity">
-                    {v.rotateX !== 0 || v.rotateY !== 0 ? '3D Tilt' : `${v.zoom}% Zoom`}
+                  <div className="text-[10px] font-mono text-slate-500 opacity-70 group-hover:opacity-100 transition-opacity">
+                    {isDual && v.layoutPreset
+                      ? v.layoutPreset.replace('-', ' ')
+                      : v.rotateX !== 0 || v.rotateY !== 0
+                        ? '3D Tilt'
+                        : `${v.zoom}% Zoom`}
                   </div>
                 </div>
               </button>
