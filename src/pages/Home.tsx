@@ -54,6 +54,10 @@ export const Home: React.FC = () => {
   const [isSponsoredVisible, setIsSponsoredVisible] = useState(false);
   const sponsoredSectionRef = useRef<HTMLElement>(null);
 
+  // Touch swipe refs for carousels
+  const bento1TouchStartX = useRef<number | null>(null);
+  const bento2TouchStartX = useRef<number | null>(null);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -157,6 +161,41 @@ export const Home: React.FC = () => {
         setShowIosGuide(true);
       }
     }
+  };
+
+  // Touch swipe handlers for carousels
+  const handleBento1TouchStart = (e: React.TouchEvent) => {
+    bento1TouchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleBento1TouchEnd = (e: React.TouchEvent) => {
+    if (bento1TouchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - bento1TouchStartX.current;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) {
+        setBentoSlideIndex((prev) => (prev === 0 ? 4 : prev - 1));
+      } else {
+        setBentoSlideIndex((prev) => (prev === 4 ? 0 : prev + 1));
+      }
+    }
+    bento1TouchStartX.current = null;
+  };
+
+  const handleBento2TouchStart = (e: React.TouchEvent) => {
+    bento2TouchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleBento2TouchEnd = (e: React.TouchEvent) => {
+    if (bento2TouchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - bento2TouchStartX.current;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) {
+        setBento2SlideIndex((prev) => (prev === 0 ? 1 : prev - 1));
+      } else {
+        setBento2SlideIndex((prev) => (prev === 1 ? 0 : prev + 1));
+      }
+    }
+    bento2TouchStartX.current = null;
   };
 
   const framePreviews = {
@@ -783,7 +822,7 @@ export const Home: React.FC = () => {
               {/* Bento 1: Backgrounds Carousel (Curated, Linear Swatch, Shadeshifter, Spectral Prism, Confetti) */}
               <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl relative overflow-hidden flex flex-col justify-between group min-h-[360px]">
                 {/* Header & Controls */}
-                <div className="flex items-start justify-between gap-4 z-10">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 z-10">
                   <div className="space-y-2">
                     <span className="px-2.5 py-1 rounded-md bg-pastel-pink/20 text-pastel-pink font-bold text-[10px] uppercase">
                       {bentoSlideIndex === 0 && 'Curated Gradients'}
@@ -799,7 +838,7 @@ export const Home: React.FC = () => {
                       {bentoSlideIndex === 3 && 'Spectral Chromatic Prism'}
                       {bentoSlideIndex === 4 && 'Playful Floating Confetti'}
                     </h3>
-                    <p className="text-xs text-slate-400 max-w-xl truncate leading-relaxed">
+                    <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
                       {bentoSlideIndex === 0 &&
                         'Handcrafted multi-stop gradients for rich, harmonic mockup backdrops.'}
                       {bentoSlideIndex === 1 &&
@@ -814,7 +853,7 @@ export const Home: React.FC = () => {
                   </div>
 
                   {/* Prev / Next Arrows */}
-                  <div className="flex items-center gap-1.5 shrink-0 bg-neutral-900/90 border border-neutral-800 p-1 rounded-2xl shadow-lg">
+                  <div className="flex items-center gap-1.5 shrink-0 bg-neutral-900/90 border border-neutral-800 p-1 rounded-2xl shadow-lg self-start">
                     <button
                       onClick={() => setBentoSlideIndex((prev) => (prev === 0 ? 4 : prev - 1))}
                       className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
@@ -833,7 +872,11 @@ export const Home: React.FC = () => {
                 </div>
 
                 {/* Slide Preview Canvas with Same Exact Dimensions for All 5 Slides */}
-                <div className="mt-6 relative h-36 sm:h-40 rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900/90 shadow-inner">
+                <div
+                  className="mt-6 relative h-36 sm:h-40 rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900/90 shadow-inner"
+                  onTouchStart={handleBento1TouchStart}
+                  onTouchEnd={handleBento1TouchEnd}
+                >
                   {/* Slide 0: Curated Gradient (3 gradients) */}
                   {bentoSlideIndex === 0 && (
                     <div className="grid grid-cols-3 gap-3 p-3 w-full h-full animate-in fade-in zoom-in-95 duration-300">
@@ -1038,7 +1081,11 @@ export const Home: React.FC = () => {
                 </div>
 
                 {/* Carousel Stage Container */}
-                <div className="min-h-[175px] flex items-center justify-center">
+                <div
+                  className="min-h-[175px] flex items-center justify-center"
+                  onTouchStart={handleBento2TouchStart}
+                  onTouchEnd={handleBento2TouchEnd}
+                >
                   {/* Slide 0: 6 Frameless Mockup Styles */}
                   {bento2SlideIndex === 0 && (
                     <div className="grid grid-cols-3 gap-2.5 w-full pt-1 animate-in fade-in zoom-in-95 duration-300">
