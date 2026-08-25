@@ -416,6 +416,8 @@ export const useStudioStore = create<StudioStore>()(
           offsetY: 0,
           slot2OffsetX: 0,
           slot2OffsetY: 0,
+          slabThickness: 12,
+          slabColor: '#1e293b',
         }),
       resetAll: () => set((s) => ({ ...DEFAULT_STUDIO_STATE, resetKey: s.resetKey + 1 })),
       togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode })),

@@ -158,6 +158,84 @@ export const PerspectiveSection: React.FC = () => {
               }}
             />
           )}
+
+          {/* 3D Thickness & Edge Styling (Only for Frameless Images) */}
+          {state.frameType === 'frameless' && (
+            <div className="pt-2.5 border-t border-neutral-800/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                  3D Thickness & Edge
+                </span>
+                <span className="text-[10px] font-mono text-pastel-pink font-semibold">
+                  {state.slabThickness ?? 12}px
+                </span>
+              </div>
+
+              {/* Thickness Slider */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-slate-300">Depth Thickness</span>
+                  <span className="font-mono text-slate-400">{state.slabThickness ?? 12}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="60"
+                  value={state.slabThickness ?? 12}
+                  onChange={(e) => onChange({ slabThickness: Number(e.target.value) })}
+                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+
+              {/* Edge Color */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                  Edge Color
+                </label>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { name: 'Dark Slate', hex: '#1e293b' },
+                    { name: 'Charcoal', hex: '#0f172a' },
+                    { name: 'Steel', hex: '#334155' },
+                    { name: 'Silver / White', hex: '#ffffff' },
+                    { name: 'Obsidian', hex: '#000000' },
+                    { name: 'Pastel Pink', hex: '#ffafcc' },
+                    { name: 'Pastel Blue', hex: '#a2d2ff' },
+                    { name: 'Lavender', hex: '#cdb4db' },
+                  ].map((item) => {
+                    const isSelected = (state.slabColor || '#1e293b').toLowerCase() === item.hex.toLowerCase();
+                    return (
+                      <button
+                        key={item.hex}
+                        type="button"
+                        title={item.name}
+                        onClick={() => onChange({ slabColor: item.hex })}
+                        style={{ backgroundColor: item.hex }}
+                        className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-white scale-110 shadow-md ring-2 ring-pastel-pink/60'
+                            : 'border-slate-700/70 hover:scale-105'
+                        }`}
+                      />
+                    );
+                  })}
+                  <div className="relative w-6 h-6 rounded-full border border-slate-700 overflow-hidden shrink-0 hover:scale-105 transition-transform">
+                    <input
+                      type="color"
+                      value={state.slabColor || '#1e293b'}
+                      onChange={(e) => onChange({ slabColor: e.target.value })}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      title="Custom Edge Color"
+                    />
+                    <div
+                      className="w-full h-full rounded-full"
+                      style={{ backgroundColor: state.slabColor || '#1e293b' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

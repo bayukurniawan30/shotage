@@ -985,9 +985,34 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const isSlotVideo =
       slotIndex === 2 ? state.secondMediaType === 'video' : state.mediaType === 'video';
 
+    const shinePreset = state.shinePreset || (state.enableShine ? 'diagonal-glass' : 'none');
+    const enableShine = shinePreset !== 'none';
+    const shineOpacity = (state.shineOpacity ?? 35) / 100;
+
+    const getShineBackground = () => {
+      switch (shinePreset) {
+        case 'apple-glare':
+          return 'linear-gradient(125deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.22) 45%, rgba(255,255,255,0.02) 47.5%, transparent 47.6%, transparent 100%)';
+        case 'curved-sheen':
+          return 'radial-gradient(ellipse 130% 80% at 20% -10%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.22) 38%, transparent 75%)';
+        case 'top-light':
+          return 'linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.22) 28%, transparent 72%)';
+        case 'dual-beam':
+          return 'linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.18) 28%, transparent 45%), linear-gradient(315deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 22%, transparent 40%)';
+        case 'diagonal-glass':
+        default:
+          return 'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.28) 28%, rgba(255,255,255,0.06) 42%, transparent 60%)';
+      }
+    };
+
     const content =
       imgSrc || placeholderSrc ? (
-        <div className="@container relative group overflow-hidden w-full h-full flex items-center justify-center">
+        <div
+          className="@container relative group overflow-hidden w-full h-full flex items-center justify-center"
+          style={{
+            borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
+          }}
+        >
           {isSlotVideo && imgSrc ? (
             <VideoCanvasScreen
               src={imgSrc}
@@ -1007,6 +1032,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 isFrameless ? '' : 'rounded-none'
               }`}
               style={imageStyle}
+            />
+          )}
+
+          {/* Glass Screen Shine / Reflection Overlay */}
+          {enableShine && (
+            <div
+              className="absolute inset-0 pointer-events-none z-[5] transition-opacity duration-150 overflow-hidden"
+              style={{
+                background: getShineBackground(),
+                opacity: shineOpacity,
+                mixBlendMode: 'screen',
+                borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
+              }}
             />
           )}
           <label className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center text-white cursor-pointer z-10 p-3">
@@ -1251,6 +1289,111 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           : isFrameless || state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
             ? `${state.borderRadius}px`
             : undefined;
+
+    const rotX = slotIndex === 2 ? slot2RX : animTransform.rotateX;
+    const rotY = slotIndex === 2 ? slot2RY : animTransform.rotateY;
+    const isImage =
+      slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
+    const is3DActive = isFrameless && isImage && (Math.abs(rotX) >= 0.5 || Math.abs(rotY) >= 0.5);
+
+    const userThickness = state.slabThickness ?? 12;
+    const rawColor = state.slabColor || '#1e293b';
+    const parsed = parseColorAndAlpha(rawColor);
+    const r0 = parseInt(parsed.hex.slice(1, 3), 16) || 30;
+    const g0 = parseInt(parsed.hex.slice(3, 5), 16) || 41;
+    const b0 = parseInt(parsed.hex.slice(5, 7), 16) || 59;
+    const baseAlpha = (parsed.alpha || 100) / 100;
+
+    if (is3DActive && userThickness > 0) {
+      // Dense 1px-per-slice extrusion for a gap-free solid chassis wall
+      const totalSlices = userThickness; // 1 slice per pixel of thickness
+
+      // Compute light direction from the tilt angle for edge shading
+      const radX = (rotX * Math.PI) / 180;
+      const radY = (rotY * Math.PI) / 180;
+      // Light comes from upper-left by default; edge facing toward light is brighter
+      const lightDirX = -Math.sin(radY);
+      const lightDirY = Math.sin(radX);
+
+      // Build the side-wall slices as box-shadow layers on a single div
+      // This is much more performant than N separate DOM nodes
+      const sideShadows: string[] = [];
+
+      for (let i = 1; i <= totalSlices; i++) {
+        const progress = i / totalSlices; // 0→1 from front face to back
+
+        // Directional edge lighting: slices closer to the "near" side are brighter
+        // The near side is the one facing toward the viewer (opposite to tilt direction)
+        const depthShade = 1 - progress * 0.4; // darker toward the back
+        // Add a subtle specular highlight near the front edge (first 20% of depth)
+        const specularBoost = progress < 0.2 ? 1 + (1 - progress / 0.2) * 0.15 : 1;
+        // Add ambient occlusion near the back edge (last 20%)
+        const aoFade = progress > 0.8 ? 1 - (progress - 0.8) / 0.2 * 0.2 : 1;
+
+        const shade = Math.min(1, depthShade * specularBoost * aoFade);
+        const r = Math.min(255, Math.round(r0 * shade));
+        const g = Math.min(255, Math.round(g0 * shade));
+        const b = Math.min(255, Math.round(b0 * shade));
+
+        // Each shadow is offset along the light normal by i pixels
+        const px = (lightDirX * i).toFixed(1);
+        const py = (lightDirY * i).toFixed(1);
+
+        sideShadows.push(`${px}px ${py}px 0 rgba(${r}, ${g}, ${b}, ${baseAlpha.toFixed(2)})`);
+      }
+
+      // Bright specular rim on the front leading edge (catches the "light")
+      const rimShadows = [
+        'inset 0 1px 2px 0 rgba(255,255,255,0.5)',
+        'inset 0 -1px 1px 0 rgba(0,0,0,0.25)',
+      ];
+
+      // Deep ambient floor shadow cast from beneath the slab
+      const floorCastX = (lightDirX * (userThickness + 8)).toFixed(1);
+      const floorCastY = (lightDirY * (userThickness + 8) + 10).toFixed(1);
+      const floorBlur = userThickness * 2.5 + 18;
+      sideShadows.push(`${floorCastX}px ${floorCastY}px ${floorBlur}px rgba(0,0,0,0.5)`);
+
+      // Secondary closer shadow for contact realism
+      const contactX = (lightDirX * userThickness * 0.5).toFixed(1);
+      const contactY = (lightDirY * userThickness * 0.5 + 4).toFixed(1);
+      sideShadows.push(`${contactX}px ${contactY}px ${userThickness + 6}px rgba(0,0,0,0.35)`);
+
+      return (
+        <div className="relative group">
+          {/* The image/mockup with dense 3D slab extrusion via box-shadow */}
+          <div
+            className="relative z-10 transition-all duration-200"
+            style={{
+              borderRadius: computedRadius,
+              boxShadow: [...rimShadows, ...sideShadows].join(', '),
+            }}
+          >
+            {frameElement}
+
+            {/* Front glass specular rim highlight overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none z-20"
+              style={{
+                borderRadius: computedRadius,
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            />
+
+            {/* Dynamic angle-responsive surface sheen */}
+            <div
+              className="absolute inset-0 pointer-events-none z-20"
+              style={{
+                borderRadius: computedRadius,
+                opacity: 0.25,
+                mixBlendMode: 'overlay',
+                background: `linear-gradient(${135 + rotY * 1.5}deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.15) 100%)`,
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="relative group">

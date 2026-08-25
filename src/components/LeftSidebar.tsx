@@ -5,6 +5,7 @@ import {
   AspectSection,
   FrameSection,
   StyleSection,
+  ShineSection,
   ShadowSection,
   ShadowOverlaySection,
 } from './left-sidebar';
@@ -32,7 +33,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     if (mobileSection === 'image') return <ImageUploadSection onImageUpload={onImageUpload} />;
     if (mobileSection === 'aspect') return <AspectSection />;
     if (mobileSection === 'frame') return <FrameSection />;
-    if (mobileSection === 'style') return <StyleSection />;
+    if (mobileSection === 'style') {
+      return (
+        <>
+          {state.frameType === 'frameless' && <StyleSection />}
+          <ShineSection />
+        </>
+      );
+    }
     if (mobileSection === 'shadow') {
       return (
         <>
@@ -50,6 +58,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
       <AspectSection />
       <FrameSection />
       {state.frameType === 'frameless' && <StyleSection />}
+      <ShineSection />
       {!isDeviceFrame && <ShadowSection />}
       <ShadowOverlaySection />
     </div>

@@ -212,6 +212,14 @@ export type BackgroundType =
   | 'transparent'
   | 'image';
 
+export type ShinePreset =
+  | 'none'
+  | 'diagonal-glass'
+  | 'apple-glare'
+  | 'curved-sheen'
+  | 'top-light'
+  | 'dual-beam';
+
 export interface StudioState {
   imageSrc: string | null;
   imageName: string;
@@ -229,9 +237,14 @@ export interface StudioState {
   alignment: 'center' | 'top' | 'bottom';
   padding: number; // 0 to 120
   borderRadius: number; // 0 to 32
+  slabThickness?: number; // 0 to 60 (for 3D extrusion)
+  slabColor?: string; // 3D extrusion edge color
+  enableShine?: boolean;
+  shinePreset?: ShinePreset;
+  shineOpacity?: number; // 0 to 100
   framelessStyle: 'default' | 'glass-light' | 'glass-dark' | 'inset-light' | 'inset-dark' | 'card';
   shadow: 'none' | 'soft' | 'medium' | 'hard' | 'floating';
-  shadowOverlay:
+  shadowOverlay?:
     | 'none'
     | 'shadow-overlay-1'
     | 'shadow-overlay-2'
@@ -402,6 +415,11 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   alignment: 'center',
   padding: 48,
   borderRadius: 16,
+  slabThickness: 12,
+  slabColor: '#1e293b',
+  enableShine: false,
+  shinePreset: 'none',
+  shineOpacity: 35,
   framelessStyle: 'default',
   shadow: 'floating',
   shadowOverlay: 'none',
