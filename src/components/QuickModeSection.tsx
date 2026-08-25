@@ -554,10 +554,7 @@ export const QuickModeSection: React.FC = () => {
       }
       case 'linearSwatches': {
         const ls = item as LinearSwatchPreset;
-        return (
-          state.backgroundType === 'linearSwatches' &&
-          state.linearSwatchesPreset === ls.id
-        );
+        return state.backgroundType === 'linearSwatches' && state.linearSwatchesPreset === ls.id;
       }
       case 'mesh': {
         const m = item as MeshPreset;
@@ -577,16 +574,12 @@ export const QuickModeSection: React.FC = () => {
       case 'spectral': {
         const sp = item as SpectralPreset;
         return (
-          state.backgroundType === 'spectral' &&
-          (state.spectralPreset || 'spectral-1') === sp.id
+          state.backgroundType === 'spectral' && (state.spectralPreset || 'spectral-1') === sp.id
         );
       }
       case 'radiant': {
         const r = item as RadiantPreset;
-        return (
-          state.backgroundType === 'radiant' &&
-          (state.radiantPreset || 'radiant-1') === r.id
-        );
+        return state.backgroundType === 'radiant' && (state.radiantPreset || 'radiant-1') === r.id;
       }
       case 'solid': {
         const color = item as string;
@@ -613,12 +606,7 @@ export const QuickModeSection: React.FC = () => {
       }
       case 'linearSwatches': {
         const ls = item as LinearSwatchPreset;
-        return (
-          <div
-            className="w-full h-full rounded-full"
-            style={{ background: ls.css }}
-          />
-        );
+        return <div className="w-full h-full rounded-full" style={{ background: ls.css }} />;
       }
       case 'mesh': {
         const m = item as MeshPreset;
@@ -823,8 +811,7 @@ export const QuickModeSection: React.FC = () => {
   // Helper to render a single slot miniature mockup (phone or frameless)
   const renderMiniMockupSlot = (slotNumber: 1 | 2) => {
     const src = slotNumber === 1 ? state.imageSrc : state.secondImageSrc;
-    const mediaType =
-      slotNumber === 1 ? state.mediaType : state.secondMediaType || state.mediaType;
+    const mediaType = slotNumber === 1 ? state.mediaType : state.secondMediaType || state.mediaType;
     const isPortraitImage =
       slotNumber === 1
         ? state.imageWidth && state.imageHeight && state.imageWidth < state.imageHeight
@@ -868,15 +855,13 @@ export const QuickModeSection: React.FC = () => {
                 <div className="w-8 h-0.5 bg-white/20 rounded-full" />
               </div>
               <div
-                className={`w-full ${
-                  isDual ? 'h-6 rounded' : 'h-10 rounded-lg'
-                } ${
+                className={`w-full ${isDual ? 'h-6 rounded' : 'h-10 rounded-lg'} ${
                   slotNumber === 1
                     ? 'bg-pastel-pink/20 border-pastel-pink/30 text-pastel-pink'
                     : 'bg-[#a2d2ff]/20 border-[#a2d2ff]/30 text-[#a2d2ff]'
                 } border flex items-center justify-center`}
               >
-                <PhosphorIcons.Sparkle className={`${isDual ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                <PhosphorIcons.SparkleIcon className={`${isDual ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </div>
               <div className="w-4 h-0.5 bg-white/40 rounded-full self-center mb-0.5" />
             </div>
@@ -899,6 +884,7 @@ export const QuickModeSection: React.FC = () => {
                 : isPortraitImage
                   ? '9 / 16'
                   : '16 / 10',
+          minHeight: isDual ? '50px' : '80px',
           maxHeight: isDual ? '52px' : '90px',
           borderRadius: `${Math.max(
             3,
@@ -926,15 +912,13 @@ export const QuickModeSection: React.FC = () => {
               <div className="w-7 h-0.5 bg-white/20 rounded-full" />
             </div>
             <div
-              className={`w-full ${
-                isDual ? 'h-4 rounded' : 'h-6 rounded-md'
-              } ${
+              className={`w-full ${isDual ? 'h-4 rounded' : 'h-6 rounded-md'} ${
                 slotNumber === 1
                   ? 'bg-pastel-pink/20 border-pastel-pink/30 text-pastel-pink'
                   : 'bg-[#a2d2ff]/20 border-[#a2d2ff]/30 text-[#a2d2ff]'
               } border flex items-center justify-center`}
             >
-              <PhosphorIcons.Sparkle className={`${isDual ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'}`} />
+              <PhosphorIcons.SparkleIcon className={`${isDual ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'}`} />
             </div>
             <div className="w-4 h-0.5 bg-white/40 rounded-full self-center" />
           </div>
@@ -971,7 +955,7 @@ export const QuickModeSection: React.FC = () => {
         style={{
           transform: `perspective(280px) rotateX(${v.rotateX}deg) rotateY(${
             v.rotateY
-          }deg) scale(${((v.zoom / 100) * 0.7)}) translate(${v.offsetX * 0.3}px, ${
+          }deg) scale(${(v.zoom / 100) * 0.7}) translate(${v.offsetX * 0.3}px, ${
             v.offsetY * 0.3
           }px) rotate(${v.slot1Rotate}deg)`,
           transformStyle: 'preserve-3d',
@@ -987,7 +971,7 @@ export const QuickModeSection: React.FC = () => {
         style={{
           transform: `perspective(280px) rotateX(${v.slot2RotateX ?? v.rotateX}deg) rotateY(${
             v.slot2RotateY ?? v.rotateY
-          }deg) scale(${(((v.slot2Zoom ?? v.zoom) / 100) * 0.7)}) translate(${
+          }deg) scale(${((v.slot2Zoom ?? v.zoom) / 100) * 0.7}) translate(${
             (v.slot2OffsetX ?? 0) * 0.3
           }px, ${(v.slot2OffsetY ?? 0) * 0.3}px) rotate(${v.slot2Rotate ?? v.slot1Rotate}deg)`,
           transformStyle: 'preserve-3d',
@@ -1036,7 +1020,7 @@ export const QuickModeSection: React.FC = () => {
       <div className="border border-neutral-800 rounded-2xl bg-neutral-950/70 p-3.5 space-y-2.5 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <PhosphorIcons.Palette weight="duotone" className="w-4 h-4 text-pastel-pink" />
+            <PhosphorIcons.PaletteIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
               Background Style
             </span>
@@ -1052,7 +1036,7 @@ export const QuickModeSection: React.FC = () => {
               title="Shuffle swatches"
               className="p-1 text-slate-400 hover:text-pastel-pink hover:bg-neutral-800 rounded-md transition-colors cursor-pointer"
             >
-              <PhosphorIcons.ArrowsClockwise className="w-3.5 h-3.5" />
+              <PhosphorIcons.ArrowsClockwiseIcon className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1069,7 +1053,7 @@ export const QuickModeSection: React.FC = () => {
             >
               {activeCategory.icon}
               <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-pastel-pink text-neutral-950 flex items-center justify-center text-[9px] font-bold shadow-xs">
-                <PhosphorIcons.ArrowsLeftRight className="w-2.5 h-2.5" />
+                <PhosphorIcons.ArrowsLeftRightIcon className="w-2.5 h-2.5" />
               </div>
             </button>
             <span className="text-[9px] font-semibold text-pastel-pink/90 truncate max-w-[48px] text-center">
@@ -1097,7 +1081,7 @@ export const QuickModeSection: React.FC = () => {
                   {renderSwatchPreview(item)}
                   {active && (
                     <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/25">
-                      <PhosphorIcons.Check className="w-3.5 h-3.5 text-white font-bold drop-shadow-md" />
+                      <PhosphorIcons.CheckIcon className="w-3.5 h-3.5 text-white font-bold drop-shadow-md" />
                     </div>
                   )}
                 </button>
@@ -1112,7 +1096,7 @@ export const QuickModeSection: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
-            <PhosphorIcons.DeviceMobile weight="duotone" className="w-4 h-4 text-pastel-blue" />
+            <PhosphorIcons.DeviceMobileIcon weight="duotone" className="w-4 h-4 text-pastel-blue" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
               Mockup Variations {isDual ? '(2 Images)' : ''}
             </span>
@@ -1159,9 +1143,7 @@ export const QuickModeSection: React.FC = () => {
                   <div>
                     <h4
                       className={`text-xs font-bold transition-colors ${
-                        active
-                          ? 'text-pastel-pink'
-                          : 'text-slate-200 group-hover:text-pastel-blue'
+                        active ? 'text-pastel-pink' : 'text-slate-200 group-hover:text-pastel-blue'
                       }`}
                     >
                       {v.name}
