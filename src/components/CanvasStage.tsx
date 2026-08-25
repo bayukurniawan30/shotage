@@ -353,6 +353,28 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const sx = layer.scaleX ?? 1;
         const sy = layer.scaleY ?? 1;
 
+        const textFillStyle: React.CSSProperties = layer.bgImage
+          ? {
+              backgroundImage: `url(${layer.bgImage})`,
+              backgroundSize: `${layer.bgImageZoom ?? 100}%`,
+              backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              color: 'transparent',
+            }
+          : layer.gradient
+            ? {
+                backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                color: 'transparent',
+              }
+            : {
+                color: layer.color || '#ffffff',
+              };
+
         return (
           <div
             key={layer.id}
@@ -375,23 +397,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               lineHeight: 1.2,
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
-              color: layer.bgImage || layer.gradient ? 'transparent' : layer.color,
-              ...(layer.bgImage
-                ? {
-                    backgroundImage: `url(${layer.bgImage})`,
-                    backgroundSize: `${layer.bgImageZoom ?? 100}%`,
-                    backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }
-                : layer.gradient
-                  ? {
-                      backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                    }
-                  : {}),
               textAlign: layer.textAlign,
               opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
               textShadow:
@@ -434,6 +439,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 transformOrigin: 'top left',
                 display: 'inline-block',
                 fontFamily: 'inherit',
+                ...textFillStyle,
               }}
             >
               {layer.socialPlatform ? (
@@ -455,7 +461,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     size={layer.iconSize || layer.fontSize * 1.1}
                     color={layer.iconColor || layer.color}
                   />
-                  <span style={{ fontFamily: fontFamilyCss }}>{layer.text}</span>
+                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>{layer.text}</span>
                 </div>
               ) : (
                 layer.text
