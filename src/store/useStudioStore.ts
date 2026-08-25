@@ -543,7 +543,7 @@ export const useStudioStore = create<StudioStore>()(
           const newLayer: import('../types/studio').PhosphorIconLayer = {
             id: `phosphor-${Date.now()}`,
             iconId: iconId || 'Sparkle',
-            weight: 'duotone',
+            weight: 'regular',
             size: 40,
             color: '#a2d2ff',
             badgeStyle: 'circle-dark',

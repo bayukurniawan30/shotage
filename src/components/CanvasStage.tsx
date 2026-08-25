@@ -567,7 +567,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           >
             <div className={getBadgeClass(layer.badgeStyle)}>
               <IconComp
-                weight={layer.weight || 'duotone'}
+                weight={layer.weight || 'regular'}
                 size={layer.size || 36}
                 color={layer.color || '#a2d2ff'}
               />
@@ -725,6 +725,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             case 'hexagon':
               return {
                 clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                WebkitClipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
               };
             case 'quote':
               return {
@@ -746,6 +747,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
         const isGlass = !!layer.glassmorphism;
         const blurAmount = layer.glassmorphismBlur ?? 16;
+        const isPolygonOrMask = layer.shapeType === 'hexagon' || layer.shapeType === 'quote';
 
         const getGlassOrSolidBackground = (): React.CSSProperties => {
           if (layer.bgImage) {
@@ -812,39 +814,69 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
               opacity: isGlass ? loop.opacityMul : ((layer.opacity ?? 100) / 100) * loop.opacityMul,
-              filter: !isGlass && layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${layer.width || 120}px`,
               height: `${layer.height || 120}px`,
-              overflow: 'hidden',
-              ...getShapeStyle(),
+              overflow: !isPolygonOrMask && !layer.blur ? 'hidden' : undefined,
+              borderRadius:
+                layer.shapeType === 'circle'
+                  ? '9999px'
+                  : layer.shapeType === 'hexagon' || layer.shapeType === 'quote'
+                    ? '8px'
+                    : `${layer.borderRadius ?? 8}px`,
             }}
           >
             <div
-              className="w-full h-full"
+              className="w-full h-full relative"
               style={{
                 ...getGlassOrSolidBackground(),
+                ...getShapeStyle(),
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
-                borderRadius: 'inherit',
                 ...(isGlass
                   ? {
                       backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
                       WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
                       border:
-                        layer.glassmorphismBorder !== false
+                        !isPolygonOrMask && layer.glassmorphismBorder !== false
                           ? '1px solid rgba(255, 255, 255, 0.35)'
                           : 'none',
                       boxShadow:
-                        layer.glassmorphismBorder !== false
+                        !isPolygonOrMask && layer.glassmorphismBorder !== false
                           ? layer.shadow
                             ? 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4), 0 12px 36px 0 rgba(0, 0, 0, 0.45)'
                             : 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4), 0 8px 32px 0 rgba(0, 0, 0, 0.25)'
-                          : layer.shadow
-                            ? '0 12px 36px 0 rgba(0, 0, 0, 0.45)'
-                            : '0 8px 32px 0 rgba(0, 0, 0, 0.2)',
+                          : !isPolygonOrMask
+                            ? layer.shadow
+                              ? '0 12px 36px 0 rgba(0, 0, 0, 0.45)'
+                              : '0 8px 32px 0 rgba(0, 0, 0, 0.2)'
+                            : 'none',
+                      borderRadius: isPolygonOrMask
+                        ? undefined
+                        : layer.shapeType === 'circle'
+                          ? '9999px'
+                          : `${layer.borderRadius ?? 8}px`,
+                      overflow: !isPolygonOrMask ? 'hidden' : undefined,
                     }
                   : {}),
               }}
-            />
+            >
+              {/* Hexagon glassmorphic frosted border outline */}
+              {isGlass && layer.shapeType === 'hexagon' && layer.glassmorphismBorder !== false && (
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                >
+                  <polygon
+                    points="25,0.75 75,0.75 99.25,50 75,99.25 25,99.25 0.75,50"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.45)"
+                    strokeWidth="1.5"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+              )}
+            </div>
             {isSelected && !isGlass && (
               <>
                 <div
@@ -1245,7 +1277,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const handleFirstUpload = (file: File) => onImageUpload && onImageUpload(file);
     const handleSecondUpload = (file: File) => {
       if (!isValidMediaFile(file)) {
-        alert('Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)');
+        alert(
+          'Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)'
+        );
         return;
       }
 
@@ -1264,7 +1298,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 .getState()
                 .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight, 'image');
             };
-            img.onerror = () => useStudioStore.getState().setSecondImage(src, file.name, null, null, 'image');
+            img.onerror = () =>
+              useStudioStore.getState().setSecondImage(src, file.name, null, null, 'image');
             img.src = src;
           }
         };
@@ -1500,31 +1535,41 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     let intrinsicH = 832 * (9 / 16);
 
     if (ar === '1:1' || ar === 'ig-post') {
-      intrinsicW = isDual ? 630 : 520; intrinsicH = intrinsicW;
+      intrinsicW = isDual ? 630 : 520;
+      intrinsicH = intrinsicW;
     } else if (ar === '9:16' || ar === 'ig-story') {
-      intrinsicW = 450; intrinsicH = 450 * (16 / 9);
+      intrinsicW = 450;
+      intrinsicH = 450 * (16 / 9);
     } else if (ar === '4:3') {
-      intrinsicW = isDual ? 870 : 760; intrinsicH = intrinsicW * (3 / 4);
+      intrinsicW = isDual ? 870 : 760;
+      intrinsicH = intrinsicW * (3 / 4);
     } else if (ar === '3:2') {
-      intrinsicW = isDual ? 900 : 585; intrinsicH = intrinsicW * (2 / 3);
+      intrinsicW = isDual ? 900 : 585;
+      intrinsicH = intrinsicW * (2 / 3);
     } else if (ar === '5:4') {
-      intrinsicW = isDual ? 810 : 526; intrinsicH = intrinsicW * (4 / 5);
+      intrinsicW = isDual ? 810 : 526;
+      intrinsicH = intrinsicW * (4 / 5);
     } else if (ar === '3:4') {
-      intrinsicW = isDual ? 428 : 428; intrinsicH = intrinsicW * (4 / 3);
+      intrinsicW = isDual ? 428 : 428;
+      intrinsicH = intrinsicW * (4 / 3);
     } else if (ar === '4:5' || ar === 'ig-portrait') {
-      intrinsicW = isDual ? 468 : 468; intrinsicH = intrinsicW * (5 / 4);
+      intrinsicW = isDual ? 468 : 468;
+      intrinsicH = intrinsicW * (5 / 4);
     } else if (ar === 'auto') {
-      intrinsicW = isDual ? 1560 : 1200; intrinsicH = isDual ? 900 : 700;
+      intrinsicW = isDual ? 1560 : 1200;
+      intrinsicH = isDual ? 900 : 700;
     } else if (ar === 'custom') {
       intrinsicW = (state.customWidth || 1280) * 0.45;
       intrinsicH = (state.customHeight || 720) * 0.45;
     } else {
       // 16:9 and yt-* variants
-      intrinsicW = isDual ? 960 : 832; intrinsicH = intrinsicW * (9 / 16);
+      intrinsicW = isDual ? 960 : 832;
+      intrinsicH = intrinsicW * (9 / 16);
     }
 
-    const containerEl = canvasRef.current?.closest('.absolute.inset-0') as HTMLElement | null
-      || canvasRef.current?.parentElement?.parentElement as HTMLElement | null;
+    const containerEl =
+      (canvasRef.current?.closest('.absolute.inset-0') as HTMLElement | null) ||
+      (canvasRef.current?.parentElement?.parentElement as HTMLElement | null);
 
     // Fallback to window dimensions minus sidebar widths (~640px combined)
     const containerW = containerEl ? containerEl.clientWidth : window.innerWidth - 640;
@@ -2018,8 +2063,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         }
       } else if (resizeDragItem.type === 'shape') {
         // 1:1 Pixel-Perfect Cursor Tracking for Shapes
-        const isUniform =
-          resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
+        const isUniform = resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
         const initW = resizeDragItem.initialWidth || 120;
         const initH = resizeDragItem.initialHeight || 120;
 
@@ -2586,7 +2630,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     return (
                       <IconComp
                         key={iconId}
-                        weight={config.weight || 'duotone'}
+                        weight={config.weight || 'regular'}
                         size={config.size || 28}
                         color={config.color || '#a2d2ff'}
                       />

@@ -510,7 +510,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   phosphorIconConfig: {
     enabled: false,
     selectedIcons: ['Sparkle', 'Heart', 'Cube'],
-    weight: 'duotone',
+    weight: 'regular',
     size: 28,
     gap: 12,
     color: '#a2d2ff',
