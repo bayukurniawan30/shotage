@@ -813,17 +813,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
-              opacity: isGlass ? loop.opacityMul : ((layer.opacity ?? 100) / 100) * loop.opacityMul,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${layer.width || 120}px`,
               height: `${layer.height || 120}px`,
-              overflow: !isPolygonOrMask && !layer.blur ? 'hidden' : undefined,
+              overflow: isSelected
+                ? 'visible'
+                : !isPolygonOrMask && !layer.blur
+                  ? 'hidden'
+                  : undefined,
               borderRadius:
-                layer.shapeType === 'circle'
+                layer.shapeType === 'circle' && !isSelected
                   ? '9999px'
-                  : layer.shapeType === 'hexagon' || layer.shapeType === 'quote'
-                    ? '8px'
-                    : `${layer.borderRadius ?? 8}px`,
+                  : `${layer.borderRadius ?? 0}px`,
             }}
           >
             <div
@@ -831,6 +832,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               style={{
                 ...getGlassOrSolidBackground(),
                 ...getShapeStyle(),
+                opacity: isGlass
+                  ? loop.opacityMul
+                  : ((layer.opacity ?? 100) / 100) * loop.opacityMul,
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
                 ...(isGlass
                   ? {
@@ -888,21 +892,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   }}
                   className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.TrashIcon className="w-3.5 h-3.5 font-bold" />
                 </div>
                 <div
                   data-action="rotate"
                   title="Drag to rotate"
                   className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowClockwiseIcon className="w-3.5 h-3.5 font-bold" />
                 </div>
                 <div
                   data-action="resize"
                   title="Drag to resize shape"
                   className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowsOutSimpleIcon className="w-3.5 h-3.5 font-bold" />
                 </div>
               </>
             )}
