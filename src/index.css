@@ -141,3 +141,11 @@ input[type='range'] {
 .animate-float-delay {
   animation: float-slow 4.8s ease-in-out infinite 1.8s;
 }
+
+/* Instant exact layout rendering during export */
+.exporting-no-transitions,
+.exporting-no-transitions * {
+  transition: none !important;
+  animation-play-state: paused !important;
+}
+

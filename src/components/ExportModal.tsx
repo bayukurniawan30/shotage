@@ -145,11 +145,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setIsExporting(true);
     setExportingType('image');
 
+    // Suppress CSS transitions during export so layers and stages snap to exact coordinates instantly
+    if (canvasRef.current) {
+      canvasRef.current.classList.add('exporting-no-transitions');
+    }
+
     // Ensure all web fonts are loaded and DOM has reflowed after deselecting layers
     if ('fonts' in document) {
       await document.fonts.ready;
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     try {
       const options = {
@@ -179,7 +185,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         for (let i = 0; i < totalStages; i++) {
           state.selectStage(i);
           setExportProgress(Math.round(((i + 1) / totalStages) * 100));
-          await new Promise((resolve) => setTimeout(resolve, 150));
+
+          // Wait for React DOM flush and browser layout computation
+          await new Promise((resolve) => setTimeout(resolve, 80));
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           if ('fonts' in document) await document.fonts.ready;
 
           let dataUrl: string;
@@ -200,7 +209,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           if (format === 'webp') {
             setTimeout(() => URL.revokeObjectURL(dataUrl), 2000);
           }
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          await new Promise((resolve) => setTimeout(resolve, 150));
         }
 
         state.selectStage(initialStageIndex);
@@ -238,6 +247,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       console.error('Export error:', err);
       alert('Failed to export canvas image. Please try again.');
     } finally {
+      if (canvasRef.current) {
+        canvasRef.current.classList.remove('exporting-no-transitions');
+      }
       setIsExporting(false);
       setExportingType(null);
     }
