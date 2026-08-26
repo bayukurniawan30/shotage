@@ -1229,15 +1229,30 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     } else {
       // Frameless styles implementation
       const fStyle = state.framelessStyle || 'default';
+      const rotXVal = slotIndex === 2 ? slot2RX : animTransform.rotateX;
+      const rotYVal = slotIndex === 2 ? slot2RY : animTransform.rotateY;
+      const isImg =
+        slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
+      const userThick = state.slabThickness ?? 12;
+      const is3D = isFrameless && isImg && (Math.abs(rotXVal) >= 0.5 || Math.abs(rotYVal) >= 0.5) && userThick > 0;
+
       let borderStyleClasses = '';
       if (fStyle === 'glass-light') {
-        borderStyleClasses = 'p-1.5 bg-white/30 backdrop-blur-md border border-white/50 shadow-xl';
+        borderStyleClasses = is3D
+          ? 'p-1.5 bg-white/90 backdrop-blur-md border border-white/60'
+          : 'p-1.5 bg-white/30 backdrop-blur-md border border-white/50 shadow-xl';
       } else if (fStyle === 'glass-dark') {
-        borderStyleClasses = 'p-1.5 bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl';
+        borderStyleClasses = is3D
+          ? 'p-1.5 bg-neutral-900/90 backdrop-blur-md border border-white/15'
+          : 'p-1.5 bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl';
       } else if (fStyle === 'inset-light') {
-        borderStyleClasses = 'p-1.5 bg-slate-200/90 border border-slate-300 shadow-inner';
+        borderStyleClasses = is3D
+          ? 'p-1.5 bg-slate-200/90 border border-slate-300'
+          : 'p-1.5 bg-slate-200/90 border border-slate-300 shadow-inner';
       } else if (fStyle === 'inset-dark') {
-        borderStyleClasses = 'p-1.5 bg-slate-900/90 border border-slate-800 shadow-inner';
+        borderStyleClasses = is3D
+          ? 'p-1.5 bg-slate-900/90 border border-slate-800'
+          : 'p-1.5 bg-slate-900/90 border border-slate-800 shadow-inner';
       }
 
       if (fStyle === 'card') {
@@ -1373,6 +1388,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             style={{
               borderRadius: computedRadius,
               boxShadow: [...rimShadows, ...sideShadows].join(', '),
+              backgroundColor: currentStyle === 'glass-light' ? '#ffffff' : undefined,
             }}
           >
             {frameElement}
