@@ -995,19 +995,46 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const enableShine = shinePreset !== 'none';
     const shineOpacity = (state.shineOpacity ?? 35) / 100;
 
+    // Dynamic rotation & animation parameters for natural physical light reflection
+    const rotX = slotIndex === 2 ? slot2RX : animTransform.rotateX;
+    const rotY = slotIndex === 2 ? slot2RY : animTransform.rotateY;
+
+    const timeProgress =
+      state.durationSec && state.durationSec > 0
+        ? (state.currentTimeSec % state.durationSec) / state.durationSec
+        : 0;
+    const timeShimmer = Math.sin(timeProgress * Math.PI * 2) * 5;
+
+    // Light shifts across the glass surface inversely to the 3D tilt with ample margin
+    const shineShiftX = -rotY * 0.35 + timeShimmer;
+    const shineShiftY = rotX * 0.35;
+    const dynamicAngle = Math.round(135 + rotY * 1.5 + rotX * 0.5);
+
     const getShineBackground = () => {
       switch (shinePreset) {
-        case 'apple-glare':
-          return 'linear-gradient(125deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.22) 45%, rgba(255,255,255,0.02) 47.5%, transparent 47.6%, transparent 100%)';
-        case 'curved-sheen':
-          return 'radial-gradient(ellipse 130% 80% at 20% -10%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.22) 38%, transparent 75%)';
-        case 'top-light':
-          return 'linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.22) 28%, transparent 72%)';
-        case 'dual-beam':
-          return 'linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.18) 28%, transparent 45%), linear-gradient(315deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 22%, transparent 40%)';
+        case 'apple-glare': {
+          const cutStop = Math.max(25, Math.min(65, 48 - rotY * 0.4 + timeShimmer * 0.5));
+          return `linear-gradient(${125 + rotY * 1.5 + rotX * 0.5}deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.25) ${cutStop}%, rgba(255,255,255,0.02) ${cutStop + 1.5}%, transparent ${cutStop + 1.6}%, transparent 100%)`;
+        }
+        case 'curved-sheen': {
+          const cx = Math.max(10, Math.min(70, 35 - rotY * 0.8 + timeShimmer));
+          const cy = Math.max(0, Math.min(50, 15 + rotX * 0.8));
+          return `radial-gradient(ellipse 130% 80% at ${cx}% ${cy}%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.22) 38%, transparent 75%)`;
+        }
+        case 'top-light': {
+          const topStop = Math.max(20, Math.min(60, 38 + rotX * 0.5));
+          return `linear-gradient(${180 + rotY * 1.2}deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.22) ${topStop}%, transparent ${topStop + 35}%)`;
+        }
+        case 'dual-beam': {
+          const beam1 = Math.max(20, Math.min(55, 38 - rotY * 0.5));
+          const beam2 = Math.max(20, Math.min(55, 32 + rotY * 0.5));
+          return `linear-gradient(${135 + rotY * 1.2}deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.18) ${beam1}%, transparent ${beam1 + 15}%), linear-gradient(${315 + rotY * 1.2}deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) ${beam2}%, transparent ${beam2 + 15}%)`;
+        }
         case 'diagonal-glass':
-        default:
-          return 'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.28) 28%, rgba(255,255,255,0.06) 42%, transparent 60%)';
+        default: {
+          const stop1 = Math.max(15, Math.min(55, 38 - rotY * 0.4 + timeShimmer * 0.4));
+          return `linear-gradient(${dynamicAngle}deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.28) ${stop1}%, rgba(255,255,255,0.06) ${stop1 + 12}%, transparent ${stop1 + 25}%)`;
+        }
       }
     };
 
@@ -1041,17 +1068,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             />
           )}
 
-          {/* Glass Screen Shine / Reflection Overlay */}
+          {/* Dynamic Glass Screen Shine / Reflection Overlay with Full-Coverage Bleed */}
           {enableShine && (
             <div
-              className="absolute inset-0 pointer-events-none z-[5] transition-opacity duration-150 overflow-hidden"
+              className="absolute inset-0 pointer-events-none z-[5] overflow-hidden"
               style={{
-                background: getShineBackground(),
-                opacity: shineOpacity,
-                mixBlendMode: 'screen',
                 borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
               }}
-            />
+            >
+              <div
+                className="w-[240%] h-[240%] -left-[70%] -top-[70%] absolute pointer-events-none transition-transform duration-100 ease-out"
+                style={{
+                  background: getShineBackground(),
+                  opacity: shineOpacity,
+                  mixBlendMode: 'screen',
+                  transform: `translate3d(${shineShiftX}%, ${shineShiftY}%, 0)`,
+                }}
+              />
+            </div>
           )}
           <label className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center text-white cursor-pointer z-10 p-3">
             <div className="w-[12cqmin] h-[12cqmin] min-w-[28px] min-h-[28px] max-w-[80px] max-h-[80px] rounded-[16%] bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-[1.5cqmin] group-hover:scale-110 transition-transform pointer-events-none">
@@ -1311,8 +1345,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ? `${state.borderRadius}px`
             : undefined;
 
-    const rotX = slotIndex === 2 ? slot2RX : animTransform.rotateX;
-    const rotY = slotIndex === 2 ? slot2RY : animTransform.rotateY;
     const isImage =
       slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
     const is3DActive = isFrameless && isImage && (Math.abs(rotX) >= 0.5 || Math.abs(rotY) >= 0.5);

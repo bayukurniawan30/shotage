@@ -263,20 +263,39 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setExportingType('video');
     setExportProgress(0);
 
+    // Suppress CSS transitions during video export
+    if (canvasRef.current) {
+      canvasRef.current.classList.add('exporting-no-transitions');
+    }
+
     let exportCanvas: HTMLCanvasElement | null = null;
     let ctx: CanvasRenderingContext2D | null = null;
     let videoEncoder: VideoEncoder | null = null;
     let muxer: any = null;
     let cachedFontEmbedCSS = '';
+    const initialStageIndex = state.activeStageIndex;
 
     try {
       state.selectTextLayer(null);
       state.selectShapeLayer(null);
       state.selectPhosphorIconLayer(null);
       state.selectCanvasElement(null);
-      const durationSec = state.durationSec || 10;
+
+      const totalStages = state.stages?.length || 1;
+      const isMultiStage = exportScope === 'all' && totalStages > 1;
+      const stagesToRecord = isMultiStage
+        ? Array.from({ length: totalStages }, (_, i) => i)
+        : [state.activeStageIndex];
+
       const fps = 30; // 30 FPS for crisp frame delivery
-      const totalFrames = Math.floor(durationSec * fps);
+
+      // Calculate total duration across all stages to record
+      let grandTotalFrames = 0;
+      for (const idx of stagesToRecord) {
+        const stageDuration =
+          (state.stages && state.stages[idx]?.durationSec) || state.durationSec || 10;
+        grandTotalFrames += Math.floor(stageDuration * fps);
+      }
 
       const rawWidth = canvasRef.current.offsetWidth || canvasRef.current.clientWidth || 1200;
       const rawHeight = canvasRef.current.offsetHeight || canvasRef.current.clientHeight || 800;
@@ -501,89 +520,114 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         await document.fonts.ready;
       }
 
-      // Pre-compute font embed CSS ONCE to prevent html-to-image from downloading/converting fonts on every frame (300x)
-      try {
-        cachedFontEmbedCSS = await getFontEmbedCSS(canvasRef.current);
-      } catch (err) {
-        console.warn('Could not pre-cache font embed CSS:', err);
-      }
+      let globalTimeOffsetSec = 0;
+      let completedFramesCount = 0;
 
-      const framePixelRatio = exportCanvas.width / (canvasRef.current.offsetWidth || exportCanvas.width);
+      // Sequentially record each stage into the single video stream
+      for (let sIdx = 0; sIdx < stagesToRecord.length; sIdx++) {
+        const stageIndex = stagesToRecord[sIdx];
 
-      // Frame-by-Frame High Speed Pipeline using direct canvas capture
-      for (let frame = 0; frame <= totalFrames; frame++) {
-        if (cancelVideoRef.current || encoderError) {
-          if (encoderError) console.error('Video export aborted due to encoder error:', encoderError);
-          break;
-        }
-
-        const targetTimeSec = (frame / totalFrames) * durationSec;
-        onChange({ currentTimeSec: targetTimeSec });
-
-        // Synchronize any mockup video decoders to exact target timestamp
-        if (activeVideoDecoders.size > 0) {
-          await Promise.all(
-            Array.from(activeVideoDecoders.values()).map(({ video, drawFrame }) => {
-              return new Promise<void>((resolve) => {
-                const vidDuration = video.duration || durationSec;
-                const vidTarget = targetTimeSec % vidDuration;
-
-                if (Math.abs(video.currentTime - vidTarget) < 0.03) {
-                  drawFrame();
-                  return resolve();
-                }
-
-                const onSeeked = () => {
-                  video.removeEventListener('seeked', onSeeked);
-                  drawFrame();
-                  resolve();
-                };
-                video.addEventListener('seeked', onSeeked, { once: true });
-                video.currentTime = vidTarget;
-                setTimeout(() => {
-                  drawFrame();
-                  resolve();
-                }, 80);
-              });
-            })
-          );
+        if (isMultiStage) {
+          state.selectStage(stageIndex);
+          await new Promise((resolve) => setTimeout(resolve, 80));
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          if ('fonts' in document) await document.fonts.ready;
         }
 
         try {
-          const renderedCanvas = await toCanvas(canvasRef.current, {
-            pixelRatio: framePixelRatio,
-            cacheBust: false,
-            fontEmbedCSS: cachedFontEmbedCSS,
-            ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
-            filter: (node) => (node as HTMLElement).tagName !== 'VIDEO',
-          });
-
-          // Draw directly to even-dimension exportCanvas
-          ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-          ctx.drawImage(renderedCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
-
-          // Compute exact timestamp in microseconds for video output
-          const timestampMicros = Math.round((frame / fps) * 1_000_000);
-          const videoFrame = new VideoFrame(exportCanvas, {
-            timestamp: timestampMicros,
-            alpha: isTransparentExport ? 'keep' : 'discard',
-          });
-          videoEncoder.encode(videoFrame, { keyFrame: frame % (fps * 2) === 0 });
-          videoFrame.close();
-
-          // CRITICAL MEMORY RELEASE:
-          // Immediately zero-out intermediate frame canvas dimensions to reclaim GPU/RAM bitmap memory
-          renderedCanvas.width = 0;
-          renderedCanvas.height = 0;
-        } catch (e) {
-          console.error('Frame render failed at frame', frame, e);
+          cachedFontEmbedCSS = await getFontEmbedCSS(canvasRef.current);
+        } catch (err) {
+          console.warn('Could not pre-cache font embed CSS:', err);
         }
 
-        setExportProgress(Math.round((frame / totalFrames) * 100));
+        const durationSec = state.durationSec || 10;
+        const totalFrames = Math.floor(durationSec * fps);
+        const framePixelRatio = exportCanvas.width / (canvasRef.current.offsetWidth || exportCanvas.width);
 
-        // Yield to browser event loop on every frame so user cancellation and UI clicks process immediately
-        await new Promise((resolve) => setTimeout(resolve, 8));
+        for (let frame = 0; frame <= totalFrames; frame++) {
+          if (cancelVideoRef.current || encoderError) {
+            if (encoderError) console.error('Video export aborted due to encoder error:', encoderError);
+            break;
+          }
+
+          const targetTimeSec = (frame / totalFrames) * durationSec;
+          onChange({ currentTimeSec: targetTimeSec });
+
+          // Synchronize any mockup video decoders to exact target timestamp
+          if (activeVideoDecoders.size > 0) {
+            await Promise.all(
+              Array.from(activeVideoDecoders.values()).map(({ video, drawFrame }) => {
+                return new Promise<void>((resolve) => {
+                  const vidDuration = video.duration || durationSec;
+                  const vidTarget = targetTimeSec % vidDuration;
+
+                  if (Math.abs(video.currentTime - vidTarget) < 0.03) {
+                    drawFrame();
+                    return resolve();
+                  }
+
+                  const onSeeked = () => {
+                    video.removeEventListener('seeked', onSeeked);
+                    drawFrame();
+                    resolve();
+                  };
+                  video.addEventListener('seeked', onSeeked, { once: true });
+                  video.currentTime = vidTarget;
+                  setTimeout(() => {
+                    drawFrame();
+                    resolve();
+                  }, 80);
+                });
+              })
+            );
+          }
+
+          try {
+            const renderedCanvas = await toCanvas(canvasRef.current, {
+              pixelRatio: framePixelRatio,
+              cacheBust: false,
+              fontEmbedCSS: cachedFontEmbedCSS,
+              ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
+              filter: (node) => (node as HTMLElement).tagName !== 'VIDEO',
+            });
+
+            // Draw directly to even-dimension exportCanvas
+            ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+            ctx.drawImage(renderedCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
+
+            // Compute exact continuous timestamp in microseconds for video output
+            const frameTimeSec = globalTimeOffsetSec + targetTimeSec;
+            const timestampMicros = Math.round(frameTimeSec * 1_000_000);
+            const isKeyFrame = frame === 0 || (frame % (fps * 2) === 0);
+
+            const videoFrame = new VideoFrame(exportCanvas, {
+              timestamp: timestampMicros,
+              alpha: isTransparentExport ? 'keep' : 'discard',
+            });
+            videoEncoder.encode(videoFrame, { keyFrame: isKeyFrame });
+            videoFrame.close();
+
+            // CRITICAL MEMORY RELEASE:
+            renderedCanvas.width = 0;
+            renderedCanvas.height = 0;
+          } catch (e) {
+            console.error('Frame render failed at frame', frame, e);
+          }
+
+          completedFramesCount++;
+          setExportProgress(Math.min(99, Math.round((completedFramesCount / grandTotalFrames) * 100)));
+
+          // Yield to browser event loop on every frame so user cancellation and UI clicks process immediately
+          await new Promise((resolve) => setTimeout(resolve, 8));
+          if (cancelVideoRef.current) break;
+        }
+
+        globalTimeOffsetSec += durationSec;
         if (cancelVideoRef.current) break;
+      }
+
+      if (isMultiStage) {
+        state.selectStage(initialStageIndex);
       }
 
       if (cancelVideoRef.current) {
@@ -616,7 +660,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         const blob = new Blob([buffer], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = `shotage-animation-${Date.now()}.${extension}`;
+        link.download = isMultiStage
+          ? `shotage-stages-animation-${Date.now()}.${extension}`
+          : `shotage-animation-${Date.now()}.${extension}`;
         link.href = url;
         link.click();
 
@@ -625,6 +671,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }
 
       // Trigger 3D Success State
+      setExportProgress(100);
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
@@ -640,6 +687,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       setExportingType(null);
       setExportProgress(0);
     } finally {
+      if (canvasRef.current) {
+        canvasRef.current.classList.remove('exporting-no-transitions');
+      }
       // Complete memory purge
       if (exportCanvas) {
         exportCanvas.width = 0;
@@ -1068,6 +1118,37 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
             </div>
 
+            {/* Stage Scope Selector when multiple stages exist */}
+            {(state.stages?.length || 1) > 1 && (
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Export Target
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setExportScope('current')}
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                      exportScope === 'current'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
+                    }`}
+                  >
+                    Current Stage ({state.activeStageIndex + 1})
+                  </button>
+                  <button
+                    onClick={() => setExportScope('all')}
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                      exportScope === 'all'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
+                    }`}
+                  >
+                    All Stages Combined (1..{state.stages?.length})
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="pt-2 w-full">
               {isExporting && exportingType === 'video' ? (
                 /* Active Video Export Progress & 100% Clickable Stop Button */
@@ -1128,7 +1209,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   ) : (
                     <>
                       <Film01 className="w-4 h-4 text-slate-950" />
-                      <span>Record & Export {videoFormat.toUpperCase()} Video</span>
+                      <span>
+                        {exportScope === 'all' && (state.stages?.length || 1) > 1
+                          ? `Record All Stages (${state.stages?.length}) into 1 ${videoFormat.toUpperCase()}`
+                          : `Record & Export ${videoFormat.toUpperCase()} Video`}
+                      </span>
                     </>
                   )}
                 </button>
