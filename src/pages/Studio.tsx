@@ -1029,13 +1029,13 @@ export const Studio: React.FC = () => {
 
       {/* Fullscreen Drag & Drop Overlay */}
       {isDraggingFile && (
-        <div className="fixed inset-0 z-50 p-6 bg-slate-950/80 backdrop-blur-md flex items-center justify-center transition-all animate-in fade-in duration-200">
-          <div className="w-full h-full border-4 border-dashed border-brand-500 bg-slate-900/60 rounded-3xl flex flex-col items-center justify-center p-8 shadow-2xl shadow-brand-500/20">
+        <div className="fixed inset-0 z-50 p-6 bg-black/75 backdrop-blur-md flex items-center justify-center transition-all animate-in fade-in duration-200">
+          <div className="w-full h-full border-4 border-dashed border-brand-500 bg-neutral-900/80 rounded-3xl flex flex-col items-center justify-center p-8 shadow-2xl shadow-brand-500/20">
             <div className="w-20 h-20 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center mb-6 shadow-2xl shadow-brand-500/30 animate-bounce">
               <UploadCloud01 className="w-10 h-10" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-100 mb-2">Drop your screenshot here</h2>
-            <p className="text-sm text-slate-400 font-mono">
+            <h2 className="text-2xl font-bold text-white mb-2">Drop your screenshot here</h2>
+            <p className="text-sm text-neutral-400 font-mono">
               Supported formats: .png, .jpg, .jpeg, .webp, .svg
             </p>
           </div>
@@ -1044,11 +1044,11 @@ export const Studio: React.FC = () => {
 
       {/* Start Over Confirmation Modal */}
       {isStartOverModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-bold shrink-0 shadow-md"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-neutral-950 font-bold shrink-0 shadow-md"
                 style={{
                   backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
                 }}
@@ -1056,8 +1056,8 @@ export const Studio: React.FC = () => {
                 <RefreshCcw01 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Start Over?</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h3 className="text-sm font-bold text-white">Start Over?</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
                   Reset canvas and clear edit history to initial state.
                 </p>
               </div>
@@ -1066,13 +1066,13 @@ export const Studio: React.FC = () => {
             <div className="flex items-center gap-2 pt-2">
               <button
                 onClick={() => setIsStartOverModalOpen(false)}
-                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 transition-colors"
+                className="flex-1 py-2 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 hover:text-white text-xs font-semibold rounded-xl border border-neutral-700 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmStartOver}
-                className="flex-1 py-2 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
+                className="flex-1 py-2 text-neutral-950 font-extrabold text-xs rounded-xl shadow-md transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
                 style={{
                   backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
                 }}
@@ -1086,11 +1086,11 @@ export const Studio: React.FC = () => {
 
       {/* Restore Previous Session Modal */}
       {isRestorePromptOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-950 font-bold shrink-0 shadow-md"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-neutral-950 font-bold shrink-0 shadow-md"
                 style={{
                   backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
                 }}
@@ -1098,8 +1098,8 @@ export const Studio: React.FC = () => {
                 <RefreshCcw01 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Restore session?</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h3 className="text-sm font-bold text-white">Restore session?</h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
                   We found a previously saved edit. Restore it and pick up where you left off?
                 </p>
               </div>
@@ -1108,13 +1108,13 @@ export const Studio: React.FC = () => {
             <div className="flex items-center gap-2 pt-2">
               <button
                 onClick={discardSession}
-                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 transition-colors"
+                className="flex-1 py-2 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 hover:text-white text-xs font-semibold rounded-xl border border-neutral-700 transition-colors cursor-pointer"
               >
                 Start Fresh
               </button>
               <button
                 onClick={restoreSession}
-                className="flex-1 py-2 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
+                className="flex-1 py-2 text-neutral-950 font-extrabold text-xs rounded-xl shadow-md transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
                 style={{
                   backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
                 }}
