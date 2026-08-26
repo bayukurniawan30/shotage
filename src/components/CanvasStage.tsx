@@ -1239,11 +1239,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       let borderStyleClasses = '';
       if (fStyle === 'glass-light') {
         borderStyleClasses = is3D
-          ? 'p-1.5 bg-white/90 backdrop-blur-md border border-white/60'
+          ? 'p-1.5 bg-white/40 backdrop-blur-md border border-white/50'
           : 'p-1.5 bg-white/30 backdrop-blur-md border border-white/50 shadow-xl';
       } else if (fStyle === 'glass-dark') {
         borderStyleClasses = is3D
-          ? 'p-1.5 bg-neutral-900/90 backdrop-blur-md border border-white/15'
+          ? 'p-1.5 bg-black/50 backdrop-blur-md border border-white/15'
           : 'p-1.5 bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl';
       } else if (fStyle === 'inset-light') {
         borderStyleClasses = is3D
@@ -1279,13 +1279,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       } else if (fStyle !== 'default') {
         frameElement = (
           <div
-            className={`transition-all ${borderStyleClasses}`}
+            className={`transition-all overflow-hidden ${borderStyleClasses}`}
             style={{
               borderRadius: `${state.borderRadius + 8}px`,
             }}
           >
             <div
-              className="overflow-hidden"
+              className="overflow-hidden w-full h-full"
               style={{
                 borderRadius: `${state.borderRadius}px`,
               }}
@@ -1384,18 +1384,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         <div className="relative group">
           {/* The image/mockup with dense 3D slab extrusion via box-shadow */}
           <div
-            className="relative z-10 transition-all duration-200"
+            className="relative z-10 transition-all duration-200 overflow-hidden"
             style={{
               borderRadius: computedRadius,
               boxShadow: [...rimShadows, ...sideShadows].join(', '),
-              backgroundColor: currentStyle === 'glass-light' ? '#ffffff' : undefined,
             }}
           >
             {frameElement}
 
             {/* Front glass specular rim highlight overlay */}
             <div
-              className="absolute inset-0 pointer-events-none z-20"
+              className="absolute inset-0 pointer-events-none z-20 overflow-hidden"
               style={{
                 borderRadius: computedRadius,
                 border: '1px solid rgba(255,255,255,0.3)',
@@ -1404,7 +1403,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
             {/* Dynamic angle-responsive surface sheen */}
             <div
-              className="absolute inset-0 pointer-events-none z-20"
+              className="absolute inset-0 pointer-events-none z-20 overflow-hidden"
               style={{
                 borderRadius: computedRadius,
                 opacity: 0.25,
