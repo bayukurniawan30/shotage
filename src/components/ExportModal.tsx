@@ -803,13 +803,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+      className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 cursor-default text-slate-200"
       >
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
           <div className="flex items-center gap-2.5">
             <div
               className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-950 font-bold shadow-md"
@@ -838,7 +838,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
             title="Close"
           >
             <XClose className="w-5 h-5" />
@@ -846,13 +846,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         </div>
 
         {/* Category Tabs Header: Image vs Video vs Share */}
-        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex bg-neutral-950 p-1 rounded-xl border border-neutral-800 gap-1">
           <button
             onClick={() => setActiveTab('image')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'image'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] border border-[#a2d2ff]/40 shadow-xs font-bold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900 border border-transparent'
             }`}
           >
             <Image01 className="w-3.5 h-3.5" />
@@ -864,10 +864,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           {state.isAnimationMode && (
             <button
               onClick={() => setActiveTab('video')}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'video'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] border border-[#a2d2ff]/40 shadow-xs font-bold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900 border border-transparent'
               }`}
             >
               <Film01 className="w-3.5 h-3.5" />
@@ -879,10 +879,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           )}
           <button
             onClick={() => setActiveTab('share')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'share'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] border border-[#a2d2ff]/40 shadow-xs font-bold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900 border border-transparent'
             }`}
           >
             <Share01 className="w-3.5 h-3.5" />
@@ -894,7 +894,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         {activeTab === 'image' && (
           <>
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 File Format
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -902,10 +902,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   <button
                     key={fmt}
                     onClick={() => onChange({ exportFormat: fmt })}
-                    className={`py-2 text-xs font-mono uppercase rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-mono uppercase rounded-xl border transition-all cursor-pointer ${
                       state.exportFormat === fmt
-                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                     }`}
                   >
                     {fmt}
@@ -915,7 +915,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Pixel Density Scale
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -923,10 +923,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   <button
                     key={scale}
                     onClick={() => onChange({ exportScale: scale })}
-                    className={`py-2 text-xs font-mono rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-mono rounded-xl border transition-all cursor-pointer ${
                       state.exportScale === scale
-                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                     }`}
                   >
                     {scale}x Density
@@ -938,26 +938,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             {/* Stage Scope Selector when multiple stages exist */}
             {(state.stages?.length || 1) > 1 && (
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Export Target
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setExportScope('current')}
-                    className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                       exportScope === 'current'
-                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                     }`}
                   >
                     Current Stage ({state.activeStageIndex + 1})
                   </button>
                   <button
                     onClick={() => setExportScope('all')}
-                    className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                       exportScope === 'all'
-                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                     }`}
                   >
                     All Stages (1..{state.stages?.length})
@@ -1004,10 +1004,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               <button
                 disabled={isExporting}
                 onClick={() => handleExport('png', true)}
-                className={`w-full py-2.5 bg-slate-800 text-slate-200 font-medium text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 ${
+                className={`w-full py-2.5 bg-neutral-800 text-slate-200 font-semibold text-xs rounded-xl border border-neutral-700 transition-all flex items-center justify-center gap-2 ${
                   isExporting
                     ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:bg-slate-700 cursor-pointer'
+                    : 'hover:bg-neutral-750 hover:border-neutral-600 hover:text-white cursor-pointer'
                 }`}
               >
                 Copy PNG to Clipboard
@@ -1020,26 +1020,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         {state.isAnimationMode && activeTab === 'video' && (
           <>
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Video Format
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setVideoFormat('mp4')}
-                  className={`py-2.5 text-xs font-semibold rounded-xl border transition-all ${
+                  className={`py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                     videoFormat === 'mp4'
-                      ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                      ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                   }`}
                 >
                   MP4 (H.264) — Universal
                 </button>
                 <button
                   onClick={() => setVideoFormat('webm')}
-                  className={`py-2.5 text-xs font-semibold rounded-xl border transition-all ${
+                  className={`py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                     videoFormat === 'webm'
-                      ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                      ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                   }`}
                 >
                   WebM (VP9) — Web
@@ -1048,7 +1048,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Resolution Scale
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -1056,10 +1056,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   <button
                     key={scale}
                     onClick={() => onChange({ exportScale: scale })}
-                    className={`py-2 text-xs font-mono rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-mono rounded-xl border transition-all cursor-pointer ${
                       state.exportScale === scale
-                        ? 'bg-pastel-purple/30 border-pastel-pink text-pastel-pinkLight font-bold shadow-sm'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                        ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                     }`}
                   >
                     {scale}x Density
@@ -1155,7 +1155,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Design Name
                 </label>
                 <input
@@ -1164,12 +1164,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   onChange={(e) => setShareName(e.target.value)}
                   placeholder="e.g. Product Showoff"
                   disabled={isSharing}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink disabled:opacity-50"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Publisher
                 </label>
                 <input
@@ -1178,7 +1178,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   onChange={(e) => setSharePublisher(e.target.value)}
                   placeholder="e.g. Studio Name"
                   disabled={isSharing}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pastel-pink disabled:opacity-50"
                 />
               </div>
             </div>
@@ -1193,7 +1193,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                     Share URL
                   </label>
                   <div className="flex items-center gap-2">
@@ -1202,7 +1202,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                       readOnly
                       value={shareUrl}
                       onFocus={(e) => e.target.select()}
-                      className="flex-1 min-w-0 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-[11px] font-mono text-pastel-pink focus:outline-none focus:border-pastel-pink truncate"
+                      className="flex-1 min-w-0 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-[11px] font-mono text-pastel-pink focus:outline-none focus:border-pastel-pink truncate"
                     />
                     <button
                       type="button"
@@ -1211,7 +1211,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                       className={`shrink-0 w-9 h-9 rounded-xl border transition-all flex items-center justify-center cursor-pointer ${
                         isShareCopied
                           ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                          : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:border-slate-600'
+                          : 'bg-neutral-800 border-neutral-700 text-slate-200 hover:bg-neutral-700 hover:border-neutral-600 hover:text-white'
                       }`}
                     >
                       {isShareCopied ? (
@@ -1271,12 +1271,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
         {/* Sponsorer Box */}
         {sponsoredProject && (
-          <div className="pt-3 border-t border-slate-800/80">
+          <div className="pt-3 border-t border-neutral-800/80">
             <a
               href={sponsoredProject.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group block p-3 bg-slate-950/60 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl transition-all shadow-inner"
+              className="group block p-3 bg-neutral-950/60 hover:bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl transition-all shadow-inner"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
