@@ -220,6 +220,24 @@ export type ShinePreset =
   | 'top-light'
   | 'dual-beam';
 
+export type FrameType =
+  | 'frameless'
+  | 'safari-light'
+  | 'safari-dark'
+  | 'chrome-dark'
+  | 'macbook'
+  | 'macbookair13'
+  | 'iphone'
+  | 'iphone14pro'
+  | 'iphone16'
+  | 'iphone17-dual-side'
+  | 'samsung-s21'
+  | 'tablet'
+  | 'polaroid'
+  | 'polaroid-dark'
+  | 'instagram'
+  | 'instagram-dark';
+
 export interface StudioState {
   imageSrc: string | null;
   imageName: string;
@@ -255,23 +273,7 @@ export interface StudioState {
   shadowOverlayOpacity?: number; // 0 to 100
   shadowOverlayPosition?: 'behind' | 'above';
   hideMockup: boolean;
-  frameType:
-    | 'frameless'
-    | 'safari-light'
-    | 'safari-dark'
-    | 'chrome-dark'
-    | 'macbook'
-    | 'macbookair13'
-    | 'iphone'
-    | 'iphone14pro'
-    | 'iphone16'
-    | 'iphone17-dual-side'
-    | 'samsung-s21'
-    | 'tablet'
-    | 'polaroid'
-    | 'polaroid-dark'
-    | 'instagram'
-    | 'instagram-dark';
+  frameType: FrameType;
   samsungStatusBar?: 'none' | 'light' | 'dark';
   iphoneStatusBar?: 'none' | 'light' | 'dark';
   urlText: string;

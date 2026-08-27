@@ -207,8 +207,35 @@ export const Studio: React.FC = () => {
     };
   }, [sharedViewKey]);
 
-  // On mount, check for a previous session in IndexedDB / LocalStorage and offer to restore it
+  // On mount, check for a previous session in IndexedDB / LocalStorage and offer to restore it,
+  // OR if ?frame=<frameType> is present in the URL, start a fresh session with that specific frame
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const frameParam = searchParams.get('frame');
+
+      if (frameParam) {
+        // 1. Reset all in-memory decoders, blobs, and history
+        purgeAllVideoDecoders();
+        temporalStore.getState().clear();
+        clearSavedSession();
+        savedSessionDataRef.current = null;
+        isRestoredOrDismissedRef.current = true;
+        setIsRestorePromptOpen(false);
+
+        // 2. Reset studio store to fresh state with the specified frameType
+        resetAll();
+        updateState({ frameType: frameParam as any });
+
+        // 3. Clean up the URL search param without page reload
+        window.history.replaceState({}, '', window.location.pathname);
+
+        setTimeout(() => fitCanvasToView(), 60);
+        setTimeout(() => fitCanvasToView(), 300);
+        return;
+      }
+    }
+
     if (sharedViewKey) {
       isRestoredOrDismissedRef.current = true;
       return;
@@ -225,7 +252,7 @@ export const Studio: React.FC = () => {
       .catch(() => {
         isRestoredOrDismissedRef.current = true;
       });
-  }, [sharedViewKey]);
+  }, [sharedViewKey, resetAll, updateState]);
 
   // When the URL carries ?s=<entryId>, fetch and apply the shared design
   useEffect(() => {

@@ -22,6 +22,7 @@ import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { GRADIENT_PRESETS } from '../utils/gradientPresets';
 import { PROJECTS } from '../components/ProjectSpotlight';
 import { Footer } from '../components/Footer';
+import type { FrameType } from '../types/studio';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -43,6 +44,7 @@ export const Home: React.FC = () => {
   const [bento2SlideIndex, setBento2SlideIndex] = useState(0);
   const [selectedMockupStyle, setSelectedMockupStyle] = useState('card');
   const [selectedShadow, setSelectedShadow] = useState('floating');
+  const [selectedShine, setSelectedShine] = useState('diagonal-glass');
 
   // Mouse Parallax for Hero 3D Card
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -190,21 +192,33 @@ export const Home: React.FC = () => {
     const delta = e.changedTouches[0].clientX - bento2TouchStartX.current;
     if (Math.abs(delta) > 50) {
       if (delta > 0) {
-        setBento2SlideIndex((prev) => (prev === 0 ? 1 : prev - 1));
+        setBento2SlideIndex((prev) => (prev === 0 ? 2 : prev - 1));
       } else {
-        setBento2SlideIndex((prev) => (prev === 1 ? 0 : prev + 1));
+        setBento2SlideIndex((prev) => (prev === 2 ? 0 : prev + 1));
       }
     }
     bento2TouchStartX.current = null;
   };
 
-  const framePreviews = {
+  const framePreviews: Record<
+    'iphone17' | 'iphone15' | 'iphone14' | 'samsungS21' | 'macbook',
+    {
+      name: string;
+      badge: string;
+      description: string;
+      image: string;
+      gradient: string;
+      frameType: FrameType;
+      imgClass?: string;
+    }
+  > = {
     iphone17: {
       name: 'iPhone 17 Pro Dual side',
       badge: 'Apple Device',
       description: 'Showcase front and side perspective with glass titanium reflection.',
       image: '/frame/frame-iphone-17-dual-side.webp',
       gradient: 'linear-gradient(135deg, #cdb4db 0%, #ffafcc 35%, #a2d2ff 70%, #cdb4db 100%)',
+      frameType: 'iphone17-dual-side',
     },
     iphone15: {
       name: 'iPhone 15',
@@ -212,6 +226,7 @@ export const Home: React.FC = () => {
       description: 'Modern sleek black aluminum frame with dynamic island display.',
       image: '/frame/frame-iphone-15.png',
       gradient: 'linear-gradient(135deg, #3b0764 0%, #7c3aed 35%, #ec4899 70%, #3b0764 100%)',
+      frameType: 'iphone',
     },
     iphone14: {
       name: 'iPhone 14 Pro',
@@ -219,6 +234,7 @@ export const Home: React.FC = () => {
       description: 'Deep purple titanium finish with precision screen ratio and studio shadows.',
       image: '/frame/frame-iphone-14-pro.png',
       gradient: 'linear-gradient(135deg, #654ea3 0%, #4f46e5 35%, #eaafc8 70%, #654ea3 100%)',
+      frameType: 'iphone14pro',
     },
     samsungS21: {
       name: 'Samsung Galaxy S21',
@@ -226,6 +242,7 @@ export const Home: React.FC = () => {
       description: 'Edge-to-edge Android infinity display with ultra-thin bezels.',
       image: '/frame/frame-samsung-s21.png',
       gradient: 'linear-gradient(135deg, #059669 0%, #34d399 35%, #00c6ff 70%, #059669 100%)',
+      frameType: 'samsung-s21',
     },
     macbook: {
       name: 'MacBook Air M3',
@@ -233,6 +250,7 @@ export const Home: React.FC = () => {
       description: 'Realistic aluminum chassis with precision display notch and studio shadows.',
       image: '/frame/frame-macbook-air-13.png',
       gradient: 'linear-gradient(135deg, #1a2a6c 0%, #2563eb 35%, #38bdf8 70%, #1a2a6c 100%)',
+      frameType: 'macbookair13',
       imgClass:
         'max-h-[290px] sm:max-h-[310px] w-auto h-auto max-w-[95%] object-contain scale-110 sm:scale-120 origin-center',
     },
@@ -639,8 +657,8 @@ export const Home: React.FC = () => {
                 </div>
 
                 <a
-                  href="/studio"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer mt-4"
+                  href={`/studio?frame=${framePreviews[activeFrameTab].frameType}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer mt-4 shadow-sm"
                 >
                   <span>Customize this frame in Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1042,25 +1060,26 @@ export const Home: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bento 2: Mockup Style & Shadow Elevation Carousel */}
+              {/* Bento 2: Mockup Style, Shadow Elevation & Glass Reflection Carousel */}
               <div className="p-7 sm:p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-1 rounded-md bg-[#a2d2ff]/20 text-[#a2d2ff] font-bold text-[10px] uppercase">
                       {bento2SlideIndex === 0 && 'Mockup Style'}
                       {bento2SlideIndex === 1 && 'Shadow Elevation'}
+                      {bento2SlideIndex === 2 && 'Glass Reflection'}
                     </span>
                     {/* Prev / Next Arrows */}
                     <div className="flex items-center gap-1 shrink-0 bg-neutral-900/90 border border-neutral-800 p-0.5 rounded-xl shadow-md">
                       <button
-                        onClick={() => setBento2SlideIndex((prev) => (prev === 0 ? 1 : prev - 1))}
+                        onClick={() => setBento2SlideIndex((prev) => (prev === 0 ? 2 : prev - 1))}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                         title="Previous slide"
                       >
                         <PhosphorIcons.CaretLeft className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => setBento2SlideIndex((prev) => (prev === 1 ? 0 : prev + 1))}
+                        onClick={() => setBento2SlideIndex((prev) => (prev === 2 ? 0 : prev + 1))}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                         title="Next slide"
                       >
@@ -1071,12 +1090,15 @@ export const Home: React.FC = () => {
                   <h3 className="text-xl font-bold text-white tracking-tight">
                     {bento2SlideIndex === 0 && 'Frameless Styles'}
                     {bento2SlideIndex === 1 && 'Realistic Shadows'}
+                    {bento2SlideIndex === 2 && 'Glass Reflection'}
                   </h3>
                   <p className="text-xs text-slate-400 leading-relaxed min-h-[32px]">
                     {bento2SlideIndex === 0 &&
                       'Custom glassmorphism, inset bevels, multi-card elevation, and smooth borders.'}
                     {bento2SlideIndex === 1 &&
                       'Multi-tier natural blur elevation, ambient lighting, and floating depth layers.'}
+                    {bento2SlideIndex === 2 &&
+                      'Natural specular screen reflections, apple glares, curved sheens, and dual rays.'}
                   </p>
                 </div>
 
@@ -1242,11 +1264,102 @@ export const Home: React.FC = () => {
                       })}
                     </div>
                   )}
+
+                  {/* Slide 2: 6 Glass Reflection Presets */}
+                  {bento2SlideIndex === 2 && (
+                    <div className="grid grid-cols-3 gap-2.5 w-full pt-1 animate-in fade-in zoom-in-95 duration-300">
+                      {[
+                        {
+                          id: 'none',
+                          label: 'None',
+                          grad: GRADIENT_PRESETS[10],
+                        },
+                        {
+                          id: 'diagonal-glass',
+                          label: 'Diagonal Glass',
+                          previewGradient:
+                            'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.25) 30%, transparent 60%)',
+                          grad: GRADIENT_PRESETS[1],
+                        },
+                        {
+                          id: 'apple-glare',
+                          label: 'Apple Glare',
+                          previewGradient:
+                            'linear-gradient(125deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.2) 45%, transparent 46%, transparent 100%)',
+                          grad: GRADIENT_PRESETS[12],
+                        },
+                        {
+                          id: 'curved-sheen',
+                          label: 'Curved Sheen',
+                          previewGradient:
+                            'radial-gradient(ellipse 130% 80% at 20% -10%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 38%, transparent 75%)',
+                          grad: GRADIENT_PRESETS[4],
+                        },
+                        {
+                          id: 'top-light',
+                          label: 'Top Ambient',
+                          previewGradient:
+                            'linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.2) 30%, transparent 70%)',
+                          grad: GRADIENT_PRESETS[19],
+                        },
+                        {
+                          id: 'dual-beam',
+                          label: 'Dual Ray',
+                          previewGradient:
+                            'linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.15) 28%, transparent 45%), linear-gradient(315deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.1) 22%, transparent 40%)',
+                          grad: GRADIENT_PRESETS[13],
+                        },
+                      ].map((sh) => {
+                        const isSelected = selectedShine === sh.id;
+                        const bgStyle = {
+                          backgroundImage: `linear-gradient(135deg, ${sh.grad.c1}, ${sh.grad.c2})`,
+                        };
+                        return (
+                          <button
+                            key={sh.id}
+                            onClick={() => setSelectedShine(sh.id)}
+                            className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                          >
+                            <div
+                              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border p-0 transition-all overflow-hidden relative flex items-center justify-center shadow-sm ${
+                                isSelected
+                                  ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff]/80 shadow-md scale-[1.05]'
+                                  : 'border-white/10 hover:border-white/25 hover:scale-[1.02]'
+                              }`}
+                              style={bgStyle}
+                            >
+                              {/* Inner Mockup Box with Specular Reflection Screen */}
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-900 border border-slate-700/80 overflow-hidden relative shadow-sm">
+                                {sh.previewGradient && (
+                                  <div
+                                    className="absolute inset-0 pointer-events-none"
+                                    style={{
+                                      background: sh.previewGradient,
+                                      mixBlendMode: 'screen',
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[10px] text-center capitalize transition-colors truncate w-full ${
+                                isSelected
+                                  ? 'text-[#a2d2ff] font-bold'
+                                  : 'text-slate-400 group-hover:text-slate-200'
+                              }`}
+                            >
+                              {sh.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Carousel Pagination Dots */}
                 <div className="flex items-center justify-center gap-1.5 pt-4 z-10">
-                  {[0, 1].map((idx) => (
+                  {[0, 1, 2].map((idx) => (
                     <button
                       key={idx}
                       onClick={() => setBento2SlideIndex(idx)}
