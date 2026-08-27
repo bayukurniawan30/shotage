@@ -33,6 +33,7 @@ app.get('/*', async (c, next) => {
     reqPath === '/studio' ||
     reqPath === '/terms' ||
     reqPath === '/faq' ||
+    reqPath === '/explore' ||
     reqPath.startsWith('/api/')
   ) {
     return await next();
@@ -75,7 +76,9 @@ const renderInertiaPage = (componentName: string, props = {}, search = '') => {
         ? '/studio'
         : componentName === 'Faq'
           ? '/faq'
-          : '/terms';
+          : componentName === 'Explore'
+            ? '/explore'
+            : '/terms';
   const pageData = JSON.stringify({
     component: componentName,
     props,
@@ -375,6 +378,39 @@ app.get('/faq', (c) => {
     return c.json({ component: 'Faq', props: {}, url: '/faq' });
   }
   return c.html(renderInertiaPage('Faq'));
+});
+
+app.get('/explore', (c) => {
+  if (c.req.header('X-Inertia')) {
+    c.header('X-Inertia', 'true');
+    return c.json({ component: 'Explore', props: {}, url: '/explore' });
+  }
+  return c.html(renderInertiaPage('Explore'));
+});
+
+// Proxy endpoint to list explore entries from Morphic CMS
+app.get('/api/explore', async (c) => {
+  const apiKey = process.env.MORPHIC_API_KEY;
+  const cmsBase = process.env.MORPHIC_API_URL || 'https://main-workspace.morphic-cms.com';
+  const headers: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+
+  try {
+    const res = await fetch(
+      `${cmsBase}/api/collections/shotage-shareables/entries?page=1&limit=1000`,
+      { headers }
+    );
+    if (!res.ok) {
+      return c.json(
+        { error: 'Failed to fetch explore entries', status: res.status },
+        res.status as any
+      );
+    }
+    const data = await res.json();
+    return c.json(data);
+  } catch (err) {
+    console.error('Error fetching explore entries from Morphic CMS:', err);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
 // Export default Hono app for Vercel & Vite dev server

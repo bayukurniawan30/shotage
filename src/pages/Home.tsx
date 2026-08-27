@@ -337,6 +337,12 @@ export const Home: React.FC = () => {
                 Features
               </a>
               <a
+                href="/explore"
+                className="hover:text-white transition-colors whitespace-nowrap text-xs font-semibold text-slate-300 flex items-center gap-1.5"
+              >
+                <span>Explore</span>
+              </a>
+              <a
                 href="/faq"
                 className="hover:text-white transition-colors whitespace-nowrap text-xs font-semibold text-slate-300"
               >

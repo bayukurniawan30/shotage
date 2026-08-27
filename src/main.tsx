@@ -17,6 +17,7 @@ const getInitialPage = () => {
   if (currentPath === '/studio') componentName = 'Studio';
   if (currentPath === '/terms') componentName = 'Terms';
   if (currentPath === '/faq') componentName = 'Faq';
+  if (currentPath === '/explore') componentName = 'Explore';
 
   return {
     component: componentName,

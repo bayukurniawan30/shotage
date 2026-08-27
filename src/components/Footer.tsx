@@ -17,6 +17,9 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
       </div>
 
       <div className="flex items-center gap-6 font-semibold">
+        <a href="/explore" className="hover:text-white transition-colors">
+          Explore
+        </a>
         <a href="/faq" className="hover:text-white transition-colors">
           FAQ
         </a>
