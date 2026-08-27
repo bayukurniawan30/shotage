@@ -100,13 +100,14 @@ export const ANIMATION_PRESETS: AnimationPresetTemplate[] = [
   },
 ];
 
-export type ElementLoopAnimation = 'none' | 'pulse' | 'float' | 'spin' | 'blink' | 'wiggle';
+export type ElementLoopAnimation = 'none' | 'pulse' | 'float' | 'spin' | 'blink' | 'wiggle' | 'counter';
 
 export interface ElementLoopPreset {
   id: ElementLoopAnimation;
   name: string;
   description: string;
   badge: string;
+  textOnly?: boolean;
 }
 
 export const ELEMENT_LOOP_PRESETS: ElementLoopPreset[] = [
@@ -116,5 +117,78 @@ export const ELEMENT_LOOP_PRESETS: ElementLoopPreset[] = [
   { id: 'spin', name: 'Spin (360°)', description: 'Continuous smooth 360-degree rotation', badge: 'Spin' },
   { id: 'blink', name: 'Fade (Blink)', description: 'Rhythmic opacity fading in and out', badge: 'Fade' },
   { id: 'wiggle', name: 'Wiggle (Shake)', description: 'Playful oscillating wobble tilt loop', badge: 'Wiggle' },
+  {
+    id: 'counter',
+    name: 'Counter (0 → N)',
+    description: 'Fast animated number roll from 0 to target value',
+    badge: 'Counter',
+    textOnly: true,
+  },
 ];
+
+/**
+ * Computes fast animated counter text from 0 to the target number(s) in `rawText`.
+ * Easing: fast out deceleration (quintic ease-out) over `durationSec` (e.g. 1.2s), starting at `startTimeSec`.
+ * Supports numbers with prefixes/suffixes ($200, 1,500+, 99.9%, 100k, 4.9/5, etc.).
+ * Does not loop; before `startTimeSec` displays 0, after `startTimeSec + durationSec` stays at target value.
+ */
+export function getAnimatedCounterValue(
+  rawText: string,
+  currentTimeSec: number,
+  durationSec = 1.2,
+  startTimeSec = 0
+): string {
+  if (!rawText || typeof rawText !== 'string') return '';
+  if (currentTimeSec < 0) currentTimeSec = 0;
+
+  // Before the animation start time: return initial 0 values
+  if (currentTimeSec <= startTimeSec) {
+    return rawText.replace(/(\d+(?:,\d{3})*(?:\.\d+)?|\d+\.\d+|\d+)/g, (match) => {
+      const decimalParts = match.split('.');
+      const hasDecimals = decimalParts.length > 1;
+      const decimalPlaces = hasDecimals ? decimalParts[1].length : 0;
+      return hasDecimals ? (0).toFixed(decimalPlaces) : '0';
+    });
+  }
+
+  // After the animation finishes: return exact original target text
+  if (currentTimeSec >= startTimeSec + durationSec) {
+    return rawText;
+  }
+
+  // Quintic ease out for an ultra-fast, snappy rolling counter feel
+  const elapsed = currentTimeSec - startTimeSec;
+  const progress = Math.min(Math.max(elapsed / durationSec, 0), 1);
+  const easeOut = 1 - Math.pow(1 - progress, 4);
+
+  // Regex to match numbers with optional commas or decimals: e.g. "1,250", "200", "4.9", "0.5"
+  return rawText.replace(/(\d+(?:,\d{3})*(?:\.\d+)?|\d+\.\d+|\d+)/g, (match) => {
+    // Remove commas to parse clean float/int
+    const cleanNumStr = match.replace(/,/g, '');
+    const targetNum = parseFloat(cleanNumStr);
+    if (isNaN(targetNum)) return match;
+
+    const currentVal = targetNum * easeOut;
+
+    // Check if original had decimals
+    const decimalParts = match.split('.');
+    const hasDecimals = decimalParts.length > 1;
+    const decimalPlaces = hasDecimals ? decimalParts[1].length : 0;
+
+    let formattedVal: string;
+    if (hasDecimals) {
+      formattedVal = currentVal.toFixed(decimalPlaces);
+    } else {
+      const rounded = Math.round(currentVal);
+      // If original had commas (e.g. 1,000 or 25,000), format with commas
+      if (match.includes(',')) {
+        formattedVal = rounded.toLocaleString('en-US');
+      } else {
+        formattedVal = String(rounded);
+      }
+    }
+
+    return formattedVal;
+  });
+}
 

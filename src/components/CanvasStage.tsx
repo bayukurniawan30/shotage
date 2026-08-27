@@ -18,6 +18,7 @@ import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
+import { getAnimatedCounterValue } from '../types/animationTypes';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ImageUp,
@@ -308,12 +309,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   };
 
   const getElementLoopTransform = (
-    anim: import('../types/animationTypes').ElementLoopAnimation | undefined
+    anim: import('../types/animationTypes').ElementLoopAnimation | undefined,
+    startTimeSec = 0
   ) => {
-    if (!state.isAnimationMode || !anim || anim === 'none') {
+    if (!state.isAnimationMode || !anim || anim === 'none' || anim === 'counter') {
       return { dx: 0, dy: 0, scale: 1, rotate: 0, opacityMul: 1 };
     }
-    const t = state.currentTimeSec;
+    if (state.currentTimeSec < startTimeSec) {
+      return { dx: 0, dy: 0, scale: 1, rotate: 0, opacityMul: 1 };
+    }
+    const t = state.currentTimeSec - startTimeSec;
 
     switch (anim) {
       case 'pulse': {
@@ -349,7 +354,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const layerLocked = layer.locked === true;
         const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
         const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
-        const loop = getElementLoopTransform(layer.loopAnimation);
+        const loop = getElementLoopTransform(layer.loopAnimation, layer.animStartTime || 0);
         const sx = layer.scaleX ?? 1;
         const sy = layer.scaleY ?? 1;
 
@@ -374,6 +379,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             : {
                 color: layer.color || '#ffffff',
               };
+
+        const isCounter = layer.loopAnimation === 'counter';
+        const currentText = isCounter
+          ? getAnimatedCounterValue(layer.text, state.currentTimeSec, 1.2, layer.animStartTime || 0)
+          : layer.text;
 
         return (
           <div
@@ -405,7 +415,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   : layer.shadow
                     ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
                     : 'none',
-              whiteSpace: layer.text.includes('\n') ? 'pre-wrap' : 'nowrap',
+              whiteSpace: currentText.includes('\n') ? 'pre-wrap' : 'nowrap',
               width: 'max-content',
               maxWidth: 'none',
             }}
@@ -461,10 +471,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     size={layer.iconSize || layer.fontSize * 1.1}
                     color={layer.iconColor || layer.color}
                   />
-                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>{layer.text}</span>
+                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>{currentText}</span>
                 </div>
               ) : (
-                layer.text
+                currentText
               )}
             </div>
 
@@ -520,7 +530,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
         const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
-        const loop = getElementLoopTransform(layer.loopAnimation);
+        const loop = getElementLoopTransform(layer.loopAnimation, layer.animStartTime || 0);
 
         const getBadgeClass = (style: import('../types/studio').PhosphorBadgeStyle) => {
           switch (style) {
@@ -619,7 +629,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((el) => {
         const isSelected = (state.selectedElementIds || []).includes(el.id);
         const layerLocked = el.locked === true;
-        const loop = getElementLoopTransform(el.loopAnimation);
+        const loop = getElementLoopTransform(el.loopAnimation, el.animStartTime || 0);
 
         return (
           <div
@@ -723,7 +733,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
-        const loop = getElementLoopTransform(layer.loopAnimation);
+        const loop = getElementLoopTransform(layer.loopAnimation, layer.animStartTime || 0);
         const getShapeStyle = (): React.CSSProperties => {
           switch (layer.shapeType) {
             case 'circle':

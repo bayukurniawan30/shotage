@@ -57,6 +57,12 @@ export const AnimationTimeline: React.FC = () => {
 
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
+  const [draggingLayerAnim, setDraggingLayerAnim] = useState<{
+    id: string;
+    type: 'text' | 'phosphor' | 'element' | 'shape';
+    startX: number;
+    initialStartT: number;
+  } | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Selected track state: 'mockup' or a specific layer
@@ -323,6 +329,93 @@ export const AnimationTimeline: React.FC = () => {
     }
   };
 
+  const setLayerAnimStartTime = (
+    type: 'text' | 'phosphor' | 'element' | 'shape',
+    id: string,
+    startTime: number
+  ) => {
+    if (type === 'text') {
+      onChange({
+        textLayers: (state.textLayers || []).map((l) =>
+          l.id === id ? { ...l, animStartTime: startTime } : l
+        ),
+      });
+    } else if (type === 'phosphor') {
+      onChange({
+        phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
+          l.id === id ? { ...l, animStartTime: startTime } : l
+        ),
+      });
+    } else if (type === 'element') {
+      onChange({
+        canvasElements: (state.canvasElements || []).map((l) =>
+          l.id === id ? { ...l, animStartTime: startTime } : l
+        ),
+      });
+    } else if (type === 'shape') {
+      onChange({
+        shapeLayers: (state.shapeLayers || []).map((l) =>
+          l.id === id ? { ...l, animStartTime: startTime } : l
+        ),
+      });
+    }
+  };
+
+  const handleAnimBlockPointerDown = (
+    e: React.PointerEvent,
+    row: {
+      id: string;
+      type: 'text' | 'phosphor' | 'element' | 'shape';
+      loopAnimation: ElementLoopAnimation;
+      animStartTime: number;
+      name: string;
+    }
+  ) => {
+    e.stopPropagation();
+    setSelectedTrack({
+      type: row.type,
+      id: row.id,
+      name: row.name,
+    });
+    setDraggingLayerAnim({
+      id: row.id,
+      type: row.type,
+      startX: e.clientX,
+      initialStartT: row.animStartTime || 0,
+    });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleAnimBlockPointerMove = (
+    e: React.PointerEvent,
+    row: {
+      id: string;
+      type: 'text' | 'phosphor' | 'element' | 'shape';
+      loopAnimation: ElementLoopAnimation;
+      animStartTime: number;
+    }
+  ) => {
+    if (!draggingLayerAnim || draggingLayerAnim.id !== row.id) return;
+    const deltaX = e.clientX - draggingLayerAnim.startX;
+    const deltaTime = deltaX / PX_PER_SECOND;
+    const isCounter = row.loopAnimation === 'counter';
+    const minDur = isCounter ? 1.2 : 0.5;
+    const maxStart = Math.max(0, state.durationSec - minDur);
+
+    const rawNewTime = Math.max(0, Math.min(maxStart, draggingLayerAnim.initialStartT + deltaTime));
+    const snappedTime = Math.round(rawNewTime * 10) / 10;
+
+    setLayerAnimStartTime(row.type, row.id, snappedTime);
+    onChange({ currentTimeSec: snappedTime });
+  };
+
+  const handleAnimBlockPointerUp = (e: React.PointerEvent) => {
+    if (draggingLayerAnim) {
+      setDraggingLayerAnim(null);
+      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    }
+  };
+
   // Build Layer Track Rows matching the exact order in RightSidebar Layers panel
   const buildLayerRows = () => {
     const buildRow = (
@@ -330,8 +423,9 @@ export const AnimationTimeline: React.FC = () => {
       id: string,
       name: string,
       loopAnimation: ElementLoopAnimation,
+      animStartTime: number,
       indicator: React.ReactNode
-    ) => ({ key: `${type}-${id}`, type, id, name, loopAnimation, indicator });
+    ) => ({ key: `${type}-${id}`, type, id, name, loopAnimation, animStartTime, indicator });
 
     const allRows: ReturnType<typeof buildRow>[] = [];
 
@@ -342,6 +436,7 @@ export const AnimationTimeline: React.FC = () => {
           l.id,
           l.name || l.text || 'Text',
           l.loopAnimation || 'none',
+          l.animStartTime || 0,
           <PhosphorIcons.TextTIcon className="w-3.5 h-3.5 text-pastel-blue shrink-0" />
         )
       )
@@ -355,6 +450,7 @@ export const AnimationTimeline: React.FC = () => {
           l.id,
           l.name || l.iconId || 'Icon',
           l.loopAnimation || 'none',
+          l.animStartTime || 0,
           <IconComp className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
         )
       );
@@ -373,6 +469,7 @@ export const AnimationTimeline: React.FC = () => {
           el.id,
           el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
           el.loopAnimation || 'none',
+          el.animStartTime || 0,
           <CatIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
         )
       );
@@ -395,6 +492,7 @@ export const AnimationTimeline: React.FC = () => {
           s.id,
           s.name || s.shapeType || 'Shape',
           s.loopAnimation || 'none',
+          s.animStartTime || 0,
           <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
         )
       );
@@ -614,12 +712,15 @@ export const AnimationTimeline: React.FC = () => {
         ) : (
           <>
             <span className="text-[10px] uppercase font-bold text-pastel-blue mr-1 shrink-0 flex items-center gap-1">
-              <PhosphorIcons.Sparkle className="w-3.5 h-3.5" />
-              <span>{selectedTrack.name} Loops:</span>
+              <PhosphorIcons.SparkleIcon className="w-3.5 h-3.5" />
+              <span>{selectedTrack.name} {selectedTrack.type === 'text' ? 'Animations' : 'Loops'}:</span>
             </span>
-            {ELEMENT_LOOP_PRESETS.map((preset) => {
+            {ELEMENT_LOOP_PRESETS.filter(
+              (preset) => !preset.textOnly || selectedTrack.type === 'text'
+            ).map((preset) => {
               const activeLoop = getSelectedLayerActiveLoop();
               const isSelected = activeLoop === preset.id;
+              const isCounter = preset.id === 'counter';
               return (
                 <button
                   key={preset.id}
@@ -628,7 +729,9 @@ export const AnimationTimeline: React.FC = () => {
                   }
                   className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isSelected
-                      ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue font-bold shadow-xs'
+                      ? isCounter
+                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                        : 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue font-bold shadow-xs'
                       : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
                   }`}
                   title={preset.description}
@@ -816,25 +919,62 @@ export const AnimationTimeline: React.FC = () => {
                     onClick={handleTimelineSeek}
                     className="relative w-full h-full flex items-center"
                   >
-                    {row.loopAnimation && row.loopAnimation !== 'none' ? (
-                      <div
-                        style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
-                        className="absolute h-5 rounded-md bg-gradient-to-r from-pastel-blue/25 via-indigo-500/20 to-pastel-blue/25 border border-pastel-blue/40 flex items-center justify-between px-2 text-[10px] text-pastel-blue font-semibold shadow-xs pointer-events-none"
-                      >
-                        <span className="capitalize flex items-center gap-1">
-                          <PhosphorIcons.SparkleIcon className="w-3 h-3" />
-                          <span>{row.loopAnimation} loop</span>
-                        </span>
-                        <span className="font-mono text-[9px] text-slate-400">
-                          0s - {state.durationSec}s
-                        </span>
-                      </div>
-                    ) : (
+                    {row.loopAnimation && row.loopAnimation !== 'none' ? (() => {
+                      const isCounter = row.loopAnimation === 'counter';
+                      const animDuration = isCounter ? 1.2 : state.durationSec;
+                      const startT = Math.min(
+                        row.animStartTime || 0,
+                        Math.max(0, state.durationSec - (isCounter ? 0.5 : 0))
+                      );
+                      const endT = isCounter
+                        ? Math.min(state.durationSec, startT + animDuration)
+                        : state.durationSec;
+                      const blockWidth = isCounter
+                        ? (endT - startT) * PX_PER_SECOND
+                        : (state.durationSec - startT) * PX_PER_SECOND;
+                      const blockLeft = PAD_PX + startT * PX_PER_SECOND;
+                      const isDraggingThis = draggingLayerAnim?.id === row.id;
+
+                      return (
+                        <div
+                          style={{
+                            left: `${blockLeft}px`,
+                            width: `${Math.max(blockWidth, 36)}px`,
+                          }}
+                          onPointerDown={(e) => handleAnimBlockPointerDown(e, row)}
+                          onPointerMove={(e) => handleAnimBlockPointerMove(e, row)}
+                          onPointerUp={handleAnimBlockPointerUp}
+                          onPointerCancel={handleAnimBlockPointerUp}
+                          className={`absolute h-5 rounded-md flex items-center justify-between px-2 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors ${
+                            isDraggingThis ? 'ring-2 ring-white/60 scale-[1.02] z-20' : ''
+                          } ${
+                            isCounter
+                              ? 'bg-gradient-to-r from-pastel-pink/40 via-[#ffafcc]/30 to-pastel-pink/40 border border-pastel-pink text-pastel-pink hover:border-white'
+                              : 'bg-gradient-to-r from-pastel-blue/30 via-indigo-500/25 to-pastel-blue/30 border border-pastel-blue/60 text-pastel-blue hover:border-white'
+                          }`}
+                          title="Click and drag horizontally to move animation start time"
+                        >
+                          <span className="flex items-center gap-1 truncate mr-2 pointer-events-none">
+                            {isCounter ? (
+                              <PhosphorIcons.TrendUpIcon className="w-3 h-3 shrink-0" />
+                            ) : (
+                              <PhosphorIcons.SparkleIcon className="w-3 h-3 shrink-0" />
+                            )}
+                            <span className="truncate">
+                              {isCounter ? 'Counter (0 → N)' : `${row.loopAnimation} loop`}
+                            </span>
+                          </span>
+                          <span className="font-mono text-[9px] text-white/90 shrink-0 pointer-events-none">
+                            {startT.toFixed(1)}s - {endT.toFixed(1)}s
+                          </span>
+                        </div>
+                      );
+                    })() : (
                       <div
                         style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
                         className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-400 font-mono pointer-events-none"
                       >
-                        <span>Static (No Loop)</span>
+                        <span>Static (No Animation)</span>
                       </div>
                     )}
                   </div>

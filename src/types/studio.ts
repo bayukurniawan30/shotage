@@ -98,6 +98,7 @@ export interface ShapeLayer {
   visible?: boolean;
   locked?: boolean;
   loopAnimation?: ElementLoopAnimation;
+  animStartTime?: number;
 }
 
 export interface CanvasElement {
@@ -121,6 +122,7 @@ export interface CanvasElement {
   visible?: boolean;
   locked?: boolean;
   loopAnimation?: ElementLoopAnimation;
+  animStartTime?: number;
 }
 
 export interface PhosphorIconLayer {
@@ -140,6 +142,7 @@ export interface PhosphorIconLayer {
   visible?: boolean;
   locked?: boolean;
   loopAnimation?: ElementLoopAnimation;
+  animStartTime?: number;
 }
 
 export interface PhosphorIconConfig {
@@ -190,6 +193,7 @@ export interface TextLayer {
   visible?: boolean;
   locked?: boolean;
   loopAnimation?: ElementLoopAnimation;
+  animStartTime?: number;
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
