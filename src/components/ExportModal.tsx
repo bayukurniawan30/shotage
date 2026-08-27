@@ -17,6 +17,8 @@ import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
 import { activeVideoDecoders } from './VideoCanvasScreen';
 import { PROJECTS } from './ProjectSpotlight';
+import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
+import { compressGzipString } from '../utils/gzipCompression';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -725,12 +727,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setIsSharing(true);
     setShareUrl('');
 
+    const rawStore = useStudioStore.getState();
+    const initialStageIndex = rawStore.activeStageIndex ?? 0;
+    const hasMultipleStages = (rawStore.stages?.length || 0) > 1;
+
     try {
-      const storeState = useStudioStore.getState();
+      // 1. If multiple stages exist, switch to Stage 1 (index 0) so the store automatically
+      // flushes the current active stage into the stages array and activates Stage 1 for thumbnail capture
+      if (hasMultipleStages && initialStageIndex !== 0) {
+        rawStore.selectStage(0);
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+
+      // 2. Fetch the fully synchronized store state and optimize all images (root + all stages)
+      const synchronizedState = useStudioStore.getState();
+      const storeState = await optimizeStudioStateForExport(synchronizedState);
+
+      // Keep imageSrc, secondImageSrc, bgImageUrl, stages, etc. intact in the serialized payload
       const {
-        imageSrc,
-        secondImageSrc,
-        isPreviewMode,
         isPlaying,
         isPositionDragging,
         shareId,
@@ -744,21 +759,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         (crypto.randomUUID && crypto.randomUUID()) ||
         `share-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      // Generate optimized thumbnail image (max 350px, < 200KB)
+      // 3. Generate optimized thumbnail image (max 350px, < 200KB) strictly from Stage 1
       let thumbnailDataUrl: string | null = null;
       if (canvasRef.current) {
         try {
-          storeState.selectTextLayer(null);
-          storeState.selectShapeLayer(null);
-          storeState.selectPhosphorIconLayer(null);
-          storeState.selectCanvasElement(null);
+          rawStore.selectTextLayer(null);
+          rawStore.selectShapeLayer(null);
+          rawStore.selectPhosphorIconLayer(null);
+          rawStore.selectCanvasElement(null);
           await new Promise((resolve) => setTimeout(resolve, 50));
           if ('fonts' in document) await document.fonts.ready;
+
+          const stage0BackgroundType =
+            (storeState.stages && storeState.stages[0]?.backgroundType) || storeState.backgroundType;
 
           const rawCanvas = await toCanvas(canvasRef.current, {
             pixelRatio: 1,
             cacheBust: true,
-            ...(storeState.backgroundType === 'transparent'
+            ...(stage0BackgroundType === 'transparent'
               ? { backgroundColor: 'transparent' }
               : {}),
           });
@@ -799,6 +817,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         }
       }
 
+      const rawJson = JSON.stringify(rest);
+      const compressedJson = await compressGzipString(rawJson);
+
       const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -806,7 +827,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           name: shareName.trim(),
           publisher: sharePublisher.trim(),
           identifier: identifier,
-          json_string: JSON.stringify(rest),
+          json_string: compressedJson,
           turnstileToken,
           entryId: shareId,
           thumbnail: thumbnailDataUrl,
@@ -835,6 +856,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         err instanceof Error ? err.message : 'Failed to share design. Please try again.'
       );
     } finally {
+      // Restore the user's previously active stage
+      if (hasMultipleStages && initialStageIndex !== 0) {
+        rawStore.selectStage(initialStageIndex);
+      }
       setIsSharing(false);
     }
   };

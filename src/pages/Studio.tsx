@@ -30,6 +30,8 @@ import {
 } from '../utils/sessionStore';
 import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
 import { purgeAllVideoDecoders } from '../components/VideoCanvasScreen';
+import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
+import { decompressGzipString } from '../utils/gzipCompression';
 
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
@@ -91,11 +93,12 @@ export const Studio: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleExportSettings = () => {
+  const handleExportSettings = async () => {
     setIsDesktopMenuOpen(false);
     setIsMobileMenuOpen(false);
     const state = useStudioStore.getState();
-    const jsonString = JSON.stringify(state, null, 2);
+    const optimizedState = await optimizeStudioStateForExport(state);
+    const jsonString = JSON.stringify(optimizedState, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -260,16 +263,24 @@ export const Studio: React.FC = () => {
     let cancelled = false;
     fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`)
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return;
         if (!data?.json_string) {
           console.warn('Shared design not found:', sharedViewKey);
           return;
         }
         try {
-          const parsed = JSON.parse(data.json_string);
+          const jsonString = await decompressGzipString(data.json_string);
+          const parsed = JSON.parse(jsonString);
+          const initialStage =
+            parsed.stages && Array.isArray(parsed.stages) && parsed.stages.length > 0
+              ? parsed.stages[0]
+              : {};
+
           useStudioStore.getState().updateState({
             ...parsed,
+            ...initialStage,
+            activeStageIndex: 0,
             shareIdentifier: data.identifier || sharedViewKey,
             sharedDesignName: data.name || null,
             sharedDesignPublisher: data.publisher || null,
