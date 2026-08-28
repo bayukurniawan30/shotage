@@ -18,7 +18,7 @@ import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
-import { getAnimatedCounterValue, calculateEasing } from '../types/animationTypes';
+import { getAnimatedCounterValue, calculateEasing, evaluateLayerMotion } from '../types/animationTypes';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ImageUp,
@@ -387,7 +387,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const layerLocked = layer.locked === true;
         const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
         const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
-        const loop = getElementLoopTransform(layer.loopAnimation, layer.animStartTime || 0);
+        const motion = evaluateLayerMotion(layer.motions, layer.loopAnimation, layer.animStartTime || 0, state.currentTimeSec, layer.text);
         const sx = layer.scaleX ?? 1;
         const sy = layer.scaleY ?? 1;
 
@@ -413,11 +413,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 color: layer.color || '#ffffff',
               };
 
-        const isCounter = layer.loopAnimation === 'counter';
-        const currentText = isCounter
-          ? getAnimatedCounterValue(layer.text, state.currentTimeSec, 1.2, layer.animStartTime || 0)
-          : layer.text;
-        const textRot = (layer.rotation || 0) + loop.rotate;
+        const currentText = motion.animatedText ?? layer.text;
+        const textRot = (layer.rotation || 0) + motion.rotate;
 
         return (
           <div
@@ -431,10 +428,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectTextLayer(layer.id);
               }
             }}
-            className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked ? 'pointer-events-none' : ''}`}
+            className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${textRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
+              transform: `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${textRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
@@ -442,7 +439,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
               textAlign: layer.textAlign,
-              opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
+              opacity: motion.isVisible ? ((layer.opacity ?? 100) / 100) * motion.opacity : 0,
               textShadow:
                 layer.bgImage || layer.gradient
                   ? 'none'
@@ -581,7 +578,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
         const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
-        const loop = getElementLoopTransform(layer.loopAnimation, layer.animStartTime || 0);
+        const motion = evaluateLayerMotion(layer.motions, layer.loopAnimation, layer.animStartTime || 0, state.currentTimeSec);
 
         const getBadgeClass = (style: import('../types/studio').PhosphorBadgeStyle) => {
           switch (style) {
@@ -610,7 +607,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ? 'rounded-xl'
             : 'rounded-2xl';
 
-        const iconRot = (layer.rotation || 0) + loop.rotate;
+        const iconRot = (layer.rotation || 0) + motion.rotate;
 
         return (
           <div
@@ -624,13 +621,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectPhosphorIconLayer(layer.id);
               }
             }}
-            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
-              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${iconRot}deg) scale(${loop.scale})`,
-              opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
+              transform: `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${motion.rotateX}deg) rotateY(${motion.rotateY}deg) rotate(${iconRot}deg) scale(${motion.scale})`,
+              opacity: motion.isVisible ? ((layer.opacity ?? 100) / 100) * motion.opacity : 0,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
             }}
           >
@@ -696,9 +693,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((el) => {
         const isSelected = (state.selectedElementIds || []).includes(el.id);
         const layerLocked = el.locked === true;
-        const loop = getElementLoopTransform(el.loopAnimation, el.animStartTime || 0);
+        const motion = evaluateLayerMotion(el.motions, el.loopAnimation, el.animStartTime || 0, state.currentTimeSec);
 
-        const elRot = (el.rotation || 0) + loop.rotate;
+        const elRot = (el.rotation || 0) + motion.rotate;
 
         return (
           <div
@@ -712,13 +709,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectCanvasElement(el.id);
               }
             }}
-            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
-              transform: `translate(${el.x + loop.dx}px, ${el.y + loop.dy}px) rotate(${elRot}deg) scale(${el.flipX ? -loop.scale : loop.scale}, ${el.flipY ? -loop.scale : loop.scale})`,
-              opacity: ((el.opacity ?? 100) / 100) * loop.opacityMul,
+              transform: `translate(${el.x + motion.dx}px, ${el.y + motion.dy}px) perspective(1000px) rotateX(${motion.rotateX}deg) rotateY(${motion.rotateY}deg) rotate(${elRot}deg) scale(${el.flipX ? -motion.scale : motion.scale}, ${el.flipY ? -motion.scale : motion.scale})`,
+              opacity: motion.isVisible ? ((el.opacity ?? 100) / 100) * motion.opacity : 0,
               filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${el.width || 90}px`,
               height: `${el.height || 90}px`,
@@ -752,6 +749,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 }}
               />
             )}
+
             {isSelected && (
               <>
                 <div
@@ -819,7 +817,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
-        const loop = getElementLoopTransform(layer.loopAnimation, layer.animStartTime || 0);
+        const motion = evaluateLayerMotion(layer.motions, layer.loopAnimation, layer.animStartTime || 0, state.currentTimeSec);
         const getShapeStyle = (): React.CSSProperties => {
           switch (layer.shapeType) {
             case 'circle':
@@ -891,11 +889,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           };
         };
 
-        const has3D = (layer.pitch ?? 0) !== 0 || (layer.yaw ?? 0) !== 0;
-        const shapeRot = (layer.rotation || 0) + loop.rotate;
+        const has3D = (layer.pitch ?? 0) !== 0 || (layer.yaw ?? 0) !== 0 || motion.rotateX !== 0 || motion.rotateY !== 0;
+        const shapeRot = (layer.rotation || 0) + motion.rotate;
         const transformStr = has3D
-          ? `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`
-          : `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`;
+          ? `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`
+          : `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`;
 
         return (
           <div
@@ -909,13 +907,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectShapeLayer(layer.id);
               }
             }}
-            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked ? 'pointer-events-none' : ''} ${
+            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''} ${
               isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
             }`}
             style={{
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
+              opacity: motion.isVisible ? ((layer.opacity ?? 100) / 100) * motion.opacity : 0,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${layer.width || 120}px`,
               height: `${layer.height || 120}px`,
@@ -936,8 +935,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 ...getGlassOrSolidBackground(),
                 ...getShapeStyle(),
                 opacity: isGlass
-                  ? loop.opacityMul
-                  : ((layer.opacity ?? 100) / 100) * loop.opacityMul,
+                  ? 1
+                  : (layer.opacity ?? 100) / 100,
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
                 ...(isGlass
                   ? {

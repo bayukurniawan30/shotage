@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
-import { calculateEasing } from '../types/animationTypes';
+import { calculateEasing, LayerMotionBlock, MotionPresetId, MOTION_PRESETS } from '../types/animationTypes';
 
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
@@ -65,6 +65,24 @@ interface StudioStore extends StudioState {
   selectStage: (index: number) => void;
   addStage: () => void;
   removeStage: (index: number) => void;
+  addLayerMotionBlock: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    presetId: MotionPresetId,
+    startTimeSec?: number,
+    durationSec?: number
+  ) => void;
+  updateLayerMotionBlock: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    blockId: string,
+    updates: Partial<LayerMotionBlock>
+  ) => void;
+  removeLayerMotionBlock: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    blockId: string
+  ) => void;
 }
 
 const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
@@ -1009,6 +1027,157 @@ export const useStudioStore = create<StudioStore>()(
             stages: currentStages,
             activeStageIndex: nextActiveIndex,
           };
+        }),
+
+      addLayerMotionBlock: (layerType, layerId, presetId, startTimeSec, customDuration) =>
+        set((state) => {
+          const meta = MOTION_PRESETS.find((p) => p.id === presetId);
+          const dur = customDuration || meta?.defaultDurationSec || 1.5;
+
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          const currentMotions: LayerMotionBlock[] = targetLayer.motions ? [...targetLayer.motions] : [];
+
+          // If layer had legacy loopAnimation and no motions yet, migrate it
+          if (currentMotions.length === 0 && targetLayer.loopAnimation && targetLayer.loopAnimation !== 'none') {
+            currentMotions.push({
+              id: `motion-legacy-${Date.now()}`,
+              preset: targetLayer.loopAnimation as MotionPresetId,
+              startTimeSec: targetLayer.animStartTime || 0,
+              durationSec: targetLayer.loopAnimation === 'counter' ? 1.2 : 2.5,
+            });
+          }
+
+          // Calculate start time: if not provided or collides with existing blocks, find non-overlapping slot
+          let startT = startTimeSec ?? state.currentTimeSec;
+          let finalDur = dur;
+
+          // If startT falls inside an existing block, push it to the end of that block
+          currentMotions.forEach((b) => {
+            if (startT >= b.startTimeSec && startT < b.startTimeSec + b.durationSec) {
+              startT = b.startTimeSec + b.durationSec;
+            }
+          });
+
+          // Check if [startT, startT + finalDur] overlaps with a subsequent block
+          const nextBlock = currentMotions.find((b) => b.startTimeSec >= startT);
+          if (nextBlock && startT + finalDur > nextBlock.startTimeSec) {
+            const availableGap = nextBlock.startTimeSec - startT;
+            if (availableGap >= 0.4) {
+              finalDur = availableGap;
+            } else {
+              // Place after the last block
+              const lastBlock = currentMotions[currentMotions.length - 1];
+              startT = lastBlock ? lastBlock.startTimeSec + lastBlock.durationSec : 0;
+            }
+          }
+
+          const newBlock: LayerMotionBlock = {
+            id: `motion-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            preset: presetId,
+            startTimeSec: Math.max(0, Math.round(startT * 10) / 10),
+            durationSec: Math.max(0.2, Math.round(finalDur * 10) / 10),
+          };
+
+          currentMotions.push(newBlock);
+          currentMotions.sort((a, b) => a.startTimeSec - b.startTimeSec);
+
+          targetLayer.motions = currentMotions;
+          // Clear single legacy loopAnimation to prevent duplicate evaluation
+          targetLayer.loopAnimation = 'none';
+          layers[targetIdx] = targetLayer;
+
+          return {
+            [layerProp]: layers,
+          };
+        }),
+
+      updateLayerMotionBlock: (layerType, layerId, blockId, updates) =>
+        set((state) => {
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          if (!targetLayer.motions) return state;
+
+          const currentBlock = targetLayer.motions.find((m: LayerMotionBlock) => m.id === blockId);
+          if (!currentBlock) return state;
+
+          const otherBlocks = targetLayer.motions
+            .filter((m: LayerMotionBlock) => m.id !== blockId)
+            .sort((a: LayerMotionBlock, b: LayerMotionBlock) => a.startTimeSec - b.startTimeSec);
+
+          // Find left and right neighbors
+          const leftNeighbors = otherBlocks.filter(
+            (b: LayerMotionBlock) => b.startTimeSec + b.durationSec <= currentBlock.startTimeSec + 0.05
+          );
+          const leftNeighbor = leftNeighbors.length > 0 ? leftNeighbors[leftNeighbors.length - 1] : null;
+          const minStart = leftNeighbor ? leftNeighbor.startTimeSec + leftNeighbor.durationSec : 0;
+
+          const initEnd = currentBlock.startTimeSec + currentBlock.durationSec;
+          const rightNeighbors = otherBlocks.filter((b: LayerMotionBlock) => b.startTimeSec >= initEnd - 0.05);
+          const rightNeighbor = rightNeighbors.length > 0 ? rightNeighbors[0] : null;
+          const maxBound = rightNeighbor ? rightNeighbor.startTimeSec : state.durationSec;
+
+          let newStart = updates.startTimeSec ?? currentBlock.startTimeSec;
+          let newDur = updates.durationSec ?? currentBlock.durationSec;
+
+          newStart = Math.max(minStart, Math.min(Math.max(minStart, maxBound - newDur), newStart));
+          newDur = Math.max(0.2, Math.min(maxBound - newStart, newDur));
+
+          targetLayer.motions = targetLayer.motions
+            .map((m: LayerMotionBlock) =>
+              m.id === blockId ? { ...m, ...updates, startTimeSec: newStart, durationSec: newDur } : m
+            )
+            .sort((a: LayerMotionBlock, b: LayerMotionBlock) => a.startTimeSec - b.startTimeSec);
+
+          layers[targetIdx] = targetLayer;
+          return { [layerProp]: layers };
+        }),
+
+      removeLayerMotionBlock: (layerType, layerId, blockId) =>
+        set((state) => {
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          if (!targetLayer.motions) return state;
+
+          targetLayer.motions = targetLayer.motions.filter((m: LayerMotionBlock) => m.id !== blockId);
+          layers[targetIdx] = targetLayer;
+          return { [layerProp]: layers };
         }),
     }),
     {

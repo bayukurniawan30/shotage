@@ -18,6 +18,10 @@ import {
   ElementLoopAnimation,
   EASING_PRESET_OPTIONS,
   AnimationEasingType,
+  MOTION_PRESETS,
+  LayerMotionBlock,
+  MotionPresetId,
+  MotionCategory,
 } from '../types/animationTypes';
 
 export const AnimationTimeline: React.FC = () => {
@@ -59,11 +63,16 @@ export const AnimationTimeline: React.FC = () => {
 
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
-  const [draggingLayerAnim, setDraggingLayerAnim] = useState<{
-    id: string;
-    type: 'text' | 'phosphor' | 'element' | 'shape';
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [motionCategoryFilter, setMotionCategoryFilter] = useState<'all' | 'entrance' | 'emphasis' | 'exit'>('all');
+  const [draggingMotionBlock, setDraggingMotionBlock] = useState<{
+    layerType: 'text' | 'phosphor' | 'element' | 'shape';
+    layerId: string;
+    blockId: string;
     startX: number;
     initialStartT: number;
+    isResize?: boolean;
+    initialDur?: number;
   } | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -305,122 +314,121 @@ export const AnimationTimeline: React.FC = () => {
     });
   };
 
-  // Set Loop Animation for an individual layer
-  const setLayerLoopAnimation = (
-    type: 'text' | 'phosphor' | 'element' | 'shape',
-    id: string,
-    anim: ElementLoopAnimation
-  ) => {
-    if (type === 'text') {
-      onChange({
-        textLayers: (state.textLayers || []).map((l) =>
-          l.id === id ? { ...l, loopAnimation: anim } : l
-        ),
-      });
-    } else if (type === 'phosphor') {
-      onChange({
-        phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
-          l.id === id ? { ...l, loopAnimation: anim } : l
-        ),
-      });
-    } else if (type === 'element') {
-      onChange({
-        canvasElements: (state.canvasElements || []).map((l) =>
-          l.id === id ? { ...l, loopAnimation: anim } : l
-        ),
-      });
-    } else if (type === 'shape') {
-      onChange({
-        shapeLayers: (state.shapeLayers || []).map((l) =>
-          l.id === id ? { ...l, loopAnimation: anim } : l
-        ),
-      });
+  const getLayerMotions = (type: 'text' | 'phosphor' | 'element' | 'shape', id: string): LayerMotionBlock[] => {
+    let layer: any = null;
+    if (type === 'text') layer = (state.textLayers || []).find((l) => l.id === id);
+    else if (type === 'phosphor') layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
+    else if (type === 'element') layer = (state.canvasElements || []).find((l) => l.id === id);
+    else if (type === 'shape') layer = (state.shapeLayers || []).find((l) => l.id === id);
+
+    if (!layer) return [];
+    if (layer.motions && layer.motions.length > 0) return layer.motions;
+    if (layer.loopAnimation && layer.loopAnimation !== 'none') {
+      return [
+        {
+          id: `motion-legacy-${id}`,
+          preset: layer.loopAnimation as MotionPresetId,
+          startTimeSec: layer.animStartTime || 0,
+          durationSec: layer.loopAnimation === 'counter' ? 1.2 : 2.5,
+        },
+      ];
     }
+    return [];
   };
 
-  const setLayerAnimStartTime = (
-    type: 'text' | 'phosphor' | 'element' | 'shape',
-    id: string,
-    startTime: number
-  ) => {
-    if (type === 'text') {
-      onChange({
-        textLayers: (state.textLayers || []).map((l) =>
-          l.id === id ? { ...l, animStartTime: startTime } : l
-        ),
-      });
-    } else if (type === 'phosphor') {
-      onChange({
-        phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
-          l.id === id ? { ...l, animStartTime: startTime } : l
-        ),
-      });
-    } else if (type === 'element') {
-      onChange({
-        canvasElements: (state.canvasElements || []).map((l) =>
-          l.id === id ? { ...l, animStartTime: startTime } : l
-        ),
-      });
-    } else if (type === 'shape') {
-      onChange({
-        shapeLayers: (state.shapeLayers || []).map((l) =>
-          l.id === id ? { ...l, animStartTime: startTime } : l
-        ),
-      });
-    }
-  };
+  const hasDraggedMotionRef = useRef(false);
 
-  const handleAnimBlockPointerDown = (
+  const handleMotionBlockPointerDown = (
     e: React.PointerEvent,
-    row: {
-      id: string;
-      type: 'text' | 'phosphor' | 'element' | 'shape';
-      loopAnimation: ElementLoopAnimation;
-      animStartTime: number;
-      name: string;
-    }
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    block: LayerMotionBlock,
+    isResize = false
   ) => {
     e.stopPropagation();
+    hasDraggedMotionRef.current = false;
     setSelectedTrack({
-      type: row.type,
-      id: row.id,
-      name: row.name,
+      type: layerType,
+      id: layerId,
+      name: selectedTrack.name,
     });
-    setDraggingLayerAnim({
-      id: row.id,
-      type: row.type,
+    setDraggingMotionBlock({
+      layerType,
+      layerId,
+      blockId: block.id,
       startX: e.clientX,
-      initialStartT: row.animStartTime || 0,
+      initialStartT: block.startTimeSec,
+      isResize,
+      initialDur: block.durationSec,
     });
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const handleAnimBlockPointerMove = (
-    e: React.PointerEvent,
-    row: {
-      id: string;
-      type: 'text' | 'phosphor' | 'element' | 'shape';
-      loopAnimation: ElementLoopAnimation;
-      animStartTime: number;
+  const handleMotionBlockPointerMove = (e: React.PointerEvent) => {
+    if (!draggingMotionBlock) return;
+    const deltaX = e.clientX - draggingMotionBlock.startX;
+    if (Math.abs(deltaX) > 2) {
+      hasDraggedMotionRef.current = true;
     }
-  ) => {
-    if (!draggingLayerAnim || draggingLayerAnim.id !== row.id) return;
-    const deltaX = e.clientX - draggingLayerAnim.startX;
     const deltaTime = deltaX / PX_PER_SECOND;
-    const isCounter = row.loopAnimation === 'counter';
-    const minDur = isCounter ? 1.2 : 0.5;
-    const maxStart = Math.max(0, state.durationSec - minDur);
 
-    const rawNewTime = Math.max(0, Math.min(maxStart, draggingLayerAnim.initialStartT + deltaTime));
-    const snappedTime = Math.round(rawNewTime * 10) / 10;
+    const motions = getLayerMotions(draggingMotionBlock.layerType, draggingMotionBlock.layerId);
+    const otherBlocks = motions
+      .filter((b) => b.id !== draggingMotionBlock.blockId)
+      .sort((a, b) => a.startTimeSec - b.startTimeSec);
 
-    setLayerAnimStartTime(row.type, row.id, snappedTime);
-    onChange({ currentTimeSec: snappedTime });
+    // Left neighbor: block that finishes before or at our initial start
+    const leftNeighbors = otherBlocks.filter(
+      (b) => b.startTimeSec + b.durationSec <= draggingMotionBlock.initialStartT + 0.05
+    );
+    const leftNeighbor = leftNeighbors.length > 0 ? leftNeighbors[leftNeighbors.length - 1] : null;
+    const minAllowedStart = leftNeighbor ? leftNeighbor.startTimeSec + leftNeighbor.durationSec : 0;
+
+    // Right neighbor: block that starts after or at our initial end
+    const initEnd = draggingMotionBlock.initialStartT + (draggingMotionBlock.initialDur || 0);
+    const rightNeighbors = otherBlocks.filter((b) => b.startTimeSec >= initEnd - 0.05);
+    const rightNeighbor = rightNeighbors.length > 0 ? rightNeighbors[0] : null;
+    const maxBoundary = rightNeighbor ? rightNeighbor.startTimeSec : state.durationSec;
+
+    if (draggingMotionBlock.isResize) {
+      const minDur = 0.3;
+      const maxDur = Math.max(minDur, maxBoundary - draggingMotionBlock.initialStartT);
+      const rawDur = Math.max(
+        minDur,
+        Math.min(maxDur, (draggingMotionBlock.initialDur || 1.5) + deltaTime)
+      );
+      const snappedDur = Math.round(rawDur * 10) / 10;
+      state.updateLayerMotionBlock(
+        draggingMotionBlock.layerType,
+        draggingMotionBlock.layerId,
+        draggingMotionBlock.blockId,
+        {
+          durationSec: snappedDur,
+        }
+      );
+    } else {
+      const dur = draggingMotionBlock.initialDur || 1.5;
+      const maxStart = Math.max(minAllowedStart, maxBoundary - dur);
+      const rawStart = Math.max(
+        minAllowedStart,
+        Math.min(maxStart, draggingMotionBlock.initialStartT + deltaTime)
+      );
+      const snappedStart = Math.round(rawStart * 10) / 10;
+      state.updateLayerMotionBlock(
+        draggingMotionBlock.layerType,
+        draggingMotionBlock.layerId,
+        draggingMotionBlock.blockId,
+        {
+          startTimeSec: snappedStart,
+        }
+      );
+      onChange({ currentTimeSec: snappedStart });
+    }
   };
 
-  const handleAnimBlockPointerUp = (e: React.PointerEvent) => {
-    if (draggingLayerAnim) {
-      setDraggingLayerAnim(null);
+  const handleMotionBlockPointerUp = (e: React.PointerEvent) => {
+    if (draggingMotionBlock) {
+      setDraggingMotionBlock(null);
       (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     }
   };
@@ -431,10 +439,8 @@ export const AnimationTimeline: React.FC = () => {
       type: 'text' | 'phosphor' | 'element' | 'shape',
       id: string,
       name: string,
-      loopAnimation: ElementLoopAnimation,
-      animStartTime: number,
       indicator: React.ReactNode
-    ) => ({ key: `${type}-${id}`, type, id, name, loopAnimation, animStartTime, indicator });
+    ) => ({ key: `${type}-${id}`, type, id, name, indicator });
 
     const allRows: ReturnType<typeof buildRow>[] = [];
 
@@ -444,8 +450,6 @@ export const AnimationTimeline: React.FC = () => {
           'text',
           l.id,
           l.name || l.text || 'Text',
-          l.loopAnimation || 'none',
-          l.animStartTime || 0,
           <PhosphorIcons.TextTIcon className="w-3.5 h-3.5 text-pastel-blue shrink-0" />
         )
       )
@@ -458,8 +462,6 @@ export const AnimationTimeline: React.FC = () => {
           'phosphor',
           l.id,
           l.name || l.iconId || 'Icon',
-          l.loopAnimation || 'none',
-          l.animStartTime || 0,
           <IconComp className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
         )
       );
@@ -477,8 +479,6 @@ export const AnimationTimeline: React.FC = () => {
           'element',
           el.id,
           el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
-          el.loopAnimation || 'none',
-          el.animStartTime || 0,
           <CatIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
         )
       );
@@ -500,8 +500,6 @@ export const AnimationTimeline: React.FC = () => {
           'shape',
           s.id,
           s.name || s.shapeType || 'Shape',
-          s.loopAnimation || 'none',
-          s.animStartTime || 0,
           <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
         )
       );
@@ -547,10 +545,11 @@ export const AnimationTimeline: React.FC = () => {
     return 'none';
   };
 
-  // Seeker click on timeline track area
   const handleTimelineSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const newTime = Math.round(getTimeFromX(e.clientX, e.currentTarget) * 10) / 10;
     onChange({ currentTimeSec: newTime });
+    setSelectedBlockId(null);
+    setSelectedKfId(null);
   };
 
   if (isCollapsed) {
@@ -737,32 +736,62 @@ export const AnimationTimeline: React.FC = () => {
           </>
         ) : (
           <>
-            <span className="text-[10px] uppercase font-bold text-pastel-blue mr-1 shrink-0 flex items-center gap-1">
-              <PhosphorIcons.SparkleIcon className="w-3.5 h-3.5" />
-              <span>{selectedTrack.name} {selectedTrack.type === 'text' ? 'Animations' : 'Loops'}:</span>
-            </span>
-            {ELEMENT_LOOP_PRESETS.filter(
-              (preset) => !preset.textOnly || selectedTrack.type === 'text'
-            ).map((preset) => {
-              const activeLoop = getSelectedLayerActiveLoop();
-              const isSelected = activeLoop === preset.id;
-              const isCounter = preset.id === 'counter';
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1 bg-neutral-950/80 p-0.5 rounded-lg border border-neutral-800 shrink-0 mr-1">
+              {(['all', 'entrance', 'emphasis', 'exit'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setMotionCategoryFilter(cat)}
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider transition-all cursor-pointer ${
+                    motionCategoryFilter === cat
+                      ? cat === 'entrance'
+                        ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-400/50 shadow-xs'
+                        : cat === 'exit'
+                          ? 'bg-rose-500/25 text-rose-300 border border-rose-400/50 shadow-xs'
+                          : cat === 'emphasis'
+                            ? 'bg-pastel-pink/25 text-pastel-pink border border-pastel-pink/50 shadow-xs'
+                            : 'bg-neutral-800 text-white border border-neutral-700 shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {cat === 'all' ? 'All' : cat === 'entrance' ? 'In (Entrance)' : cat === 'emphasis' ? 'Loop / Motion' : 'Out (Exit)'}
+                </button>
+              ))}
+            </div>
+
+            <div className="h-4 w-px bg-neutral-800 shrink-0 mx-0.5" />
+
+            {/* Motion Preset Chips */}
+            {MOTION_PRESETS.filter((p) => {
+              if (p.textOnly && selectedTrack.type !== 'text') return false;
+              if (motionCategoryFilter === 'all') return true;
+              return p.category === motionCategoryFilter;
+            }).map((preset) => {
+              const isEntrance = preset.category === 'entrance';
+              const isExit = preset.category === 'exit';
+
               return (
                 <button
                   key={preset.id}
                   onClick={() =>
-                    setLayerLoopAnimation(selectedTrack.type as any, selectedTrack.id, preset.id)
+                    state.addLayerMotionBlock(selectedTrack.type as any, selectedTrack.id, preset.id)
                   }
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    isSelected
-                      ? isCounter
-                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold shadow-xs'
-                        : 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue font-bold shadow-xs'
-                      : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                    isEntrance
+                      ? 'bg-cyan-950/40 border-cyan-800/80 text-cyan-300 hover:bg-cyan-900/60 hover:border-cyan-400'
+                      : isExit
+                        ? 'bg-rose-950/40 border-rose-800/80 text-rose-300 hover:bg-rose-900/60 hover:border-rose-400'
+                        : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800 hover:text-white'
                   }`}
-                  title={preset.description}
+                  title={`${preset.name}: ${preset.description} (Click to add at timeline playhead)`}
                 >
-                  {preset.name}
+                  <span className="text-[10px] opacity-70">
+                    {isEntrance ? '📥' : isExit ? '📤' : '💫'}
+                  </span>
+                  <span>{preset.name}</span>
+                  <span className="text-[9px] font-mono opacity-60 bg-neutral-900 px-1 py-0.2 rounded">
+                    {preset.defaultDurationSec}s
+                  </span>
                 </button>
               );
             })}
@@ -788,6 +817,7 @@ export const AnimationTimeline: React.FC = () => {
             {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
             {layerTracks.map((row) => {
               const isSelected = selectedTrack.id === row.id;
+              const motions = getLayerMotions(row.type, row.id);
               return (
                 <div
                   key={row.key}
@@ -798,21 +828,28 @@ export const AnimationTimeline: React.FC = () => {
                       name: row.name,
                     })
                   }
-                  className={`h-8 px-2.5 flex items-center gap-2 overflow-hidden transition-colors cursor-pointer ${
+                  className={`h-8 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer ${
                     isSelected
                       ? 'bg-pastel-blue/15 border-l-2 border-pastel-blue'
                       : 'hover:bg-neutral-900/50'
                   }`}
                 >
-                  {row.indicator}
-                  <span
-                    className={`truncate text-[11px] font-medium leading-tight ${
-                      isSelected ? 'text-pastel-blue font-bold' : 'text-slate-300'
-                    }`}
-                    title={row.name}
-                  >
-                    {row.name}
-                  </span>
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    {row.indicator}
+                    <span
+                      className={`truncate text-[11px] font-medium leading-tight ${
+                        isSelected ? 'text-pastel-blue font-bold' : 'text-slate-300'
+                      }`}
+                      title={row.name}
+                    >
+                      {row.name}
+                    </span>
+                  </div>
+                  {motions.length > 0 && (
+                    <span className="text-[9px] font-mono text-slate-400 shrink-0 bg-neutral-800/80 px-1 py-0.5 rounded">
+                      {motions.length}m
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -931,84 +968,133 @@ export const AnimationTimeline: React.FC = () => {
               {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
 
               {/* 1. Element Layer Lanes */}
-              {layerTracks.map((row) => (
-                <div
-                  key={row.key}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedTrack({
-                      type: row.type,
-                      id: row.id,
-                      name: row.name,
-                    });
-                  }}
-                  className="h-8 flex items-center relative group"
-                >
+              {layerTracks.map((row) => {
+                const motions = getLayerMotions(row.type, row.id);
+                return (
                   <div
-                    onClick={handleTimelineSeek}
-                    className="relative w-full h-full flex items-center"
+                    key={row.key}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTrack({
+                        type: row.type,
+                        id: row.id,
+                        name: row.name,
+                      });
+                    }}
+                    className="h-8 flex items-center relative group"
                   >
-                    {row.loopAnimation && row.loopAnimation !== 'none' ? (() => {
-                      const isCounter = row.loopAnimation === 'counter';
-                      const animDuration = isCounter ? 1.2 : state.durationSec;
-                      const startT = Math.min(
-                        row.animStartTime || 0,
-                        Math.max(0, state.durationSec - (isCounter ? 0.5 : 0))
-                      );
-                      const endT = isCounter
-                        ? Math.min(state.durationSec, startT + animDuration)
-                        : state.durationSec;
-                      const blockWidth = isCounter
-                        ? (endT - startT) * PX_PER_SECOND
-                        : (state.durationSec - startT) * PX_PER_SECOND;
-                      const blockLeft = PAD_PX + startT * PX_PER_SECOND;
-                      const isDraggingThis = draggingLayerAnim?.id === row.id;
+                    <div
+                      onClick={handleTimelineSeek}
+                      className="relative w-full h-full flex items-center"
+                    >
+                      {motions.length > 0 ? (
+                        motions.map((motion) => {
+                          const meta = MOTION_PRESETS.find((p) => p.id === motion.preset);
+                          const isEntrance = meta?.category === 'entrance';
+                          const isExit = meta?.category === 'exit';
+                          const blockLeft = PAD_PX + motion.startTimeSec * PX_PER_SECOND;
+                          const blockWidth = Math.max(motion.durationSec * PX_PER_SECOND, 38);
+                          const isDraggingThis = draggingMotionBlock?.blockId === motion.id;
+                          const isSelectedBlock = selectedBlockId === motion.id;
 
-                      return (
+                          return (
+                            <div
+                              key={motion.id}
+                              style={{
+                                left: `${blockLeft}px`,
+                                width: `${blockWidth}px`,
+                              }}
+                              onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, false)}
+                              onPointerMove={handleMotionBlockPointerMove}
+                              onPointerUp={handleMotionBlockPointerUp}
+                              onPointerCancel={handleMotionBlockPointerUp}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!hasDraggedMotionRef.current) {
+                                  setSelectedBlockId((prev) => (prev === motion.id ? null : motion.id));
+                                }
+                              }}
+                              className={`absolute h-5 rounded-md flex items-center justify-between px-1.5 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors group/motionblock ${
+                                isDraggingThis ? 'ring-2 ring-white scale-[1.02] z-30' : ''
+                              } ${
+                                isSelectedBlock ? 'ring-1.5 ring-white' : ''
+                              } ${
+                                isEntrance
+                                  ? 'bg-gradient-to-r from-cyan-500/35 via-sky-500/25 to-cyan-500/35 border border-cyan-400 text-cyan-200 hover:border-white'
+                                  : isExit
+                                    ? 'bg-gradient-to-r from-rose-500/35 via-amber-500/25 to-rose-500/35 border border-rose-400 text-rose-200 hover:border-white'
+                                    : 'bg-gradient-to-r from-pastel-pink/35 via-purple-500/25 to-pastel-pink/35 border border-pastel-pink text-pastel-pink hover:border-white'
+                              }`}
+                              title="Drag to move. Drag right edge to trim duration."
+                            >
+                              <span className="flex items-center gap-1 truncate mr-1 pointer-events-none">
+                                <span className="text-[9px] shrink-0">
+                                  {isEntrance ? '📥' : isExit ? '📤' : '💫'}
+                                </span>
+                                <span className="truncate text-[10px]">
+                                  {meta?.name || motion.preset}
+                                </span>
+                              </span>
+
+                              <span className="font-mono text-[8.5px] opacity-80 shrink-0 pointer-events-none mr-1.5">
+                                {motion.durationSec.toFixed(1)}s
+                              </span>
+
+                              {/* Right Trim/Resize Handle */}
+                              <div
+                                onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, true)}
+                                onPointerMove={handleMotionBlockPointerMove}
+                                onPointerUp={handleMotionBlockPointerUp}
+                                onPointerCancel={handleMotionBlockPointerUp}
+                                className="w-2 absolute right-0 top-0 bottom-0 cursor-ew-resize hover:bg-white/40 rounded-r-md transition-colors z-20 flex items-center justify-center"
+                                title="Drag to trim duration"
+                              >
+                                <div className="w-0.5 h-2 bg-white/60 rounded-full pointer-events-none" />
+                              </div>
+
+                              {/* Tooltip & Delete Popover */}
+                              <div
+                                className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                                  isSelectedBlock || isDraggingThis
+                                    ? 'opacity-100 pointer-events-auto'
+                                    : 'opacity-0 group-hover/motionblock:opacity-100 pointer-events-none group-hover/motionblock:pointer-events-auto'
+                                }`}
+                              >
+                                <span className="font-semibold text-white">
+                                  {meta?.name || motion.preset}
+                                </span>
+                                <span className="font-mono text-slate-400 text-[10px]">
+                                  {motion.startTimeSec.toFixed(1)}s - {(motion.startTimeSec + motion.durationSec).toFixed(1)}s
+                                </span>
+                                <button
+                                  type="button"
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    state.removeLayerMotionBlock(row.type, row.id, motion.id);
+                                    if (selectedBlockId === motion.id) setSelectedBlockId(null);
+                                  }}
+                                  className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
+                                  title="Delete Motion Block"
+                                >
+                                  <Trash01 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
                         <div
-                          style={{
-                            left: `${blockLeft}px`,
-                            width: `${Math.max(blockWidth, 36)}px`,
-                          }}
-                          onPointerDown={(e) => handleAnimBlockPointerDown(e, row)}
-                          onPointerMove={(e) => handleAnimBlockPointerMove(e, row)}
-                          onPointerUp={handleAnimBlockPointerUp}
-                          onPointerCancel={handleAnimBlockPointerUp}
-                          className={`absolute h-5 rounded-md flex items-center justify-between px-2 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors ${
-                            isDraggingThis ? 'ring-2 ring-white/60 scale-[1.02] z-20' : ''
-                          } ${
-                            isCounter
-                              ? 'bg-gradient-to-r from-pastel-pink/40 via-[#ffafcc]/30 to-pastel-pink/40 border border-pastel-pink text-pastel-pink hover:border-white'
-                              : 'bg-gradient-to-r from-pastel-blue/30 via-indigo-500/25 to-pastel-blue/30 border border-pastel-blue/60 text-pastel-blue hover:border-white'
-                          }`}
-                          title="Click and drag horizontally to move animation start time"
+                          style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
+                          className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-500 font-mono pointer-events-none"
                         >
-                          <span className="flex items-center gap-1 truncate mr-2 pointer-events-none">
-                            {isCounter ? (
-                              <PhosphorIcons.TrendUpIcon className="w-3 h-3 shrink-0" />
-                            ) : (
-                              <PhosphorIcons.SparkleIcon className="w-3 h-3 shrink-0" />
-                            )}
-                            <span className="truncate">
-                              {isCounter ? 'Counter (0 → N)' : `${row.loopAnimation} loop`}
-                            </span>
-                          </span>
-                          <span className="font-mono text-[9px] text-white/90 shrink-0 pointer-events-none">
-                            {startT.toFixed(1)}s - {endT.toFixed(1)}s
-                          </span>
+                          <span>+ Click any preset above to add motion</span>
                         </div>
-                      );
-                    })() : (
-                      <div
-                        style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
-                        className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-400 font-mono pointer-events-none"
-                      >
-                        <span>Static (No Animation)</span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* 2. Mockup Camera Lane */}
               <div
@@ -1056,7 +1142,7 @@ export const AnimationTimeline: React.FC = () => {
                         onPointerUp={handleMarkerPointerUp}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedKfId(kf.id);
+                          setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
                         }}
                         className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
                           isDragging ? 'z-50' : 'z-20'
