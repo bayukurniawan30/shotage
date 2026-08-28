@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
+import { calculateEasing } from '../types/animationTypes';
 
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
@@ -386,8 +387,7 @@ export const useStudioStore = create<StudioStore>()(
               const kf2 = keyframes[prevIndex + 1];
               const duration = kf2.timeSec - kf1.timeSec;
               const progress = duration > 0 ? (t - kf1.timeSec) / duration : 0;
-              const ease = (p: number) => (p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p);
-              const factor = ease(progress);
+              const factor = calculateEasing(progress, state.animationEasing || 'ease-in-out');
 
               const z2_1 = kf1.slot2Zoom ?? kf1.zoom;
               const z2_2 = kf2.slot2Zoom ?? kf2.zoom;

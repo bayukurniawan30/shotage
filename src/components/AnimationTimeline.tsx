@@ -16,6 +16,8 @@ import {
   AnimationKeyframe,
   ELEMENT_LOOP_PRESETS,
   ElementLoopAnimation,
+  EASING_PRESET_OPTIONS,
+  AnimationEasingType,
 } from '../types/animationTypes';
 
 export const AnimationTimeline: React.FC = () => {
@@ -125,7 +127,10 @@ export const AnimationTimeline: React.FC = () => {
     }
   }, [state.keyframes.length, onChange]);
 
-  // Playback Loop
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // Stable 60fps Playback Loop
   useEffect(() => {
     if (!state.isPlaying) {
       if (animRef.current) cancelAnimationFrame(animRef.current);
@@ -133,11 +138,15 @@ export const AnimationTimeline: React.FC = () => {
       return;
     }
 
+    lastTimeRef.current = performance.now();
+
     const tick = (now: number) => {
       if (lastTimeRef.current !== null) {
         const delta = (now - lastTimeRef.current) / 1000;
-        let nextTime = state.currentTimeSec + delta;
-        if (nextTime >= state.durationSec) {
+        const cur = stateRef.current.currentTimeSec;
+        const dur = stateRef.current.durationSec;
+        let nextTime = cur + delta;
+        if (nextTime >= dur) {
           nextTime = 0; // Loop playback
         }
         onChange({ currentTimeSec: nextTime });
@@ -150,7 +159,7 @@ export const AnimationTimeline: React.FC = () => {
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [state.isPlaying, state.currentTimeSec, state.durationSec, onChange]);
+  }, [state.isPlaying, onChange]);
 
   // Global Keyboard Shortcut: Spacebar toggles Play/Pause in Animation Mode
   useEffect(() => {
@@ -662,6 +671,23 @@ export const AnimationTimeline: React.FC = () => {
             </select>
           </div>
 
+          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 sm:px-2 py-1 text-xs text-slate-300 shrink-0">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase hidden sm:inline">
+              Easing:
+            </span>
+            <select
+              value={state.animationEasing || 'ease-in-out'}
+              onChange={(e) => onChange({ animationEasing: e.target.value as AnimationEasingType })}
+              className="bg-transparent text-pastel-pink font-semibold text-xs outline-none cursor-pointer"
+            >
+              {EASING_PRESET_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id} className="bg-neutral-900 text-white">
+                  {opt.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {selectedTrack.type === 'mockup' && (
             <button
               onClick={addCurrentStateKeyframe}
@@ -757,8 +783,9 @@ export const AnimationTimeline: React.FC = () => {
           <div
             ref={leftTracksRef}
             onScroll={handleLeftTracksScroll}
-            className="max-h-44 overflow-y-auto divide-y divide-neutral-800/40 no-scrollbar"
+            className="flex flex-col min-h-[96px] max-h-44 overflow-y-auto divide-y divide-neutral-800/40 no-scrollbar"
           >
+            {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
             {layerTracks.map((row) => {
               const isSelected = selectedTrack.id === row.id;
               return (
@@ -893,13 +920,15 @@ export const AnimationTimeline: React.FC = () => {
             <div
               ref={trackContainerRef}
               onScroll={handleRightTracksScroll}
-              className="relative max-h-44 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
+              className="relative flex flex-col min-h-[96px] max-h-44 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
             >
               {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
               <div
                 style={{ left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px` }}
                 className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
               />
+
+              {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
 
               {/* 1. Element Layer Lanes */}
               {layerTracks.map((row) => (
@@ -1025,6 +1054,10 @@ export const AnimationTimeline: React.FC = () => {
                         onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
                         onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
                         onPointerUp={handleMarkerPointerUp}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedKfId(kf.id);
+                        }}
                         className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
                           isDragging ? 'z-50' : 'z-20'
                         }`}

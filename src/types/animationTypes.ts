@@ -1,3 +1,46 @@
+export type AnimationEasingType =
+  | 'ease-in-out'
+  | 'linear'
+  | 'ease-out'
+  | 'ease-in'
+  | 'spring';
+
+export interface EasingPresetOption {
+  id: AnimationEasingType;
+  name: string;
+  description: string;
+}
+
+export const EASING_PRESET_OPTIONS: EasingPresetOption[] = [
+  { id: 'ease-in-out', name: 'Ease In-Out', description: 'Smooth gentle acceleration & deceleration' },
+  { id: 'linear', name: 'Linear', description: 'Even constant speed throughout' },
+  { id: 'ease-out', name: 'Ease Out', description: 'Fast departure with soft smooth stop' },
+  { id: 'ease-in', name: 'Ease In', description: 'Slow start accelerating smoothly to end' },
+  { id: 'spring', name: 'Spring', description: 'Snappy motion with slight elastic settle' },
+];
+
+export function calculateEasing(progress: number, type: AnimationEasingType = 'ease-in-out'): number {
+  const p = Math.max(0, Math.min(1, progress));
+  switch (type) {
+    case 'linear':
+      return p;
+    case 'ease-out':
+      return 1 - (1 - p) * (1 - p);
+    case 'ease-in':
+      return p * p;
+    case 'spring': {
+      const c1 = 1.4;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+    }
+    case 'ease-in-out':
+    default:
+      return p < 0.5
+        ? 2 * p * p
+        : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  }
+}
+
 export interface AnimationKeyframe {
   id: string;
   timeSec: number; // 0 to 15s

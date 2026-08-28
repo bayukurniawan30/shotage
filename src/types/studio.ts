@@ -371,6 +371,7 @@ export interface StudioState {
   isPlaying: boolean;
   currentTimeSec: number;
   durationSec: number;
+  animationEasing?: import('./animationTypes').AnimationEasingType;
   keyframes: import('./animationTypes').AnimationKeyframe[];
   activePresetId: string;
   // Text Layers
@@ -506,6 +507,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   isPlaying: false,
   currentTimeSec: 0,
   durationSec: 10,
+  animationEasing: 'ease-in-out',
   keyframes: [],
   activePresetId: '',
   textLayers: [],

@@ -649,8 +649,8 @@ export const PositionSliderGroup: React.FC<{
         </div>
         <input
           type="range"
-          min="-200"
-          max="200"
+          min="-800"
+          max="800"
           value={values.offsetX}
           onChange={(e) => handlers.onOffsetX(Number(e.target.value))}
           onPointerDown={handlers.onDragStart}
@@ -667,8 +667,8 @@ export const PositionSliderGroup: React.FC<{
         </div>
         <input
           type="range"
-          min="-200"
-          max="200"
+          min="-800"
+          max="800"
           value={values.offsetY}
           onChange={(e) => handlers.onOffsetY(Number(e.target.value))}
           onPointerDown={handlers.onDragStart}

@@ -18,7 +18,7 @@ import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
-import { getAnimatedCounterValue } from '../types/animationTypes';
+import { getAnimatedCounterValue, calculateEasing } from '../types/animationTypes';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ImageUp,
@@ -52,6 +52,40 @@ const buildPlaceholderSrc = (width: number, height: number): string => {
     `<path d="M0 ${iconSize * 0.7} L${iconSize * 0.28} ${iconSize * 0.42} L${iconSize * 0.45} ${iconSize * 0.6} L${iconSize * 0.62} ${iconSize * 0.38} L${iconSize} ${iconSize * 0.7}"/>` +
     `</g></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
+interface CenterPointIndicatorProps {
+  top?: string;
+  left?: string;
+  rotation?: number;
+  flipX?: boolean;
+  flipY?: boolean;
+  visible?: boolean;
+}
+
+const CenterPointIndicator: React.FC<CenterPointIndicatorProps> = ({
+  top = '50%',
+  left = '50%',
+  rotation = 0,
+  flipX = false,
+  flipY = false,
+  visible = true,
+}) => {
+  if (!visible) return null;
+
+  const flipTransform = flipX || flipY ? `scale(${flipX ? -1 : 1}, ${flipY ? -1 : 1}) ` : '';
+  const rotTransform = rotation ? `rotate(${-rotation}deg)` : '';
+
+  return (
+    <div
+      style={{
+        top,
+        left,
+        transform: `translate(-50%, -50%) ${flipTransform}${rotTransform}`.trim(),
+      }}
+      className="absolute w-2 h-2 rounded-full bg-pastel-pink border-2 border-white shadow-[0_0_10px_rgba(244,114,182,1)] flex items-center justify-center pointer-events-none z-50"
+    />
+  );
 };
 
 export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUpload }) => {
@@ -213,9 +247,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const duration = kf2.timeSec - kf1.timeSec;
     const progress = duration > 0 ? (t - kf1.timeSec) / duration : 0;
 
-    // Smooth cubic ease-in-out easing interpolation
-    const ease = (p: number) => (p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p);
-    const factor = ease(progress);
+    const factor = calculateEasing(progress, state.animationEasing || 'ease-in-out');
 
     const z1_1 = kf1.zoom;
     const z1_2 = kf2.zoom;
@@ -385,6 +417,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const currentText = isCounter
           ? getAnimatedCounterValue(layer.text, state.currentTimeSec, 1.2, layer.animStartTime || 0)
           : layer.text;
+        const textRot = (layer.rotation || 0) + loop.rotate;
 
         return (
           <div
@@ -401,7 +434,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
+              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${textRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
@@ -492,7 +525,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   style={{ top: '-14px', left: '-14px' }}
                   className="delete-handle absolute w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-textRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="rotate"
@@ -503,7 +539,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   }}
                   className="rotate-handle absolute w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-textRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="resize"
@@ -514,8 +553,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   }}
                   className="resize-handle absolute w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowsOutSimpleIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-textRot}deg)` }}
+                  />
                 </div>
+
+                {/* Center Point Indicator when moving */}
+                <CenterPointIndicator
+                  top={`calc(50% * ${sy})`}
+                  left={`calc(50% * ${sx})`}
+                  rotation={textRot}
+                  visible={dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)}
+                />
               </>
             )}
           </div>
@@ -560,6 +610,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ? 'rounded-xl'
             : 'rounded-2xl';
 
+        const iconRot = (layer.rotation || 0) + loop.rotate;
+
         return (
           <div
             key={layer.id}
@@ -577,7 +629,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
-              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${(layer.rotation || 0) + loop.rotate}deg) scale(${loop.scale})`,
+              transform: `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${iconRot}deg) scale(${loop.scale})`,
               opacity: ((layer.opacity ?? 100) / 100) * loop.opacityMul,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
             }}
@@ -600,22 +652,36 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   }}
                   className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-iconRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="rotate"
                   title="Drag to rotate"
                   className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-iconRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="resize"
                   title="Drag to resize icon"
                   className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowsOutSimpleIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-iconRot}deg)` }}
+                  />
                 </div>
+                {/* Center Point Indicator when moving */}
+                <CenterPointIndicator
+                  rotation={iconRot}
+                  visible={dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)}
+                />
               </>
             )}
           </div>
@@ -631,6 +697,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const isSelected = (state.selectedElementIds || []).includes(el.id);
         const layerLocked = el.locked === true;
         const loop = getElementLoopTransform(el.loopAnimation, el.animStartTime || 0);
+
+        const elRot = (el.rotation || 0) + loop.rotate;
 
         return (
           <div
@@ -649,7 +717,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
-              transform: `translate(${el.x + loop.dx}px, ${el.y + loop.dy}px) rotate(${(el.rotation || 0) + loop.rotate}deg) scale(${el.flipX ? -loop.scale : loop.scale}, ${el.flipY ? -loop.scale : loop.scale})`,
+              transform: `translate(${el.x + loop.dx}px, ${el.y + loop.dy}px) rotate(${elRot}deg) scale(${el.flipX ? -loop.scale : loop.scale}, ${el.flipY ? -loop.scale : loop.scale})`,
               opacity: ((el.opacity ?? 100) / 100) * loop.opacityMul,
               filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${el.width || 90}px`,
@@ -698,7 +766,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
                   }}
                 >
-                  <PhosphorIcons.Trash className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-elRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="rotate"
@@ -708,7 +779,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
                   }}
                 >
-                  <PhosphorIcons.ArrowClockwise className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-elRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="resize"
@@ -718,8 +792,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
                   }}
                 >
-                  <PhosphorIcons.ArrowsOutSimple className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowsOutSimpleIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-elRot}deg)` }}
+                  />
                 </div>
+
+                {/* Center Point Indicator when moving */}
+                <CenterPointIndicator
+                  rotation={elRot}
+                  flipX={el.flipX}
+                  flipY={el.flipY}
+                  visible={dragItem?.id === el.id || groupDrag?.items.some((it) => it.id === el.id)}
+                />
               </>
             )}
           </div>
@@ -807,9 +892,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         };
 
         const has3D = (layer.pitch ?? 0) !== 0 || (layer.yaw ?? 0) !== 0;
+        const shapeRot = (layer.rotation || 0) + loop.rotate;
         const transformStr = has3D
-          ? `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`
-          : `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${(layer.rotation || 0) + loop.rotate}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`;
+          ? `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) perspective(1000px) rotateX(${layer.pitch || 0}deg) rotateY(${layer.yaw || 0}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`
+          : `translate(${layer.x + loop.dx}px, ${layer.y + loop.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${loop.scale})`;
 
         return (
           <div
@@ -909,22 +995,37 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   }}
                   className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.TrashIcon className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-shapeRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="rotate"
                   title="Drag to rotate"
                   className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowClockwiseIcon className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-shapeRot}deg)` }}
+                  />
                 </div>
                 <div
                   data-action="resize"
                   title="Drag to resize shape"
                   className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 >
-                  <PhosphorIcons.ArrowsOutSimpleIcon className="w-3.5 h-3.5 font-bold" />
+                  <PhosphorIcons.ArrowsOutSimpleIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-shapeRot}deg)` }}
+                  />
                 </div>
+
+                {/* Center Point Indicator when moving */}
+                <CenterPointIndicator
+                  rotation={shapeRot}
+                  visible={dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)}
+                />
               </>
             )}
           </div>
@@ -1561,7 +1662,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const firstFrameElement = (
       <div
-        className="transition-all duration-200"
+        className={state.isAnimationMode && state.isPlaying ? '' : 'transition-all duration-200'}
         style={{
           transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) skewX(${state.skewX}deg) skewY(${state.skewY}deg) scale(${state.isAnimationMode ? animTransform.zoom / 100 : state.zoom / 100}) translate(${state.isAnimationMode ? animTransform.offsetX : state.offsetX}px, ${state.isAnimationMode ? animTransform.offsetY : state.offsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot1Rotate ?? 0) : state.slot1Rotate || 0}deg)`,
           transformStyle: 'preserve-3d',
@@ -1573,7 +1674,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const secondFrameElement = (
       <div
-        className="transition-all duration-200"
+        className={state.isAnimationMode && state.isPlaying ? '' : 'transition-all duration-200'}
         style={{
           transform: `perspective(${slot2Perspective}px) rotateX(${slot2RX}deg) rotateY(${slot2RY}deg) skewX(${slot2SkewX}deg) skewY(${slot2SkewY}deg) scale(${state.isAnimationMode ? animTransform.slot2Zoom / 100 : state.slot2Zoom / 100}) translate(${state.isAnimationMode ? animTransform.slot2OffsetX : state.slot2OffsetX}px, ${state.isAnimationMode ? animTransform.slot2OffsetY : state.slot2OffsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot2Rotate ?? 0) : state.slot2Rotate || 0}deg)`,
           transformStyle: 'preserve-3d',
