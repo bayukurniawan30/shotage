@@ -22,6 +22,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileS
     'iphone',
     'iphone14pro',
     'iphone16',
+    'iphone16-floating',
     'iphone17-dual-side',
     'macbook',
     'macbookair13',

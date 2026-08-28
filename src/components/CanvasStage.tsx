@@ -132,6 +132,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         'iphone',
         'iphone14pro',
         'iphone16',
+        'iphone16-floating',
         'iphone17-dual-side',
         'macbook',
         'macbookair13',
@@ -983,20 +984,30 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const placeholderSrc =
       slotWidth && slotHeight ? buildPlaceholderSrc(slotWidth, slotHeight) : null;
 
+    const isPhoneDevice =
+      state.frameType === 'iphone' ||
+      state.frameType === 'iphone14pro' ||
+      state.frameType === 'iphone16' ||
+      state.frameType === 'iphone16-floating' ||
+      state.frameType === 'iphone17-dual-side' ||
+      state.frameType === 'samsung-s21';
+
     // Empty-state drop zone: match the canvas ratio (frameless) so it fills the canvas instead
     // of a small 16:10 strip. Fitted with max-h-full so it never overflows the padded area.
+    const defaultPlaceholderAspect = isFrameless
+      ? canvasAspectRatio
+      : isPhoneDevice
+        ? '9 / 29'
+        : '16 / 10';
+
     const placeholderAspect =
       slotIndex === 2
         ? state.secondImageWidth && state.secondImageHeight
           ? `${state.secondImageWidth} / ${state.secondImageHeight}`
-          : isFrameless
-            ? canvasAspectRatio
-            : '16 / 10'
+          : defaultPlaceholderAspect
         : state.imageWidth && state.imageHeight
           ? `${state.imageWidth} / ${state.imageHeight}`
-          : isFrameless
-            ? canvasAspectRatio
-            : '16 / 10';
+          : defaultPlaceholderAspect;
 
     const isSlotVideo =
       slotIndex === 2 ? state.secondMediaType === 'video' : state.mediaType === 'video';
@@ -1101,7 +1112,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div className="w-[12cqmin] h-[12cqmin] min-w-[28px] min-h-[28px] max-w-[80px] max-h-[80px] rounded-[16%] bg-slate-900/90 border border-slate-700/80 shadow-2xl flex items-center justify-center mb-[1.5cqmin] group-hover:scale-110 transition-transform pointer-events-none">
               <ImageUp className="w-[50%] h-[50%] text-brand-400 pointer-events-none" />
             </div>
-            <span className="text-[clamp(10px,2.8cqmin,18px)] font-bold tracking-wide text-slate-100 drop-shadow-lg pointer-events-none text-center px-2 truncate max-w-full">
+            <span className="text-[clamp(8px,1.4cqmin,14px)] font-bold tracking-wide text-slate-100 drop-shadow-lg pointer-events-none text-center px-2 truncate max-w-full">
               {imgSrc
                 ? isSlotVideo && state.layoutCount === 1
                   ? 'Replace Video'
@@ -1132,8 +1143,26 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           style={{
             ...imageStyle,
             aspectRatio: placeholderAspect,
-            minWidth: state.layoutCount === 2 ? '480px' : '420px',
-            minHeight: state.layoutCount === 2 ? '280px' : '240px',
+            minWidth:
+              isFrameless ||
+              state.frameType.startsWith('safari') ||
+              state.frameType === 'chrome-dark' ||
+              state.frameType.startsWith('polaroid') ||
+              state.frameType.startsWith('instagram')
+                ? state.layoutCount === 2
+                  ? '480px'
+                  : '420px'
+                : undefined,
+            minHeight:
+              isFrameless ||
+              state.frameType.startsWith('safari') ||
+              state.frameType === 'chrome-dark' ||
+              state.frameType.startsWith('polaroid') ||
+              state.frameType.startsWith('instagram')
+                ? state.layoutCount === 2
+                  ? '280px'
+                  : '240px'
+                : undefined,
           }}
         >
           <div
@@ -1154,7 +1183,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             </svg>
           </div>
           <p
-            className={`${state.layoutCount === 2 ? 'text-[clamp(14px,6cqmin,40px)]' : 'text-[clamp(12px,4cqmin,26px)]'} font-bold text-slate-100 tracking-tight`}
+            className={`${state.layoutCount === 2 ? 'text-[clamp(14px,6cqmin,40px)]' : 'text-[clamp(12px,3cqmin,26px)]'} font-bold text-slate-100 tracking-tight`}
           >
             Upload Slot {slotIndex}
           </p>
@@ -1194,6 +1223,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       state.frameType === 'iphone' ||
       state.frameType === 'iphone14pro' ||
       state.frameType === 'iphone16' ||
+      state.frameType === 'iphone16-floating' ||
       state.frameType === 'iphone17-dual-side' ||
       state.frameType === 'samsung-s21'
     ) {
@@ -1278,7 +1308,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const isImg =
         slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
       const userThick = state.slabThickness ?? 12;
-      const is3D = isFrameless && isImg && (Math.abs(rotXVal) >= 0.5 || Math.abs(rotYVal) >= 0.5) && userThick > 0;
+      const is3D =
+        isFrameless &&
+        isImg &&
+        (Math.abs(rotXVal) >= 0.5 || Math.abs(rotYVal) >= 0.5) &&
+        userThick > 0;
 
       let borderStyleClasses = '';
       if (fStyle === 'glass-light') {
@@ -1391,7 +1425,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         // Add a subtle specular highlight near the front edge (first 20% of depth)
         const specularBoost = progress < 0.2 ? 1 + (1 - progress / 0.2) * 0.15 : 1;
         // Add ambient occlusion near the back edge (last 20%)
-        const aoFade = progress > 0.8 ? 1 - (progress - 0.8) / 0.2 * 0.2 : 1;
+        const aoFade = progress > 0.8 ? 1 - ((progress - 0.8) / 0.2) * 0.2 : 1;
 
         const shade = Math.min(1, depthShade * specularBoost * aoFade);
         const r = Math.min(255, Math.round(r0 * shade));

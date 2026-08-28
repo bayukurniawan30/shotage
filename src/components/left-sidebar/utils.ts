@@ -10,6 +10,7 @@ export const FRAME_LABELS: Record<string, string> = {
   iphone: 'iPhone 15',
   iphone14pro: 'iPhone 14 Pro',
   iphone16: 'iPhone 16',
+  'iphone16-floating': 'iPhone 16 Floating',
   'iphone17-dual-side': 'iPhone 17 Pro Dual side',
   'samsung-s21': 'Samsung S21',
   macbookair13: 'MacBook Air 13"',

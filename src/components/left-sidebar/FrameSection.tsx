@@ -137,6 +137,12 @@ export const FrameSection: React.FC = () => {
                   { id: 'iphone14pro', label: 'iPhone 14 Pro', file: 'iphone-14-pro', ext: 'png' },
                   { id: 'iphone16', label: 'iPhone 16', file: 'iphone-16', ext: 'png' },
                   {
+                    id: 'iphone16-floating',
+                    label: 'iPhone 16 Floating',
+                    file: 'iphone-16-pro-max-floating',
+                    ext: 'webp',
+                  },
+                  {
                     id: 'iphone17-dual-side',
                     label: 'iPhone 17 Pro Dual side',
                     file: 'iphone-17-dual-side',
@@ -159,7 +165,9 @@ export const FrameSection: React.FC = () => {
                           frameType: item.id as any,
                           borderRadius: 0,
                           shadow: 'none',
-                          ...((item.id === 'iphone16' || item.id === 'iphone17-dual-side') &&
+                          ...((item.id === 'iphone16' ||
+                            item.id === 'iphone16-floating' ||
+                            item.id === 'iphone17-dual-side') &&
                           (state.iphoneStatusBar || 'none') === 'none'
                             ? { iphoneStatusBar: 'light' }
                             : {}),
@@ -385,6 +393,7 @@ export const FrameSection: React.FC = () => {
       {(state.frameType === 'iphone' ||
         state.frameType === 'iphone14pro' ||
         state.frameType === 'iphone16' ||
+        state.frameType === 'iphone16-floating' ||
         state.frameType === 'iphone17-dual-side') && (
         <div className="pt-2 space-y-2 border-t border-neutral-800/80">
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">

@@ -9,6 +9,7 @@ interface DeviceFrameProps {
     | 'iphone'
     | 'iphone14pro'
     | 'iphone16'
+    | 'iphone16-floating'
     | 'iphone17-dual-side'
     | 'samsung-s21'
     | 'tablet';
@@ -170,6 +171,60 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
         <img
           src="/mockup/apple-iphone-16-portrait.webp"
           alt="iPhone 16 Frame Mockup"
+          className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
+        />
+      </div>
+    );
+  }
+
+  if (type === 'iphone16-floating') {
+    const iphoneStatusBar = useStudioStore((state) => state.iphoneStatusBar || 'none');
+    const isStatusBarActive = iphoneStatusBar !== 'none';
+    const isLightBar = iphoneStatusBar === 'light';
+
+    return (
+      <div className="relative mx-auto w-[290px] sm:w-[350px] select-none flex items-center justify-center">
+        {/* Screen Content Wrapper placed precisely inside the angled front phone screen */}
+        <div
+          className="absolute z-0 overflow-hidden"
+          style={{
+            top: '5.8%',
+            left: '37.4%',
+            borderRadius: '12px',
+            transform: 'perspective(898px) rotateX(5deg) rotate(19deg) rotateY(-30deg)',
+            width: '28.6%',
+            height: '64.3%',
+            transformOrigin: 'left bottom',
+          }}
+        >
+          <div className="w-full h-full overflow-hidden flex items-center justify-center bg-transparent relative [&_label]:min-w-0! [&_label]:min-h-0! [&_label]:p-1! [&_label]:h-full [&_div.rounded-\\[22\\%\\]]:w-6! [&_div.rounded-\\[22\\%\\]]:h-6! [&_div.rounded-\\[22\\%\\]]:min-w-0! [&_div.rounded-\\[22\\%\\]]:min-h-0! [&_div.rounded-\\[22\\%\\]]:mb-1! [&_svg]:w-3! [&_svg]:h-3! [&_p]:text-[7px]! [&_p]:leading-none! [&_p.text-slate-400]:text-[5px]! [&_p.text-slate-400]:mt-0.5!">
+            {/* Top Status Bar (Transparent Overlay) */}
+            {isStatusBarActive && (
+              <div
+                className={`absolute top-0 left-0 right-0 z-20 px-1.5 pt-1 flex items-center justify-between pointer-events-none ${
+                  isLightBar ? 'text-white' : 'text-slate-900'
+                }`}
+              >
+                {/* Time (Left) */}
+                <span className="text-[5px] font-semibold tracking-tight font-sans ml-1">9:41</span>
+
+                {/* Right Status Icons */}
+                <div className="flex items-center gap-[2px] mr-[2px]">
+                  <BarChart05 className="w-1.5 h-1.5" />
+                  <Wifi className="w-1.5 h-1.5" />
+                  <BatteryMid className="w-2 h-2" />
+                </div>
+              </div>
+            )}
+
+            {children}
+          </div>
+        </div>
+
+        {/* Real iPhone 16 Pro Max Floating Overlay WebP */}
+        <img
+          src="/mockup/apple-iphone-16-pro-max-floating.webp"
+          alt="iPhone 16 Pro Max Floating Frame Mockup"
           className="w-full h-auto relative z-10 pointer-events-none drop-shadow-2xl"
         />
       </div>

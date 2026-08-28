@@ -805,6 +805,7 @@ export const QuickModeSection: React.FC = () => {
     state.frameType === 'iphone' ||
     state.frameType === 'iphone14pro' ||
     state.frameType === 'iphone16' ||
+    state.frameType === 'iphone16-floating' ||
     state.frameType === 'iphone17-dual-side' ||
     state.frameType === 'samsung-s21';
 
