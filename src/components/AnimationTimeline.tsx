@@ -812,7 +812,7 @@ export const AnimationTimeline: React.FC = () => {
           <div
             ref={leftTracksRef}
             onScroll={handleLeftTracksScroll}
-            className="flex flex-col min-h-[96px] max-h-44 overflow-y-auto divide-y divide-neutral-800/40 no-scrollbar"
+            className="flex flex-col min-h-[96px] max-h-48 overflow-y-auto divide-y divide-neutral-800/40 no-scrollbar"
           >
             {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
             {layerTracks.map((row) => {
@@ -828,7 +828,7 @@ export const AnimationTimeline: React.FC = () => {
                       name: row.name,
                     })
                   }
-                  className={`h-8 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer ${
+                  className={`h-8 shrink-0 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer ${
                     isSelected
                       ? 'bg-pastel-blue/15 border-l-2 border-pastel-blue'
                       : 'hover:bg-neutral-900/50'
@@ -863,7 +863,7 @@ export const AnimationTimeline: React.FC = () => {
                   name: 'Mockup',
                 })
               }
-              className={`h-9 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer bg-neutral-950/90 ${
+              className={`h-9 shrink-0 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer bg-neutral-950/90 ${
                 selectedTrack.type === 'mockup'
                   ? 'bg-pastel-pink/15 border-l-2 border-pastel-pink'
                   : 'hover:bg-neutral-900/50'
@@ -957,7 +957,7 @@ export const AnimationTimeline: React.FC = () => {
             <div
               ref={trackContainerRef}
               onScroll={handleRightTracksScroll}
-              className="relative flex flex-col min-h-[96px] max-h-44 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
+              className="relative flex flex-col min-h-[96px] max-h-48 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
             >
               {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
               <div
@@ -981,7 +981,7 @@ export const AnimationTimeline: React.FC = () => {
                         name: row.name,
                       });
                     }}
-                    className="h-8 flex items-center relative group"
+                    className="h-8 shrink-0 flex items-center relative group"
                   >
                     <div
                       onClick={handleTimelineSeek}
@@ -1106,7 +1106,7 @@ export const AnimationTimeline: React.FC = () => {
                     name: 'Mockup',
                   });
                 }}
-                className="h-9 flex items-center relative bg-neutral-950/90"
+                className="h-9 shrink-0 flex items-center relative bg-neutral-950/90"
               >
                 <div
                   ref={mockupTrackRef}
