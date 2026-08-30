@@ -18,7 +18,11 @@ import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
-import { getAnimatedCounterValue, calculateEasing, evaluateLayerMotion } from '../types/animationTypes';
+import {
+  getAnimatedCounterValue,
+  calculateEasing,
+  evaluateLayerMotion,
+} from '../types/animationTypes';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ImageUp,
@@ -387,7 +391,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const layerLocked = layer.locked === true;
         const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
         const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
-        const motion = evaluateLayerMotion(layer.motions, layer.loopAnimation, layer.animStartTime || 0, state.currentTimeSec, layer.text);
+        const motion = evaluateLayerMotion(
+          layer.motions,
+          layer.loopAnimation,
+          layer.animStartTime || 0,
+          state.currentTimeSec,
+          layer.text
+        );
         const sx = layer.scaleX ?? 1;
         const sy = layer.scaleY ?? 1;
 
@@ -431,7 +441,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${textRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`,
+              transform: `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${textRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${layer.fontSize}px`,
@@ -446,7 +456,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   : layer.shadow
                     ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
                     : 'none',
-              whiteSpace: currentText.includes('\n') ? 'pre-wrap' : 'nowrap',
+              whiteSpace: currentText.includes('\n') ? 'pre-wrap' : 'pre',
               width: 'max-content',
               maxWidth: 'none',
             }}
@@ -561,7 +571,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   top={`calc(50% * ${sy})`}
                   left={`calc(50% * ${sx})`}
                   rotation={textRot}
-                  visible={dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)}
+                  visible={
+                    dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
+                  }
                 />
               </>
             )}
@@ -578,7 +590,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
         const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
-        const motion = evaluateLayerMotion(layer.motions, layer.loopAnimation, layer.animStartTime || 0, state.currentTimeSec);
+        const motion = evaluateLayerMotion(
+          layer.motions,
+          layer.loopAnimation,
+          layer.animStartTime || 0,
+          state.currentTimeSec
+        );
 
         const getBadgeClass = (style: import('../types/studio').PhosphorBadgeStyle) => {
           switch (style) {
@@ -677,7 +694,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 {/* Center Point Indicator when moving */}
                 <CenterPointIndicator
                   rotation={iconRot}
-                  visible={dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)}
+                  visible={
+                    dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
+                  }
                 />
               </>
             )}
@@ -693,7 +712,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((el) => {
         const isSelected = (state.selectedElementIds || []).includes(el.id);
         const layerLocked = el.locked === true;
-        const motion = evaluateLayerMotion(el.motions, el.loopAnimation, el.animStartTime || 0, state.currentTimeSec);
+        const motion = evaluateLayerMotion(
+          el.motions,
+          el.loopAnimation,
+          el.animStartTime || 0,
+          state.currentTimeSec
+        );
 
         const elRot = (el.rotation || 0) + motion.rotate;
 
@@ -817,7 +841,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
-        const motion = evaluateLayerMotion(layer.motions, layer.loopAnimation, layer.animStartTime || 0, state.currentTimeSec);
+        const motion = evaluateLayerMotion(
+          layer.motions,
+          layer.loopAnimation,
+          layer.animStartTime || 0,
+          state.currentTimeSec
+        );
         const getShapeStyle = (): React.CSSProperties => {
           switch (layer.shapeType) {
             case 'circle':
@@ -889,7 +918,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           };
         };
 
-        const has3D = (layer.pitch ?? 0) !== 0 || (layer.yaw ?? 0) !== 0 || motion.rotateX !== 0 || motion.rotateY !== 0;
+        const has3D =
+          (layer.pitch ?? 0) !== 0 ||
+          (layer.yaw ?? 0) !== 0 ||
+          motion.rotateX !== 0 ||
+          motion.rotateY !== 0;
         const shapeRot = (layer.rotation || 0) + motion.rotate;
         const transformStr = has3D
           ? `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`
@@ -934,9 +967,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               style={{
                 ...getGlassOrSolidBackground(),
                 ...getShapeStyle(),
-                opacity: isGlass
-                  ? 1
-                  : (layer.opacity ?? 100) / 100,
+                opacity: isGlass ? 1 : (layer.opacity ?? 100) / 100,
                 filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
                 ...(isGlass
                   ? {
@@ -1023,7 +1054,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 {/* Center Point Indicator when moving */}
                 <CenterPointIndicator
                   rotation={shapeRot}
-                  visible={dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)}
+                  visible={
+                    dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
+                  }
                 />
               </>
             )}

@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
-import { calculateEasing, LayerMotionBlock, MotionPresetId, MOTION_PRESETS } from '../types/animationTypes';
+import {
+  calculateEasing,
+  LayerMotionBlock,
+  MotionPresetId,
+  MOTION_PRESETS,
+} from '../types/animationTypes';
+import { GOOGLE_FONTS } from '../components/right-sidebar/shared';
 
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
@@ -30,6 +36,7 @@ interface StudioStore extends StudioState {
   updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
   removeTextLayer: (id: string) => void;
   duplicateTextLayer: (id: string) => void;
+  explodeTextLayer: (id: string) => void;
   selectTextLayer: (id: string | null) => void;
   toggleTextLayer: (id: string) => void;
   addPhosphorIconLayer: (iconId?: string) => void;
@@ -60,7 +67,9 @@ interface StudioStore extends StudioState {
   duplicateShapeLayer: (id: string) => void;
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
-  reorderLayers: (newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]) => void;
+  reorderLayers: (
+    newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]
+  ) => void;
   alignCanvasElements: (align: 'left' | 'center' | 'right', canvasWidth: number) => void;
   selectStage: (index: number) => void;
   addStage: () => void;
@@ -573,13 +582,131 @@ export const useStudioStore = create<StudioStore>()(
             text: `${layerToDup.text} (Copy)`,
             y: layerToDup.y + 20,
           };
-          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'text' && e.id === id);
+          const srcIdx = (state.layerOrder || []).findIndex(
+            (e) => e.type === 'text' && e.id === id
+          );
           const newOrder = [...(state.layerOrder || [])];
           newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'text', id: dup.id });
           return {
             textLayers: [...state.textLayers, dup],
             selectedTextLayerId: dup.id,
             selectedTextLayerIds: [dup.id],
+            layerOrder: newOrder,
+          };
+        }),
+      explodeTextLayer: (id) =>
+        set((state) => {
+          const layer = state.textLayers.find((l) => l.id === id);
+          if (!layer || !layer.text || layer.text.length <= 1) return state;
+
+          const chars = Array.from(layer.text);
+          const nonSpaceChars = chars.filter((c) => c.trim().length > 0);
+          if (nonSpaceChars.length <= 1) return state;
+
+          const now = Date.now();
+          const newLayers: import('../types/studio').TextLayer[] = [];
+
+          // If DOM element exists on screen, use Range API for 100.0% exact on-screen position
+          let hasMeasuredDom = false;
+          if (typeof document !== 'undefined') {
+            const domEl = document.querySelector(`[data-layer-id="${id}"]`);
+            if (domEl) {
+              const walker = document.createTreeWalker(domEl, NodeFilter.SHOW_TEXT, null);
+              const textNode = walker.nextNode();
+              if (textNode && textNode.textContent) {
+                const zoom = (state.previewCanvasZoom || 100) / 100;
+                const range0 = document.createRange();
+                range0.setStart(textNode, 0);
+                range0.setEnd(textNode, 0);
+                const rect0 = range0.getBoundingClientRect();
+
+                chars.forEach((char, idx) => {
+                  if (char.trim().length > 0) {
+                    const rangeI = document.createRange();
+                    rangeI.setStart(textNode, idx);
+                    rangeI.setEnd(textNode, idx);
+                    const rectI = rangeI.getBoundingClientRect();
+                    const deltaX = (rectI.left - rect0.left) / zoom;
+                    const deltaY = (rectI.top - rect0.top) / zoom;
+
+                    newLayers.push({
+                      ...layer,
+                      id: `text-exploded-${now}-${idx}`,
+                      text: char,
+                      x: Math.round((layer.x + deltaX) * 10) / 10,
+                      y: Math.round((layer.y + deltaY) * 10) / 10,
+                      name: `Char: ${char}`,
+                    });
+                  }
+                });
+                hasMeasuredDom = newLayers.length > 0;
+              }
+            }
+          }
+
+          // Fallback if not measured via DOM
+          if (!hasMeasuredDom) {
+            let ctx: CanvasRenderingContext2D | null = null;
+            try {
+              const canvas = document.createElement('canvas');
+              ctx = canvas.getContext('2d');
+              if (ctx) {
+                const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
+                const family = fontObj ? fontObj.family : layer.fontFamily || 'Inter, sans-serif';
+                ctx.font = `${layer.fontStyle === 'italic' ? 'italic ' : ''}${layer.fontWeight || 'normal'} ${layer.fontSize}px ${family}`;
+              }
+            } catch {
+              ctx = null;
+            }
+
+            const rotRad = ((layer.rotation || 0) * Math.PI) / 180;
+            const cosRot = Math.cos(rotRad);
+            const sinRot = Math.sin(rotRad);
+            const scaleX = layer.scaleX ?? 1;
+
+            chars.forEach((char, idx) => {
+              if (char.trim().length > 0) {
+                const prefix = layer.text.slice(0, idx);
+                const prefixWidth = ctx
+                  ? ctx.measureText(prefix).width
+                  : idx * (layer.fontSize * 0.55);
+                const dist = prefixWidth * scaleX;
+                newLayers.push({
+                  ...layer,
+                  id: `text-exploded-${now}-${idx}`,
+                  text: char,
+                  x: Math.round((layer.x + dist * cosRot) * 10) / 10,
+                  y: Math.round((layer.y + dist * sinRot) * 10) / 10,
+                  name: `Char: ${char}`,
+                });
+              }
+            });
+          }
+
+          if (newLayers.length === 0) return state;
+
+          // Replace old layer in textLayers
+          const oldIndex = state.textLayers.findIndex((l) => l.id === id);
+          const updatedTextLayers = [...state.textLayers];
+          updatedTextLayers.splice(oldIndex, 1, ...newLayers);
+
+          // Replace old layer in layerOrder
+          const oldOrderIdx = (state.layerOrder || []).findIndex(
+            (e) => e.type === 'text' && e.id === id
+          );
+          const newOrder = [...(state.layerOrder || [])];
+          if (oldOrderIdx !== -1) {
+            newOrder.splice(
+              oldOrderIdx,
+              1,
+              ...newLayers.map((nl) => ({ type: 'text' as const, id: nl.id }))
+            );
+          }
+
+          return {
+            textLayers: updatedTextLayers,
+            selectedTextLayerId: newLayers[0].id,
+            selectedTextLayerIds: newLayers.map((nl) => nl.id),
             layerOrder: newOrder,
           };
         }),
@@ -638,7 +765,9 @@ export const useStudioStore = create<StudioStore>()(
           selectedPhosphorIconLayerIds: (state.selectedPhosphorIconLayerIds || []).filter(
             (i) => i !== id
           ),
-          layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'phosphor' && e.id === id)),
+          layerOrder: (state.layerOrder || []).filter(
+            (e) => !(e.type === 'phosphor' && e.id === id)
+          ),
         })),
       duplicatePhosphorIconLayer: (id) =>
         set((state) => {
@@ -650,7 +779,9 @@ export const useStudioStore = create<StudioStore>()(
             x: layerToDup.x + 20,
             y: layerToDup.y + 20,
           };
-          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'phosphor' && e.id === id);
+          const srcIdx = (state.layerOrder || []).findIndex(
+            (e) => e.type === 'phosphor' && e.id === id
+          );
           const newOrder = [...(state.layerOrder || [])];
           newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'phosphor', id: dup.id });
           return {
@@ -713,7 +844,9 @@ export const useStudioStore = create<StudioStore>()(
           canvasElements: (state.canvasElements || []).filter((el) => el.id !== id),
           selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
           selectedElementIds: (state.selectedElementIds || []).filter((i) => i !== id),
-          layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'element' && e.id === id)),
+          layerOrder: (state.layerOrder || []).filter(
+            (e) => !(e.type === 'element' && e.id === id)
+          ),
         })),
       duplicateCanvasElement: (id) =>
         set((state) => {
@@ -725,7 +858,9 @@ export const useStudioStore = create<StudioStore>()(
             x: elToDup.x + 20,
             y: elToDup.y + 20,
           };
-          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'element' && e.id === id);
+          const srcIdx = (state.layerOrder || []).findIndex(
+            (e) => e.type === 'element' && e.id === id
+          );
           const newOrder = [...(state.layerOrder || [])];
           newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'element', id: dup.id });
           return {
@@ -812,7 +947,9 @@ export const useStudioStore = create<StudioStore>()(
             x: shapeToDup.x + 20,
             y: shapeToDup.y + 20,
           };
-          const srcIdx = (state.layerOrder || []).findIndex((e) => e.type === 'shape' && e.id === id);
+          const srcIdx = (state.layerOrder || []).findIndex(
+            (e) => e.type === 'shape' && e.id === id
+          );
           const newOrder = [...(state.layerOrder || [])];
           newOrder.splice(srcIdx === -1 ? 0 : srcIdx, 0, { type: 'shape', id: dup.id });
           return {
@@ -1048,10 +1185,16 @@ export const useStudioStore = create<StudioStore>()(
           if (targetIdx === -1) return state;
 
           const targetLayer = { ...layers[targetIdx] };
-          const currentMotions: LayerMotionBlock[] = targetLayer.motions ? [...targetLayer.motions] : [];
+          const currentMotions: LayerMotionBlock[] = targetLayer.motions
+            ? [...targetLayer.motions]
+            : [];
 
           // If layer had legacy loopAnimation and no motions yet, migrate it
-          if (currentMotions.length === 0 && targetLayer.loopAnimation && targetLayer.loopAnimation !== 'none') {
+          if (
+            currentMotions.length === 0 &&
+            targetLayer.loopAnimation &&
+            targetLayer.loopAnimation !== 'none'
+          ) {
             currentMotions.push({
               id: `motion-legacy-${Date.now()}`,
               preset: targetLayer.loopAnimation as MotionPresetId,
@@ -1131,13 +1274,17 @@ export const useStudioStore = create<StudioStore>()(
 
           // Find left and right neighbors
           const leftNeighbors = otherBlocks.filter(
-            (b: LayerMotionBlock) => b.startTimeSec + b.durationSec <= currentBlock.startTimeSec + 0.05
+            (b: LayerMotionBlock) =>
+              b.startTimeSec + b.durationSec <= currentBlock.startTimeSec + 0.05
           );
-          const leftNeighbor = leftNeighbors.length > 0 ? leftNeighbors[leftNeighbors.length - 1] : null;
+          const leftNeighbor =
+            leftNeighbors.length > 0 ? leftNeighbors[leftNeighbors.length - 1] : null;
           const minStart = leftNeighbor ? leftNeighbor.startTimeSec + leftNeighbor.durationSec : 0;
 
           const initEnd = currentBlock.startTimeSec + currentBlock.durationSec;
-          const rightNeighbors = otherBlocks.filter((b: LayerMotionBlock) => b.startTimeSec >= initEnd - 0.05);
+          const rightNeighbors = otherBlocks.filter(
+            (b: LayerMotionBlock) => b.startTimeSec >= initEnd - 0.05
+          );
           const rightNeighbor = rightNeighbors.length > 0 ? rightNeighbors[0] : null;
           const maxBound = rightNeighbor ? rightNeighbor.startTimeSec : state.durationSec;
 
@@ -1149,7 +1296,9 @@ export const useStudioStore = create<StudioStore>()(
 
           targetLayer.motions = targetLayer.motions
             .map((m: LayerMotionBlock) =>
-              m.id === blockId ? { ...m, ...updates, startTimeSec: newStart, durationSec: newDur } : m
+              m.id === blockId
+                ? { ...m, ...updates, startTimeSec: newStart, durationSec: newDur }
+                : m
             )
             .sort((a: LayerMotionBlock, b: LayerMotionBlock) => a.startTimeSec - b.startTimeSec);
 
@@ -1175,7 +1324,9 @@ export const useStudioStore = create<StudioStore>()(
           const targetLayer = { ...layers[targetIdx] };
           if (!targetLayer.motions) return state;
 
-          targetLayer.motions = targetLayer.motions.filter((m: LayerMotionBlock) => m.id !== blockId);
+          targetLayer.motions = targetLayer.motions.filter(
+            (m: LayerMotionBlock) => m.id !== blockId
+          );
           layers[targetIdx] = targetLayer;
           return { [layerProp]: layers };
         }),

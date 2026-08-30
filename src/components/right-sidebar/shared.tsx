@@ -13,6 +13,11 @@ export const GOOGLE_FONTS = [
   { name: 'Lora', family: 'Lora, serif' },
   { name: 'Oswald', family: 'Oswald, sans-serif' },
   { name: 'Outfit', family: 'Outfit, sans-serif' },
+  { name: 'Raleway', family: "'Raleway', sans-serif" },
+  { name: 'Quicksand', family: "'Quicksand', sans-serif" },
+  { name: 'Exo 2', family: "'Exo 2', sans-serif" },
+  { name: 'Monoton', family: "'Monoton', cursive" },
+  { name: 'Unica One', family: "'Unica One', cursive" },
   { name: 'Pacifico', family: 'Pacifico, cursive' },
   { name: 'Fira Code', family: "'Fira Code', monospace" },
 ];

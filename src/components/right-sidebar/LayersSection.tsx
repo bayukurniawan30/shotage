@@ -272,6 +272,26 @@ export const LayersSection: React.FC = () => {
           <PhosphorIcons.LockSimpleOpenIcon className="w-3.5 h-3.5" />
         )}
       </button>
+      {/* Explode (Text with >1 non-space char) */}
+      {row.type === 'text' && (() => {
+        const textLayer = state.textLayers.find((l) => l.id === row.id);
+        if (!textLayer || !textLayer.text) return null;
+        const nonSpaceCount = Array.from(textLayer.text).filter((c) => c.trim().length > 0).length;
+        if (nonSpaceCount <= 1) return null;
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              state.explodeTextLayer(row.id);
+            }}
+            title={`Explode "${textLayer.text}" into ${nonSpaceCount} separate character layers (excluding spaces)`}
+            className="p-1 rounded-md text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 transition-colors cursor-pointer shrink-0"
+          >
+            <PhosphorIcons.Sparkle className="w-3.5 h-3.5" />
+          </button>
+        );
+      })()}
       {/* Duplicate */}
       <button
         type="button"

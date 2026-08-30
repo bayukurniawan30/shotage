@@ -97,6 +97,24 @@ export const TextSection: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
+                    {(() => {
+                      const layerNonSpaceCount = layer.text
+                        ? Array.from(layer.text).filter((c) => c.trim().length > 0).length
+                        : 0;
+                      if (layerNonSpaceCount <= 1) return null;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            state.explodeTextLayer(layer.id);
+                          }}
+                          className="p-1 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 rounded transition-colors"
+                          title={`Explode into ${layerNonSpaceCount} separate character layers (excluding spaces)`}
+                        >
+                          <PhosphorIcons.Sparkle className="w-3.5 h-3.5" />
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -128,11 +146,38 @@ export const TextSection: React.FC = () => {
       {/* Selected Layer Inspector */}
       {selectedLayer && (
         <div className="pt-3 border-t border-neutral-800/80 space-y-3.5 animate-in fade-in duration-150">
-          {/* Text Content Input */}
+          {/* Text Content Input with Explode Action */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-              Text Content
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-semibold text-slate-300">
+                Text Content
+              </label>
+              {(() => {
+                const selectedNonSpaceCount = selectedLayer.text
+                  ? Array.from(selectedLayer.text).filter((c) => c.trim().length > 0).length
+                  : 0;
+                return (
+                  <button
+                    type="button"
+                    disabled={selectedNonSpaceCount <= 1}
+                    onClick={() => state.explodeTextLayer(selectedLayer.id)}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition-all ${
+                      selectedNonSpaceCount > 1
+                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/25 hover:border-amber-400 cursor-pointer shadow-xs'
+                        : 'bg-neutral-900 text-slate-600 border border-neutral-800/80 cursor-not-allowed opacity-40'
+                    }`}
+                    title={
+                      selectedNonSpaceCount > 1
+                        ? `Explode "${selectedLayer.text}" into ${selectedNonSpaceCount} separate 1-character layers (excluding spaces) for easy animation`
+                        : 'Enter 2 or more characters to explode text into separate layers'
+                    }
+                  >
+                    <PhosphorIcons.Sparkle className="w-3 h-3 text-amber-400" />
+                    <span>Explode ({selectedNonSpaceCount} chars)</span>
+                  </button>
+                );
+              })()}
+            </div>
             <textarea
               rows={2}
               value={selectedLayer.text}
