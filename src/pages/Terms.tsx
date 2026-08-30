@@ -135,10 +135,13 @@ const Terms: React.FC = () => {
               local device.
             </p>
             <p className="text-slate-400">
-              When using the optional <strong className="text-slate-200 font-semibold">Share Design</strong> feature
-              to publish a layout to the community showcase, a low-resolution canvas preview thumbnail
-              and styling settings are saved. However, the original raw image files used inside the mockup
-              screens or shape elements are never uploaded, extracted, or stored on our servers.
+              When using the optional{' '}
+              <strong className="text-slate-200 font-semibold">Share Design</strong> feature to
+              generate a shareable link or publish to the community showcase, your layout settings,
+              styling configuration, and preview thumbnail are saved. Any mockup screenshots or
+              background images included in the shared design are optimized and converted to compressed
+              Base64 format client-side at a maximum dimension of 1920px (preserving original aspect
+              ratio) solely to allow visitors to view and interact with your shared design.
             </p>
           </section>
 
