@@ -137,7 +137,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ type, children }) => {
             top: '4.3%',
             bottom: '7%',
             left: '16.5%',
-            right: '4.8%',
+            right: '4.6%',
             borderRadius: '38px',
             transform: 'perspective(1000px) rotateY(5deg) skewY(350deg)',
             transformOrigin: 'center center',
