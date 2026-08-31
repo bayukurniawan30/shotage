@@ -150,7 +150,7 @@ export const VideoCanvasScreen: React.FC<VideoCanvasScreenProps> = ({
     <canvas
       ref={canvasRef}
       data-slot-canvas={slotIndex}
-      className={`w-full h-full object-cover block ${className}`}
+      className={`w-full h-full block ${className}`}
       style={style}
     />
   );

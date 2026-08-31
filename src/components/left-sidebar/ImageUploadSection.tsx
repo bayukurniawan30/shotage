@@ -505,6 +505,38 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
           </label>
         </div>
       )}
+
+      {/* Image Fit Setting */}
+      <div className="pt-2 border-t border-neutral-800/80">
+        <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+          Image Fit
+        </label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { id: 'cover', label: 'Cover', desc: 'Crop & Fill' },
+            { id: 'contain', label: 'Contain', desc: 'Fit (No Crop)' },
+            { id: 'fill', label: 'Fill', desc: 'Stretch' },
+          ].map((fit) => {
+            const isSelected = (state.imageFit || 'cover') === fit.id;
+            return (
+              <button
+                key={fit.id}
+                type="button"
+                onClick={() => onChange({ imageFit: fit.id as any })}
+                className={`py-2 px-1 text-xs rounded-xl border transition-all cursor-pointer flex flex-col items-center justify-center ${
+                  isSelected
+                    ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
+                    : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                }`}
+                title={fit.desc}
+              >
+                <span className="font-semibold">{fit.label}</span>
+                <span className="text-[9px] opacity-70 font-normal">{fit.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

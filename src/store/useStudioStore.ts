@@ -203,6 +203,7 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     alignment,
     padding,
     borderRadius,
+    imageFit,
     slabThickness,
     slabColor,
     enableShine,

@@ -1226,6 +1226,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       }
     };
 
+    const imageFit = state.imageFit || 'cover';
+    const objectFitClass =
+      imageFit === 'contain'
+        ? 'object-contain'
+        : imageFit === 'fill'
+          ? 'object-fill'
+          : 'object-cover';
+
     const content =
       imgSrc || placeholderSrc ? (
         <div
@@ -1240,7 +1248,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               slotIndex={slotIndex}
               isPlaying={state.isPlaying}
               currentTimeSec={state.currentTimeSec}
-              className={`transition-all group-hover:brightness-75 ${
+              className={`w-full h-full ${objectFitClass} transition-all group-hover:brightness-75 ${
                 isFrameless ? '' : 'rounded-none'
               }`}
               style={imageStyle}
@@ -1249,7 +1257,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <img
               src={imgSrc || placeholderSrc!}
               alt={imgName || 'Screenshot'}
-              className={`w-full h-full object-cover block transition-all group-hover:brightness-75 ${
+              className={`w-full h-full ${objectFitClass} block transition-all group-hover:brightness-75 ${
                 isFrameless ? '' : 'rounded-none'
               }`}
               style={imageStyle}

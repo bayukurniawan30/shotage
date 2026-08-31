@@ -272,6 +272,7 @@ export interface StudioState {
   alignment: 'center' | 'top' | 'bottom';
   padding: number; // 0 to 120
   borderRadius: number; // 0 to 32
+  imageFit?: 'cover' | 'contain' | 'fill';
   slabThickness?: number; // 0 to 60 (for 3D extrusion)
   slabColor?: string; // 3D extrusion edge color
   enableShine?: boolean;
@@ -435,6 +436,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   alignment: 'center',
   padding: 48,
   borderRadius: 16,
+  imageFit: 'cover',
   slabThickness: 12,
   slabColor: '#1e293b',
   enableShine: false,
