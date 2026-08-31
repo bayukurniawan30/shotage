@@ -33,6 +33,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const [isSuccess, setIsSuccess] = useState(false);
   const [exportingType, setExportingType] = useState<'image' | 'video' | null>(null);
   const [videoFormat, setVideoFormat] = useState<'mp4' | 'webm'>('mp4');
+  const [videoFps, setVideoFps] = useState<30 | 60>(60);
   const [activeTab, setActiveTab] = useState<'image' | 'video' | 'share'>(
     state.isAnimationMode ? 'video' : 'image'
   );
@@ -289,7 +290,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         ? Array.from({ length: totalStages }, (_, i) => i)
         : [state.activeStageIndex];
 
-      const fps = 30; // 30 FPS for crisp frame delivery
+      const fps = videoFps; // Dynamic 30 FPS or 60 FPS for ultra smooth video
 
       // Calculate total duration across all stages to record
       let grandTotalFrames = 0;
@@ -1140,6 +1141,34 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                     {scale}x Density
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Frame Rate
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setVideoFps(30)}
+                  className={`py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                    videoFps === 30
+                      ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
+                  }`}
+                >
+                  30 FPS (Standard)
+                </button>
+                <button
+                  onClick={() => setVideoFps(60)}
+                  className={`py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                    videoFps === 60
+                      ? 'bg-pastel-pink/15 border-pastel-pink text-pastel-pink font-bold shadow-xs'
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
+                  }`}
+                >
+                  60 FPS (Ultra Smooth)
+                </button>
               </div>
             </div>
 

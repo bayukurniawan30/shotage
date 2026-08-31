@@ -41,6 +41,171 @@ export function calculateEasing(progress: number, type: AnimationEasingType = 'e
   }
 }
 
+export interface LayerKeyframe {
+  id: string;
+  timeSec: number; // 0 to durationSec
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  scale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  pitch?: number;
+  yaw?: number;
+  opacity?: number;
+  borderRadius?: number;
+  fontSize?: number;
+  easing?: AnimationEasingType;
+}
+
+export interface LayerKeyframeResult {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  scale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  pitch?: number;
+  yaw?: number;
+  opacity?: number;
+  borderRadius?: number;
+  fontSize?: number;
+}
+
+export function evaluateLayerKeyframes<
+  T extends {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    scale?: number;
+    scaleX?: number;
+    scaleY?: number;
+    rotation?: number;
+    pitch?: number;
+    yaw?: number;
+    opacity?: number;
+    borderRadius?: number;
+    fontSize?: number;
+    keyframes?: LayerKeyframe[];
+  }
+>(
+  layer: T,
+  currentTimeSec: number,
+  defaultEasing: AnimationEasingType = 'ease-in-out'
+): LayerKeyframeResult {
+  const kfs = layer.keyframes;
+  if (!kfs || kfs.length === 0) {
+    return {
+      x: layer.x,
+      y: layer.y,
+      width: layer.width,
+      height: layer.height,
+      scale: layer.scale,
+      scaleX: layer.scaleX,
+      scaleY: layer.scaleY,
+      rotation: layer.rotation,
+      pitch: layer.pitch,
+      yaw: layer.yaw,
+      opacity: layer.opacity,
+      borderRadius: layer.borderRadius,
+      fontSize: layer.fontSize,
+    };
+  }
+
+  const sorted = [...kfs].sort((a, b) => a.timeSec - b.timeSec);
+  const t = Math.max(0, currentTimeSec);
+
+  // Before or at first keyframe
+  if (t <= sorted[0].timeSec) {
+    const first = sorted[0];
+    return {
+      x: first.x ?? layer.x,
+      y: first.y ?? layer.y,
+      width: first.width ?? layer.width,
+      height: first.height ?? layer.height,
+      scale: first.scale ?? layer.scale,
+      scaleX: first.scaleX ?? layer.scaleX,
+      scaleY: first.scaleY ?? layer.scaleY,
+      rotation: first.rotation ?? layer.rotation,
+      pitch: first.pitch ?? layer.pitch,
+      yaw: first.yaw ?? layer.yaw,
+      opacity: first.opacity ?? layer.opacity,
+      borderRadius: first.borderRadius ?? layer.borderRadius,
+      fontSize: first.fontSize ?? layer.fontSize,
+    };
+  }
+
+  // After or at last keyframe
+  if (t >= sorted[sorted.length - 1].timeSec) {
+    const last = sorted[sorted.length - 1];
+    return {
+      x: last.x ?? layer.x,
+      y: last.y ?? layer.y,
+      width: last.width ?? layer.width,
+      height: last.height ?? layer.height,
+      scale: last.scale ?? layer.scale,
+      scaleX: last.scaleX ?? layer.scaleX,
+      scaleY: last.scaleY ?? layer.scaleY,
+      rotation: last.rotation ?? layer.rotation,
+      pitch: last.pitch ?? layer.pitch,
+      yaw: last.yaw ?? layer.yaw,
+      opacity: last.opacity ?? layer.opacity,
+      borderRadius: last.borderRadius ?? layer.borderRadius,
+      fontSize: last.fontSize ?? layer.fontSize,
+    };
+  }
+
+  // Between keyframes
+  let prevIdx = 0;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (t >= sorted[i].timeSec && t <= sorted[i + 1].timeSec) {
+      prevIdx = i;
+      break;
+    }
+  }
+
+  const kf1 = sorted[prevIdx];
+  const kf2 = sorted[prevIdx + 1];
+  const dur = kf2.timeSec - kf1.timeSec;
+  const progress = dur > 0 ? (t - kf1.timeSec) / dur : 0;
+  const easing = kf1.easing || defaultEasing;
+  const factor = calculateEasing(progress, easing);
+
+  const lerpNum = (
+    v1: number | undefined,
+    v2: number | undefined,
+    fallback: number | undefined
+  ): number | undefined => {
+    const start = v1 ?? fallback;
+    const end = v2 ?? fallback;
+    if (start === undefined && end === undefined) return undefined;
+    const s = start ?? end ?? 0;
+    const e = end ?? start ?? 0;
+    return s + (e - s) * factor;
+  };
+
+  return {
+    x: lerpNum(kf1.x, kf2.x, layer.x),
+    y: lerpNum(kf1.y, kf2.y, layer.y),
+    width: lerpNum(kf1.width, kf2.width, layer.width),
+    height: lerpNum(kf1.height, kf2.height, layer.height),
+    scale: lerpNum(kf1.scale, kf2.scale, layer.scale),
+    scaleX: lerpNum(kf1.scaleX, kf2.scaleX, layer.scaleX),
+    scaleY: lerpNum(kf1.scaleY, kf2.scaleY, layer.scaleY),
+    rotation: lerpNum(kf1.rotation, kf2.rotation, layer.rotation),
+    pitch: lerpNum(kf1.pitch, kf2.pitch, layer.pitch),
+    yaw: lerpNum(kf1.yaw, kf2.yaw, layer.yaw),
+    opacity: lerpNum(kf1.opacity, kf2.opacity, layer.opacity),
+    borderRadius: lerpNum(kf1.borderRadius, kf2.borderRadius, layer.borderRadius),
+    fontSize: lerpNum(kf1.fontSize, kf2.fontSize, layer.fontSize),
+  };
+}
+
 export interface AnimationKeyframe {
   id: string;
   timeSec: number; // 0 to 15s

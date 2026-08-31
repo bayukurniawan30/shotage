@@ -4,6 +4,7 @@ import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
 import {
   calculateEasing,
   LayerMotionBlock,
+  LayerKeyframe,
   MotionPresetId,
   MOTION_PRESETS,
 } from '../types/animationTypes';
@@ -31,7 +32,7 @@ interface StudioStore extends StudioState {
   reset3DPerspective: () => void;
   resetAll: () => void;
   togglePreviewMode: () => void;
-  addTextLayer: (text?: string) => void;
+  addTextLayer: (initialTextOrProps?: string | Partial<import('../types/studio').TextLayer>) => string;
   addSocialLayer: (platform?: import('../types/studio').SocialPlatform, handle?: string) => void;
   updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
   removeTextLayer: (id: string) => void;
@@ -39,7 +40,11 @@ interface StudioStore extends StudioState {
   explodeTextLayer: (id: string) => void;
   selectTextLayer: (id: string | null) => void;
   toggleTextLayer: (id: string) => void;
-  addPhosphorIconLayer: (iconId?: string) => void;
+  clearSelectedTextLayers: () => void;
+  addPhosphorIconLayer: (
+    iconId?: string,
+    customProps?: Partial<import('../types/studio').PhosphorIconLayer>
+  ) => void;
   updatePhosphorIconLayer: (
     id: string,
     updates: Partial<import('../types/studio').PhosphorIconLayer>
@@ -48,10 +53,12 @@ interface StudioStore extends StudioState {
   duplicatePhosphorIconLayer: (id: string) => void;
   selectPhosphorIconLayer: (id: string | null) => void;
   togglePhosphorIconLayer: (id: string) => void;
+  toggleSelectPhosphorIconLayer: (id: string) => void;
   addCanvasElement: (
     elementId?: string,
     src?: string,
-    category?: import('../types/studio').ElementCategory
+    category?: import('../types/studio').ElementCategory,
+    customProps?: Partial<import('../types/studio').CanvasElement>
   ) => void;
   updateCanvasElement: (
     id: string,
@@ -61,7 +68,10 @@ interface StudioStore extends StudioState {
   duplicateCanvasElement: (id: string) => void;
   selectCanvasElement: (id: string | null) => void;
   toggleSelectCanvasElement: (id: string) => void;
-  addShapeLayer: (shapeType?: import('../types/studio').ShapeType) => void;
+  addShapeLayer: (
+    shapeType?: import('../types/studio').ShapeType,
+    customProps?: Partial<import('../types/studio').ShapeLayer>
+  ) => string;
   updateShapeLayer: (id: string, updates: Partial<import('../types/studio').ShapeLayer>) => void;
   removeShapeLayer: (id: string) => void;
   duplicateShapeLayer: (id: string) => void;
@@ -92,6 +102,84 @@ interface StudioStore extends StudioState {
     layerId: string,
     blockId: string
   ) => void;
+  addLayerKeyframe: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    timeSec?: number,
+    props?: Partial<LayerKeyframe>
+  ) => void;
+  updateLayerKeyframe: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    keyframeId: string,
+    updates: Partial<LayerKeyframe>
+  ) => void;
+  removeLayerKeyframe: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    keyframeId: string
+  ) => void;
+  captureLayerKeyframe: (
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    timeSec?: number
+  ) => void;
+}
+
+function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k: string]: any }>(
+  layer: T,
+  updates: Partial<T>,
+  currentTimeSec: number
+): T {
+  const updated = { ...layer, ...updates };
+  if (updated.keyframes && updated.keyframes.length > 0) {
+    const t = currentTimeSec !== undefined ? Math.round(currentTimeSec * 100) / 100 : 0;
+    const kfs: LayerKeyframe[] = [...updated.keyframes];
+    const kfIdx = kfs.findIndex((k) => Math.abs(k.timeSec - t) < 0.15);
+
+    if (kfIdx !== -1) {
+      const targetKf = kfs[kfIdx];
+      const newKf = { ...targetKf };
+      if (updates.width !== undefined) newKf.width = updates.width as number;
+      if (updates.height !== undefined) newKf.height = updates.height as number;
+      if (updates.x !== undefined) newKf.x = updates.x as number;
+      if (updates.y !== undefined) newKf.y = updates.y as number;
+      if (updates.rotation !== undefined) newKf.rotation = updates.rotation as number;
+      if (updates.pitch !== undefined) newKf.pitch = updates.pitch as number;
+      if (updates.yaw !== undefined) newKf.yaw = updates.yaw as number;
+      if (updates.opacity !== undefined) newKf.opacity = updates.opacity as number;
+      if (updates.borderRadius !== undefined) newKf.borderRadius = updates.borderRadius as number;
+      if (updates.fontSize !== undefined) newKf.fontSize = updates.fontSize as number;
+      if (updates.scale !== undefined) newKf.scale = updates.scale as number;
+      if (updates.scaleX !== undefined) newKf.scaleX = updates.scaleX as number;
+      if (updates.scaleY !== undefined) newKf.scaleY = updates.scaleY as number;
+      kfs[kfIdx] = newKf;
+      updated.keyframes = kfs as any;
+    } else {
+      // Auto-create a keyframe at playhead position t
+      const newKf: LayerKeyframe = {
+        id: `kf-layer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        timeSec: t,
+        x: updates.x !== undefined ? (updates.x as number) : updated.x,
+        y: updates.y !== undefined ? (updates.y as number) : updated.y,
+        width: updates.width !== undefined ? (updates.width as number) : updated.width,
+        height: updates.height !== undefined ? (updates.height as number) : updated.height,
+        scale: updates.scale !== undefined ? (updates.scale as number) : updated.scale,
+        scaleX: updates.scaleX !== undefined ? (updates.scaleX as number) : updated.scaleX,
+        scaleY: updates.scaleY !== undefined ? (updates.scaleY as number) : updated.scaleY,
+        rotation: updates.rotation !== undefined ? (updates.rotation as number) : updated.rotation,
+        pitch: updates.pitch !== undefined ? (updates.pitch as number) : updated.pitch,
+        yaw: updates.yaw !== undefined ? (updates.yaw as number) : updated.yaw,
+        opacity: updates.opacity !== undefined ? (updates.opacity as number) : updated.opacity,
+        borderRadius: updates.borderRadius !== undefined ? (updates.borderRadius as number) : updated.borderRadius,
+        fontSize: updates.fontSize !== undefined ? (updates.fontSize as number) : updated.fontSize,
+      };
+      kfs.push(newKf);
+      kfs.sort((a, b) => a.timeSec - b.timeSec);
+      updated.keyframes = kfs as any;
+    }
+  }
+  return updated;
 }
 
 const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
@@ -488,11 +576,15 @@ export const useStudioStore = create<StudioStore>()(
         }),
       resetAll: () => set((s) => ({ ...DEFAULT_STUDIO_STATE, resetKey: s.resetKey + 1 })),
       togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode })),
-      addTextLayer: (initialText) =>
+      addTextLayer: (initialTextOrProps) => {
+        const isObj = typeof initialTextOrProps === 'object' && initialTextOrProps !== null;
+        const initialText = typeof initialTextOrProps === 'string' ? initialTextOrProps : undefined;
+        const customProps = isObj ? initialTextOrProps : {};
+        const newId = `text-${Date.now()}`;
         set((state) => {
           const newLayer: import('../types/studio').TextLayer = {
-            id: `text-${Date.now()}`,
-            text: initialText || `Text ${state.textLayers.length + 1}`,
+            id: newId,
+            text: initialText || customProps.text || `Text ${state.textLayers.length + 1}`,
             fontFamily: 'Inter',
             fontSize: 32,
             fontWeight: '700',
@@ -511,9 +603,10 @@ export const useStudioStore = create<StudioStore>()(
             scaleX: 1,
             scaleY: 1,
             position: 'above',
-            name: initialText || '',
+            name: initialText || customProps.name || '',
             visible: true,
             locked: false,
+            ...customProps,
           };
           return {
             textLayers: [...state.textLayers, newLayer],
@@ -521,7 +614,9 @@ export const useStudioStore = create<StudioStore>()(
             selectedTextLayerIds: [newLayer.id],
             layerOrder: [{ type: 'text', id: newLayer.id }, ...(state.layerOrder || [])],
           };
-        }),
+        });
+        return newId;
+      },
       addSocialLayer: (platform, handle) =>
         set((state) => {
           const plat = platform || 'instagram';
@@ -563,7 +658,9 @@ export const useStudioStore = create<StudioStore>()(
         }),
       updateTextLayer: (id, updates) =>
         set((state) => ({
-          textLayers: state.textLayers.map((l) => (l.id === id ? { ...l, ...updates } : l)),
+          textLayers: state.textLayers.map((l) =>
+            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec) : l
+          ),
         })),
       removeTextLayer: (id) =>
         set((state) => ({
@@ -725,6 +822,11 @@ export const useStudioStore = create<StudioStore>()(
             selectedTextLayerId: nextIds.length ? id : null,
           };
         }),
+      clearSelectedTextLayers: () =>
+        set(() => ({
+          selectedTextLayerId: null,
+          selectedTextLayerIds: [],
+        })),
       addPhosphorIconLayer: (iconId) =>
         set((state) => {
           const newLayer: import('../types/studio').PhosphorIconLayer = {
@@ -754,7 +856,7 @@ export const useStudioStore = create<StudioStore>()(
       updatePhosphorIconLayer: (id, updates) =>
         set((state) => ({
           phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
-            l.id === id ? { ...l, ...updates } : l
+            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec) : l
           ),
         })),
       removePhosphorIconLayer: (id) =>
@@ -796,7 +898,7 @@ export const useStudioStore = create<StudioStore>()(
           selectedPhosphorIconLayerId: id,
           selectedPhosphorIconLayerIds: id ? [id] : [],
         })),
-      togglePhosphorIconLayer: (id) =>
+      togglePhosphorIconLayer: (id: string) =>
         set((state) => {
           const ids = state.selectedPhosphorIconLayerIds || [];
           const has = ids.includes(id);
@@ -806,7 +908,17 @@ export const useStudioStore = create<StudioStore>()(
             selectedPhosphorIconLayerId: nextIds.length ? id : null,
           };
         }),
-      addCanvasElement: (elementId, src, category = 'arrow') =>
+      toggleSelectPhosphorIconLayer: (id: string) =>
+        set((state) => {
+          const ids = state.selectedPhosphorIconLayerIds || [];
+          const has = ids.includes(id);
+          const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
+          return {
+            selectedPhosphorIconLayerIds: nextIds,
+            selectedPhosphorIconLayerId: nextIds.length ? id : null,
+          };
+        }),
+      addCanvasElement: (elementId, src, category = 'arrow', customProps) =>
         set((state) => {
           const newEl: import('../types/studio').CanvasElement = {
             id: `el-${Date.now()}`,
@@ -825,6 +937,7 @@ export const useStudioStore = create<StudioStore>()(
             name: elementId || 'arrow-1',
             visible: true,
             locked: false,
+            ...customProps,
           };
           return {
             canvasElements: [...(state.canvasElements || []), newEl],
@@ -836,7 +949,7 @@ export const useStudioStore = create<StudioStore>()(
       updateCanvasElement: (id, updates) =>
         set((state) => ({
           canvasElements: (state.canvasElements || []).map((el) =>
-            el.id === id ? { ...el, ...updates } : el
+            el.id === id ? syncKeyframesOnLayerUpdate(el, updates, state.currentTimeSec) : el
           ),
         })),
       removeCanvasElement: (id) =>
@@ -885,7 +998,8 @@ export const useStudioStore = create<StudioStore>()(
             selectedElementId: nextIds.length ? id : null,
           };
         }),
-      addShapeLayer: (shapeType = 'square') =>
+      addShapeLayer: (shapeType = 'square', customProps) => {
+        const newId = `shape-${Date.now()}`;
         set((state) => {
           const dims: Record<
             import('../types/studio').ShapeType,
@@ -898,7 +1012,7 @@ export const useStudioStore = create<StudioStore>()(
             quote: { width: 120, height: 120 },
           };
           const newShape: import('../types/studio').ShapeLayer = {
-            id: `shape-${Date.now()}`,
+            id: newId,
             shapeType,
             color: '#a2d2ff',
             ...dims[shapeType],
@@ -916,6 +1030,7 @@ export const useStudioStore = create<StudioStore>()(
             name: shapeType,
             visible: true,
             locked: false,
+            ...customProps,
           };
           return {
             shapeLayers: [...(state.shapeLayers || []), newShape],
@@ -923,11 +1038,13 @@ export const useStudioStore = create<StudioStore>()(
             selectedShapeIds: [newShape.id],
             layerOrder: [{ type: 'shape', id: newShape.id }, ...(state.layerOrder || [])],
           };
-        }),
+        });
+        return newId;
+      },
       updateShapeLayer: (id, updates) =>
         set((state) => ({
           shapeLayers: (state.shapeLayers || []).map((s) =>
-            s.id === id ? { ...s, ...updates } : s
+            s.id === id ? syncKeyframesOnLayerUpdate(s, updates, state.currentTimeSec) : s
           ),
         })),
       removeShapeLayer: (id) =>
@@ -1327,6 +1444,178 @@ export const useStudioStore = create<StudioStore>()(
           targetLayer.motions = targetLayer.motions.filter(
             (m: LayerMotionBlock) => m.id !== blockId
           );
+          layers[targetIdx] = targetLayer;
+          return { [layerProp]: layers };
+        }),
+
+      addLayerKeyframe: (layerType, layerId, timeSec, props) =>
+        set((state) => {
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          const currentKfs: LayerKeyframe[] = targetLayer.keyframes ? [...targetLayer.keyframes] : [];
+          const t =
+            timeSec !== undefined
+              ? Math.max(0, Math.min(state.durationSec || 10, timeSec))
+              : state.currentTimeSec || 0;
+
+          // If a keyframe already exists near this timestamp, update it
+          const existingIdx = currentKfs.findIndex((k) => Math.abs(k.timeSec - t) < 0.08);
+          const newKf: LayerKeyframe = {
+            id:
+              existingIdx !== -1
+                ? currentKfs[existingIdx].id
+                : `kf-layer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            timeSec: Math.round(t * 100) / 100,
+            x: targetLayer.x,
+            y: targetLayer.y,
+            width: targetLayer.width,
+            height: targetLayer.height,
+            scale: targetLayer.scale,
+            scaleX: targetLayer.scaleX,
+            scaleY: targetLayer.scaleY,
+            rotation: targetLayer.rotation,
+            pitch: targetLayer.pitch,
+            yaw: targetLayer.yaw,
+            opacity: targetLayer.opacity,
+            borderRadius: targetLayer.borderRadius,
+            fontSize: targetLayer.fontSize,
+            ...props,
+          };
+
+          if (existingIdx !== -1) {
+            currentKfs[existingIdx] = { ...currentKfs[existingIdx], ...newKf };
+          } else {
+            currentKfs.push(newKf);
+          }
+
+          currentKfs.sort((a, b) => a.timeSec - b.timeSec);
+          targetLayer.keyframes = currentKfs;
+          layers[targetIdx] = targetLayer;
+          return { [layerProp]: layers };
+        }),
+
+      updateLayerKeyframe: (layerType, layerId, keyframeId, updates) =>
+        set((state) => {
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          if (!targetLayer.keyframes) return state;
+
+          const updatedKfs = targetLayer.keyframes.map((k: LayerKeyframe) => {
+            if (k.id !== keyframeId) return k;
+            const updated = { ...k, ...updates };
+            if (updates.timeSec !== undefined) {
+              updated.timeSec = Math.max(0, Math.min(state.durationSec || 10, updates.timeSec));
+            }
+            return updated;
+          });
+
+          updatedKfs.sort((a: LayerKeyframe, b: LayerKeyframe) => a.timeSec - b.timeSec);
+          targetLayer.keyframes = updatedKfs;
+          layers[targetIdx] = targetLayer;
+          return { [layerProp]: layers };
+        }),
+
+      removeLayerKeyframe: (layerType, layerId, keyframeId) =>
+        set((state) => {
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          if (!targetLayer.keyframes) return state;
+
+          targetLayer.keyframes = targetLayer.keyframes.filter(
+            (k: LayerKeyframe) => k.id !== keyframeId
+          );
+          layers[targetIdx] = targetLayer;
+          return { [layerProp]: layers };
+        }),
+
+      captureLayerKeyframe: (layerType, layerId, timeSec) =>
+        set((state) => {
+          const layerProp =
+            layerType === 'text'
+              ? 'textLayers'
+              : layerType === 'phosphor'
+                ? 'phosphorIconLayers'
+                : layerType === 'element'
+                  ? 'canvasElements'
+                  : 'shapeLayers';
+
+          const layers = [...(state[layerProp] || [])] as any[];
+          const targetIdx = layers.findIndex((l) => l.id === layerId);
+          if (targetIdx === -1) return state;
+
+          const targetLayer = { ...layers[targetIdx] };
+          const currentKfs: LayerKeyframe[] = targetLayer.keyframes ? [...targetLayer.keyframes] : [];
+          const t =
+            timeSec !== undefined
+              ? Math.max(0, Math.min(state.durationSec || 10, timeSec))
+              : state.currentTimeSec || 0;
+
+          const existingIdx = currentKfs.findIndex((k) => Math.abs(k.timeSec - t) < 0.08);
+          const newKf: LayerKeyframe = {
+            id:
+              existingIdx !== -1
+                ? currentKfs[existingIdx].id
+                : `kf-layer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            timeSec: Math.round(t * 100) / 100,
+            x: targetLayer.x,
+            y: targetLayer.y,
+            width: targetLayer.width,
+            height: targetLayer.height,
+            scale: targetLayer.scale,
+            scaleX: targetLayer.scaleX,
+            scaleY: targetLayer.scaleY,
+            rotation: targetLayer.rotation,
+            pitch: targetLayer.pitch,
+            yaw: targetLayer.yaw,
+            opacity: targetLayer.opacity,
+            borderRadius: targetLayer.borderRadius,
+            fontSize: targetLayer.fontSize,
+          };
+
+          if (existingIdx !== -1) {
+            currentKfs[existingIdx] = newKf;
+          } else {
+            currentKfs.push(newKf);
+          }
+
+          currentKfs.sort((a, b) => a.timeSec - b.timeSec);
+          targetLayer.keyframes = currentKfs;
           layers[targetIdx] = targetLayer;
           return { [layerProp]: layers };
         }),

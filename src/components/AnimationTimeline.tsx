@@ -20,6 +20,7 @@ import {
   AnimationEasingType,
   MOTION_PRESETS,
   LayerMotionBlock,
+  LayerKeyframe,
   MotionPresetId,
   MotionCategory,
 } from '../types/animationTypes';
@@ -74,6 +75,14 @@ export const AnimationTimeline: React.FC = () => {
     isResize?: boolean;
     initialDur?: number;
   } | null>(null);
+  const [draggingLayerKf, setDraggingLayerKf] = useState<{
+    layerType: 'text' | 'phosphor' | 'element' | 'shape';
+    layerId: string;
+    keyframeId: string;
+    startX: number;
+    initialT: number;
+  } | null>(null);
+  const [hoveredKfId, setHoveredKfId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Selected track state: 'mockup' or a specific layer
@@ -433,6 +442,69 @@ export const AnimationTimeline: React.FC = () => {
     }
   };
 
+  const getLayerKeyframes = (
+    type: 'text' | 'phosphor' | 'element' | 'shape',
+    id: string
+  ): LayerKeyframe[] => {
+    if (type === 'text') {
+      return (state.textLayers || []).find((l) => l.id === id)?.keyframes || [];
+    }
+    if (type === 'phosphor') {
+      return (state.phosphorIconLayers || []).find((l) => l.id === id)?.keyframes || [];
+    }
+    if (type === 'element') {
+      return (state.canvasElements || []).find((l) => l.id === id)?.keyframes || [];
+    }
+    if (type === 'shape') {
+      return (state.shapeLayers || []).find((l) => l.id === id)?.keyframes || [];
+    }
+    return [];
+  };
+
+  const handleLayerKfPointerDown = (
+    e: React.PointerEvent,
+    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerId: string,
+    kf: LayerKeyframe
+  ) => {
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    setDraggingLayerKf({
+      layerType,
+      layerId,
+      keyframeId: kf.id,
+      startX: e.clientX,
+      initialT: kf.timeSec,
+    });
+    setSelectedKfId(kf.id);
+  };
+
+  const handleLayerKfPointerMove = (e: React.PointerEvent) => {
+    if (!draggingLayerKf) return;
+    e.stopPropagation();
+    const dx = e.clientX - draggingLayerKf.startX;
+    const dt = dx / PX_PER_SECOND;
+    const newTime = Math.max(
+      0,
+      Math.min(state.durationSec || 10, Math.round((draggingLayerKf.initialT + dt) * 10) / 10)
+    );
+    state.updateLayerKeyframe(
+      draggingLayerKf.layerType,
+      draggingLayerKf.layerId,
+      draggingLayerKf.keyframeId,
+      { timeSec: newTime }
+    );
+    onChange({ currentTimeSec: newTime });
+  };
+
+  const handleLayerKfPointerUp = (e: React.PointerEvent) => {
+    if (!draggingLayerKf) return;
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    setDraggingLayerKf(null);
+  };
+
   // Build Layer Track Rows matching the exact order in RightSidebar Layers panel
   const buildLayerRows = () => {
     const buildRow = (
@@ -736,6 +808,24 @@ export const AnimationTimeline: React.FC = () => {
           </>
         ) : (
           <>
+            {/* Add Custom Layer Keyframe Button */}
+            <button
+              onClick={() => {
+                state.captureLayerKeyframe(
+                  selectedTrack.type as any,
+                  selectedTrack.id,
+                  state.currentTimeSec
+                );
+              }}
+              className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-pastel-pink/70 bg-pastel-pink/20 text-pastel-pink hover:bg-pastel-pink/30 hover:border-pastel-pink transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 shadow-xs"
+              title="Capture current layer size, width/height, position, and rotation into a keyframe at the playhead"
+            >
+              <Plus className="w-3.5 h-3.5 text-pastel-pink" />
+              <span>+ Keyframe ({state.currentTimeSec.toFixed(1)}s)</span>
+            </button>
+
+            <div className="h-4 w-px bg-neutral-800 shrink-0 mx-0.5" />
+
             {/* Category Filter Pills */}
             <div className="flex items-center gap-1 bg-neutral-950/80 p-0.5 rounded-lg border border-neutral-800 shrink-0 mr-1">
               {(['all', 'entrance', 'emphasis', 'exit'] as const).map((cat) => (
@@ -814,10 +904,14 @@ export const AnimationTimeline: React.FC = () => {
             onScroll={handleLeftTracksScroll}
             className="flex flex-col min-h-[96px] max-h-48 overflow-y-auto divide-y divide-neutral-800/40 no-scrollbar"
           >
+            {/* Top Empty Track Spacer */}
+            <div className="h-2 shrink-0 pointer-events-none" />
+
             {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
             {layerTracks.map((row) => {
               const isSelected = selectedTrack.id === row.id;
               const motions = getLayerMotions(row.type, row.id);
+              const layerKfs = getLayerKeyframes(row.type, row.id);
               return (
                 <div
                   key={row.key}
@@ -845,11 +939,18 @@ export const AnimationTimeline: React.FC = () => {
                       {row.name}
                     </span>
                   </div>
-                  {motions.length > 0 && (
-                    <span className="text-[9px] font-mono text-slate-400 shrink-0 bg-neutral-800/80 px-1 py-0.5 rounded">
-                      {motions.length}m
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {layerKfs.length > 0 && (
+                      <span className="text-[9px] font-mono text-pastel-pink bg-pastel-pink/15 px-1 py-0.5 rounded border border-pastel-pink/30">
+                        {layerKfs.length} kf
+                      </span>
+                    )}
+                    {motions.length > 0 && (
+                      <span className="text-[9px] font-mono text-slate-400 bg-neutral-800/80 px-1 py-0.5 rounded">
+                        {motions.length}m
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -965,11 +1066,16 @@ export const AnimationTimeline: React.FC = () => {
                 className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
               />
 
+              {/* Top Empty Track Spacer */}
+              <div className="h-2 shrink-0 pointer-events-none" />
+
               {layerTracks.length === 0 && <div className="flex-1 min-h-[52px]" />}
 
               {/* 1. Element Layer Lanes */}
-              {layerTracks.map((row) => {
+              {layerTracks.map((row, trackIdx) => {
+                const isTopTrack = trackIdx === 0;
                 const motions = getLayerMotions(row.type, row.id);
+                const layerKfs = getLayerKeyframes(row.type, row.id);
                 return (
                   <div
                     key={row.key}
@@ -987,108 +1093,219 @@ export const AnimationTimeline: React.FC = () => {
                       onClick={handleTimelineSeek}
                       className="relative w-full h-full flex items-center"
                     >
-                      {motions.length > 0 ? (
-                        motions.map((motion) => {
-                          const meta = MOTION_PRESETS.find((p) => p.id === motion.preset);
-                          const isEntrance = meta?.category === 'entrance';
-                          const isExit = meta?.category === 'exit';
-                          const blockLeft = PAD_PX + motion.startTimeSec * PX_PER_SECOND;
-                          const blockWidth = Math.max(motion.durationSec * PX_PER_SECOND, 38);
-                          const isDraggingThis = draggingMotionBlock?.blockId === motion.id;
-                          const isSelectedBlock = selectedBlockId === motion.id;
+                      {/* Layer Keyframe Path Line */}
+                      {layerKfs.length >= 2 && (
+                        <div
+                          style={{
+                            left: `${PAD_PX + layerKfs[0].timeSec * PX_PER_SECOND}px`,
+                            width: `${(layerKfs[layerKfs.length - 1].timeSec - layerKfs[0].timeSec) * PX_PER_SECOND}px`,
+                          }}
+                          className="absolute h-0.5 rounded-full bg-pastel-pink/40 pointer-events-none z-10"
+                        />
+                      )}
 
-                          return (
+                      {/* Layer Motion Blocks */}
+                      {motions.map((motion) => {
+                        const meta = MOTION_PRESETS.find((p) => p.id === motion.preset);
+                        const isEntrance = meta?.category === 'entrance';
+                        const isExit = meta?.category === 'exit';
+                        const blockLeft = PAD_PX + motion.startTimeSec * PX_PER_SECOND;
+                        const blockWidth = Math.max(motion.durationSec * PX_PER_SECOND, 38);
+                        const isDraggingThis = draggingMotionBlock?.blockId === motion.id;
+                        const isSelectedBlock = selectedBlockId === motion.id;
+
+                        return (
+                          <div
+                            key={motion.id}
+                            style={{
+                              left: `${blockLeft}px`,
+                              width: `${blockWidth}px`,
+                            }}
+                            onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, false)}
+                            onPointerMove={handleMotionBlockPointerMove}
+                            onPointerUp={handleMotionBlockPointerUp}
+                            onPointerCancel={handleMotionBlockPointerUp}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!hasDraggedMotionRef.current) {
+                                setSelectedBlockId((prev) => (prev === motion.id ? null : motion.id));
+                              }
+                            }}
+                            className={`absolute h-5 rounded-md flex items-center justify-between px-1.5 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors group/motionblock ${
+                              isDraggingThis ? 'ring-2 ring-white scale-[1.02] z-30' : ''
+                            } ${
+                              isSelectedBlock ? 'ring-1.5 ring-white' : ''
+                            } ${
+                              isEntrance
+                                ? 'bg-gradient-to-r from-cyan-500/35 via-sky-500/25 to-cyan-500/35 border border-cyan-400 text-cyan-200 hover:border-white'
+                                : isExit
+                                  ? 'bg-gradient-to-r from-rose-500/35 via-amber-500/25 to-rose-500/35 border border-rose-400 text-rose-200 hover:border-white'
+                                  : 'bg-gradient-to-r from-pastel-pink/35 via-purple-500/25 to-pastel-pink/35 border border-pastel-pink text-pastel-pink hover:border-white'
+                            }`}
+                            title="Drag to move. Drag right edge to trim duration."
+                          >
+                            <span className="flex items-center gap-1 truncate mr-1 pointer-events-none">
+                              <span className="text-[9px] shrink-0">
+                                {isEntrance ? '📥' : isExit ? '📤' : '💫'}
+                              </span>
+                              <span className="truncate text-[10px]">
+                                {meta?.name || motion.preset}
+                              </span>
+                            </span>
+
+                            <span className="font-mono text-[8.5px] opacity-80 shrink-0 pointer-events-none mr-1.5">
+                              {motion.durationSec.toFixed(1)}s
+                            </span>
+
+                            {/* Right Trim/Resize Handle */}
                             <div
-                              key={motion.id}
-                              style={{
-                                left: `${blockLeft}px`,
-                                width: `${blockWidth}px`,
-                              }}
-                              onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, false)}
+                              onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, true)}
                               onPointerMove={handleMotionBlockPointerMove}
                               onPointerUp={handleMotionBlockPointerUp}
                               onPointerCancel={handleMotionBlockPointerUp}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!hasDraggedMotionRef.current) {
-                                  setSelectedBlockId((prev) => (prev === motion.id ? null : motion.id));
-                                }
-                              }}
-                              className={`absolute h-5 rounded-md flex items-center justify-between px-1.5 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors group/motionblock ${
-                                isDraggingThis ? 'ring-2 ring-white scale-[1.02] z-30' : ''
-                              } ${
-                                isSelectedBlock ? 'ring-1.5 ring-white' : ''
-                              } ${
-                                isEntrance
-                                  ? 'bg-gradient-to-r from-cyan-500/35 via-sky-500/25 to-cyan-500/35 border border-cyan-400 text-cyan-200 hover:border-white'
-                                  : isExit
-                                    ? 'bg-gradient-to-r from-rose-500/35 via-amber-500/25 to-rose-500/35 border border-rose-400 text-rose-200 hover:border-white'
-                                    : 'bg-gradient-to-r from-pastel-pink/35 via-purple-500/25 to-pastel-pink/35 border border-pastel-pink text-pastel-pink hover:border-white'
-                              }`}
-                              title="Drag to move. Drag right edge to trim duration."
+                              className="w-2 absolute right-0 top-0 bottom-0 cursor-ew-resize hover:bg-white/40 rounded-r-md transition-colors z-20 flex items-center justify-center"
+                              title="Drag to trim duration"
                             >
-                              <span className="flex items-center gap-1 truncate mr-1 pointer-events-none">
-                                <span className="text-[9px] shrink-0">
-                                  {isEntrance ? '📥' : isExit ? '📤' : '💫'}
-                                </span>
-                                <span className="truncate text-[10px]">
-                                  {meta?.name || motion.preset}
-                                </span>
-                              </span>
-
-                              <span className="font-mono text-[8.5px] opacity-80 shrink-0 pointer-events-none mr-1.5">
-                                {motion.durationSec.toFixed(1)}s
-                              </span>
-
-                              {/* Right Trim/Resize Handle */}
-                              <div
-                                onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, true)}
-                                onPointerMove={handleMotionBlockPointerMove}
-                                onPointerUp={handleMotionBlockPointerUp}
-                                onPointerCancel={handleMotionBlockPointerUp}
-                                className="w-2 absolute right-0 top-0 bottom-0 cursor-ew-resize hover:bg-white/40 rounded-r-md transition-colors z-20 flex items-center justify-center"
-                                title="Drag to trim duration"
-                              >
-                                <div className="w-0.5 h-2 bg-white/60 rounded-full pointer-events-none" />
-                              </div>
-
-                              {/* Tooltip & Delete Popover */}
-                              <div
-                                className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
-                                  isSelectedBlock || isDraggingThis
-                                    ? 'opacity-100 pointer-events-auto'
-                                    : 'opacity-0 group-hover/motionblock:opacity-100 pointer-events-none group-hover/motionblock:pointer-events-auto'
-                                }`}
-                              >
-                                <span className="font-semibold text-white">
-                                  {meta?.name || motion.preset}
-                                </span>
-                                <span className="font-mono text-slate-400 text-[10px]">
-                                  {motion.startTimeSec.toFixed(1)}s - {(motion.startTimeSec + motion.durationSec).toFixed(1)}s
-                                </span>
-                                <button
-                                  type="button"
-                                  onPointerDown={(e) => e.stopPropagation()}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    state.removeLayerMotionBlock(row.type, row.id, motion.id);
-                                    if (selectedBlockId === motion.id) setSelectedBlockId(null);
-                                  }}
-                                  className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
-                                  title="Delete Motion Block"
-                                >
-                                  <Trash01 className="w-3 h-3" />
-                                </button>
-                              </div>
+                              <div className="w-0.5 h-2 bg-white/60 rounded-full pointer-events-none" />
                             </div>
-                          );
-                        })
-                      ) : (
+
+                            {/* Tooltip & Delete Popover */}
+                            <div
+                              className={`absolute ${
+                                isTopTrack ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                              } left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                                isSelectedBlock || isDraggingThis
+                                  ? 'opacity-100 pointer-events-auto'
+                                  : 'opacity-0 group-hover/motionblock:opacity-100 pointer-events-none group-hover/motionblock:pointer-events-auto'
+                              }`}
+                            >
+                              <span className="font-semibold text-white">
+                                {meta?.name || motion.preset}
+                              </span>
+                              <span className="font-mono text-slate-400 text-[10px]">
+                                {motion.startTimeSec.toFixed(1)}s - {(motion.startTimeSec + motion.durationSec).toFixed(1)}s
+                              </span>
+                              <button
+                                type="button"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  state.removeLayerMotionBlock(row.type, row.id, motion.id);
+                                  if (selectedBlockId === motion.id) setSelectedBlockId(null);
+                                }}
+                                className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
+                                title="Delete Motion Block"
+                              >
+                                <Trash01 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Layer Custom Keyframe Nodes */}
+                      {layerKfs.map((kf) => {
+                        const nodeX = PAD_PX + kf.timeSec * PX_PER_SECOND;
+                        const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
+                        const isSelected = selectedKfId === kf.id;
+                        const isDragging = draggingLayerKf?.keyframeId === kf.id;
+
+                        let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
+                        if (nodeX < PAD_PX + 40) {
+                          tooltipAlignClass = 'left-0 translate-x-0';
+                        } else if (nodeX > totalTrackWidth - 60) {
+                          tooltipAlignClass = 'right-0 left-auto translate-x-0';
+                        }
+
+                        return (
+                          <div
+                            key={kf.id}
+                            style={{ left: `${nodeX}px` }}
+                            onPointerDown={(e) => handleLayerKfPointerDown(e, row.type, row.id, kf)}
+                            onPointerMove={handleLayerKfPointerMove}
+                            onPointerUp={handleLayerKfPointerUp}
+                            onMouseEnter={() => setHoveredKfId(kf.id)}
+                            onMouseLeave={() => setHoveredKfId((cur) => (cur === kf.id ? null : cur))}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
+                            }}
+                            className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
+                              isDragging || hoveredKfId === kf.id || selectedKfId === kf.id ? 'z-50' : 'z-20'
+                            }`}
+                            title={`Keyframe at ${kf.timeSec.toFixed(1)}s (Click to pin details / Drag to move)`}
+                          >
+                            <div
+                              className={`w-2.5 h-2.5 rotate-45 border transition-all ${
+                                isActive || isSelected || isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
+                                  ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
+                                  : 'bg-indigo-600 border-indigo-300 group-hover:bg-pastel-pink'
+                              }`}
+                            />
+
+                            {/* Tooltip & Delete Popover */}
+                            <div
+                              className={`absolute ${
+                                isTopTrack ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                              } ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap transition-all duration-150 before:content-[''] before:absolute ${
+                                isTopTrack ? 'before:-top-2 before:h-3' : 'before:-bottom-2 before:h-3'
+                              } before:left-0 before:right-0 before:pointer-events-auto ${
+                                hoveredKfId === kf.id || isDragging || selectedKfId === kf.id
+                                  ? 'opacity-100 pointer-events-auto z-50 scale-100'
+                                  : 'opacity-0 pointer-events-none z-0 scale-95'
+                              }`}
+                            >
+                              <span className="font-mono text-pastel-pink font-semibold">
+                                {kf.timeSec.toFixed(1)}s
+                              </span>
+                              {kf.width !== undefined && (
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  {Math.round(kf.width)}w × {Math.round(kf.height || 0)}h
+                                </span>
+                              )}
+                              <select
+                                value={kf.easing || state.animationEasing || 'ease-in-out'}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  state.updateLayerKeyframe(row.type, row.id, kf.id, {
+                                    easing: e.target.value as AnimationEasingType,
+                                  });
+                                }}
+                                className="bg-neutral-950 border border-neutral-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-pastel-pink cursor-pointer"
+                                title="Transition Easing for this Keyframe"
+                              >
+                                {EASING_PRESET_OPTIONS.map((opt) => (
+                                  <option key={opt.id} value={opt.id}>
+                                    {opt.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  state.removeLayerKeyframe(row.type, row.id, kf.id);
+                                  if (selectedKfId === kf.id) setSelectedKfId(null);
+                                }}
+                                className="p-1 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded transition-colors cursor-pointer"
+                                title="Delete Keyframe"
+                              >
+                                <Trash01 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {motions.length === 0 && layerKfs.length === 0 && (
                         <div
                           style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
                           className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-500 font-mono pointer-events-none"
                         >
-                          <span>+ Click any preset above to add motion</span>
+                          <span>+ Click preset or "+ Keyframe" above to animate</span>
                         </div>
                       )}
                     </div>
@@ -1140,17 +1357,19 @@ export const AnimationTimeline: React.FC = () => {
                         onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
                         onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
                         onPointerUp={handleMarkerPointerUp}
+                        onMouseEnter={() => setHoveredKfId(kf.id)}
+                        onMouseLeave={() => setHoveredKfId((cur) => (cur === kf.id ? null : cur))}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
                         }}
                         className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
-                          isDragging ? 'z-50' : 'z-20'
+                          isDragging || hoveredKfId === kf.id || selectedKfId === kf.id ? 'z-50' : 'z-20'
                         }`}
                       >
                         <div
                           className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                            isActive || isSelected || isDragging
+                            isActive || isSelected || isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
                               ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
                               : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
                           }`}
@@ -1158,10 +1377,10 @@ export const AnimationTimeline: React.FC = () => {
 
                         {/* Tooltip & Delete Popover */}
                         <div
-                          className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
-                            isActive || isSelected || isDragging
-                              ? 'opacity-100 pointer-events-auto'
-                              : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+                          className={`absolute bottom-full mb-1.5 ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap transition-all duration-150 before:content-[''] before:absolute before:-bottom-2 before:h-3 before:left-0 before:right-0 before:pointer-events-auto ${
+                            hoveredKfId === kf.id || isDragging || selectedKfId === kf.id
+                              ? 'opacity-100 pointer-events-auto z-50 scale-100'
+                              : 'opacity-0 pointer-events-none z-0 scale-95'
                           }`}
                         >
                           <span className="font-mono text-pastel-pink font-semibold">

@@ -22,6 +22,7 @@ import {
   getAnimatedCounterValue,
   calculateEasing,
   evaluateLayerMotion,
+  evaluateLayerKeyframes,
 } from '../types/animationTypes';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
@@ -398,8 +399,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           state.currentTimeSec,
           layer.text
         );
-        const sx = layer.scaleX ?? 1;
-        const sy = layer.scaleY ?? 1;
+        const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+        const posX = kfValues.x ?? layer.x;
+        const posY = kfValues.y ?? layer.y;
+        const posRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
+        const posPitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+        const posYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+        const posOpacity = kfValues.opacity ?? layer.opacity ?? 100;
+        const posFontSize = kfValues.fontSize ?? layer.fontSize;
+        const sx = kfValues.scaleX ?? layer.scaleX ?? 1;
+        const sy = kfValues.scaleY ?? layer.scaleY ?? 1;
 
         const textFillStyle: React.CSSProperties = layer.bgImage
           ? {
@@ -424,7 +433,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               };
 
         const currentText = motion.animatedText ?? layer.text;
-        const textRot = (layer.rotation || 0) + motion.rotate;
 
         return (
           <div
@@ -441,15 +449,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${textRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`,
+              transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
-              fontSize: `${layer.fontSize}px`,
+              fontSize: `${posFontSize}px`,
               lineHeight: 1.2,
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
               textAlign: layer.textAlign,
-              opacity: motion.isVisible ? ((layer.opacity ?? 100) / 100) * motion.opacity : 0,
+              opacity: motion.isVisible ? (posOpacity / 100) * motion.opacity : 0,
               textShadow:
                 layer.bgImage || layer.gradient
                   ? 'none'
@@ -534,7 +542,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 >
                   <PhosphorIcons.TrashIcon
                     className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-textRot}deg)` }}
+                    style={{ transform: `rotate(${-posRot}deg)` }}
                   />
                 </div>
                 <div
@@ -548,7 +556,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 >
                   <PhosphorIcons.ArrowClockwiseIcon
                     className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-textRot}deg)` }}
+                    style={{ transform: `rotate(${-posRot}deg)` }}
                   />
                 </div>
                 <div
@@ -562,7 +570,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 >
                   <PhosphorIcons.ArrowsOutSimpleIcon
                     className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-textRot}deg)` }}
+                    style={{ transform: `rotate(${-posRot}deg)` }}
                   />
                 </div>
 
@@ -570,7 +578,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 <CenterPointIndicator
                   top={`calc(50% * ${sy})`}
                   left={`calc(50% * ${sx})`}
-                  rotation={textRot}
+                  rotation={posRot}
                   visible={
                     dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
                   }
@@ -624,7 +632,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             ? 'rounded-xl'
             : 'rounded-2xl';
 
-        const iconRot = (layer.rotation || 0) + motion.rotate;
+        const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+        const posX = kfValues.x ?? layer.x;
+        const posY = kfValues.y ?? layer.y;
+        const iconRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
+        const iconPitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+        const iconYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+        const iconOpacity = kfValues.opacity ?? layer.opacity ?? 100;
+        const iconScale = kfValues.scale ?? 1;
 
         return (
           <div
@@ -633,7 +648,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             onClick={(e) => {
               e.stopPropagation();
               if (e.shiftKey || e.metaKey) {
-                state.togglePhosphorIconLayer(layer.id);
+                state.toggleSelectPhosphorIconLayer(layer.id);
               } else {
                 state.selectPhosphorIconLayer(layer.id);
               }
@@ -643,8 +658,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
-              transform: `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${motion.rotateX}deg) rotateY(${motion.rotateY}deg) rotate(${iconRot}deg) scale(${motion.scale})`,
-              opacity: motion.isVisible ? ((layer.opacity ?? 100) / 100) * motion.opacity : 0,
+              transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) scale(${iconScale * motion.scale})`,
+              opacity: motion.isVisible ? (iconOpacity / 100) * motion.opacity : 0,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
             }}
           >
@@ -718,8 +733,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           el.animStartTime || 0,
           state.currentTimeSec
         );
-
-        const elRot = (el.rotation || 0) + motion.rotate;
+        const kfValues = evaluateLayerKeyframes(el, state.currentTimeSec, state.animationEasing);
+        const posX = kfValues.x ?? el.x;
+        const posY = kfValues.y ?? el.y;
+        const elWidth = kfValues.width ?? el.width ?? 90;
+        const elHeight = kfValues.height ?? el.height ?? 90;
+        const elRot = (kfValues.rotation ?? el.rotation ?? 0) + motion.rotate;
+        const elPitch = (kfValues.pitch ?? el.pitch ?? 0) + motion.rotateX;
+        const elYaw = (kfValues.yaw ?? el.yaw ?? 0) + motion.rotateY;
+        const elOpacity = kfValues.opacity ?? el.opacity ?? 100;
+        const elScaleX = (kfValues.scaleX ?? 1) * (el.flipX ? -1 : 1);
+        const elScaleY = (kfValues.scaleY ?? 1) * (el.flipY ? -1 : 1);
 
         return (
           <div
@@ -738,11 +762,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
-              transform: `translate(${el.x + motion.dx}px, ${el.y + motion.dy}px) perspective(1000px) rotateX(${motion.rotateX}deg) rotateY(${motion.rotateY}deg) rotate(${elRot}deg) scale(${el.flipX ? -motion.scale : motion.scale}, ${el.flipY ? -motion.scale : motion.scale})`,
-              opacity: motion.isVisible ? ((el.opacity ?? 100) / 100) * motion.opacity : 0,
+              transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`,
+              opacity: motion.isVisible ? (elOpacity / 100) * motion.opacity : 0,
               filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
-              width: `${el.width || 90}px`,
-              height: `${el.height || 90}px`,
+              width: `${elWidth}px`,
+              height: `${elHeight}px`,
             }}
           >
             {el.category === 'emoji' ? (
@@ -918,15 +942,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           };
         };
 
+        const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+        const posX = kfValues.x ?? layer.x;
+        const posY = kfValues.y ?? layer.y;
+        const shapeWidth = kfValues.width ?? layer.width ?? 120;
+        const shapeHeight = kfValues.height ?? layer.height ?? 120;
+        const shapeRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
+        const shapePitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+        const shapeYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+        const shapeScaleX = kfValues.scaleX ?? 1;
+        const shapeScaleY = kfValues.scaleY ?? 1;
+        const shapeOpacity = kfValues.opacity ?? layer.opacity ?? 100;
+        const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
+
         const has3D =
-          (layer.pitch ?? 0) !== 0 ||
-          (layer.yaw ?? 0) !== 0 ||
-          motion.rotateX !== 0 ||
-          motion.rotateY !== 0;
-        const shapeRot = (layer.rotation || 0) + motion.rotate;
+          shapePitch !== 0 ||
+          shapeYaw !== 0;
         const transformStr = has3D
-          ? `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) perspective(1000px) rotateX(${(layer.pitch || 0) + motion.rotateX}deg) rotateY(${(layer.yaw || 0) + motion.rotateY}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`
-          : `translate(${layer.x + motion.dx}px, ${layer.y + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${motion.scale})`;
+          ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
+          : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`;
 
         return (
           <div
@@ -947,10 +981,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
-              opacity: motion.isVisible ? ((layer.opacity ?? 100) / 100) * motion.opacity : 0,
+              opacity: motion.isVisible ? (shapeOpacity / 100) * motion.opacity : 0,
               filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
-              width: `${layer.width || 120}px`,
-              height: `${layer.height || 120}px`,
+              width: `${shapeWidth}px`,
+              height: `${shapeHeight}px`,
               overflow: isSelected
                 ? 'visible'
                 : !isPolygonOrMask && !layer.blur
@@ -959,7 +993,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               borderRadius:
                 layer.shapeType === 'circle' && !isSelected
                   ? '9999px'
-                  : `${layer.borderRadius ?? 0}px`,
+                  : `${shapeBorderRadius}px`,
             }}
           >
             <div

@@ -100,6 +100,7 @@ export interface ShapeLayer {
   loopAnimation?: ElementLoopAnimation;
   animStartTime?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
+  keyframes?: import('./animationTypes').LayerKeyframe[];
 }
 
 export interface CanvasElement {
@@ -124,7 +125,10 @@ export interface CanvasElement {
   locked?: boolean;
   loopAnimation?: ElementLoopAnimation;
   animStartTime?: number;
+  pitch?: number;
+  yaw?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
+  keyframes?: import('./animationTypes').LayerKeyframe[];
 }
 
 export interface PhosphorIconLayer {
@@ -138,6 +142,8 @@ export interface PhosphorIconLayer {
   y: number;
   rotation: number;
   opacity: number;
+  pitch?: number;
+  yaw?: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
   name?: string;
@@ -146,6 +152,7 @@ export interface PhosphorIconLayer {
   loopAnimation?: ElementLoopAnimation;
   animStartTime?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
+  keyframes?: import('./animationTypes').LayerKeyframe[];
 }
 
 export interface PhosphorIconConfig {
@@ -198,6 +205,7 @@ export interface TextLayer {
   loopAnimation?: ElementLoopAnimation;
   animStartTime?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
+  keyframes?: import('./animationTypes').LayerKeyframe[];
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
