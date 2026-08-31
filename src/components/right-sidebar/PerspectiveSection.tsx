@@ -282,7 +282,7 @@ export const PerspectiveSection: React.FC = () => {
 
       <button
         onClick={reset3DPerspective}
-        className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 rounded-lg border border-slate-700 transition-all cursor-pointer"
+        className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-semibold text-slate-300 hover:text-white rounded-xl border border-neutral-800 hover:border-neutral-700 transition-all cursor-pointer shadow-xs"
       >
         Reset 3D & Position
       </button>

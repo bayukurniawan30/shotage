@@ -33,7 +33,7 @@ export const WatermarkSection: React.FC = () => {
                 className={`py-1.5 px-2 text-[11px] font-medium rounded-lg border transition-all truncate text-center cursor-pointer ${
                   isSelected
                     ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
-                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                    : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:border-neutral-700 hover:text-white'
                 }`}
               >
                 {wt.label}

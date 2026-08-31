@@ -913,19 +913,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           }
 
           if (isGlass) {
-            const userAlpha = (layer.opacity ?? 50) / 100;
+            const userOpacity = (shapeOpacity ?? 100) / 100;
             if (layer.gradient) {
               const p1 = parseColorAndAlpha(layer.gradient.color1);
               const p2 = parseColorAndAlpha(layer.gradient.color2);
-              const a1 = Math.round((p1.alpha / 100) * userAlpha * 100);
-              const a2 = Math.round((p2.alpha / 100) * userAlpha * 100);
+              const a1 = Math.round(Math.min(60, Math.max(5, (p1.alpha < 100 ? p1.alpha : 35) * userOpacity)));
+              const a2 = Math.round(Math.min(60, Math.max(5, (p2.alpha < 100 ? p2.alpha : 15) * userOpacity)));
               return {
                 backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${formatColorWithAlpha(p1.hex, a1)}, ${formatColorWithAlpha(p2.hex, a2)})`,
                 backgroundColor: 'transparent',
               };
             }
             const p = parseColorAndAlpha(layer.color || '#ffffff');
-            const finalAlpha = Math.round((p.alpha / 100) * userAlpha * 100);
+            const baseAlpha = p.alpha < 100 ? p.alpha : 25;
+            const finalAlpha = Math.round(Math.min(70, Math.max(5, baseAlpha * userOpacity)));
             return {
               backgroundColor: formatColorWithAlpha(p.hex, finalAlpha),
             };
@@ -981,8 +982,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
-              opacity: motion.isVisible ? (shapeOpacity / 100) * motion.opacity : 0,
-              filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              opacity: motion.isVisible ? (isGlass ? motion.opacity : (shapeOpacity / 100) * motion.opacity) : 0,
+              filter: isGlass ? 'none' : layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
               width: `${shapeWidth}px`,
               height: `${shapeHeight}px`,
               overflow: isSelected
@@ -1009,13 +1010,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                       WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
                       border:
                         !isPolygonOrMask && layer.glassmorphismBorder !== false
-                          ? '1px solid rgba(255, 255, 255, 0.35)'
+                          ? '1px solid rgba(255, 255, 255, 0.4)'
                           : 'none',
                       boxShadow:
                         !isPolygonOrMask && layer.glassmorphismBorder !== false
                           ? layer.shadow
-                            ? 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4), 0 12px 36px 0 rgba(0, 0, 0, 0.45)'
-                            : 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4), 0 8px 32px 0 rgba(0, 0, 0, 0.25)'
+                            ? 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1), 0 12px 36px 0 rgba(0, 0, 0, 0.45)'
+                            : 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1), 0 8px 32px 0 rgba(0, 0, 0, 0.25)'
                           : !isPolygonOrMask
                             ? layer.shadow
                               ? '0 12px 36px 0 rgba(0, 0, 0, 0.45)'
