@@ -1836,6 +1836,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   };
 
   // Touch / Mouse Panning & Layer Dragging State
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const startPosRef = useRef({ x: 0, y: 0 });
@@ -1926,6 +1927,36 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   useEffect(() => {
     setPan({ x: 0, y: 0 });
   }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
+
+  // 2-Finger Trackpad Pan & Pinch-to-Zoom on Mac/Windows
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent page-level scroll and Safari back/forward history navigation gesture
+      e.preventDefault();
+
+      if (e.ctrlKey || e.metaKey) {
+        // Trackpad pinch-to-zoom (or Ctrl + mouse wheel)
+        const zoomDelta = -e.deltaY * 0.5;
+        const currentZoom = useStudioStore.getState().previewCanvasZoom || 100;
+        const nextZoom = Math.max(25, Math.min(250, Math.round(currentZoom + zoomDelta)));
+        useStudioStore.getState().updateState({ previewCanvasZoom: nextZoom });
+      } else {
+        // 2-finger trackpad pan or mouse wheel scroll
+        setPan((prev) => ({
+          x: Math.round(prev.x - e.deltaX),
+          y: Math.round(prev.y - e.deltaY),
+        }));
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   // Synchronize video elements with timeline playback and current time
   useEffect(() => {
@@ -2622,6 +2653,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   return (
     <div
+      ref={viewportRef}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
