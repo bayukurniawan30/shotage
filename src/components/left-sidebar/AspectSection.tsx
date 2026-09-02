@@ -2,11 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { ChevronDown } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
-import {
-  getAspectRatioCategory,
-  getAspectRatioLabel,
-  getRecommendedZoomForAspect,
-} from './utils';
+import { getAspectRatioCategory, getAspectRatioLabel, getRecommendedZoomForAspect } from './utils';
 
 export const AspectSection: React.FC = () => {
   const state = useStudioStore();
@@ -204,7 +200,12 @@ export const AspectSection: React.FC = () => {
                     ratio: '4:5',
                     aspectClass: 'aspect-[4/5]',
                   },
-                  { id: 'ig-story', label: 'Story', ratio: '9:16', aspectClass: 'aspect-[9/16]' },
+                  {
+                    id: 'ig-story',
+                    label: 'Story/Reel',
+                    ratio: '9:16',
+                    aspectClass: 'aspect-[9/16]',
+                  },
                 ].map((item) => {
                   const isSelected = state.aspectRatio === item.id;
                   return (
