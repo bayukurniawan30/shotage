@@ -679,9 +679,11 @@ export const AnimationTimeline: React.FC = () => {
                   PhosphorIcons.SquareIcon
                 : s.shapeType === 'coolshape'
                   ? PhosphorIcons.SparkleIcon || PhosphorIcons.SquareIcon
-                  : s.shapeType === 'rectangle'
-                    ? PhosphorIcons.RectangleIcon
-                    : PhosphorIcons.SquareIcon;
+                  : s.shapeType === 'custom-path'
+                    ? PhosphorIcons.IntersectIcon || PhosphorIcons.SquareIcon
+                    : s.shapeType === 'rectangle'
+                      ? PhosphorIcons.RectangleIcon
+                      : PhosphorIcons.SquareIcon;
       allRows.push(
         buildRow(
           'shape',

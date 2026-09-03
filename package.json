@@ -26,6 +26,7 @@
     "hono": "^4.12.32",
     "html-to-image": "^1.11.13",
     "mp4-muxer": "^5.2.2",
+    "polygon-clipping": "^0.15.7",
     "react": "^19.2.8",
     "react-aria-components": "^1.19.0",
     "react-dom": "^19.2.8",

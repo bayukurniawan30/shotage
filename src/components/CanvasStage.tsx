@@ -801,6 +801,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               };
             case 'coolshape':
               return {};
+            case 'custom-path':
+              return {
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+              };
             case 'rectangle':
             case 'square':
             default:
@@ -814,10 +819,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           layer.shapeType === 'hexagon' ||
           layer.shapeType === 'triangle' ||
           layer.shapeType === 'quote' ||
-          layer.shapeType === 'coolshape';
+          layer.shapeType === 'coolshape' ||
+          layer.shapeType === 'custom-path';
 
         const getGlassOrSolidBackground = (): React.CSSProperties => {
-          if (layer.shapeType === 'coolshape') {
+          if (layer.shapeType === 'coolshape' || layer.shapeType === 'custom-path') {
             return {
               backgroundColor: 'transparent',
               backgroundImage: 'none',
@@ -962,6 +968,114 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   style={{ width: '100%', height: '100%' }}
                 />
               )}
+
+              {/* Merged Custom Path SVG Silhouette */}
+              {layer.shapeType === 'custom-path' && layer.pathData && (() => {
+                const zoom = (layer.bgImageZoom ?? 100) / 100;
+                const imgW = shapeWidth * zoom;
+                const imgH = shapeHeight * zoom;
+                const imgX = -shapeWidth / 2 + (layer.bgImageOffsetX || 0) - (imgW - shapeWidth) / 2;
+                const imgY = -shapeHeight / 2 + (layer.bgImageOffsetY || 0) - (imgH - shapeHeight) / 2;
+
+                return (
+                  <svg
+                    className="w-full h-full pointer-events-none overflow-visible"
+                    viewBox={layer.viewBox || `${-shapeWidth / 2} ${-shapeHeight / 2} ${shapeWidth} ${shapeHeight}`}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <defs>
+                      <clipPath id={`shape-clip-${layer.id}`}>
+                        <path d={layer.pathData} />
+                      </clipPath>
+                      {layer.gradient && (
+                        <linearGradient
+                          id={`shape-grad-${layer.id}`}
+                          x1={`${50 - 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                          y1={`${50 - 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                          x2={`${50 + 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                          y2={`${50 + 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                        >
+                          <stop offset="0%" stopColor={layer.gradient.color1} />
+                          <stop offset="100%" stopColor={layer.gradient.color2} />
+                        </linearGradient>
+                      )}
+                      {layer.bgImage && layer.bgImageRepeat && (
+                        <pattern
+                          id={`shape-pattern-${layer.id}`}
+                          patternUnits="userSpaceOnUse"
+                          width={imgW}
+                          height={imgH}
+                          x={imgX}
+                          y={imgY}
+                        >
+                          <image
+                            href={layer.bgImage}
+                            width={imgW}
+                            height={imgH}
+                            preserveAspectRatio="none"
+                          />
+                        </pattern>
+                      )}
+                    </defs>
+
+                    {layer.bgImage ? (
+                      layer.bgImageRepeat ? (
+                        <path
+                          d={layer.pathData}
+                          fill={`url(#shape-pattern-${layer.id})`}
+                        />
+                      ) : (
+                        <g clipPath={`url(#shape-clip-${layer.id})`}>
+                          <image
+                            href={layer.bgImage}
+                            x={imgX}
+                            y={imgY}
+                            width={imgW}
+                            height={imgH}
+                            preserveAspectRatio="xMidYMid slice"
+                          />
+                        </g>
+                      )
+                    ) : (
+                      <path
+                        d={layer.pathData}
+                        fill={
+                          isGlass
+                            ? formatColorWithAlpha(
+                                parseColorAndAlpha(layer.color || '#ffffff').hex,
+                                Math.round(
+                                  Math.min(
+                                    70,
+                                    Math.max(
+                                      5,
+                                      (parseColorAndAlpha(layer.color || '#ffffff').alpha < 100
+                                        ? parseColorAndAlpha(layer.color || '#ffffff').alpha
+                                        : 25) *
+                                        ((shapeOpacity ?? 100) / 100)
+                                    )
+                                  )
+                                )
+                              )
+                            : layer.gradient
+                              ? `url(#shape-grad-${layer.id})`
+                              : layer.color || '#a2d2ff'
+                        }
+                      />
+                    )}
+
+                    {/* Outer Stroke (Glassmorphic border outline) */}
+                    {isGlass && layer.glassmorphismBorder !== false && (
+                      <path
+                        d={layer.pathData}
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.45)"
+                        strokeWidth={1.5}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
+                  </svg>
+                );
+              })()}
 
               {/* Hexagon glassmorphic frosted border outline */}
               {isGlass && layer.shapeType === 'hexagon' && layer.glassmorphismBorder !== false && (

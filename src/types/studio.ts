@@ -84,11 +84,14 @@ export type ShapeType =
   | 'triangle'
   | 'hexagon'
   | 'quote'
-  | 'coolshape';
+  | 'coolshape'
+  | 'custom-path';
 
 export interface ShapeLayer {
   id: string;
   shapeType: ShapeType;
+  pathData?: string;
+  viewBox?: string;
   coolshapeType?: CoolshapeCategory;
   coolshapeIndex?: number;
   coolshapeNoise?: boolean;

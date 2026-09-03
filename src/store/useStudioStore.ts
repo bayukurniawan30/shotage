@@ -9,6 +9,7 @@ import {
   MOTION_PRESETS,
 } from '../types/animationTypes';
 import { GOOGLE_FONTS } from '../components/right-sidebar/shared';
+import { mergeShapeLayers } from '../utils/shapeBoolean';
 
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
@@ -77,6 +78,7 @@ interface StudioStore extends StudioState {
   duplicateShapeLayer: (id: string) => void;
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
+  mergeSelectedShapes: () => boolean;
   reorderLayers: (
     newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]
   ) => void;
@@ -1013,6 +1015,7 @@ export const useStudioStore = create<StudioStore>()(
             hexagon: { width: 140, height: 122 },
             quote: { width: 120, height: 120 },
             coolshape: { width: 140, height: 140 },
+            'custom-path': { width: 120, height: 120 },
           };
           const newShape: import('../types/studio').ShapeLayer = {
             id: newId,
@@ -1097,6 +1100,38 @@ export const useStudioStore = create<StudioStore>()(
             selectedShapeId: nextIds.length ? id : null,
           };
         }),
+      mergeSelectedShapes: () => {
+        let mergedSuccessfully = false;
+        set((state) => {
+          const selectedIds = state.selectedShapeIds || [];
+          if (selectedIds.length < 2) return state;
+
+          const shapesToMerge = (state.shapeLayers || []).filter((s) => selectedIds.includes(s.id));
+          if (shapesToMerge.length < 2) return state;
+
+          const merged = mergeShapeLayers(shapesToMerge);
+          if (!merged) return state;
+
+          const remainingShapes = (state.shapeLayers || []).filter((s) => !selectedIds.includes(s.id));
+          const firstIdx = (state.layerOrder || []).findIndex(
+            (e) => e.type === 'shape' && selectedIds.includes(e.id)
+          );
+          const newLayerOrder = (state.layerOrder || []).filter(
+            (e) => !(e.type === 'shape' && selectedIds.includes(e.id))
+          );
+          newLayerOrder.splice(firstIdx === -1 ? 0 : firstIdx, 0, { type: 'shape', id: merged.id });
+
+          mergedSuccessfully = true;
+          return {
+            shapeLayers: [...remainingShapes, merged],
+            selectedShapeId: merged.id,
+            selectedShapeIds: [merged.id],
+            layerOrder: newLayerOrder,
+          };
+        });
+
+        return mergedSuccessfully;
+      },
       reorderLayers: (newOrder) => set(() => ({ layerOrder: newOrder })),
       alignCanvasElements: (align, canvasWidth) =>
         set((state) => {

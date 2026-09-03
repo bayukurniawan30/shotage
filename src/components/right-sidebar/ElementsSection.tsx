@@ -244,7 +244,10 @@ export const ElementsSection: React.FC = () => {
   ];
 
   const selectedShape = (state.shapeLayers || []).find((s) => s.id === state.selectedShapeId);
-  const isUniform = selectedShape && selectedShape.shapeType !== 'rectangle';
+  const isUniform =
+    selectedShape &&
+    selectedShape.shapeType !== 'rectangle' &&
+    selectedShape.shapeType !== 'custom-path';
   const supportsRadius =
     selectedShape &&
     (selectedShape.shapeType === 'square' || selectedShape.shapeType === 'rectangle');
@@ -696,6 +699,32 @@ export const ElementsSection: React.FC = () => {
         </div>
       )}
 
+      {/* Multi-Shape Merge Banner */}
+      {(state.selectedShapeIds || []).length >= 2 && (
+        <div className="p-3 rounded-xl bg-gradient-to-r from-pastel-pink/15 via-purple-500/10 to-pastel-blue/15 border border-pastel-pink/30 space-y-2 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <PhosphorIcons.IntersectIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
+              {state.selectedShapeIds.length} Shapes Selected
+            </span>
+            <span className="text-[10px] font-mono text-pastel-pink bg-pastel-pink/15 px-1.5 py-0.5 rounded border border-pastel-pink/30">
+              Boolean Union
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-snug">
+            Merge selected shapes into one continuous vector path.
+          </p>
+          <button
+            type="button"
+            onClick={() => state.mergeSelectedShapes()}
+            className="w-full py-2 px-3 bg-pastel-pink hover:bg-pastel-pink/90 text-slate-950 font-bold text-xs rounded-lg transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+          >
+            <PhosphorIcons.IntersectIcon weight="bold" className="w-4 h-4" />
+            <span>Merge Shapes (Union)</span>
+          </button>
+        </div>
+      )}
+
       {/* Selected Shape Editor */}
       {selectedShape && (
         <div className="space-y-4 pt-3 border-t border-neutral-800/80 animate-in fade-in duration-150">
@@ -704,7 +733,9 @@ export const ElementsSection: React.FC = () => {
               Editing:{' '}
               {selectedShape.shapeType === 'coolshape'
                 ? `Coolshape (${selectedShape.coolshapeType || 'star'})`
-                : selectedShape.shapeType}
+                : selectedShape.shapeType === 'custom-path'
+                  ? 'Merged Vector Shape'
+                  : selectedShape.shapeType}
             </span>
             <button
               type="button"

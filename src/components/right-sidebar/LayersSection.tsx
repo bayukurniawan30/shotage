@@ -87,9 +87,11 @@ export const LayersSection: React.FC = () => {
                 PhosphorIcons.SquareIcon
               : s.shapeType === 'coolshape'
                 ? (PhosphorIcons as any).SparkleIcon || PhosphorIcons.SquareIcon
-                : s.shapeType === 'rectangle'
-                  ? PhosphorIcons.RectangleIcon
-                  : PhosphorIcons.SquareIcon;
+                : s.shapeType === 'custom-path'
+                  ? PhosphorIcons.IntersectIcon || PhosphorIcons.SquareIcon
+                  : s.shapeType === 'rectangle'
+                    ? PhosphorIcons.RectangleIcon
+                    : PhosphorIcons.SquareIcon;
     allRows.push(
       buildRow(
         'shape',
@@ -338,6 +340,26 @@ export const LayersSection: React.FC = () => {
         </div>
         <span className="text-[10px] font-mono text-slate-500">{allRows.length}</span>
       </div>
+
+      {/* Multi-Shape Merge Action Bar */}
+      {(state.selectedShapeIds || []).length >= 2 && (
+        <div className="p-2.5 rounded-lg bg-pastel-pink/10 border border-pastel-pink/30 flex items-center justify-between animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <PhosphorIcons.IntersectIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
+            <span className="text-xs text-slate-200 font-medium">
+              {state.selectedShapeIds.length} shapes selected
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => state.mergeSelectedShapes()}
+            className="px-2.5 py-1 bg-pastel-pink hover:bg-pastel-pink/90 text-slate-950 font-bold text-[11px] rounded-md transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+          >
+            <PhosphorIcons.IntersectIcon weight="bold" className="w-3.5 h-3.5" />
+            <span>Merge Shapes</span>
+          </button>
+        </div>
+      )}
 
       {allRows.length === 0 ? (
         <p className="text-xs text-slate-500 py-2">
