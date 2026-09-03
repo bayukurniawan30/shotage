@@ -457,7 +457,7 @@ export const FrameSection: React.FC = () => {
         <div className="pt-1 space-y-2.5">
           <div className="flex justify-between text-xs items-center">
             <span className="font-medium text-slate-300">Corner Radius</span>
-            <span className="font-mono text-slate-400 text-[11px] bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+            <span className="font-mono text-slate-400 text-[11px] bg-neutral-900 px-1.5 py-0.5 rounded border border-neutral-800">
               {state.borderRadius}px
             </span>
           </div>

@@ -175,9 +175,23 @@ export const ANIMATED_MESH_PRESETS: AnimatedMeshPreset[] = [
   },
 ];
 
-export const AnimatedGradientBackground: React.FC<{ presetId: string }> = ({ presetId }) => {
+export const AnimatedGradientBackground: React.FC<{
+  presetId: string;
+  isStatic?: boolean;
+}> = ({ presetId, isStatic = false }) => {
   const preset =
     ANIMATED_GRADIENT_PRESETS.find((p) => p.id === presetId) || ANIMATED_GRADIENT_PRESETS[0];
+
+  if (isStatic) {
+    return (
+      <div
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${preset.c1}, ${preset.c2}, ${preset.c3})`,
+        }}
+      />
+    );
+  }
 
   return (
     <div
@@ -191,8 +205,22 @@ export const AnimatedGradientBackground: React.FC<{ presetId: string }> = ({ pre
   );
 };
 
-export const AnimatedMeshBackground: React.FC<{ presetId: string }> = ({ presetId }) => {
+export const AnimatedMeshBackground: React.FC<{
+  presetId: string;
+  isStatic?: boolean;
+}> = ({ presetId, isStatic = false }) => {
   const preset = ANIMATED_MESH_PRESETS.find((p) => p.id === presetId) || ANIMATED_MESH_PRESETS[0];
+
+  if (isStatic) {
+    return (
+      <div
+        className="absolute inset-0 overflow-hidden w-full h-full pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(at 0% 0%, ${preset.c1} 0px, transparent 55%), radial-gradient(at 100% 0%, ${preset.c2} 0px, transparent 55%), radial-gradient(at 100% 100%, ${preset.c3} 0px, transparent 55%), radial-gradient(at 0% 100%, ${preset.c4} 0px, transparent 55%), linear-gradient(135deg, ${preset.c1}, ${preset.c2})`,
+        }}
+      />
+    );
+  }
 
   return (
     <div

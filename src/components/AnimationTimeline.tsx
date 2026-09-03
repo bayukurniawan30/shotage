@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import {
   Play,
@@ -62,10 +62,28 @@ export const AnimationTimeline: React.FC = () => {
   const PAD_PX = 20;
   const totalTrackWidth = Math.max(state.durationSec * PX_PER_SECOND + PAD_PX * 2, 400);
 
+  const videoDur =
+    state.videoDuration && state.videoDuration > 0 ? Math.round(state.videoDuration) : null;
+  const secondVideoDur =
+    state.secondVideoDuration && state.secondVideoDuration > 0
+      ? Math.round(state.secondVideoDuration)
+      : null;
+
+  const durationOptions = useMemo(() => {
+    const defaultPresets = [3, 5, 8, 9, 10, 12, 15, 20];
+    const set = new Set<number>(defaultPresets);
+    if (videoDur) set.add(videoDur);
+    if (secondVideoDur) set.add(secondVideoDur);
+    if (state.durationSec) set.add(state.durationSec);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [videoDur, secondVideoDur, state.durationSec]);
+
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [motionCategoryFilter, setMotionCategoryFilter] = useState<'all' | 'entrance' | 'emphasis' | 'exit'>('all');
+  const [motionCategoryFilter, setMotionCategoryFilter] = useState<
+    'all' | 'entrance' | 'emphasis' | 'exit'
+  >('all');
   const [draggingMotionBlock, setDraggingMotionBlock] = useState<{
     layerType: 'text' | 'phosphor' | 'element' | 'shape';
     layerId: string;
@@ -293,7 +311,14 @@ export const AnimationTimeline: React.FC = () => {
   };
 
   const handleDurationChange = (newDur: number) => {
-    const targetDur = Math.min(20, Math.max(2, newDur));
+    const maxAllowedDur = Math.max(
+      20,
+      videoDur || 0,
+      secondVideoDur || 0,
+      state.durationSec || 0,
+      newDur
+    );
+    const targetDur = Math.min(maxAllowedDur, Math.max(2, newDur));
     const oldDur = state.durationSec;
     let updatedKf = state.keyframes
       .map((kf) => {
@@ -323,7 +348,10 @@ export const AnimationTimeline: React.FC = () => {
     });
   };
 
-  const getLayerMotions = (type: 'text' | 'phosphor' | 'element' | 'shape', id: string): LayerMotionBlock[] => {
+  const getLayerMotions = (
+    type: 'text' | 'phosphor' | 'element' | 'shape',
+    id: string
+  ): LayerMotionBlock[] => {
     let layer: any = null;
     if (type === 'text') layer = (state.textLayers || []).find((l) => l.id === id);
     else if (type === 'phosphor') layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
@@ -528,7 +556,7 @@ export const AnimationTimeline: React.FC = () => {
     );
 
     (state.phosphorIconLayers || []).forEach((l) => {
-      const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.Sparkle;
+      const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.SparkleIcon;
       allRows.push(
         buildRow(
           'phosphor',
@@ -542,10 +570,10 @@ export const AnimationTimeline: React.FC = () => {
     (state.canvasElements || []).forEach((el) => {
       const CatIcon =
         el.category === 'emoji'
-          ? PhosphorIcons.Smiley
+          ? PhosphorIcons.SmileyIcon
           : el.category === 'line'
-            ? PhosphorIcons.LineSegment
-            : PhosphorIcons.ArrowRight;
+            ? PhosphorIcons.LineSegmentIcon
+            : PhosphorIcons.ArrowRightIcon;
       allRows.push(
         buildRow(
           'element',
@@ -559,14 +587,18 @@ export const AnimationTimeline: React.FC = () => {
     (state.shapeLayers || []).forEach((s) => {
       const ShapeCatIcon =
         s.shapeType === 'circle'
-          ? PhosphorIcons.Circle
+          ? PhosphorIcons.CircleIcon
           : s.shapeType === 'hexagon'
-            ? PhosphorIcons.Hexagon
+            ? PhosphorIcons.HexagonIcon
             : s.shapeType === 'quote'
-              ? (PhosphorIcons as any).Quotes || PhosphorIcons.ChatCircle || PhosphorIcons.Square
-              : s.shapeType === 'rectangle'
-                ? PhosphorIcons.Rectangle
-                : PhosphorIcons.Square;
+              ? (PhosphorIcons as any).Quotes ||
+                PhosphorIcons.ChatCircleIcon ||
+                PhosphorIcons.SquareIcon
+              : s.shapeType === 'coolshape'
+                ? PhosphorIcons.SparkleIcon || PhosphorIcons.SquareIcon
+                : s.shapeType === 'rectangle'
+                  ? PhosphorIcons.RectangleIcon
+                  : PhosphorIcons.SquareIcon;
       allRows.push(
         buildRow(
           'shape',
@@ -701,45 +733,35 @@ export const AnimationTimeline: React.FC = () => {
 
         {/* Right: Length Selector, Add Keyframe (for Mockup), Collapse */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 sm:px-2 py-1 text-xs text-slate-300 shrink-0">
+          <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 sm:px-2 py-1 text-xs text-slate-300 shrink-0">
             <span className="text-[10px] text-slate-400 font-semibold uppercase hidden sm:inline">
               Duration:
             </span>
             <select
               value={state.durationSec}
               onChange={(e) => handleDurationChange(Number(e.target.value))}
-              className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer w-auto min-w-[32px] text-center sm:text-left"
+              className="bg-transparent text-pastel-pink font-mono font-bold text-xs outline-none cursor-pointer w-auto min-w-[32px] max-w-[54px] text-center sm:text-left"
             >
-              {[3, 5, 8, 9, 10, 12, 15, 20].includes(state.durationSec) ? null : (
-                <option value={state.durationSec} className="bg-neutral-900 text-white">
-                  {state.durationSec}s
-                </option>
-              )}
-              <option value={3} className="bg-neutral-900 text-white">
-                3s
-              </option>
-              <option value={5} className="bg-neutral-900 text-white">
-                5s
-              </option>
-              <option value={8} className="bg-neutral-900 text-white">
-                8s
-              </option>
-              <option value={9} className="bg-neutral-900 text-white">
-                9s
-              </option>
-              <option value={10} className="bg-neutral-900 text-white">
-                10s
-              </option>
-              <option value={12} className="bg-neutral-900 text-white">
-                12s
-              </option>
-              <option value={15} className="bg-neutral-900 text-white">
-                15s
-              </option>
-              <option value={20} className="bg-neutral-900 text-white">
-                20s
-              </option>
+              {durationOptions.map((dur) => {
+                const isVideoDur =
+                  (videoDur && dur === videoDur) || (secondVideoDur && dur === secondVideoDur);
+                return (
+                  <option key={dur} value={dur} className="bg-neutral-900 text-white">
+                    {dur}s
+                  </option>
+                );
+              })}
             </select>
+            {videoDur && state.durationSec !== videoDur && (
+              <button
+                type="button"
+                onClick={() => handleDurationChange(videoDur)}
+                title={`Match video duration (${videoDur}s)`}
+                className="px-1.5 py-0.5 rounded bg-pastel-pink/15 text-pastel-pink hover:bg-pastel-pink/25 border border-pastel-pink/30 text-[10px] font-mono font-semibold transition-all cursor-pointer whitespace-nowrap"
+              >
+                Match Video ({videoDur}s)
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 sm:px-2 py-1 text-xs text-slate-300 shrink-0">
@@ -785,7 +807,7 @@ export const AnimationTimeline: React.FC = () => {
         {selectedTrack.type === 'mockup' ? (
           <>
             <span className="text-[10px] uppercase font-bold text-pastel-pink mr-1 shrink-0 flex items-center gap-1">
-              <PhosphorIcons.Cube className="w-3.5 h-3.5" />
+              <PhosphorIcons.CubeIcon className="w-3.5 h-3.5" />
               <span>Mockup Motions:</span>
             </span>
             {ANIMATION_PRESETS.map((preset) => {
@@ -844,7 +866,13 @@ export const AnimationTimeline: React.FC = () => {
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  {cat === 'all' ? 'All' : cat === 'entrance' ? 'In (Entrance)' : cat === 'emphasis' ? 'Loop / Motion' : 'Out (Exit)'}
+                  {cat === 'all'
+                    ? 'All'
+                    : cat === 'entrance'
+                      ? 'In (Entrance)'
+                      : cat === 'emphasis'
+                        ? 'Loop / Motion'
+                        : 'Out (Exit)'}
                 </button>
               ))}
             </div>
@@ -864,7 +892,11 @@ export const AnimationTimeline: React.FC = () => {
                 <button
                   key={preset.id}
                   onClick={() =>
-                    state.addLayerMotionBlock(selectedTrack.type as any, selectedTrack.id, preset.id)
+                    state.addLayerMotionBlock(
+                      selectedTrack.type as any,
+                      selectedTrack.id,
+                      preset.id
+                    )
                   }
                   className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                     isEntrance
@@ -971,7 +1003,7 @@ export const AnimationTimeline: React.FC = () => {
               }`}
             >
               <div className="flex items-center gap-2 overflow-hidden">
-                <PhosphorIcons.Cube className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+                <PhosphorIcons.CubeIcon className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
                 <span
                   className={`truncate text-[11px] font-bold leading-tight ${
                     selectedTrack.type === 'mockup' ? 'text-pastel-pink' : 'text-slate-200'
@@ -993,7 +1025,10 @@ export const AnimationTimeline: React.FC = () => {
           className="flex-1 relative flex flex-col select-none overflow-x-auto overflow-y-hidden"
           style={{ scrollBehavior: 'smooth' }}
         >
-          <div style={{ width: `${totalTrackWidth}px`, minWidth: '100%' }} className="relative flex flex-col">
+          <div
+            style={{ width: `${totalTrackWidth}px`, minWidth: '100%' }}
+            className="relative flex flex-col"
+          >
             {/* Track Time Ruler Header */}
             <div className="h-6 border-b border-neutral-800/80 bg-neutral-900/60 relative flex items-center">
               <div
@@ -1121,21 +1156,23 @@ export const AnimationTimeline: React.FC = () => {
                               left: `${blockLeft}px`,
                               width: `${blockWidth}px`,
                             }}
-                            onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, false)}
+                            onPointerDown={(e) =>
+                              handleMotionBlockPointerDown(e, row.type, row.id, motion, false)
+                            }
                             onPointerMove={handleMotionBlockPointerMove}
                             onPointerUp={handleMotionBlockPointerUp}
                             onPointerCancel={handleMotionBlockPointerUp}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!hasDraggedMotionRef.current) {
-                                setSelectedBlockId((prev) => (prev === motion.id ? null : motion.id));
+                                setSelectedBlockId((prev) =>
+                                  prev === motion.id ? null : motion.id
+                                );
                               }
                             }}
                             className={`absolute h-5 rounded-md flex items-center justify-between px-1.5 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors group/motionblock ${
                               isDraggingThis ? 'ring-2 ring-white scale-[1.02] z-30' : ''
-                            } ${
-                              isSelectedBlock ? 'ring-1.5 ring-white' : ''
-                            } ${
+                            } ${isSelectedBlock ? 'ring-1.5 ring-white' : ''} ${
                               isEntrance
                                 ? 'bg-gradient-to-r from-cyan-500/35 via-sky-500/25 to-cyan-500/35 border border-cyan-400 text-cyan-200 hover:border-white'
                                 : isExit
@@ -1159,7 +1196,9 @@ export const AnimationTimeline: React.FC = () => {
 
                             {/* Right Trim/Resize Handle */}
                             <div
-                              onPointerDown={(e) => handleMotionBlockPointerDown(e, row.type, row.id, motion, true)}
+                              onPointerDown={(e) =>
+                                handleMotionBlockPointerDown(e, row.type, row.id, motion, true)
+                              }
                               onPointerMove={handleMotionBlockPointerMove}
                               onPointerUp={handleMotionBlockPointerUp}
                               onPointerCancel={handleMotionBlockPointerUp}
@@ -1183,7 +1222,8 @@ export const AnimationTimeline: React.FC = () => {
                                 {meta?.name || motion.preset}
                               </span>
                               <span className="font-mono text-slate-400 text-[10px]">
-                                {motion.startTimeSec.toFixed(1)}s - {(motion.startTimeSec + motion.durationSec).toFixed(1)}s
+                                {motion.startTimeSec.toFixed(1)}s -{' '}
+                                {(motion.startTimeSec + motion.durationSec).toFixed(1)}s
                               </span>
                               <button
                                 type="button"
@@ -1225,19 +1265,27 @@ export const AnimationTimeline: React.FC = () => {
                             onPointerMove={handleLayerKfPointerMove}
                             onPointerUp={handleLayerKfPointerUp}
                             onMouseEnter={() => setHoveredKfId(kf.id)}
-                            onMouseLeave={() => setHoveredKfId((cur) => (cur === kf.id ? null : cur))}
+                            onMouseLeave={() =>
+                              setHoveredKfId((cur) => (cur === kf.id ? null : cur))
+                            }
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
                             }}
                             className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
-                              isDragging || hoveredKfId === kf.id || selectedKfId === kf.id ? 'z-50' : 'z-20'
+                              isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
+                                ? 'z-50'
+                                : 'z-20'
                             }`}
                             title={`Keyframe at ${kf.timeSec.toFixed(1)}s (Click to pin details / Drag to move)`}
                           >
                             <div
                               className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                                isActive || isSelected || isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
+                                isActive ||
+                                isSelected ||
+                                isDragging ||
+                                hoveredKfId === kf.id ||
+                                selectedKfId === kf.id
                                   ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
                                   : 'bg-indigo-600 border-indigo-300 group-hover:bg-pastel-pink'
                               }`}
@@ -1248,7 +1296,9 @@ export const AnimationTimeline: React.FC = () => {
                               className={`absolute ${
                                 isTopTrack ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
                               } ${tooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap transition-all duration-150 before:content-[''] before:absolute ${
-                                isTopTrack ? 'before:-top-2 before:h-3' : 'before:-bottom-2 before:h-3'
+                                isTopTrack
+                                  ? 'before:-top-2 before:h-3'
+                                  : 'before:-bottom-2 before:h-3'
                               } before:left-0 before:right-0 before:pointer-events-auto ${
                                 hoveredKfId === kf.id || isDragging || selectedKfId === kf.id
                                   ? 'opacity-100 pointer-events-auto z-50 scale-100'
@@ -1302,7 +1352,10 @@ export const AnimationTimeline: React.FC = () => {
 
                       {motions.length === 0 && layerKfs.length === 0 && (
                         <div
-                          style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
+                          style={{
+                            left: `${PAD_PX}px`,
+                            width: `${state.durationSec * PX_PER_SECOND}px`,
+                          }}
                           className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-500 font-mono pointer-events-none"
                         >
                           <span>+ Click preset or "+ Keyframe" above to animate</span>
@@ -1364,12 +1417,18 @@ export const AnimationTimeline: React.FC = () => {
                           setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
                         }}
                         className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
-                          isDragging || hoveredKfId === kf.id || selectedKfId === kf.id ? 'z-50' : 'z-20'
+                          isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
+                            ? 'z-50'
+                            : 'z-20'
                         }`}
                       >
                         <div
                           className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                            isActive || isSelected || isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
+                            isActive ||
+                            isSelected ||
+                            isDragging ||
+                            hoveredKfId === kf.id ||
+                            selectedKfId === kf.id
                               ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
                               : 'bg-slate-700 border-slate-400 group-hover:bg-slate-300'
                           }`}

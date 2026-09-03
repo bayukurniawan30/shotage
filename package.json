@@ -21,6 +21,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@remotion/cli": "^4.0.502",
     "@untitledui/icons": "^0.0.22",
+    "coolshapes-react": "^1.0.1",
     "framer-motion": "^12.43.0",
     "hono": "^4.12.32",
     "html-to-image": "^1.11.13",

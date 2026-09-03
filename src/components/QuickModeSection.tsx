@@ -13,6 +13,16 @@ import { WaveBackground } from './WaveBackground';
 import { ShadeshifterBackground } from './ShadeshifterBackground';
 import { SpectralBackground } from './SpectralBackground';
 import { RadiantBackground } from './RadiantBackground';
+import {
+  AnimatedGradientBackground,
+  AnimatedMeshBackground,
+  ANIMATED_GRADIENT_PRESETS,
+  ANIMATED_MESH_PRESETS,
+  AnimatedGradientPreset,
+  AnimatedMeshPreset,
+} from './AnimatedBackgrounds';
+import { ConfettiBackground } from './ConfettiBackground';
+import { getPatternSvgUrl } from '../utils/patternPresets';
 
 // Solid colors palette
 const SOLID_PALETTE = [
@@ -38,6 +48,8 @@ type BgCategoryType =
   | 'shadeshifter'
   | 'spectral'
   | 'radiant'
+  | 'animatedGradient'
+  | 'animatedMesh'
   | 'solid';
 
 interface BgCategoryDef {
@@ -52,49 +64,61 @@ const BG_CATEGORIES: BgCategoryDef[] = [
     id: 'gradient',
     name: 'Gradient Presets',
     shortLabel: 'Gradient',
-    icon: <PhosphorIcons.Gradient weight="duotone" className="w-5 h-5 text-pastel-pink" />,
+    icon: <PhosphorIcons.GradientIcon weight="duotone" className="w-5 h-5 text-pastel-pink" />,
   },
   {
     id: 'linearSwatches',
     name: 'Linear Swatches',
     shortLabel: 'Linear Swatch',
-    icon: <PhosphorIcons.Palette weight="duotone" className="w-5 h-5 text-amber-300" />,
+    icon: <PhosphorIcons.PaletteIcon weight="duotone" className="w-5 h-5 text-amber-300" />,
   },
   {
     id: 'mesh',
     name: 'Mesh Gradients',
     shortLabel: 'Mesh',
-    icon: <PhosphorIcons.CirclesFour weight="duotone" className="w-5 h-5 text-violet-400" />,
+    icon: <PhosphorIcons.CirclesFourIcon weight="duotone" className="w-5 h-5 text-violet-400" />,
   },
   {
     id: 'wave',
     name: 'Wave Flows',
     shortLabel: 'Wave',
-    icon: <PhosphorIcons.Waves weight="duotone" className="w-5 h-5 text-cyan-300" />,
+    icon: <PhosphorIcons.WavesIcon weight="duotone" className="w-5 h-5 text-cyan-300" />,
   },
   {
     id: 'shadeshifter',
     name: 'Shadeshifter',
     shortLabel: 'Shadeshifter',
-    icon: <PhosphorIcons.Sparkle weight="duotone" className="w-5 h-5 text-pastel-blue" />,
+    icon: <PhosphorIcons.SparkleIcon weight="duotone" className="w-5 h-5 text-pastel-blue" />,
   },
   {
     id: 'spectral',
     name: 'Spectral Prisms',
     shortLabel: 'Spectral',
-    icon: <PhosphorIcons.Rainbow weight="duotone" className="w-5 h-5 text-emerald-400" />,
+    icon: <PhosphorIcons.RainbowIcon weight="duotone" className="w-5 h-5 text-emerald-400" />,
   },
   {
     id: 'radiant',
     name: 'Radiant Glow',
     shortLabel: 'Radiant',
-    icon: <PhosphorIcons.SunHorizon weight="duotone" className="w-5 h-5 text-amber-400" />,
+    icon: <PhosphorIcons.SunHorizonIcon weight="duotone" className="w-5 h-5 text-amber-400" />,
+  },
+  {
+    id: 'animatedGradient',
+    name: 'Animated Gradients',
+    shortLabel: 'Anim Gradient',
+    icon: <PhosphorIcons.FilmStripIcon weight="duotone" className="w-5 h-5 text-pink-400" />,
+  },
+  {
+    id: 'animatedMesh',
+    name: 'Animated Mesh',
+    shortLabel: 'Anim Mesh',
+    icon: <PhosphorIcons.MagicWandIcon weight="duotone" className="w-5 h-5 text-indigo-400" />,
   },
   {
     id: 'solid',
     name: 'Solid & Pastels',
     shortLabel: 'Solid',
-    icon: <PhosphorIcons.PaintBrush weight="duotone" className="w-5 h-5 text-rose-300" />,
+    icon: <PhosphorIcons.PaintBrushIcon weight="duotone" className="w-5 h-5 text-rose-300" />,
   },
 ];
 
@@ -449,6 +473,12 @@ export const QuickModeSection: React.FC = () => {
       case 'radiant':
         setRandomSwatches(pickRandom4(RADIANT_PRESETS));
         break;
+      case 'animatedGradient':
+        setRandomSwatches(pickRandom4(ANIMATED_GRADIENT_PRESETS));
+        break;
+      case 'animatedMesh':
+        setRandomSwatches(pickRandom4(ANIMATED_MESH_PRESETS));
+        break;
       case 'solid':
         setRandomSwatches(pickRandom4(SOLID_PALETTE));
         break;
@@ -530,6 +560,22 @@ export const QuickModeSection: React.FC = () => {
         });
         break;
       }
+      case 'animatedGradient': {
+        const ag = item as AnimatedGradientPreset;
+        onChange({
+          backgroundType: 'animatedGradient',
+          animatedGradientPreset: ag.id,
+        });
+        break;
+      }
+      case 'animatedMesh': {
+        const am = item as AnimatedMeshPreset;
+        onChange({
+          backgroundType: 'animatedMesh',
+          animatedMeshPreset: am.id,
+        });
+        break;
+      }
       case 'solid': {
         const color = item as string;
         onChange({
@@ -580,6 +626,20 @@ export const QuickModeSection: React.FC = () => {
       case 'radiant': {
         const r = item as RadiantPreset;
         return state.backgroundType === 'radiant' && (state.radiantPreset || 'radiant-1') === r.id;
+      }
+      case 'animatedGradient': {
+        const ag = item as AnimatedGradientPreset;
+        return (
+          state.backgroundType === 'animatedGradient' &&
+          (state.animatedGradientPreset || 'anim-grad-1') === ag.id
+        );
+      }
+      case 'animatedMesh': {
+        const am = item as AnimatedMeshPreset;
+        return (
+          state.backgroundType === 'animatedMesh' &&
+          (state.animatedMeshPreset || 'anim-mesh-1') === am.id
+        );
       }
       case 'solid': {
         const color = item as string;
@@ -648,6 +708,22 @@ export const QuickModeSection: React.FC = () => {
           </div>
         );
       }
+      case 'animatedGradient': {
+        const ag = item as AnimatedGradientPreset;
+        return (
+          <div className="w-full h-full rounded-full overflow-hidden relative">
+            <AnimatedGradientBackground presetId={ag.id} isStatic />
+          </div>
+        );
+      }
+      case 'animatedMesh': {
+        const am = item as AnimatedMeshPreset;
+        return (
+          <div className="w-full h-full rounded-full overflow-hidden relative">
+            <AnimatedMeshBackground presetId={am.id} isStatic />
+          </div>
+        );
+      }
       case 'solid': {
         const color = item as string;
         return (
@@ -662,8 +738,37 @@ export const QuickModeSection: React.FC = () => {
 
   // Render background style for variation cards matching the current canvas background
   const renderCardBackground = () => {
-    if (state.backgroundType === 'gradient') {
-      return (
+    let bgContent: React.ReactNode = null;
+
+    if (state.backgroundType === 'animatedGradient') {
+      bgContent = (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <AnimatedGradientBackground
+            presetId={state.animatedGradientPreset || 'anim-grad-1'}
+            isStatic
+          />
+        </div>
+      );
+    } else if (state.backgroundType === 'animatedMesh') {
+      bgContent = (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <AnimatedMeshBackground
+            presetId={state.animatedMeshPreset || 'anim-mesh-1'}
+            isStatic
+          />
+        </div>
+      );
+    } else if (state.backgroundType === 'confetti') {
+      bgContent = (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <ConfettiBackground
+            presetId={state.confettiPreset || 'confetti-1'}
+            customPreset={state.customConfettiObj}
+          />
+        </div>
+      );
+    } else if (state.backgroundType === 'gradient') {
+      bgContent = (
         <div
           className="absolute inset-0"
           style={{
@@ -673,29 +778,25 @@ export const QuickModeSection: React.FC = () => {
           }}
         />
       );
-    }
-    if (state.backgroundType === 'linearSwatches') {
+    } else if (state.backgroundType === 'linearSwatches') {
       const preset =
         LINEAR_SWATCH_PRESETS.find((p) => p.id === state.linearSwatchesPreset) ||
         LINEAR_SWATCH_PRESETS[0];
-      return <div className="absolute inset-0" style={{ background: preset.css }} />;
-    }
-    if (state.backgroundType === 'mesh') {
-      return (
+      bgContent = <div className="absolute inset-0" style={{ background: preset.css }} />;
+    } else if (state.backgroundType === 'mesh') {
+      bgContent = (
         <div className="absolute inset-0 overflow-hidden">
           <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
         </div>
       );
-    }
-    if (state.backgroundType === 'wave') {
-      return (
+    } else if (state.backgroundType === 'wave') {
+      bgContent = (
         <div className="absolute inset-0 overflow-hidden">
           <WaveBackground presetId={state.wavePreset || 'wave-1'} />
         </div>
       );
-    }
-    if (state.backgroundType === 'shadeshifter') {
-      return (
+    } else if (state.backgroundType === 'shadeshifter') {
+      bgContent = (
         <div className="absolute inset-0 overflow-hidden">
           <ShadeshifterBackground
             presetId={state.shadeshifterPreset || 'shadeshifter-1'}
@@ -704,30 +805,67 @@ export const QuickModeSection: React.FC = () => {
           />
         </div>
       );
-    }
-    if (state.backgroundType === 'spectral') {
-      return (
+    } else if (state.backgroundType === 'spectral') {
+      bgContent = (
         <div className="absolute inset-0 overflow-hidden">
           <SpectralBackground presetId={state.spectralPreset || 'spectral-1'} blur={20} />
         </div>
       );
-    }
-    if (state.backgroundType === 'radiant') {
-      return (
+    } else if (state.backgroundType === 'radiant') {
+      bgContent = (
         <div className="absolute inset-0 overflow-hidden">
           <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
         </div>
       );
-    }
-    if (state.backgroundType === 'solid') {
-      return (
+    } else if (state.backgroundType === 'solid') {
+      bgContent = (
         <div
           className="absolute inset-0"
           style={{ backgroundColor: state.backgroundColor || '#0f172a' }}
         />
       );
+    } else if (state.backgroundType === 'image' && state.bgImageUrl) {
+      bgContent = (
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${state.bgImageUrl})`,
+          }}
+        />
+      );
+    } else if (state.backgroundType === 'transparent') {
+      bgContent = (
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `linear-gradient(45deg, #1e1e24 25%, transparent 25%), linear-gradient(-45deg, #1e1e24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1e1e24 75%), linear-gradient(-45deg, transparent 75%, #1e1e24 75%)`,
+            backgroundSize: '16px 16px',
+            backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+          }}
+        />
+      );
+    } else {
+      bgContent = <div className="absolute inset-0 bg-neutral-900" />;
     }
-    return <div className="absolute inset-0 bg-neutral-900" />;
+
+    return (
+      <>
+        {bgContent}
+        {state.bgPatternEnabled && (
+          <div
+            className="absolute inset-0 pointer-events-none z-[1]"
+            style={{
+              opacity: (state.bgPatternOpacity ?? 40) / 100,
+              backgroundImage: getPatternSvgUrl(
+                state.bgPatternPreset || 'pattern-1',
+                state.bgPatternColor || '#9C92AC'
+              ),
+              backgroundRepeat: 'repeat',
+            }}
+          />
+        )}
+      </>
+    );
   };
 
   const isDual = state.layoutCount === 2;
@@ -934,7 +1072,7 @@ export const QuickModeSection: React.FC = () => {
       // Single Mockup Preview
       return (
         <div
-          className="relative transition-transform duration-300 pointer-events-none"
+          className="relative z-10 transition-transform duration-300 pointer-events-none"
           style={{
             transform: `perspective(350px) rotateX(${v.rotateX}deg) rotateY(${
               v.rotateY
@@ -985,21 +1123,21 @@ export const QuickModeSection: React.FC = () => {
     switch (v.layoutPreset) {
       case 'overlap-right':
         return (
-          <div className="relative flex items-center justify-center w-full h-full pointer-events-none">
+          <div className="relative z-10 flex items-center justify-center w-full h-full pointer-events-none">
             <div className="relative z-10 scale-95 opacity-90">{slot1Element}</div>
             <div className="relative z-20 -ml-5 mt-2.5 shadow-2xl">{slot2Element}</div>
           </div>
         );
       case 'overlap-left':
         return (
-          <div className="relative flex items-center justify-center w-full h-full pointer-events-none">
+          <div className="relative z-10 flex items-center justify-center w-full h-full pointer-events-none">
             <div className="relative z-20 mt-2.5 shadow-2xl">{slot1Element}</div>
             <div className="relative z-10 -ml-5 scale-95 opacity-90">{slot2Element}</div>
           </div>
         );
       case 'stacked':
         return (
-          <div className="flex flex-col items-center justify-center gap-1 w-full h-full p-1 pointer-events-none">
+          <div className="relative z-10 flex flex-col items-center justify-center gap-1 w-full h-full p-1 pointer-events-none">
             <div className="flex justify-center items-center scale-80 -my-1.5">{slot1Element}</div>
             <div className="flex justify-center items-center scale-80 -my-1.5">{slot2Element}</div>
           </div>
@@ -1007,7 +1145,7 @@ export const QuickModeSection: React.FC = () => {
       case 'side-by-side':
       default:
         return (
-          <div className="flex items-center justify-center gap-3.5 w-full h-full p-1 pointer-events-none">
+          <div className="relative z-10 flex items-center justify-center gap-3.5 w-full h-full p-1 pointer-events-none">
             <div className="flex justify-center items-center">{slot1Element}</div>
             <div className="flex justify-center items-center">{slot2Element}</div>
           </div>
@@ -1132,8 +1270,8 @@ export const QuickModeSection: React.FC = () => {
 
                   {/* Active Selection Badge */}
                   {active && (
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-pastel-pink text-slate-950 font-bold text-[9px] flex items-center gap-1 shadow-md animate-in fade-in">
-                      <PhosphorIcons.Check className="w-2.5 h-2.5 font-bold" />
+                    <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full bg-pastel-pink text-slate-950 font-bold text-[9px] flex items-center gap-1 shadow-md animate-in fade-in">
+                      <PhosphorIcons.CheckIcon className="w-2.5 h-2.5 font-bold" />
                       Applied
                     </div>
                   )}

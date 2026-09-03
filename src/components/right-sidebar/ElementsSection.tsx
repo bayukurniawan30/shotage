@@ -2,17 +2,33 @@ import React, { useState } from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { Copy01, Trash01, ChevronDown } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
+import { Coolshape } from 'coolshapes-react';
 import { Toggle } from '../Toggle';
 import { ShapePreview } from './shared';
-import { ShapeType } from '../../types/studio';
+import { ShapeType, CoolshapeCategory } from '../../types/studio';
 import {
   GRADIENT_PRESETS,
   parseColorAndAlpha,
   formatColorWithAlpha,
 } from '../../utils/gradientPresets';
 
+const COOLSHAPE_CATEGORIES: { id: CoolshapeCategory; label: string; count: number }[] = [
+  { id: 'star', label: 'Star', count: 13 },
+  { id: 'flower', label: 'Flower', count: 16 },
+  { id: 'ellipse', label: 'Ellipse', count: 12 },
+  { id: 'wheel', label: 'Wheel', count: 7 },
+  { id: 'moon', label: 'Moon', count: 15 },
+  { id: 'misc', label: 'Misc', count: 11 },
+  { id: 'triangle', label: 'Triangle', count: 14 },
+  { id: 'polygon', label: 'Polygon', count: 8 },
+  { id: 'rectangle', label: 'Rectangle', count: 9 },
+  { id: 'number', label: 'Number', count: 10 },
+];
+
 export const ElementsSection: React.FC = () => {
   const state = useStudioStore();
+  const [shapeTab, setShapeTab] = useState<'basic' | 'coolshapes'>('coolshapes');
+  const [activeCoolshapeCat, setActiveCoolshapeCat] = useState<CoolshapeCategory>('star');
   const [customEmojiInput, setCustomEmojiInput] = useState('');
   const [showAllShapeGradients, setShowAllShapeGradients] = useState(false);
   const [shapeActiveOption, setShapeActiveOption] = useState<
@@ -379,7 +395,7 @@ export const ElementsSection: React.FC = () => {
       </div>
 
       {/* Shapes Category Grid */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <div className="flex justify-between text-xs items-center">
           <span className="font-semibold text-slate-300">Shapes (Click to Add)</span>
           <span className="text-[10px] font-mono text-pastel-pink">
@@ -387,33 +403,139 @@ export const ElementsSection: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
-          {(
-            [
-              { id: 'square', label: 'Square' },
-              { id: 'rectangle', label: 'Rectangle' },
-              { id: 'circle', label: 'Circle' },
-              { id: 'hexagon', label: 'Hexagon' },
-              { id: 'quote', label: 'Quote' },
-            ] as { id: ShapeType; label: string }[]
-          ).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              title={`Add ${item.label}`}
-              onClick={() => state.addShapeLayer(item.id)}
-              className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 hover:border-pastel-blue/60 hover:bg-pastel-blue/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
-            >
-              <ShapePreview
-                type={item.id}
-                className="w-6 h-6 group-hover:scale-110 transition-transform"
-              />
-              <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
-                {item.label}
-              </span>
-            </button>
-          ))}
+        {/* Tab switch between Basic Shapes and Coolshapes */}
+        <div className="flex items-center gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
+          <button
+            type="button"
+            onClick={() => setShapeTab('basic')}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              shapeTab === 'basic'
+                ? 'bg-neutral-800 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Basic
+          </button>
+          <button
+            type="button"
+            onClick={() => setShapeTab('coolshapes')}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              shapeTab === 'coolshapes'
+                ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 animate-pulse" />
+            <span>Coolshapes</span>
+          </button>
         </div>
+
+        {shapeTab === 'basic' ? (
+          <div className="grid grid-cols-5 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+            {(
+              [
+                { id: 'square', label: 'Square' },
+                { id: 'rectangle', label: 'Rectangle' },
+                { id: 'circle', label: 'Circle' },
+                { id: 'hexagon', label: 'Hexagon' },
+                { id: 'quote', label: 'Quote' },
+              ] as { id: ShapeType; label: string }[]
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={`Add ${item.label}`}
+                onClick={() => state.addShapeLayer(item.id)}
+                className="p-2 rounded-lg border bg-neutral-900/60 border-neutral-800/80 hover:border-pastel-blue/60 hover:bg-pastel-blue/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
+              >
+                <ShapePreview
+                  type={item.id}
+                  className="w-6 h-6 group-hover:scale-110 transition-transform"
+                />
+                <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+            {/* Category pills */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
+              {COOLSHAPE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveCoolshapeCat(cat.id)}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-all cursor-pointer ${
+                    activeCoolshapeCat === cat.id
+                      ? 'bg-pastel-pink text-slate-950 font-bold shadow-sm'
+                      : 'bg-neutral-900 text-slate-400 hover:text-slate-200 hover:bg-neutral-800'
+                  }`}
+                >
+                  {cat.label} ({cat.count})
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Random Action */}
+            <div className="flex items-center justify-between px-1 text-[10px] text-slate-400">
+              <span className="capitalize">
+                {activeCoolshapeCat} shapes (
+                {COOLSHAPE_CATEGORIES.find((c) => c.id === activeCoolshapeCat)?.count})
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const randomCat =
+                    COOLSHAPE_CATEGORIES[Math.floor(Math.random() * COOLSHAPE_CATEGORIES.length)];
+                  const randomIdx = Math.floor(Math.random() * randomCat.count);
+                  state.addShapeLayer('coolshape', {
+                    coolshapeType: randomCat.id,
+                    coolshapeIndex: randomIdx,
+                    name: `${randomCat.label} ${randomIdx + 1}`,
+                  });
+                }}
+                className="text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <PhosphorIcons.Shuffle className="w-3 h-3" />
+                Random
+              </button>
+            </div>
+
+            {/* Coolshapes Grid */}
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 max-h-52 overflow-y-auto no-scrollbar p-1">
+              {Array.from({
+                length: COOLSHAPE_CATEGORIES.find((c) => c.id === activeCoolshapeCat)?.count || 0,
+              }).map((_, idx) => (
+                <button
+                  key={`${activeCoolshapeCat}-${idx}`}
+                  type="button"
+                  title={`Add ${activeCoolshapeCat} #${idx + 1}`}
+                  onClick={() =>
+                    state.addShapeLayer('coolshape', {
+                      coolshapeType: activeCoolshapeCat,
+                      coolshapeIndex: idx,
+                      name: `${activeCoolshapeCat} ${idx + 1}`,
+                    })
+                  }
+                  className="p-1.5 rounded-lg border bg-neutral-900/80 border-neutral-800/80 hover:border-pastel-pink/60 hover:bg-pastel-pink/10 transition-all flex flex-col items-center justify-center cursor-pointer group"
+                >
+                  <Coolshape
+                    type={activeCoolshapeCat}
+                    index={idx}
+                    noise={true}
+                    size={32}
+                    className="w-7 h-7 group-hover:scale-115 transition-transform"
+                  />
+                  <span className="text-[9px] font-mono mt-1 text-slate-400 group-hover:text-slate-200">
+                    #{idx + 1}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Canvas Elements List */}
@@ -565,7 +687,12 @@ export const ElementsSection: React.FC = () => {
       {selectedShape && (
         <div className="space-y-4 pt-3 border-t border-neutral-800/80 animate-in fade-in duration-150">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-            <span className="capitalize">Editing: {selectedShape.shapeType}</span>
+            <span className="capitalize">
+              Editing:{' '}
+              {selectedShape.shapeType === 'coolshape'
+                ? `Coolshape (${selectedShape.coolshapeType || 'star'})`
+                : selectedShape.shapeType}
+            </span>
             <button
               type="button"
               onClick={() => state.selectShapeLayer(null)}
@@ -575,62 +702,114 @@ export const ElementsSection: React.FC = () => {
             </button>
           </div>
 
+          {/* Coolshape Specific Controls */}
+          {selectedShape.shapeType === 'coolshape' && (
+            <div className="p-3 rounded-xl bg-neutral-900/70 border border-neutral-800/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-400" />
+                  Coolshape
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-pastel-pink/15 text-pastel-pink border border-pastel-pink/30 capitalize">
+                  {selectedShape.coolshapeType || 'star'} #{(selectedShape.coolshapeIndex ?? 0) + 1}
+                </span>
+              </div>
+
+              {/* Noise / Grain toggle */}
+              <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60">
+                <span className="text-[11px] font-medium text-slate-400">
+                  Grain / Noise Texture
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      coolshapeNoise: selectedShape.coolshapeNoise === false ? true : false,
+                    })
+                  }
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                    selectedShape.coolshapeNoise !== false ? 'bg-pastel-pink' : 'bg-slate-800'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                      selectedShape.coolshapeNoise !== false ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Shape Color */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
-              Color
-            </label>
-            <div className="flex items-center gap-1.5 flex-wrap mb-2">
-              {[
-                '#ffffff',
-                '#000000',
-                '#ffafcc',
-                '#a2d2ff',
-                '#cdb4db',
-                '#fef08a',
-                '#4ade80',
-                '#f87171',
-                '#38bdf8',
-              ].map((c) => (
-                <button
-                  key={c}
-                  onClick={() =>
-                    state.updateShapeLayer(selectedShape.id, { color: c, gradient: null })
-                  }
-                  style={{ backgroundColor: c }}
-                  className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
-                    !selectedShape.gradient && selectedShape.color === c
-                      ? 'border-white scale-110 shadow-md ring-2 ring-pastel-pink/50'
-                      : 'border-slate-700/60 hover:scale-105'
-                  }`}
-                />
-              ))}
-              <input
-                type="color"
-                value={selectedShape.color || '#a2d2ff'}
-                onChange={(e) =>
-                  state.updateShapeLayer(selectedShape.id, {
-                    color: e.target.value,
-                    gradient: null,
-                  })
-                }
-                className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
-                title="Custom Color"
-              />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] font-semibold text-slate-300">Color</label>
+              {selectedShape.shapeType === 'coolshape' && (
+                <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  Disabled (Built-in colors)
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={selectedShape.color || '#a2d2ff'}
-                onChange={(e) =>
-                  state.updateShapeLayer(selectedShape.id, {
-                    color: e.target.value,
-                    gradient: null,
-                  })
-                }
-                placeholder="#a2d2ff"
-                className="w-full bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
-              />
+            <div
+              className={
+                selectedShape.shapeType === 'coolshape'
+                  ? 'opacity-40 pointer-events-none select-none filter grayscale'
+                  : ''
+              }
+            >
+              <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                {[
+                  '#ffffff',
+                  '#000000',
+                  '#ffafcc',
+                  '#a2d2ff',
+                  '#cdb4db',
+                  '#fef08a',
+                  '#4ade80',
+                  '#f87171',
+                  '#38bdf8',
+                ].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() =>
+                      state.updateShapeLayer(selectedShape.id, { color: c, gradient: null })
+                    }
+                    style={{ backgroundColor: c }}
+                    className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
+                      !selectedShape.gradient && selectedShape.color === c
+                        ? 'border-white scale-110 shadow-md ring-2 ring-pastel-pink/50'
+                        : 'border-slate-700/60 hover:scale-105'
+                    }`}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={selectedShape.color || '#a2d2ff'}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      color: e.target.value,
+                      gradient: null,
+                    })
+                  }
+                  className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
+                  title="Custom Color"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={selectedShape.color || '#a2d2ff'}
+                  onChange={(e) =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      color: e.target.value,
+                      gradient: null,
+                    })
+                  }
+                  placeholder="#a2d2ff"
+                  className="w-full bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
+                />
+              </div>
             </div>
           </div>
 
@@ -640,27 +819,33 @@ export const ElementsSection: React.FC = () => {
               <label className="block text-[11px] font-semibold text-slate-300">
                 Gradient Fill
               </label>
-              <button
-                onClick={() =>
-                  state.updateShapeLayer(selectedShape.id, {
-                    gradient: selectedShape.gradient
-                      ? null
-                      : { color1: '#ffafcc', color2: '#a2d2ff', angle: 135 },
-                  })
-                }
-                className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                  selectedShape.gradient ? 'bg-pastel-pink' : 'bg-slate-800'
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-                    selectedShape.gradient ? 'translate-x-5' : 'translate-x-0'
+              {selectedShape.shapeType === 'coolshape' ? (
+                <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  Disabled (Built-in gradient)
+                </span>
+              ) : (
+                <button
+                  onClick={() =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      gradient: selectedShape.gradient
+                        ? null
+                        : { color1: '#ffafcc', color2: '#a2d2ff', angle: 135 },
+                    })
+                  }
+                  className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                    selectedShape.gradient ? 'bg-pastel-pink' : 'bg-slate-800'
                   }`}
-                />
-              </button>
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                      selectedShape.gradient ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              )}
             </div>
 
-            {selectedShape.gradient && (
+            {selectedShape.gradient && selectedShape.shapeType !== 'coolshape' && (
               <div className="space-y-2.5 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
@@ -680,42 +865,39 @@ export const ElementsSection: React.FC = () => {
 
                 <div
                   className={`grid grid-cols-4 gap-2 ${
-                    showAllShapeGradients
-                      ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5'
-                      : 'p-1'
+                    showAllShapeGradients ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
                   }`}
                 >
-                  {(!showAllShapeGradients
-                    ? GRADIENT_PRESETS.slice(0, 3)
-                    : GRADIENT_PRESETS
-                  ).map((g) => {
-                    const isSelected =
-                      selectedShape.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
-                      selectedShape.gradient?.color2.toLowerCase() === g.c2.toLowerCase();
-                    return (
-                      <button
-                        key={g.name}
-                        onClick={() =>
-                          state.updateShapeLayer(selectedShape.id, {
-                            gradient: {
-                              ...selectedShape.gradient!,
-                              color1: g.c1,
-                              color2: g.c2,
-                            },
-                          })
-                        }
-                        title={g.name}
-                        className={`h-8 rounded-lg border transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-white ring-2 ring-pastel-pink scale-105'
-                            : 'border-slate-700/80 hover:scale-105'
-                        }`}
-                        style={{
-                          backgroundImage: `linear-gradient(135deg, ${g.c1}, ${g.c2})`,
-                        }}
-                      />
-                    );
-                  })}
+                  {(!showAllShapeGradients ? GRADIENT_PRESETS.slice(0, 3) : GRADIENT_PRESETS).map(
+                    (g) => {
+                      const isSelected =
+                        selectedShape.gradient?.color1.toLowerCase() === g.c1.toLowerCase() &&
+                        selectedShape.gradient?.color2.toLowerCase() === g.c2.toLowerCase();
+                      return (
+                        <button
+                          key={g.name}
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, {
+                              gradient: {
+                                ...selectedShape.gradient!,
+                                color1: g.c1,
+                                color2: g.c2,
+                              },
+                            })
+                          }
+                          title={g.name}
+                          className={`h-8 rounded-lg border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-white ring-2 ring-pastel-pink scale-105'
+                              : 'border-slate-700/80 hover:scale-105'
+                          }`}
+                          style={{
+                            backgroundImage: `linear-gradient(135deg, ${g.c1}, ${g.c2})`,
+                          }}
+                        />
+                      );
+                    }
+                  )}
 
                   {!showAllShapeGradients && GRADIENT_PRESETS.length > 3 && (
                     <div className="relative h-8">
@@ -969,187 +1151,191 @@ export const ElementsSection: React.FC = () => {
           </div>
 
           {/* Image Fill (Clip Shape) */}
-          <div className="space-y-2">
-            <label className="block text-[11px] font-semibold text-slate-300">
-              Image Fill (Clip Shape)
-            </label>
+          {selectedShape.shapeType !== 'coolshape' && (
+            <>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold text-slate-300">
+                  Image Fill (Clip Shape)
+                </label>
 
-            {selectedShape.bgImage ? (
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg border border-slate-700 overflow-hidden shrink-0">
-                  <img
-                    src={selectedShape.bgImage}
-                    alt="Shape fill"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <span className="text-[10px] font-mono text-slate-500">
-                    Image fill applied
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <label className="flex-1 flex items-center justify-center py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-pastel-pink rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-colors">
-                      Replace
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            if (ev.target?.result) {
-                              state.updateShapeLayer(selectedShape.id, {
-                                bgImage: ev.target.result as string,
-                              });
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }}
+                {selectedShape.bgImage ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg border border-slate-700 overflow-hidden shrink-0">
+                      <img
+                        src={selectedShape.bgImage}
+                        alt="Shape fill"
+                        className="w-full h-full object-cover"
                       />
-                    </label>
-                    <button
-                      onClick={() =>
-                        state.updateShapeLayer(selectedShape.id, { bgImage: null })
-                      }
-                      className="py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-red-400 hover:text-red-400 rounded-lg text-[10px] font-semibold text-slate-400 cursor-pointer transition-colors"
-                    >
-                      Remove
-                    </button>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[10px] font-mono text-slate-500">
+                        Image fill applied
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <label className="flex-1 flex items-center justify-center py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-pastel-pink rounded-lg text-[10px] font-semibold text-slate-300 cursor-pointer transition-colors">
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                if (ev.target?.result) {
+                                  state.updateShapeLayer(selectedShape.id, {
+                                    bgImage: ev.target.result as string,
+                                  });
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                        <button
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, { bgImage: null })
+                          }
+                          className="py-1 px-2 bg-neutral-950 border border-neutral-800 hover:border-red-400 hover:text-red-400 rounded-lg text-[10px] font-semibold text-slate-400 cursor-pointer transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
+                    <span className="text-xs font-medium text-slate-300">
+                      Upload image to clip into shape
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            state.updateShapeLayer(selectedShape.id, {
+                              bgImage: ev.target.result as string,
+                            });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                )}
               </div>
-            ) : (
-              <label className="flex items-center justify-center p-2.5 border-2 border-dashed border-neutral-700 hover:border-pastel-pink rounded-xl cursor-pointer bg-neutral-950/80 hover:bg-neutral-800/80 transition-all text-center">
-                <span className="text-xs font-medium text-slate-300">
-                  Upload image to clip into shape
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      if (ev.target?.result) {
+
+              {/* Image Fill Adjustments */}
+              {selectedShape.bgImage && (
+                <div className="space-y-2.5 animate-in fade-in duration-150">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Zoom</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedShape.bgImageZoom ?? 100}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="400"
+                      value={selectedShape.bgImageZoom ?? 100}
+                      onChange={(e) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          bgImage: ev.target.result as string,
-                        });
+                          bgImageZoom: Number(e.target.value),
+                        })
                       }
-                    };
-                    reader.readAsDataURL(file);
-                  }}
-                />
-              </label>
-            )}
-          </div>
-
-          {/* Image Fill Adjustments */}
-          {selectedShape.bgImage && (
-            <div className="space-y-2.5 animate-in fade-in duration-150">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-slate-300">Zoom</span>
-                  <span className="font-mono text-slate-400">
-                    {selectedShape.bgImageZoom ?? 100}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="400"
-                  value={selectedShape.bgImageZoom ?? 100}
-                  onChange={(e) =>
-                    state.updateShapeLayer(selectedShape.id, {
-                      bgImageZoom: Number(e.target.value),
-                    })
-                  }
-                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Offset X</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedShape.bgImageOffsetX || 0}px
-                    </span>
+                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="-300"
-                    max="300"
-                    value={selectedShape.bgImageOffsetX || 0}
-                    onChange={(e) =>
-                      state.updateShapeLayer(selectedShape.id, {
-                        bgImageOffsetX: Number(e.target.value),
-                      })
-                    }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
-                  />
-                </div>
 
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Offset Y</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedShape.bgImageOffsetY || 0}px
-                    </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Offset X</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedShape.bgImageOffsetX || 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        value={selectedShape.bgImageOffsetX || 0}
+                        onChange={(e) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            bgImageOffsetX: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Offset Y</span>
+                        <span className="font-mono text-slate-400">
+                          {selectedShape.bgImageOffsetY || 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        value={selectedShape.bgImageOffsetY || 0}
+                        onChange={(e) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            bgImageOffsetY: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="-300"
-                    max="300"
-                    value={selectedShape.bgImageOffsetY || 0}
-                    onChange={(e) =>
-                      state.updateShapeLayer(selectedShape.id, {
-                        bgImageOffsetY: Number(e.target.value),
-                      })
-                    }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
-                  />
-                </div>
-              </div>
 
-              {/* Pattern Repeat */}
-              <div>
-                <span className="block text-[11px] font-semibold text-slate-300 mb-1.5">
-                  Pattern Repeat
-                </span>
-                <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      state.updateShapeLayer(selectedShape.id, { bgImageRepeat: false })
-                    }
-                    className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                      !selectedShape.bgImageRepeat
-                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
-                        : 'bg-transparent border-transparent text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    No Repeat (Single)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      state.updateShapeLayer(selectedShape.id, { bgImageRepeat: true })
-                    }
-                    className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                      selectedShape.bgImageRepeat
-                        ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
-                        : 'bg-transparent border-transparent text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Repeat (Tile)
-                  </button>
+                  {/* Pattern Repeat */}
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                      Pattern Repeat
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          state.updateShapeLayer(selectedShape.id, { bgImageRepeat: false })
+                        }
+                        className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                          !selectedShape.bgImageRepeat
+                            ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                            : 'bg-transparent border-transparent text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        No Repeat (Single)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          state.updateShapeLayer(selectedShape.id, { bgImageRepeat: true })
+                        }
+                        className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                          selectedShape.bgImageRepeat
+                            ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
+                            : 'bg-transparent border-transparent text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Repeat (Tile)
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
 
           {/* Shape Transform & Adjustment Circle Buttons */}
@@ -1448,9 +1634,7 @@ export const ElementsSection: React.FC = () => {
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-                        <span className="font-mono text-slate-400">
-                          {selectedShape.yaw || 0}°
-                        </span>
+                        <span className="font-mono text-slate-400">{selectedShape.yaw || 0}°</span>
                       </div>
                       <input
                         type="range"
@@ -1475,9 +1659,7 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew X</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedShape.skewX || 0}°
-                      </span>
+                      <span className="font-mono text-slate-400">{selectedShape.skewX || 0}°</span>
                     </div>
                     <input
                       type="range"
@@ -1496,9 +1678,7 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew Y</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedShape.skewY || 0}°
-                      </span>
+                      <span className="font-mono text-slate-400">{selectedShape.skewY || 0}°</span>
                     </div>
                     <input
                       type="range"
@@ -1543,9 +1723,7 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Blur</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedShape.blur ?? 0}px
-                      </span>
+                      <span className="font-mono text-slate-400">{selectedShape.blur ?? 0}px</span>
                     </div>
                     <input
                       type="range"
@@ -1570,9 +1748,7 @@ export const ElementsSection: React.FC = () => {
             <label className="text-[11px] font-semibold text-slate-300">Drop Shadow</label>
             <Toggle
               isSelected={!!selectedShape.shadow}
-              onChange={(checked) =>
-                state.updateShapeLayer(selectedShape.id, { shadow: checked })
-              }
+              onChange={(checked) => state.updateShapeLayer(selectedShape.id, { shadow: checked })}
               size="sm"
             />
           </div>
@@ -1582,22 +1758,27 @@ export const ElementsSection: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <label className="text-[11px] font-semibold text-slate-300">Glassmorphic</label>
+                {selectedShape.shapeType === 'coolshape' && (
+                  <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                    Disabled
+                  </span>
+                )}
               </div>
               <Toggle
-                isSelected={!!selectedShape.glassmorphism}
+                isSelected={selectedShape.shapeType !== 'coolshape' && !!selectedShape.glassmorphism}
+                isDisabled={selectedShape.shapeType === 'coolshape'}
                 onChange={(checked) => {
+                  if (selectedShape.shapeType === 'coolshape') return;
                   state.updateShapeLayer(selectedShape.id, {
                     glassmorphism: checked,
-                    ...(checked && (selectedShape.opacity ?? 100) === 100
-                      ? { opacity: 50 }
-                      : {}),
+                    ...(checked && (selectedShape.opacity ?? 100) === 100 ? { opacity: 50 } : {}),
                   });
                 }}
                 size="sm"
               />
             </div>
 
-            {selectedShape.glassmorphism && (
+            {selectedShape.shapeType !== 'coolshape' && selectedShape.glassmorphism && (
               <div className="space-y-3 pl-2.5 border-l-2 border-pastel-pink/40 pt-1 animate-in fade-in slide-in-from-top-1 duration-150">
                 {/* Glass Blur Slider */}
                 <div>
@@ -1695,8 +1876,8 @@ export const ElementsSection: React.FC = () => {
                 <div className="flex items-start gap-1.5 p-2 rounded-lg bg-neutral-900/90 border border-neutral-800 text-[11px] text-slate-400 leading-snug">
                   <PhosphorIcons.InfoIcon className="w-3.5 h-3.5 text-pastel-pink shrink-0 mt-0.5" />
                   <span>
-                    When Glassmorphic is enabled, on-canvas delete, rotate, and resize handles
-                    are hidden. Use sidebar controls to adjust or delete this shape.
+                    When Glassmorphic is enabled, on-canvas delete, rotate, and resize handles are
+                    hidden. Use sidebar controls to adjust or delete this shape.
                   </span>
                 </div>
               </div>
@@ -1722,9 +1903,7 @@ export const ElementsSection: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  state.updateShapeLayer(selectedShape.id, { position: 'underneath' })
-                }
+                onClick={() => state.updateShapeLayer(selectedShape.id, { position: 'underneath' })}
                 className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                   selectedShape.position === 'underneath'
                     ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'
@@ -2091,9 +2270,7 @@ export const ElementsSection: React.FC = () => {
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
-                onClick={() =>
-                  state.updateCanvasElement(selectedElement.id, { position: 'above' })
-                }
+                onClick={() => state.updateCanvasElement(selectedElement.id, { position: 'above' })}
                 className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                   (selectedElement.position || 'above') === 'above'
                     ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink'

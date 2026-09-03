@@ -65,11 +65,32 @@ export type PhosphorBadgeStyle =
 
 export type ElementCategory = 'arrow' | 'line' | 'emoji';
 
-export type ShapeType = 'square' | 'rectangle' | 'circle' | 'hexagon' | 'quote';
+export type CoolshapeCategory =
+  | 'star'
+  | 'flower'
+  | 'ellipse'
+  | 'wheel'
+  | 'moon'
+  | 'misc'
+  | 'triangle'
+  | 'polygon'
+  | 'rectangle'
+  | 'number';
+
+export type ShapeType =
+  | 'square'
+  | 'rectangle'
+  | 'circle'
+  | 'hexagon'
+  | 'quote'
+  | 'coolshape';
 
 export interface ShapeLayer {
   id: string;
   shapeType: ShapeType;
+  coolshapeType?: CoolshapeCategory;
+  coolshapeIndex?: number;
+  coolshapeNoise?: boolean;
   color: string;
   gradient?: { color1: string; color2: string; angle: number } | null;
   bgImage?: string | null;

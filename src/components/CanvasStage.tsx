@@ -24,6 +24,7 @@ import {
   evaluateLayerMotion,
   evaluateLayerKeyframes,
 } from '../types/animationTypes';
+import { Coolshape } from 'coolshapes-react';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ImageUp,
@@ -891,6 +892,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 WebkitMaskPosition: 'center',
                 maskPosition: 'center',
               };
+            case 'coolshape':
+              return {};
             case 'rectangle':
             case 'square':
             default:
@@ -898,11 +901,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           }
         };
 
-        const isGlass = !!layer.glassmorphism;
+        const isGlass = !!layer.glassmorphism && layer.shapeType !== 'coolshape';
         const blurAmount = layer.glassmorphismBlur ?? 16;
-        const isPolygonOrMask = layer.shapeType === 'hexagon' || layer.shapeType === 'quote';
+        const isPolygonOrMask =
+          layer.shapeType === 'hexagon' ||
+          layer.shapeType === 'quote' ||
+          layer.shapeType === 'coolshape';
 
         const getGlassOrSolidBackground = (): React.CSSProperties => {
+          if (layer.shapeType === 'coolshape') {
+            return {
+              backgroundColor: 'transparent',
+              backgroundImage: 'none',
+            };
+          }
+
           if (layer.bgImage) {
             return {
               backgroundImage: `url(${layer.bgImage})`,
@@ -992,9 +1005,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   ? 'hidden'
                   : undefined,
               borderRadius:
-                layer.shapeType === 'circle' && !isSelected
-                  ? '9999px'
-                  : `${shapeBorderRadius}px`,
+                layer.shapeType === 'coolshape'
+                  ? undefined
+                  : layer.shapeType === 'circle' && !isSelected
+                    ? '9999px'
+                    : `${shapeBorderRadius}px`,
             }}
           >
             <div
@@ -1032,6 +1047,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   : {}),
               }}
             >
+              {layer.shapeType === 'coolshape' && (
+                <Coolshape
+                  type={layer.coolshapeType || 'star'}
+                  index={layer.coolshapeIndex ?? 0}
+                  noise={layer.coolshapeNoise ?? true}
+                  className="w-full h-full pointer-events-none"
+                  style={{ width: '100%', height: '100%' }}
+                />
+              )}
+
               {/* Hexagon glassmorphic frosted border outline */}
               {isGlass && layer.shapeType === 'hexagon' && layer.glassmorphismBorder !== false && (
                 <svg
@@ -1484,11 +1509,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const isImg =
         slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
       const userThick = state.slabThickness ?? 12;
-      const is3D =
-        isFrameless &&
-        isImg &&
-        (Math.abs(rotXVal) >= 0.5 || Math.abs(rotYVal) >= 0.5) &&
-        userThick > 0;
+      const is3D = isFrameless && isImg && userThick > 0;
 
       let borderStyleClasses = '';
       if (fStyle === 'glass-light') {
@@ -1533,7 +1554,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       } else if (fStyle !== 'default') {
         frameElement = (
           <div
-            className={`transition-all overflow-hidden ${borderStyleClasses}`}
+            className={`overflow-hidden ${borderStyleClasses}`}
             style={{
               borderRadius: `${state.borderRadius + 8}px`,
             }}
@@ -1559,7 +1580,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       ? '12px'
       : state.frameType.startsWith('polaroid')
         ? '6px'
-        : isFrameless && currentStyle !== 'default'
+        : isFrameless && currentStyle !== 'default' && currentStyle !== 'card'
           ? `${state.borderRadius + 8}px`
           : isFrameless || state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
             ? `${state.borderRadius}px`
@@ -1567,9 +1588,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const isImage =
       slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
-    const is3DActive = isFrameless && isImage && (Math.abs(rotX) >= 0.5 || Math.abs(rotY) >= 0.5);
-
     const userThickness = state.slabThickness ?? 12;
+    const is3DActive = isFrameless && isImage && userThickness > 0;
+
     const rawColor = state.slabColor || '#1e293b';
     const parsed = parseColorAndAlpha(rawColor);
     const r0 = parseInt(parsed.hex.slice(1, 3), 16) || 30;
@@ -1577,7 +1598,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const b0 = parseInt(parsed.hex.slice(5, 7), 16) || 59;
     const baseAlpha = (parsed.alpha || 100) / 100;
 
-    if (is3DActive && userThickness > 0) {
+    if (is3DActive) {
       // Dense 1px-per-slice extrusion for a gap-free solid chassis wall
       const totalSlices = userThickness; // 1 slice per pixel of thickness
 
@@ -1589,18 +1610,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const lightDirY = Math.sin(radX);
 
       // Build the side-wall slices as box-shadow layers on a single div
-      // This is much more performant than N separate DOM nodes
       const sideShadows: string[] = [];
 
       for (let i = 1; i <= totalSlices; i++) {
         const progress = i / totalSlices; // 0→1 from front face to back
 
         // Directional edge lighting: slices closer to the "near" side are brighter
-        // The near side is the one facing toward the viewer (opposite to tilt direction)
-        const depthShade = 1 - progress * 0.4; // darker toward the back
-        // Add a subtle specular highlight near the front edge (first 20% of depth)
+        const depthShade = 1 - progress * 0.4;
         const specularBoost = progress < 0.2 ? 1 + (1 - progress / 0.2) * 0.15 : 1;
-        // Add ambient occlusion near the back edge (last 20%)
         const aoFade = progress > 0.8 ? 1 - ((progress - 0.8) / 0.2) * 0.2 : 1;
 
         const shade = Math.min(1, depthShade * specularBoost * aoFade);
@@ -1615,28 +1632,50 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         sideShadows.push(`${px}px ${py}px 0 rgba(${r}, ${g}, ${b}, ${baseAlpha.toFixed(2)})`);
       }
 
-      // Bright specular rim on the front leading edge (catches the "light")
+      // Specular rim on the front leading edge
       const rimShadows = [
-        'inset 0 1px 2px 0 rgba(255,255,255,0.5)',
-        'inset 0 -1px 1px 0 rgba(0,0,0,0.25)',
+        'inset 0 1px 2px 0 rgba(255,255,255,0.4)',
+        'inset 0 -1px 1px 0 rgba(0,0,0,0.2)',
       ];
 
-      // Deep ambient floor shadow cast from beneath the slab
-      const floorCastX = (lightDirX * (userThickness + 8)).toFixed(1);
-      const floorCastY = (lightDirY * (userThickness + 8) + 10).toFixed(1);
-      const floorBlur = userThickness * 2.5 + 18;
-      sideShadows.push(`${floorCastX}px ${floorCastY}px ${floorBlur}px rgba(0,0,0,0.5)`);
+      // Floor and ambient shadow multiplier
+      const shadowMul =
+        state.shadow === 'none'
+          ? 0
+          : state.shadow === 'soft'
+            ? 0.45
+            : state.shadow === 'medium'
+              ? 0.7
+              : state.shadow === 'hard'
+                ? 0.9
+                : 1.0; // 'floating'
 
-      // Secondary closer shadow for contact realism
-      const contactX = (lightDirX * userThickness * 0.5).toFixed(1);
-      const contactY = (lightDirY * userThickness * 0.5 + 4).toFixed(1);
-      sideShadows.push(`${contactX}px ${contactY}px ${userThickness + 6}px rgba(0,0,0,0.35)`);
+      if (shadowMul > 0) {
+        // Deep ambient floor shadow cast from beneath the slab (smoothly centered when tilt = 0)
+        const floorCastX = (lightDirX * (userThickness + 8)).toFixed(1);
+        const floorCastY = (lightDirY * (userThickness + 8) + 12).toFixed(1);
+        const floorBlur = userThickness * 2.5 + 24;
+        const floorAlpha = (0.55 * shadowMul).toFixed(2);
+        sideShadows.push(`${floorCastX}px ${floorCastY}px ${floorBlur}px rgba(0,0,0,${floorAlpha})`);
+
+        // Secondary closer contact shadow for realistic grounding
+        const contactX = (lightDirX * userThickness * 0.5).toFixed(1);
+        const contactY = (lightDirY * userThickness * 0.5 + 6).toFixed(1);
+        const contactBlur = userThickness + 8;
+        const contactAlpha = (0.35 * shadowMul).toFixed(2);
+        sideShadows.push(`${contactX}px ${contactY}px ${contactBlur}px rgba(0,0,0,${contactAlpha})`);
+      }
+
+      const sheenOpacity = Math.min(
+        0.25,
+        Math.max(0.04, ((Math.abs(rotX) + Math.abs(rotY)) / 100) * 0.35 + 0.04)
+      );
 
       return (
         <div className="relative group">
           {/* The image/mockup with dense 3D slab extrusion via box-shadow */}
           <div
-            className="relative z-10 transition-all duration-200 overflow-hidden"
+            className="relative z-10"
             style={{
               borderRadius: computedRadius,
               boxShadow: [...rimShadows, ...sideShadows].join(', '),
@@ -1658,7 +1697,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="absolute inset-0 pointer-events-none z-20 overflow-hidden"
               style={{
                 borderRadius: computedRadius,
-                opacity: 0.25,
+                opacity: sheenOpacity,
                 mixBlendMode: 'overlay',
                 background: `linear-gradient(${135 + rotY * 1.5}deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.15) 100%)`,
               }}

@@ -1011,6 +1011,7 @@ export const useStudioStore = create<StudioStore>()(
             circle: { width: 120, height: 120 },
             hexagon: { width: 140, height: 122 },
             quote: { width: 120, height: 120 },
+            coolshape: { width: 140, height: 140 },
           };
           const newShape: import('../types/studio').ShapeLayer = {
             id: newId,
@@ -1028,9 +1029,12 @@ export const useStudioStore = create<StudioStore>()(
             opacity: 100,
             position: 'above',
             shadow: false,
-            name: shapeType,
+            name: customProps?.name || (shapeType === 'coolshape' ? `Coolshape ${customProps?.coolshapeType || 'star'}` : shapeType),
             visible: true,
             locked: false,
+            coolshapeType: customProps?.coolshapeType || (shapeType === 'coolshape' ? 'star' : undefined),
+            coolshapeIndex: customProps?.coolshapeIndex ?? 0,
+            coolshapeNoise: customProps?.coolshapeNoise ?? true,
             ...customProps,
           };
           return {

@@ -1,11 +1,10 @@
 import React from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
-import { useMiniCanvasBgStyle } from './utils';
+import { MiniCanvasBackground } from './MiniCanvasBackground';
 
 export const ShadowOverlaySection: React.FC = () => {
   const state = useStudioStore();
   const onChange = state.updateState;
-  const miniCanvasBgStyle = useMiniCanvasBgStyle();
 
   const overlays = [
     { id: 'none', label: 'None' },
@@ -39,8 +38,8 @@ export const ShadowOverlaySection: React.FC = () => {
                     ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
                     : 'border-neutral-800 hover:border-neutral-700 hover:scale-102'
                 }`}
-                style={miniCanvasBgStyle}
               >
+                <MiniCanvasBackground />
                 {item.id !== 'none' && (
                   <img
                     src={`/overlay/${item.id}.png`}

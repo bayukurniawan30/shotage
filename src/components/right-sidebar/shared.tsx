@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Check } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
+import { Coolshape } from 'coolshapes-react';
 import { BackgroundType, ShapeType } from '../../types/studio';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from '../SocialIcons';
 
@@ -468,6 +469,8 @@ export const ShapePreview: React.FC<{
           <rect x="3" y="6" width="18" height="12" rx="2" fill={color} />
         </svg>
       );
+    case 'coolshape':
+      return <Coolshape type="star" index={0} size={24} className={className} />;
     case 'square':
     default:
       return (

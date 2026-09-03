@@ -1,11 +1,10 @@
 import React from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
-import { useMiniCanvasBgStyle } from './utils';
+import { MiniCanvasBackground } from './MiniCanvasBackground';
 
 export const ShadowSection: React.FC = () => {
   const state = useStudioStore();
   const onChange = state.updateState;
-  const miniCanvasBgStyle = useMiniCanvasBgStyle();
 
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
@@ -45,8 +44,8 @@ export const ShadowSection: React.FC = () => {
                     ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
                     : 'border-neutral-800 hover:border-neutral-700 hover:scale-102'
                 }`}
-                style={miniCanvasBgStyle}
               >
+                <MiniCanvasBackground />
                 {/* Masked Bottom-Left Corner Screenshot Box with Elevation Shadow */}
                 <div
                   className={`absolute -top-3 -right-3 w-14 h-14 rounded-xl bg-slate-900 transition-all ${getShadowPreviewClass()}`}

@@ -23,6 +23,9 @@ importers:
       '@untitledui/icons':
         specifier: ^0.0.22
         version: 0.0.22(react@19.2.8)
+      coolshapes-react:
+        specifier: ^1.0.1
+        version: 1.0.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       framer-motion:
         specifier: ^12.43.0
         version: 12.43.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1062,6 +1065,13 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  coolshapes-react@1.0.1:
+    resolution: {integrity: sha512-ge6hDrOxKDfZsLGAQa8CgcbtGHMtIc5UMwA94b0/c9uwvDIpVmb/VMXUI8Uu09ZYUa86lvnk3Fui2de6dnFdWw==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
 
   cosmiconfig@8.3.6:
     resolution: {integrity: sha512-kcZ6+W5QzcJ3P1Mt+83OUv/oHFqZHIx8DuxG6eZ5RGMERoLqp4BuGjhHLYGK+Kf5XVkQvqBSmAy/nGWN3qDgEA==}
@@ -3108,6 +3118,11 @@ snapshots:
   commander@4.1.1: {}
 
   convert-source-map@2.0.0: {}
+
+  coolshapes-react@1.0.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   cosmiconfig@8.3.6(typescript@5.9.3):
     dependencies:

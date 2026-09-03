@@ -124,7 +124,7 @@ export const BackgroundSection: React.FC = () => {
                   }`}
                   title={preset.name}
                 >
-                  <AnimatedGradientBackground presetId={preset.id} />
+                  <AnimatedGradientBackground presetId={preset.id} isStatic />
                   {isSelected && (
                     <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
                       <Check className="w-3 h-3 text-pastel-pink" />
@@ -143,7 +143,7 @@ export const BackgroundSection: React.FC = () => {
                   title={`Show all ${ANIMATED_GRADIENT_PRESETS.length} presets`}
                   className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
                 >
-                  <AnimatedGradientBackground presetId={ANIMATED_GRADIENT_PRESETS[3].id} />
+                  <AnimatedGradientBackground presetId={ANIMATED_GRADIENT_PRESETS[3].id} isStatic />
                   <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
                     <span className="text-[10px] font-bold tracking-tight">
                       +{ANIMATED_GRADIENT_PRESETS.length - 3}
@@ -197,7 +197,7 @@ export const BackgroundSection: React.FC = () => {
                   }`}
                   title={preset.name}
                 >
-                  <AnimatedMeshBackground presetId={preset.id} />
+                  <AnimatedMeshBackground presetId={preset.id} isStatic />
                   {isSelected && (
                     <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
                       <Check className="w-3 h-3 text-pastel-pink" />
@@ -216,7 +216,7 @@ export const BackgroundSection: React.FC = () => {
                   title={`Show all ${ANIMATED_MESH_PRESETS.length} presets`}
                   className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
                 >
-                  <AnimatedMeshBackground presetId={ANIMATED_MESH_PRESETS[3].id} />
+                  <AnimatedMeshBackground presetId={ANIMATED_MESH_PRESETS[3].id} isStatic />
                   <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
                     <span className="text-[10px] font-bold tracking-tight">
                       +{ANIMATED_MESH_PRESETS.length - 3}

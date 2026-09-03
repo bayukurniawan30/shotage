@@ -5,4 +5,5 @@ export * from './StyleSection';
 export * from './ShadowSection';
 export * from './ShadowOverlaySection';
 export * from './ShineSection';
+export * from './MiniCanvasBackground';
 export * from './utils';

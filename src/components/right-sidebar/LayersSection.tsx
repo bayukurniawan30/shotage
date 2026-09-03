@@ -83,9 +83,11 @@ export const LayersSection: React.FC = () => {
             ? (PhosphorIcons as any).Quotes ||
               PhosphorIcons.ChatCircleIcon ||
               PhosphorIcons.SquareIcon
-            : s.shapeType === 'rectangle'
-              ? PhosphorIcons.RectangleIcon
-              : PhosphorIcons.SquareIcon;
+            : s.shapeType === 'coolshape'
+              ? (PhosphorIcons as any).SparkleIcon || PhosphorIcons.SquareIcon
+              : s.shapeType === 'rectangle'
+                ? PhosphorIcons.RectangleIcon
+                : PhosphorIcons.SquareIcon;
     allRows.push(
       buildRow(
         'shape',

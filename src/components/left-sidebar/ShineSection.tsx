@@ -1,12 +1,11 @@
 import React from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { ShinePreset } from '../../types/studio';
-import { useMiniCanvasBgStyle } from './utils';
+import { MiniCanvasBackground } from './MiniCanvasBackground';
 
 export const ShineSection: React.FC = () => {
   const state = useStudioStore();
   const onChange = state.updateState;
-  const miniCanvasBgStyle = useMiniCanvasBgStyle();
 
   const activePreset: ShinePreset = state.shinePreset || (state.enableShine ? 'diagonal-glass' : 'none');
   const opacity = state.shineOpacity ?? 35;
@@ -79,8 +78,8 @@ export const ShineSection: React.FC = () => {
                     ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] shadow-md scale-102'
                     : 'border-neutral-800 hover:border-neutral-700 hover:scale-102'
                 }`}
-                style={miniCanvasBgStyle}
               >
+                <MiniCanvasBackground />
                 {/* Mockup Screen Preview */}
                 <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700/80 overflow-hidden relative shadow-sm">
                   {preset.previewGradient && (
