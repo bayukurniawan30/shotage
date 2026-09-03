@@ -433,7 +433,81 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 color: layer.color || '#ffffff',
               };
 
+        const textAlign = layer.textAlign || 'center';
         const currentText = motion.animatedText ?? layer.text;
+        const hasTypeahead = (motion.untypedText ?? '').length > 0;
+        const fullText =
+          hasTypeahead && textAlign !== 'center'
+            ? `${motion.animatedText}${motion.untypedText}`
+            : currentText;
+
+        const renderTextContent = () => {
+          if (!hasTypeahead) {
+            return currentText;
+          }
+
+          const cursorElem = (
+            <span
+              style={{
+                display: 'inline-block',
+                width: 0,
+                overflow: 'visible',
+                visibility: motion.showCursor ? 'visible' : 'hidden',
+                verticalAlign: 'baseline',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+            >
+              |
+            </span>
+          );
+
+          if (textAlign === 'right') {
+            return (
+              <>
+                <span
+                  style={{
+                    opacity: 0,
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}
+                  aria-hidden="true"
+                >
+                  {motion.untypedText}
+                </span>
+                <span>{motion.animatedText}</span>
+                {cursorElem}
+              </>
+            );
+          }
+
+          if (textAlign === 'left') {
+            return (
+              <>
+                <span>{motion.animatedText}</span>
+                {cursorElem}
+                <span
+                  style={{
+                    opacity: 0,
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}
+                  aria-hidden="true"
+                >
+                  {motion.untypedText}
+                </span>
+              </>
+            );
+          }
+
+          // Center alignment: typed characters stay centered and expand from the center outwards
+          return (
+            <>
+              <span>{motion.animatedText}</span>
+              {cursorElem}
+            </>
+          );
+        };
 
         return (
           <div
@@ -459,28 +533,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               fontStyle: layer.fontStyle,
               textAlign: layer.textAlign,
               opacity: motion.isVisible ? (posOpacity / 100) * motion.opacity : 0,
+              filter: (motion.blur ?? 0) > 0 ? `blur(${motion.blur}px)` : undefined,
               textShadow:
                 layer.bgImage || layer.gradient
                   ? 'none'
                   : layer.shadow
                     ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
                     : 'none',
-              whiteSpace: currentText.includes('\n') ? 'pre-wrap' : 'pre',
+              whiteSpace: fullText.includes('\n') ? 'pre-wrap' : 'pre',
               width: 'max-content',
               maxWidth: 'none',
             }}
           >
-            {/* Selection Bounding Box (Constant 2px border thickness) */}
-            {isSelected && (
-              <div
-                className="absolute -top-1 -left-1 border-2 border-pastel-blue rounded-md pointer-events-none z-30"
-                style={{
-                  width: `calc(100% * ${sx} + 8px)`,
-                  height: `calc(100% * ${sy} + 8px)`,
-                }}
-              />
-            )}
-
             {/* Hover Bounding Box (Constant 1px dashed border) */}
             {!isSelected && !layerLocked && (
               <div
@@ -521,71 +585,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     size={layer.iconSize || layer.fontSize * 1.1}
                     color={layer.iconColor || layer.color}
                   />
-                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>{currentText}</span>
+                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>{renderTextContent()}</span>
                 </div>
               ) : (
-                currentText
+                renderTextContent()
               )}
             </div>
 
-            {/* Selection Action Handles at corners of the stretched bounding box */}
-            {isSelected && (
-              <>
-                <div
-                  data-action="delete"
-                  title="Delete layer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    state.removeTextLayer(layer.id);
-                  }}
-                  style={{ top: '-14px', left: '-14px' }}
-                  className="delete-handle absolute w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.TrashIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-posRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  style={{
-                    top: '-14px',
-                    left: `calc(100% * ${sx} - 10px)`,
-                  }}
-                  className="rotate-handle absolute w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-posRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="resize"
-                  title="Drag to stretch text (Hold Shift for proportional scale)"
-                  style={{
-                    top: `calc(100% * ${sy} - 10px)`,
-                    left: `calc(100% * ${sx} - 10px)`,
-                  }}
-                  className="resize-handle absolute w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.ArrowsOutSimpleIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-posRot}deg)` }}
-                  />
-                </div>
-
-                {/* Center Point Indicator when moving */}
-                <CenterPointIndicator
-                  top={`calc(50% * ${sy})`}
-                  left={`calc(50% * ${sx})`}
-                  rotation={posRot}
-                  visible={
-                    dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
-                  }
-                />
-              </>
-            )}
           </div>
         );
       });
@@ -654,14 +660,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectPhosphorIconLayer(layer.id);
               }
             }}
-            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''} ${
-              isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
-            }`}
+            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
               transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) scale(${iconScale * motion.scale})`,
               opacity: motion.isVisible ? (iconOpacity / 100) * motion.opacity : 0,
-              filter: layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
             }}
           >
             <div className={getBadgeClass(layer.badgeStyle)}>
@@ -671,51 +675,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 color={layer.color || '#a2d2ff'}
               />
             </div>
-            {isSelected && (
-              <>
-                <div
-                  data-action="delete"
-                  title="Delete layer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    state.removePhosphorIconLayer(layer.id);
-                  }}
-                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.TrashIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-iconRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-iconRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="resize"
-                  title="Drag to resize icon"
-                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.ArrowsOutSimpleIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-iconRot}deg)` }}
-                  />
-                </div>
-                {/* Center Point Indicator when moving */}
-                <CenterPointIndicator
-                  rotation={iconRot}
-                  visible={
-                    dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
-                  }
-                />
-              </>
-            )}
           </div>
         );
       });
@@ -758,14 +717,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectCanvasElement(el.id);
               }
             }}
-            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''} ${
-              isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
-            }`}
+            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
               transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`,
               opacity: motion.isVisible ? (elOpacity / 100) * motion.opacity : 0,
-              filter: el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
               width: `${elWidth}px`,
               height: `${elHeight}px`,
             }}
@@ -799,61 +756,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               />
             )}
 
-            {isSelected && (
-              <>
-                <div
-                  data-action="delete"
-                  title="Delete element"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    state.removeCanvasElement(el.id);
-                  }}
-                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-                  style={{
-                    transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-                  }}
-                >
-                  <PhosphorIcons.TrashIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-elRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-                  style={{
-                    transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-                  }}
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-elRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="resize"
-                  title="Drag to resize element"
-                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                  style={{
-                    transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-                  }}
-                >
-                  <PhosphorIcons.ArrowsOutSimpleIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-elRot}deg)` }}
-                  />
-                </div>
-
-                {/* Center Point Indicator when moving */}
-                <CenterPointIndicator
-                  rotation={elRot}
-                  flipX={el.flipX}
-                  flipY={el.flipY}
-                  visible={dragItem?.id === el.id || groupDrag?.items.some((it) => it.id === el.id)}
-                />
-              </>
-            )}
           </div>
         );
       });
@@ -881,6 +783,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
                 WebkitClipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
               };
+            case 'triangle':
+              return {
+                clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)',
+                WebkitClipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)',
+              };
             case 'quote':
               return {
                 WebkitMaskImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='%23000' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z'/%3E%3C/svg%3E")`,
@@ -905,6 +812,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const blurAmount = layer.glassmorphismBlur ?? 16;
         const isPolygonOrMask =
           layer.shapeType === 'hexagon' ||
+          layer.shapeType === 'triangle' ||
           layer.shapeType === 'quote' ||
           layer.shapeType === 'coolshape';
 
@@ -988,15 +896,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 state.selectShapeLayer(layer.id);
               }
             }}
-            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''} ${
-              isSelected ? 'ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40' : ''
-            }`}
+            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
               opacity: motion.isVisible ? (isGlass ? motion.opacity : (shapeOpacity / 100) * motion.opacity) : 0,
-              filter: isGlass ? 'none' : layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : 'none',
+              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${!isGlass && layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
               width: `${shapeWidth}px`,
               height: `${shapeHeight}px`,
               overflow: isSelected
@@ -1073,53 +979,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   />
                 </svg>
               )}
-            </div>
-            {isSelected && !isGlass && (
-              <>
-                <div
-                  data-action="delete"
-                  title="Delete shape"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    state.removeShapeLayer(layer.id);
-                  }}
-                  className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.TrashIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-shapeRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-shapeRot}deg)` }}
-                  />
-                </div>
-                <div
-                  data-action="resize"
-                  title="Drag to resize shape"
-                  className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                >
-                  <PhosphorIcons.ArrowsOutSimpleIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-shapeRot}deg)` }}
-                  />
-                </div>
 
-                {/* Center Point Indicator when moving */}
-                <CenterPointIndicator
-                  rotation={shapeRot}
-                  visible={
-                    dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
-                  }
-                />
-              </>
-            )}
+              {/* Triangle glassmorphic frosted border outline */}
+              {isGlass && layer.shapeType === 'triangle' && layer.glassmorphismBorder !== false && (
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                >
+                  <polygon
+                    points="50,1 99,99 1,99"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.45)"
+                    strokeWidth="1.5"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+              )}
+            </div>
           </div>
         );
       });
@@ -2690,6 +2567,427 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     }
   };
 
+  const renderSelectionGizmos = () => {
+    const selectedShapes = (state.shapeLayers || []).filter(
+      (s) =>
+        ((state.selectedShapeIds || []).includes(s.id) || state.selectedShapeId === s.id) &&
+        s.visible !== false
+    );
+    const selectedElements = (state.canvasElements || []).filter(
+      (el) =>
+        ((state.selectedElementIds || []).includes(el.id) || state.selectedElementId === el.id) &&
+        el.visible !== false
+    );
+    const selectedIcons = (state.phosphorIconLayers || []).filter(
+      (l) =>
+        ((state.selectedPhosphorIconLayerIds || []).includes(l.id) ||
+          state.selectedPhosphorIconLayerId === l.id) &&
+        l.visible !== false
+    );
+    const selectedTexts = (state.textLayers || []).filter(
+      (l) =>
+        ((state.selectedTextLayerIds || []).includes(l.id) ||
+          state.selectedTextLayerId === l.id) &&
+        l.visible !== false
+    );
+
+    if (
+      selectedShapes.length === 0 &&
+      selectedElements.length === 0 &&
+      selectedIcons.length === 0 &&
+      selectedTexts.length === 0
+    ) {
+      return null;
+    }
+
+    return (
+      <div
+        className="absolute inset-0 pointer-events-none z-50 selection-gizmo-container flex items-center justify-center"
+        style={{
+          padding: `${state.padding}px`,
+        }}
+      >
+        {/* Selected Shapes Gizmos */}
+        {selectedShapes.map((layer) => {
+          const motion = evaluateLayerMotion(
+            layer.motions,
+            layer.loopAnimation,
+            layer.animStartTime || 0,
+            state.currentTimeSec
+          );
+          if (!motion.isVisible) return null;
+
+          const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+          const posX = kfValues.x ?? layer.x;
+          const posY = kfValues.y ?? layer.y;
+          const shapeWidth = kfValues.width ?? layer.width ?? 120;
+          const shapeHeight = kfValues.height ?? layer.height ?? 120;
+          const shapeRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
+          const shapePitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+          const shapeYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+          const shapeScaleX = kfValues.scaleX ?? 1;
+          const shapeScaleY = kfValues.scaleY ?? 1;
+          const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
+          const has3D = shapePitch !== 0 || shapeYaw !== 0;
+
+          const transformStr = has3D
+            ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
+            : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`;
+
+          return (
+            <div
+              key={`gizmo-shape-${layer.id}`}
+              data-layer-id={layer.id}
+              className="shape-layer-item selection-gizmo-item absolute cursor-move select-none ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40 pointer-events-auto"
+              style={{
+                transform: transformStr,
+                transformStyle: has3D ? 'preserve-3d' : undefined,
+                width: `${shapeWidth}px`,
+                height: `${shapeHeight}px`,
+              }}
+            >
+              <div
+                data-action="delete"
+                title="Delete shape"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  state.removeShapeLayer(layer.id);
+                }}
+                className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.TrashIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-shapeRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowClockwiseIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-shapeRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="resize"
+                title="Drag to resize shape"
+                className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowsOutSimpleIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-shapeRot}deg)` }}
+                />
+              </div>
+
+              <CenterPointIndicator
+                rotation={shapeRot}
+                visible={
+                  dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
+                }
+              />
+            </div>
+          );
+        })}
+
+        {/* Selected Canvas Elements Gizmos */}
+        {selectedElements.map((el) => {
+          const motion = evaluateLayerMotion(
+            el.motions,
+            el.loopAnimation,
+            el.animStartTime || 0,
+            state.currentTimeSec
+          );
+          if (!motion.isVisible) return null;
+
+          const kfValues = evaluateLayerKeyframes(el, state.currentTimeSec, state.animationEasing);
+          const posX = kfValues.x ?? el.x;
+          const posY = kfValues.y ?? el.y;
+          const elWidth = kfValues.width ?? el.width ?? 90;
+          const elHeight = kfValues.height ?? el.height ?? 90;
+          const elRot = (kfValues.rotation ?? el.rotation ?? 0) + motion.rotate;
+          const elPitch = (kfValues.pitch ?? el.pitch ?? 0) + motion.rotateX;
+          const elYaw = (kfValues.yaw ?? el.yaw ?? 0) + motion.rotateY;
+          const elScaleX = (kfValues.scaleX ?? 1) * (el.flipX ? -1 : 1);
+          const elScaleY = (kfValues.scaleY ?? 1) * (el.flipY ? -1 : 1);
+
+          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`;
+
+          return (
+            <div
+              key={`gizmo-el-${el.id}`}
+              data-layer-id={el.id}
+              className="canvas-element-item selection-gizmo-item absolute cursor-move select-none rounded-none ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40 pointer-events-auto"
+              style={{
+                transform: transformStr,
+                width: `${elWidth}px`,
+                height: `${elHeight}px`,
+              }}
+            >
+              <div
+                data-action="delete"
+                title="Delete element"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  state.removeCanvasElement(el.id);
+                }}
+                className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{
+                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                }}
+              >
+                <PhosphorIcons.TrashIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-elRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{
+                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                }}
+              >
+                <PhosphorIcons.ArrowClockwiseIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-elRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="resize"
+                title="Drag to resize element"
+                className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{
+                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                }}
+              >
+                <PhosphorIcons.ArrowsOutSimpleIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-elRot}deg)` }}
+                />
+              </div>
+
+              <CenterPointIndicator
+                rotation={elRot}
+                flipX={el.flipX}
+                flipY={el.flipY}
+                visible={dragItem?.id === el.id || groupDrag?.items.some((it) => it.id === el.id)}
+              />
+            </div>
+          );
+        })}
+
+        {/* Selected Phosphor Icons Gizmos */}
+        {selectedIcons.map((layer) => {
+          const motion = evaluateLayerMotion(
+            layer.motions,
+            layer.loopAnimation,
+            layer.animStartTime || 0,
+            state.currentTimeSec
+          );
+          if (!motion.isVisible) return null;
+
+          const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+          const posX = kfValues.x ?? layer.x;
+          const posY = kfValues.y ?? layer.y;
+          const iconSize = layer.size || 36;
+          const iconRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
+          const iconPitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+          const iconYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+          const iconScale = kfValues.scale ?? 1;
+
+          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) scale(${iconScale * motion.scale})`;
+
+          return (
+            <div
+              key={`gizmo-icon-${layer.id}`}
+              data-layer-id={layer.id}
+              className="phosphor-icon-layer-item selection-gizmo-item absolute cursor-move select-none ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40 rounded-none pointer-events-auto"
+              style={{
+                transform: transformStr,
+                width: `${iconSize}px`,
+                height: `${iconSize}px`,
+              }}
+            >
+              <div
+                data-action="delete"
+                title="Delete icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  state.removePhosphorIconLayer(layer.id);
+                }}
+                className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.TrashIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-iconRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowClockwiseIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-iconRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="resize"
+                title="Drag to resize icon"
+                className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowsOutSimpleIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-iconRot}deg)` }}
+                />
+              </div>
+
+              <CenterPointIndicator
+                rotation={iconRot}
+                visible={
+                  dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
+                }
+              />
+            </div>
+          );
+        })}
+
+        {/* Selected Text Layers Gizmos */}
+        {selectedTexts.map((layer) => {
+          const motion = evaluateLayerMotion(
+            layer.motions,
+            layer.loopAnimation,
+            layer.animStartTime || 0,
+            state.currentTimeSec,
+            layer.text
+          );
+          if (!motion.isVisible) return null;
+
+          const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+          const posX = kfValues.x ?? layer.x;
+          const posY = kfValues.y ?? layer.y;
+          const posRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
+          const posPitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+          const posYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+          const posFontSize = kfValues.fontSize ?? layer.fontSize;
+          const sx = kfValues.scaleX ?? layer.scaleX ?? 1;
+          const sy = kfValues.scaleY ?? layer.scaleY ?? 1;
+          const has3D = posPitch !== 0 || posYaw !== 0;
+
+          const transformStr = has3D
+            ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) scale(${motion.scale})`
+            : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${posRot}deg) scale(${motion.scale})`;
+
+          const textAlign = layer.textAlign || 'center';
+          const currentText = motion.animatedText ?? layer.text;
+          const hasTypeahead = (motion.untypedText ?? '').length > 0;
+          const fullText =
+            hasTypeahead && textAlign !== 'center'
+              ? `${motion.animatedText}${motion.untypedText}`
+              : currentText;
+
+          return (
+            <div
+              key={`gizmo-text-${layer.id}`}
+              data-layer-id={layer.id}
+              className="text-layer-item selection-gizmo-item absolute cursor-move select-none pointer-events-auto"
+              style={{
+                transform: transformStr,
+                transformStyle: has3D ? 'preserve-3d' : undefined,
+                fontSize: `${posFontSize}px`,
+                fontWeight: layer.fontWeight,
+                fontStyle: layer.fontStyle,
+                whiteSpace: fullText.includes('\n') ? 'pre-wrap' : 'pre',
+                width: 'max-content',
+                maxWidth: 'none',
+              }}
+            >
+              <div
+                className="absolute -top-1 -left-1 border-2 border-pastel-pink rounded-none pointer-events-none z-30 ring-2 ring-pastel-pink/30"
+                style={{
+                  width: `calc(100% * ${sx} + 8px)`,
+                  height: `calc(100% * ${sy} + 8px)`,
+                }}
+              />
+              <div
+                style={{
+                  transform: `scale(${sx}, ${sy})`,
+                  transformOrigin: 'top left',
+                  display: 'inline-block',
+                  visibility: 'hidden',
+                }}
+              >
+                {layer.socialPlatform ? (
+                  <div className="flex items-center gap-2.5 px-3.5 py-1.5">
+                    <span style={{ fontSize: `${layer.fontSize}px` }}>{fullText}</span>
+                  </div>
+                ) : (
+                  fullText
+                )}
+              </div>
+              <div
+                data-action="delete"
+                title="Delete layer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  state.removeTextLayer(layer.id);
+                }}
+                style={{ top: '-14px', left: '-14px' }}
+                className="delete-handle absolute w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.TrashIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-posRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="rotate"
+                title="Drag to rotate"
+                style={{
+                  top: '-14px',
+                  left: `calc(100% * ${sx} - 10px)`,
+                }}
+                className="rotate-handle absolute w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowClockwiseIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-posRot}deg)` }}
+                />
+              </div>
+              <div
+                data-action="resize"
+                title="Drag to stretch text (Hold Shift for proportional scale)"
+                style={{
+                  top: `calc(100% * ${sy} - 10px)`,
+                  left: `calc(100% * ${sx} - 10px)`,
+                }}
+                className="resize-handle absolute w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              >
+                <PhosphorIcons.ArrowsOutSimpleIcon
+                  className="w-3.5 h-3.5 font-bold pointer-events-none"
+                  style={{ transform: `rotate(${-posRot}deg)` }}
+                />
+              </div>
+
+              <CenterPointIndicator
+                top={`calc(50% * ${sy})`}
+                left={`calc(50% * ${sx})`}
+                rotation={posRot}
+                visible={
+                  dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
+                }
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div
       ref={viewportRef}
@@ -2732,7 +3030,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         <div
           ref={canvasRef}
           id="shotage-canvas"
-          className={`relative flex items-center justify-center transition-all duration-300 overflow-hidden shadow-2xl box-border shrink-0 ${getAspectRatioStyle()}`}
+          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${getAspectRatioStyle()}`}
           style={{
             ...getBackgroundStyle(),
             padding: `${state.padding}px`,
@@ -2745,9 +3043,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               : {}),
           }}
         >
-          {/* Global Canvas Background Layer Container with Blur Support */}
+          {/* Cropped Canvas Content Layer (Photoshop-like Artboard Clipping) */}
           <div
-            className={`absolute inset-0 pointer-events-none transition-all duration-200 ${
+            id="shotage-canvas-content"
+            className="absolute inset-0 overflow-hidden pointer-events-auto rounded-[inherit] flex items-center justify-center"
+            style={{
+              padding: `${state.padding}px`,
+            }}
+          >
+            {/* Global Canvas Background Layer Container with Blur Support */}
+          <div
+            className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-200 ${
               (state.bgBlur ?? 0) > 0 ? 'scale-105' : ''
             }`}
             style={{
@@ -2822,7 +3128,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Pattern Add-on Overlay Layer */}
           {state.bgPatternEnabled && (
             <div
-              className="absolute inset-0 pointer-events-none z-[1]"
+              className="absolute inset-0 overflow-hidden pointer-events-none z-[1]"
               style={{
                 opacity: (state.bgPatternOpacity ?? 40) / 100,
                 backgroundImage: getPatternSvgUrl(
@@ -2837,7 +3143,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Grain Effect Noise Overlay Layer */}
           {(state.bgGrain ?? 0) > 0 && (
             <div
-              className="absolute inset-0 pointer-events-none z-[2] mix-blend-overlay"
+              className="absolute inset-0 overflow-hidden pointer-events-none z-[2] mix-blend-overlay"
               style={{
                 opacity: (state.bgGrain ?? 0) / 100,
                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
@@ -2850,7 +3156,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <img
               src={`/overlay/${state.shadowOverlay}.png`}
               alt="Shadow Overlay"
-              className={`absolute inset-0 w-full h-full object-cover pointer-events-none mix-blend-multiply ${
+              className={`absolute inset-0 overflow-hidden w-full h-full object-cover pointer-events-none mix-blend-multiply ${
                 (state.shadowOverlayPosition || 'above') === 'behind' ? 'z-[1]' : 'z-[30]'
               }`}
               style={{
@@ -3157,6 +3463,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
           {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
           <WatermarkOverlay />
+          </div>
+
+          {/* Unclipped Selection Gizmos Layer (Photoshop-like outer line & corner indicator buttons) */}
+          {renderSelectionGizmos()}
         </div>
 
         {/* Multi-Select Align Toolbar (Editor-only, not part of export canvas) */}

@@ -431,12 +431,13 @@ export const ElementsSection: React.FC = () => {
         </div>
 
         {shapeTab === 'basic' ? (
-          <div className="grid grid-cols-5 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+          <div className="grid grid-cols-4 gap-1.5 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
             {(
               [
                 { id: 'square', label: 'Square' },
                 { id: 'rectangle', label: 'Rectangle' },
                 { id: 'circle', label: 'Circle' },
+                { id: 'triangle', label: 'Triangle' },
                 { id: 'hexagon', label: 'Hexagon' },
                 { id: 'quote', label: 'Quote' },
               ] as { id: ShapeType; label: string }[]
@@ -625,34 +626,26 @@ export const ElementsSection: React.FC = () => {
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
             Shapes ({state.shapeLayers.length})
           </label>
-          <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+          <div className="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto no-scrollbar p-0.5">
             {state.shapeLayers.map((shape, index) => {
               const isSelected = shape.id === state.selectedShapeId;
               return (
                 <div
                   key={shape.id}
                   onClick={() => state.selectShapeLayer(shape.id)}
-                  className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${
+                  className={`group relative flex flex-col items-center justify-center p-2 rounded-xl border cursor-pointer transition-all ${
                     isSelected
-                      ? 'bg-pastel-pink/15 border-pastel-pink text-white font-bold'
-                      : 'bg-neutral-900/80 border-neutral-800 text-slate-300 hover:bg-neutral-800/60'
+                      ? 'bg-pastel-pink/15 border-pastel-pink text-white font-bold ring-1 ring-pastel-pink/50 shadow-sm'
+                      : 'bg-neutral-900/80 border-neutral-800 text-slate-300 hover:border-neutral-700 hover:bg-neutral-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <ShapePreview
-                      type={shape.shapeType}
-                      color={shape.color}
-                      className="w-5 h-5 shrink-0"
-                    />
-                    <span className="text-xs truncate capitalize">
-                      {shape.shapeType} #{index + 1}
-                    </span>
-                  </div>
+                  {/* Position badge: Behind / Above */}
+                  <span className="absolute top-1 left-1 text-[8px] font-mono px-1 py-0.2 rounded bg-neutral-950/80 border border-neutral-800 text-slate-400">
+                    {shape.position === 'underneath' ? 'B' : 'A'}
+                  </span>
 
-                  <div className="flex items-center gap-1">
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-slate-400">
-                      {shape.position === 'underneath' ? 'Behind' : 'Above'}
-                    </span>
+                  {/* Actions on hover/selected: duplicate & delete */}
+                  <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-neutral-950/90 rounded px-0.5 py-0.5 border border-neutral-800 z-10">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -660,9 +653,9 @@ export const ElementsSection: React.FC = () => {
                         state.duplicateShapeLayer(shape.id);
                       }}
                       title="Duplicate shape"
-                      className="p-1 hover:text-pastel-pink text-slate-400 transition-colors cursor-pointer"
+                      className="p-0.5 hover:text-pastel-pink text-slate-400 transition-colors cursor-pointer"
                     >
-                      <Copy01 className="w-3.5 h-3.5" />
+                      <Copy01 className="w-2.5 h-2.5" />
                     </button>
                     <button
                       type="button"
@@ -671,11 +664,31 @@ export const ElementsSection: React.FC = () => {
                         state.removeShapeLayer(shape.id);
                       }}
                       title="Delete shape"
-                      className="p-1 hover:text-red-400 text-slate-400 transition-colors cursor-pointer"
+                      className="p-0.5 hover:text-red-400 text-slate-400 transition-colors cursor-pointer"
                     >
-                      <Trash01 className="w-3.5 h-3.5" />
+                      <Trash01 className="w-2.5 h-2.5" />
                     </button>
                   </div>
+
+                  <div className="my-1 flex items-center justify-center">
+                    <ShapePreview
+                      type={shape.shapeType}
+                      color={shape.color}
+                      className="w-6 h-6 shrink-0"
+                      coolshapeType={shape.coolshapeType}
+                      coolshapeIndex={shape.coolshapeIndex}
+                      coolshapeNoise={shape.coolshapeNoise}
+                    />
+                  </div>
+
+                  <span className="text-[10px] truncate max-w-full capitalize leading-tight">
+                    {shape.shapeType === 'coolshape'
+                      ? shape.coolshapeType || 'Cool'
+                      : shape.shapeType}
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-400">
+                    #{shape.shapeType === 'coolshape' && shape.coolshapeIndex !== undefined ? shape.coolshapeIndex + 1 : index + 1}
+                  </span>
                 </div>
               );
             })}

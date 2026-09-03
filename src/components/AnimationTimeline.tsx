@@ -110,6 +110,83 @@ export const AnimationTimeline: React.FC = () => {
     name: string;
   }>({ type: 'mockup', id: 'mockup', name: 'Mockup' });
 
+  // Automatically select the corresponding timeline track when an element is selected on canvas in Animate Mode
+  useEffect(() => {
+    if (!state.isAnimationMode) return;
+
+    if (state.selectedTextLayerId) {
+      if (selectedTrack.type === 'text' && selectedTrack.id === state.selectedTextLayerId) return;
+      const textLayer = (state.textLayers || []).find((l) => l.id === state.selectedTextLayerId);
+      if (textLayer) {
+        setSelectedTrack({
+          type: 'text',
+          id: textLayer.id,
+          name: textLayer.name || textLayer.text || 'Text',
+        });
+        const trackEl = leftTracksRef.current?.querySelector(`[data-track-id="${textLayer.id}"]`);
+        trackEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (state.selectedPhosphorIconLayerId) {
+      if (selectedTrack.type === 'phosphor' && selectedTrack.id === state.selectedPhosphorIconLayerId) return;
+      const iconLayer = (state.phosphorIconLayers || []).find((l) => l.id === state.selectedPhosphorIconLayerId);
+      if (iconLayer) {
+        setSelectedTrack({
+          type: 'phosphor',
+          id: iconLayer.id,
+          name: iconLayer.name || iconLayer.iconId || 'Icon',
+        });
+        const trackEl = leftTracksRef.current?.querySelector(`[data-track-id="${iconLayer.id}"]`);
+        trackEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (state.selectedElementId) {
+      if (selectedTrack.type === 'element' && selectedTrack.id === state.selectedElementId) return;
+      const el = (state.canvasElements || []).find((l) => l.id === state.selectedElementId);
+      if (el) {
+        setSelectedTrack({
+          type: 'element',
+          id: el.id,
+          name: el.name || (el.category === 'emoji' ? 'Emoji' : 'Element'),
+        });
+        const trackEl = leftTracksRef.current?.querySelector(`[data-track-id="${el.id}"]`);
+        trackEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (state.selectedShapeId) {
+      if (selectedTrack.type === 'shape' && selectedTrack.id === state.selectedShapeId) return;
+      const shape = (state.shapeLayers || []).find((l) => l.id === state.selectedShapeId);
+      if (shape) {
+        setSelectedTrack({
+          type: 'shape',
+          id: shape.id,
+          name: shape.name || shape.shapeType || 'Shape',
+        });
+        const trackEl = leftTracksRef.current?.querySelector(`[data-track-id="${shape.id}"]`);
+        trackEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
+  }, [
+    state.isAnimationMode,
+    state.selectedTextLayerId,
+    state.selectedPhosphorIconLayerId,
+    state.selectedElementId,
+    state.selectedShapeId,
+    state.textLayers,
+    state.phosphorIconLayers,
+    state.canvasElements,
+    state.shapeLayers,
+    selectedTrack.type,
+    selectedTrack.id,
+  ]);
+
   // Auto-scroll when playing if playhead reaches edge of scroll container
   useEffect(() => {
     if (state.isPlaying && scrollContainerRef.current) {
@@ -389,6 +466,10 @@ export const AnimationTimeline: React.FC = () => {
       id: layerId,
       name: selectedTrack.name,
     });
+    if (layerType === 'text') state.selectTextLayer(layerId);
+    else if (layerType === 'phosphor') state.selectPhosphorIconLayer(layerId);
+    else if (layerType === 'element') state.selectCanvasElement(layerId);
+    else if (layerType === 'shape') state.selectShapeLayer(layerId);
     setDraggingMotionBlock({
       layerType,
       layerId,
@@ -588,17 +669,19 @@ export const AnimationTimeline: React.FC = () => {
       const ShapeCatIcon =
         s.shapeType === 'circle'
           ? PhosphorIcons.CircleIcon
-          : s.shapeType === 'hexagon'
-            ? PhosphorIcons.HexagonIcon
-            : s.shapeType === 'quote'
-              ? (PhosphorIcons as any).Quotes ||
-                PhosphorIcons.ChatCircleIcon ||
-                PhosphorIcons.SquareIcon
-              : s.shapeType === 'coolshape'
-                ? PhosphorIcons.SparkleIcon || PhosphorIcons.SquareIcon
-                : s.shapeType === 'rectangle'
-                  ? PhosphorIcons.RectangleIcon
-                  : PhosphorIcons.SquareIcon;
+          : s.shapeType === 'triangle'
+            ? PhosphorIcons.TriangleIcon
+            : s.shapeType === 'hexagon'
+              ? PhosphorIcons.HexagonIcon
+              : s.shapeType === 'quote'
+                ? (PhosphorIcons as any).Quotes ||
+                  PhosphorIcons.ChatCircleIcon ||
+                  PhosphorIcons.SquareIcon
+                : s.shapeType === 'coolshape'
+                  ? PhosphorIcons.SparkleIcon || PhosphorIcons.SquareIcon
+                  : s.shapeType === 'rectangle'
+                    ? PhosphorIcons.RectangleIcon
+                    : PhosphorIcons.SquareIcon;
       allRows.push(
         buildRow(
           'shape',
@@ -622,6 +705,7 @@ export const AnimationTimeline: React.FC = () => {
   };
 
   const layerTracks = buildLayerRows();
+  const totalTracksHeight = Math.max(8 + layerTracks.length * 32 + 36, 96);
 
   // Find currently active loop animation for selected layer
   const getSelectedLayerActiveLoop = (): ElementLoopAnimation => {
@@ -947,13 +1031,35 @@ export const AnimationTimeline: React.FC = () => {
               return (
                 <div
                   key={row.key}
-                  onClick={() =>
+                  data-track-id={row.id}
+                  onClick={() => {
                     setSelectedTrack({
                       type: row.type,
                       id: row.id,
                       name: row.name,
-                    })
-                  }
+                    });
+                    if (row.type === 'text') {
+                      state.selectPhosphorIconLayer(null);
+                      state.selectCanvasElement(null);
+                      state.selectShapeLayer(null);
+                      state.selectTextLayer(row.id);
+                    } else if (row.type === 'phosphor') {
+                      state.selectTextLayer(null);
+                      state.selectCanvasElement(null);
+                      state.selectShapeLayer(null);
+                      state.selectPhosphorIconLayer(row.id);
+                    } else if (row.type === 'element') {
+                      state.selectTextLayer(null);
+                      state.selectPhosphorIconLayer(null);
+                      state.selectShapeLayer(null);
+                      state.selectCanvasElement(row.id);
+                    } else if (row.type === 'shape') {
+                      state.selectTextLayer(null);
+                      state.selectPhosphorIconLayer(null);
+                      state.selectCanvasElement(null);
+                      state.selectShapeLayer(row.id);
+                    }
+                  }}
                   className={`h-8 shrink-0 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer ${
                     isSelected
                       ? 'bg-pastel-blue/15 border-l-2 border-pastel-blue'
@@ -989,13 +1095,17 @@ export const AnimationTimeline: React.FC = () => {
 
             {/* Mockup Track Header */}
             <div
-              onClick={() =>
+              onClick={() => {
                 setSelectedTrack({
                   type: 'mockup',
                   id: 'mockup',
                   name: 'Mockup',
-                })
-              }
+                });
+                state.selectTextLayer(null);
+                state.selectPhosphorIconLayer(null);
+                state.selectCanvasElement(null);
+                state.selectShapeLayer(null);
+              }}
               className={`h-9 shrink-0 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer bg-neutral-950/90 ${
                 selectedTrack.type === 'mockup'
                   ? 'bg-pastel-pink/15 border-l-2 border-pastel-pink'
@@ -1093,13 +1203,21 @@ export const AnimationTimeline: React.FC = () => {
             <div
               ref={trackContainerRef}
               onScroll={handleRightTracksScroll}
-              className="relative flex flex-col min-h-[96px] max-h-48 overflow-y-auto divide-y divide-neutral-800/40 cursor-pointer select-none"
+              className="min-h-[96px] max-h-48 overflow-y-auto cursor-pointer select-none"
             >
-              {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
               <div
-                style={{ left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px` }}
-                className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
-              />
+                className="relative flex flex-col min-h-full divide-y divide-neutral-800/40"
+                style={{ minHeight: `${totalTracksHeight}px` }}
+              >
+                {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
+                <div
+                  style={{
+                    left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px`,
+                    height: `${totalTracksHeight}px`,
+                    minHeight: '100%',
+                  }}
+                  className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
+                />
 
               {/* Top Empty Track Spacer */}
               <div className="h-2 shrink-0 pointer-events-none" />
@@ -1121,6 +1239,10 @@ export const AnimationTimeline: React.FC = () => {
                         id: row.id,
                         name: row.name,
                       });
+                      if (row.type === 'text') state.selectTextLayer(row.id);
+                      else if (row.type === 'phosphor') state.selectPhosphorIconLayer(row.id);
+                      else if (row.type === 'element') state.selectCanvasElement(row.id);
+                      else if (row.type === 'shape') state.selectShapeLayer(row.id);
                     }}
                     className="h-8 shrink-0 flex items-center relative group"
                   >
@@ -1464,6 +1586,7 @@ export const AnimationTimeline: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

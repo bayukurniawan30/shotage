@@ -1009,6 +1009,7 @@ export const useStudioStore = create<StudioStore>()(
             square: { width: 120, height: 120 },
             rectangle: { width: 160, height: 100 },
             circle: { width: 120, height: 120 },
+            triangle: { width: 130, height: 120 },
             hexagon: { width: 140, height: 122 },
             quote: { width: 120, height: 120 },
             coolshape: { width: 140, height: 140 },

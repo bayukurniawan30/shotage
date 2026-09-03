@@ -358,6 +358,8 @@ export type MotionPresetId =
   | 'fade-in'
   | 'drop-bounce'
   | 'flip-in'
+  | 'blur-in'
+  | 'typeahead'
   // Emphasis & Loops
   | 'pulse'
   | 'float'
@@ -373,7 +375,8 @@ export type MotionPresetId =
   | 'slide-out-right'
   | 'slide-out-down'
   | 'slide-out-up'
-  | 'pop-out';
+  | 'pop-out'
+  | 'blur-out';
 
 export interface LayerMotionBlock {
   id: string;
@@ -458,6 +461,23 @@ export const MOTION_PRESETS: MotionPresetMeta[] = [
     description: 'Perspective 3D flip unfold into place',
     defaultDurationSec: 0.9,
     badge: '3D Flip',
+  },
+  {
+    id: 'blur-in',
+    name: 'Blur In',
+    category: 'entrance',
+    description: 'Smooth camera focus blur dissolving into crisp focus',
+    defaultDurationSec: 0.9,
+    badge: 'Blur In',
+  },
+  {
+    id: 'typeahead',
+    name: 'Typeahead (Typewriter)',
+    category: 'entrance',
+    description: 'Types text character-by-character into view with blinking cursor',
+    defaultDurationSec: 1.5,
+    badge: 'Typeahead',
+    textOnly: true,
   },
 
   // --- EMPHASIS & LOOPS ---
@@ -576,6 +596,14 @@ export const MOTION_PRESETS: MotionPresetMeta[] = [
     defaultDurationSec: 0.6,
     badge: 'Pop Out',
   },
+  {
+    id: 'blur-out',
+    name: 'Blur Out',
+    category: 'exit',
+    description: 'Defocuses smoothly into blur and dissolves away',
+    defaultDurationSec: 0.8,
+    badge: 'Blur Out',
+  },
 ];
 
 // Legacy presets fallback mapping
@@ -608,8 +636,11 @@ export interface LayerMotionResult {
   rotateX: number;
   rotateY: number;
   opacity: number;
+  blur?: number;
   isVisible: boolean;
   animatedText?: string;
+  untypedText?: string;
+  showCursor?: boolean;
 }
 
 export function evaluateLayerMotion(
@@ -643,8 +674,11 @@ export function evaluateLayerMotion(
     rotateX: 0,
     rotateY: 0,
     opacity: 1,
+    blur: 0,
     isVisible: true,
     animatedText: rawText,
+    untypedText: '',
+    showCursor: false,
   };
 
   if (motionList.length === 0) {
@@ -659,6 +693,7 @@ export function evaluateLayerMotion(
       ...defaultResult,
       opacity: 0,
       isVisible: false,
+      animatedText: firstBlock.preset === 'typeahead' ? '' : rawText,
     };
   }
 
@@ -693,7 +728,7 @@ export function evaluateLayerMotion(
       if (mostRecentMeta?.category === 'exit') {
         return { ...defaultResult, opacity: 0, isVisible: false };
       }
-      if (mostRecent.preset === 'counter' && rawText) {
+      if ((mostRecent.preset === 'counter' || mostRecent.preset === 'typeahead') && rawText) {
         return { ...defaultResult, animatedText: rawText };
       }
     }
@@ -785,6 +820,38 @@ export function evaluateLayerMotion(
         ...defaultResult,
         rotateX: 90 * (1 - factor),
         opacity: Math.min(1, progress * 2),
+      };
+    }
+    case 'blur-in': {
+      const factor = 1 - Math.pow(1 - progress, 3);
+      const blur = Math.max(0, 24 * (1 - factor));
+      const opacity = Math.min(1, progress * 1.8);
+      const scale = 1 + 0.08 * (1 - factor);
+      return {
+        ...defaultResult,
+        scale,
+        blur,
+        opacity,
+      };
+    }
+    case 'typeahead': {
+      if (!rawText) return defaultResult;
+      const totalChars = rawText.length;
+      if (totalChars === 0) return defaultResult;
+
+      const charCount = Math.min(totalChars, Math.max(0, Math.floor(progress * (totalChars + 1))));
+      const isTyping = progress < 1;
+      const showCursor = isTyping && Math.floor(elapsed * 3.5) % 2 === 0;
+      const visibleText = rawText.slice(0, charCount);
+      const untypedText = isTyping ? rawText.slice(charCount) : '';
+
+      return {
+        ...defaultResult,
+        animatedText: visibleText,
+        untypedText,
+        showCursor,
+        opacity: 1,
+        isVisible: true,
       };
     }
 
@@ -904,6 +971,19 @@ export function evaluateLayerMotion(
         ...defaultResult,
         scale,
         opacity: Math.max(0, 1 - progress),
+        isVisible: progress < 1,
+      };
+    }
+    case 'blur-out': {
+      const factor = progress * progress;
+      const blur = 24 * factor;
+      const opacity = Math.max(0, 1 - progress);
+      const scale = 1 + 0.08 * factor;
+      return {
+        ...defaultResult,
+        scale,
+        blur,
+        opacity,
         isVisible: progress < 1,
       };
     }

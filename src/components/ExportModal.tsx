@@ -170,7 +170,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             if (
               node.classList.contains('delete-handle') ||
               node.classList.contains('rotate-handle') ||
-              node.classList.contains('resize-handle')
+              node.classList.contains('resize-handle') ||
+              node.classList.contains('selection-gizmo-container') ||
+              node.classList.contains('selection-gizmo-item')
             ) {
               return false;
             }
@@ -591,7 +593,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               cacheBust: false,
               fontEmbedCSS: cachedFontEmbedCSS,
               ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
-              filter: (node) => (node as HTMLElement).tagName !== 'VIDEO',
+              filter: (node) => {
+                const el = node as HTMLElement;
+                if (el.tagName === 'VIDEO') return false;
+                if (
+                  el.classList?.contains('delete-handle') ||
+                  el.classList?.contains('rotate-handle') ||
+                  el.classList?.contains('resize-handle') ||
+                  el.classList?.contains('selection-gizmo-container') ||
+                  el.classList?.contains('selection-gizmo-item')
+                ) {
+                  return false;
+                }
+                return true;
+              },
             });
 
             // Draw directly to even-dimension exportCanvas
@@ -764,6 +779,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       let thumbnailDataUrl: string | null = null;
       if (canvasRef.current) {
         try {
+          canvasRef.current.classList.add('exporting-no-transitions');
           rawStore.selectTextLayer(null);
           rawStore.selectShapeLayer(null);
           rawStore.selectPhosphorIconLayer(null);
@@ -815,6 +831,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           thumbnailDataUrl = thumbUrl;
         } catch (thumbErr) {
           console.warn('Could not generate thumbnail for share:', thumbErr);
+        } finally {
+          canvasRef.current.classList.remove('exporting-no-transitions');
         }
       }
 

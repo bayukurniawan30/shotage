@@ -81,6 +81,7 @@ export type ShapeType =
   | 'square'
   | 'rectangle'
   | 'circle'
+  | 'triangle'
   | 'hexagon'
   | 'quote'
   | 'coolshape';

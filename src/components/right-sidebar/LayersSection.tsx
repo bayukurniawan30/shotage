@@ -77,17 +77,19 @@ export const LayersSection: React.FC = () => {
     const ShapeCatIcon =
       s.shapeType === 'circle'
         ? PhosphorIcons.CircleIcon
-        : s.shapeType === 'hexagon'
-          ? PhosphorIcons.HexagonIcon
-          : s.shapeType === 'quote'
-            ? (PhosphorIcons as any).Quotes ||
-              PhosphorIcons.ChatCircleIcon ||
-              PhosphorIcons.SquareIcon
-            : s.shapeType === 'coolshape'
-              ? (PhosphorIcons as any).SparkleIcon || PhosphorIcons.SquareIcon
-              : s.shapeType === 'rectangle'
-                ? PhosphorIcons.RectangleIcon
-                : PhosphorIcons.SquareIcon;
+        : s.shapeType === 'triangle'
+          ? PhosphorIcons.TriangleIcon
+          : s.shapeType === 'hexagon'
+            ? PhosphorIcons.HexagonIcon
+            : s.shapeType === 'quote'
+              ? (PhosphorIcons as any).Quotes ||
+                PhosphorIcons.ChatCircleIcon ||
+                PhosphorIcons.SquareIcon
+              : s.shapeType === 'coolshape'
+                ? (PhosphorIcons as any).SparkleIcon || PhosphorIcons.SquareIcon
+                : s.shapeType === 'rectangle'
+                  ? PhosphorIcons.RectangleIcon
+                  : PhosphorIcons.SquareIcon;
     allRows.push(
       buildRow(
         'shape',

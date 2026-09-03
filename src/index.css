@@ -149,3 +149,13 @@ input[type='range'] {
   animation-play-state: paused !important;
 }
 
+#shotage-canvas.exporting-no-transitions {
+  overflow: hidden !important;
+}
+
+.exporting-no-transitions .selection-gizmo-container,
+.exporting-no-transitions .selection-gizmo-item {
+  display: none !important;
+}
+
+

@@ -435,7 +435,17 @@ export const ShapePreview: React.FC<{
   type: ShapeType;
   color?: string;
   className?: string;
-}> = ({ type, color = '#a2d2ff', className = 'w-7 h-7' }) => {
+  coolshapeType?: string;
+  coolshapeIndex?: number;
+  coolshapeNoise?: boolean;
+}> = ({
+  type,
+  color = '#a2d2ff',
+  className = 'w-7 h-7',
+  coolshapeType = 'star',
+  coolshapeIndex = 0,
+  coolshapeNoise = true,
+}) => {
   const common = {
     viewBox: '0 0 24 24',
     className,
@@ -446,6 +456,12 @@ export const ShapePreview: React.FC<{
       return (
         <svg {...common}>
           <circle cx="12" cy="12" r="9" fill={color} />
+        </svg>
+      );
+    case 'triangle':
+      return (
+        <svg {...common}>
+          <polygon points="12,3 21,20 3,20" fill={color} />
         </svg>
       );
     case 'hexagon':
@@ -470,7 +486,15 @@ export const ShapePreview: React.FC<{
         </svg>
       );
     case 'coolshape':
-      return <Coolshape type="star" index={0} size={24} className={className} />;
+      return (
+        <Coolshape
+          type={(coolshapeType || 'star') as any}
+          index={coolshapeIndex ?? 0}
+          noise={coolshapeNoise ?? true}
+          size={24}
+          className={className}
+        />
+      );
     case 'square':
     default:
       return (
