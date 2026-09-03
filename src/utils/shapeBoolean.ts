@@ -1,6 +1,8 @@
 import polygonClipping, { MultiPolygon, Polygon, Ring, Pair } from 'polygon-clipping';
 import { ShapeLayer } from '../types/studio';
 
+export type BooleanOperation = 'union' | 'subtract' | 'intersect' | 'exclude';
+
 /**
  * Converts a ShapeLayer into a 2D world-space polygon ring.
  */
@@ -91,26 +93,44 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon {
 }
 
 /**
- * Computes the Boolean Union of multiple shape layers.
- * Returns a new ShapeLayer of shapeType 'custom-path' representing the fused silhouette.
+ * Computes Boolean Operations (Union, Subtract, Intersect, Exclude) on multiple shape layers.
+ * Returns a new ShapeLayer of shapeType 'custom-path'.
  */
-export function mergeShapeLayers(shapes: ShapeLayer[]): ShapeLayer | null {
+export function booleanOperationOnShapes(
+  shapes: ShapeLayer[],
+  operation: BooleanOperation = 'union'
+): ShapeLayer | null {
   if (!shapes || shapes.length < 2) return null;
 
-  // Primary shape provides style properties (colors, gradients, shadows, etc.)
+  // For subtract: shapes[0] is subject (base layer), shapes[1..N] are cutters.
+  // For other operations: shapes[0] is the primary styling layer.
   const primary = shapes[0];
 
   const polygons: Polygon[] = shapes.map((s) => getShapeWorldPolygon(s));
 
-  let unionResult: MultiPolygon;
+  let opResult: MultiPolygon;
   try {
-    unionResult = polygonClipping.union(polygons[0], ...polygons.slice(1));
+    switch (operation) {
+      case 'subtract':
+        opResult = polygonClipping.difference(polygons[0], ...polygons.slice(1));
+        break;
+      case 'intersect':
+        opResult = polygonClipping.intersection(polygons[0], ...polygons.slice(1));
+        break;
+      case 'exclude':
+        opResult = polygonClipping.xor(polygons[0], ...polygons.slice(1));
+        break;
+      case 'union':
+      default:
+        opResult = polygonClipping.union(polygons[0], ...polygons.slice(1));
+        break;
+    }
   } catch (err) {
-    console.error('Failed to compute shape union:', err);
+    console.error(`Failed to compute boolean operation ${operation}:`, err);
     return null;
   }
 
-  if (!unionResult || unionResult.length === 0) return null;
+  if (!opResult || opResult.length === 0) return null;
 
   // Calculate overall bounding box of the resulting MultiPolygon
   let minX = Infinity;
@@ -118,7 +138,7 @@ export function mergeShapeLayers(shapes: ShapeLayer[]): ShapeLayer | null {
   let minY = Infinity;
   let maxY = -Infinity;
 
-  unionResult.forEach((poly) => {
+  opResult.forEach((poly) => {
     poly.forEach((ring) => {
       ring.forEach(([x, y]) => {
         if (x < minX) minX = x;
@@ -138,8 +158,9 @@ export function mergeShapeLayers(shapes: ShapeLayer[]): ShapeLayer | null {
 
   // Convert all rings into SVG path commands centered at (0, 0)
   const pathCommands: string[] = [];
+  const unitCommands: string[] = [];
 
-  unionResult.forEach((poly) => {
+  opResult.forEach((poly) => {
     poly.forEach((ring) => {
       if (ring.length === 0) return;
       const commands = ring.map(([wx, wy], idx) => {
@@ -148,20 +169,36 @@ export function mergeShapeLayers(shapes: ShapeLayer[]): ShapeLayer | null {
         return `${idx === 0 ? 'M' : 'L'} ${lx} ${ly}`;
       });
       pathCommands.push(`${commands.join(' ')} Z`);
+
+      const uCmds = ring.map(([wx, wy], idx) => {
+        const ux = Math.round(((wx - minX) / width) * 10000) / 10000;
+        const uy = Math.round(((wy - minY) / height) * 10000) / 10000;
+        return `${idx === 0 ? 'M' : 'L'} ${ux} ${uy}`;
+      });
+      unitCommands.push(`${uCmds.join(' ')} Z`);
     });
   });
 
   const pathData = pathCommands.join(' ');
+  const unitPathData = unitCommands.join(' ');
   const halfW = width / 2;
   const halfH = height / 2;
   const viewBox = `${-halfW} ${-halfH} ${width} ${height}`;
 
+  const opLabels: Record<BooleanOperation, string> = {
+    union: 'Union',
+    subtract: 'Subtract',
+    intersect: 'Intersect',
+    exclude: 'Exclude',
+  };
+
   const mergedShape: ShapeLayer = {
     ...primary,
-    id: `shape-merged-${Date.now()}`,
-    name: shapes.map((s) => s.name || s.shapeType).join(' + ') || 'Merged Shape',
+    id: `shape-boolean-${Date.now()}`,
+    name: `${opLabels[operation]} (${shapes.map((s) => s.name || s.shapeType).join(' & ')})`,
     shapeType: 'custom-path',
     pathData,
+    unitPathData,
     viewBox,
     width,
     height,
@@ -173,3 +210,8 @@ export function mergeShapeLayers(shapes: ShapeLayer[]): ShapeLayer | null {
 
   return mergedShape;
 }
+
+/**
+ * Backwards compatibility helper for Boolean Union.
+ */
+export const mergeShapeLayers = (shapes: ShapeLayer[]) => booleanOperationOnShapes(shapes, 'union');

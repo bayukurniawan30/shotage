@@ -91,6 +91,7 @@ export interface ShapeLayer {
   id: string;
   shapeType: ShapeType;
   pathData?: string;
+  unitPathData?: string;
   viewBox?: string;
   coolshapeType?: CoolshapeCategory;
   coolshapeIndex?: number;

@@ -803,7 +803,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               return {};
             case 'custom-path':
               return {
-                backgroundColor: 'transparent',
+                clipPath: isGlass ? `url(#glass-clip-${layer.id})` : undefined,
+                WebkitClipPath: isGlass ? `url(#glass-clip-${layer.id})` : undefined,
                 borderRadius: 0,
               };
             case 'rectangle':
@@ -823,7 +824,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           layer.shapeType === 'custom-path';
 
         const getGlassOrSolidBackground = (): React.CSSProperties => {
-          if (layer.shapeType === 'coolshape' || layer.shapeType === 'custom-path') {
+          if (layer.shapeType === 'coolshape') {
+            return {
+              backgroundColor: 'transparent',
+              backgroundImage: 'none',
+            };
+          }
+
+          if (layer.shapeType === 'custom-path' && !isGlass) {
             return {
               backgroundColor: 'transparent',
               backgroundImage: 'none',
@@ -886,9 +894,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const has3D =
           shapePitch !== 0 ||
           shapeYaw !== 0;
+        const shouldDropShadow = layer.shadow && (!isGlass || isPolygonOrMask);
         const transformStr = has3D
           ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
           : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`;
+
+        const customUnitPath =
+          layer.unitPathData ||
+          (layer.pathData
+            ? layer.pathData.replace(/([ML])\s*([-\d.]+)\s+([-\d.]+)/g, (_, cmd, x, y) => {
+                const ux =
+                  Math.round(((parseFloat(x) + shapeWidth / 2) / Math.max(1, shapeWidth)) * 10000) /
+                  10000;
+                const uy =
+                  Math.round(((parseFloat(y) + shapeHeight / 2) / Math.max(1, shapeHeight)) * 10000) /
+                  10000;
+                return `${cmd} ${ux} ${uy}`;
+              })
+            : '');
 
         return (
           <div
@@ -908,7 +931,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
               opacity: motion.isVisible ? (isGlass ? motion.opacity : (shapeOpacity / 100) * motion.opacity) : 0,
-              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${!isGlass && layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
+              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${shouldDropShadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.55))' : ''}`.trim() || 'none',
               width: `${shapeWidth}px`,
               height: `${shapeHeight}px`,
               overflow: isSelected
@@ -924,6 +947,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     : `${shapeBorderRadius}px`,
             }}
           >
+            {/* SVG Defs for Custom Path Glassmorphic Clip */}
+            {layer.shapeType === 'custom-path' && customUnitPath && (
+              <svg
+                className="absolute w-0 h-0 pointer-events-none opacity-0"
+                style={{ position: 'absolute', width: 0, height: 0 }}
+                aria-hidden="true"
+              >
+                <defs>
+                  <clipPath id={`glass-clip-${layer.id}`} clipPathUnits="objectBoundingBox">
+                    <path d={customUnitPath} fillRule="evenodd" />
+                  </clipPath>
+                </defs>
+              </svg>
+            )}
+
             <div
               className="w-full h-full relative"
               style={{
@@ -984,8 +1022,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     style={{ width: '100%', height: '100%' }}
                   >
                     <defs>
-                      <clipPath id={`shape-clip-${layer.id}`}>
-                        <path d={layer.pathData} />
+                      <clipPath id={`shape-clip-${layer.id}`} clipRule="evenodd">
+                        <path d={layer.pathData} fillRule="evenodd" />
                       </clipPath>
                       {layer.gradient && (
                         <linearGradient
@@ -1022,6 +1060,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                       layer.bgImageRepeat ? (
                         <path
                           d={layer.pathData}
+                          fillRule="evenodd"
                           fill={`url(#shape-pattern-${layer.id})`}
                         />
                       ) : (
@@ -1036,32 +1075,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                           />
                         </g>
                       )
-                    ) : (
+                    ) : !isGlass ? (
                       <path
                         d={layer.pathData}
+                        fillRule="evenodd"
                         fill={
-                          isGlass
-                            ? formatColorWithAlpha(
-                                parseColorAndAlpha(layer.color || '#ffffff').hex,
-                                Math.round(
-                                  Math.min(
-                                    70,
-                                    Math.max(
-                                      5,
-                                      (parseColorAndAlpha(layer.color || '#ffffff').alpha < 100
-                                        ? parseColorAndAlpha(layer.color || '#ffffff').alpha
-                                        : 25) *
-                                        ((shapeOpacity ?? 100) / 100)
-                                    )
-                                  )
-                                )
-                              )
-                            : layer.gradient
-                              ? `url(#shape-grad-${layer.id})`
-                              : layer.color || '#a2d2ff'
+                          layer.gradient
+                            ? `url(#shape-grad-${layer.id})`
+                            : layer.color || '#a2d2ff'
                         }
                       />
-                    )}
+                    ) : null}
 
                     {/* Outer Stroke (Glassmorphic border outline) */}
                     {isGlass && layer.glassmorphismBorder !== false && (
@@ -1071,6 +1095,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                         stroke="rgba(255, 255, 255, 0.45)"
                         strokeWidth={1.5}
                         vectorEffect="non-scaling-stroke"
+                        fillRule="evenodd"
                       />
                     )}
                   </svg>

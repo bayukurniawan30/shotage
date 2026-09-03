@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import * as PhosphorIcons from '@phosphor-icons/react';
+import { BooleanIcons } from './shared';
 
 export const LayersSection: React.FC = () => {
   const state = useStudioStore();
@@ -341,23 +342,56 @@ export const LayersSection: React.FC = () => {
         <span className="text-[10px] font-mono text-slate-500">{allRows.length}</span>
       </div>
 
-      {/* Multi-Shape Merge Action Bar */}
+      {/* Multi-Shape Boolean Action Bar */}
       {(state.selectedShapeIds || []).length >= 2 && (
-        <div className="p-2.5 rounded-lg bg-pastel-pink/10 border border-pastel-pink/30 flex items-center justify-between animate-in fade-in duration-150">
-          <div className="flex items-center gap-2">
-            <PhosphorIcons.IntersectIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
-            <span className="text-xs text-slate-200 font-medium">
-              {state.selectedShapeIds.length} shapes selected
-            </span>
+        <div className="p-2.5 rounded-lg bg-pastel-pink/10 border border-pastel-pink/30 space-y-2 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <PhosphorIcons.IntersectIcon weight="duotone" className="w-3.5 h-3.5 text-pastel-pink" />
+              <span className="text-[11px] text-slate-200 font-medium">
+                {state.selectedShapeIds.length} shapes selected
+              </span>
+            </div>
+            <span className="text-[9px] font-mono text-pastel-pink/80 uppercase">Boolean</span>
           </div>
-          <button
-            type="button"
-            onClick={() => state.mergeSelectedShapes()}
-            className="px-2.5 py-1 bg-pastel-pink hover:bg-pastel-pink/90 text-slate-950 font-bold text-[11px] rounded-md transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-          >
-            <PhosphorIcons.IntersectIcon weight="bold" className="w-3.5 h-3.5" />
-            <span>Merge Shapes</span>
-          </button>
+          <div className="grid grid-cols-4 gap-1">
+            <button
+              type="button"
+              onClick={() => state.booleanOperationOnShapes('union')}
+              className="py-1 px-1 bg-neutral-900 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 text-slate-300 rounded text-[10px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm active:scale-95"
+              title="Union (Combine all)"
+            >
+              <BooleanIcons.Union className="w-3.5 h-3.5" />
+              <span>Union</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => state.booleanOperationOnShapes('subtract')}
+              className="py-1 px-1 bg-neutral-900 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 text-slate-300 rounded text-[10px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm active:scale-95"
+              title="Subtract (Cut top out of bottom)"
+            >
+              <BooleanIcons.Subtract className="w-3.5 h-3.5" />
+              <span>Subtract</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => state.booleanOperationOnShapes('intersect')}
+              className="py-1 px-1 bg-neutral-900 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 text-slate-300 rounded text-[10px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm active:scale-95"
+              title="Intersect (Keep overlap)"
+            >
+              <BooleanIcons.Intersect className="w-3.5 h-3.5" />
+              <span>Intersect</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => state.booleanOperationOnShapes('exclude')}
+              className="py-1 px-1 bg-neutral-900 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 text-slate-300 rounded text-[10px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm active:scale-95"
+              title="Exclude (Cut out overlap)"
+            >
+              <BooleanIcons.Exclude className="w-3.5 h-3.5" />
+              <span>Exclude</span>
+            </button>
+          </div>
         </div>
       )}
 

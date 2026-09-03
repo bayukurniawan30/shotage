@@ -9,7 +9,11 @@ import {
   MOTION_PRESETS,
 } from '../types/animationTypes';
 import { GOOGLE_FONTS } from '../components/right-sidebar/shared';
-import { mergeShapeLayers } from '../utils/shapeBoolean';
+import {
+  mergeShapeLayers,
+  booleanOperationOnShapes,
+  BooleanOperation,
+} from '../utils/shapeBoolean';
 
 interface StudioStore extends StudioState {
   isPreviewMode: boolean;
@@ -78,7 +82,8 @@ interface StudioStore extends StudioState {
   duplicateShapeLayer: (id: string) => void;
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
-  mergeSelectedShapes: () => boolean;
+  mergeSelectedShapes: (operation?: BooleanOperation) => boolean;
+  booleanOperationOnShapes: (operation?: BooleanOperation) => boolean;
   reorderLayers: (
     newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]
   ) => void;
@@ -387,7 +392,7 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
 
 export const useStudioStore = create<StudioStore>()(
   temporal(
-    (set) => ({
+    (set, get) => ({
       ...DEFAULT_STUDIO_STATE,
       isPreviewMode: false,
       updateState: (updates) =>
@@ -1100,23 +1105,39 @@ export const useStudioStore = create<StudioStore>()(
             selectedShapeId: nextIds.length ? id : null,
           };
         }),
-      mergeSelectedShapes: () => {
+      booleanOperationOnShapes: (operation: BooleanOperation = 'union') => {
         let mergedSuccessfully = false;
         set((state) => {
           const selectedIds = state.selectedShapeIds || [];
           if (selectedIds.length < 2) return state;
 
-          const shapesToMerge = (state.shapeLayers || []).filter((s) => selectedIds.includes(s.id));
-          if (shapesToMerge.length < 2) return state;
+          const layerOrder = state.layerOrder || [];
+          // Sort selected shapes by layerOrder (index 0 = topmost, higher index = bottom-most)
+          const sortedShapes = [...(state.shapeLayers || [])]
+            .filter((s) => selectedIds.includes(s.id))
+            .sort((a, b) => {
+              const ai = layerOrder.findIndex((e) => e.type === 'shape' && e.id === a.id);
+              const bi = layerOrder.findIndex((e) => e.type === 'shape' && e.id === b.id);
+              return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+            });
 
-          const merged = mergeShapeLayers(shapesToMerge);
+          if (sortedShapes.length < 2) return state;
+
+          // For Subtract (Difference): the bottom-most layer (highest index in layerOrder)
+          // is the base subject, and the layers on top of it are the cutters.
+          const shapesToProcess =
+            operation === 'subtract'
+              ? [sortedShapes[sortedShapes.length - 1], ...sortedShapes.slice(0, sortedShapes.length - 1)]
+              : sortedShapes;
+
+          const merged = booleanOperationOnShapes(shapesToProcess, operation);
           if (!merged) return state;
 
           const remainingShapes = (state.shapeLayers || []).filter((s) => !selectedIds.includes(s.id));
-          const firstIdx = (state.layerOrder || []).findIndex(
+          const firstIdx = layerOrder.findIndex(
             (e) => e.type === 'shape' && selectedIds.includes(e.id)
           );
-          const newLayerOrder = (state.layerOrder || []).filter(
+          const newLayerOrder = layerOrder.filter(
             (e) => !(e.type === 'shape' && selectedIds.includes(e.id))
           );
           newLayerOrder.splice(firstIdx === -1 ? 0 : firstIdx, 0, { type: 'shape', id: merged.id });
@@ -1131,6 +1152,9 @@ export const useStudioStore = create<StudioStore>()(
         });
 
         return mergedSuccessfully;
+      },
+      mergeSelectedShapes: (operation: BooleanOperation = 'union'): boolean => {
+        return get().booleanOperationOnShapes(operation);
       },
       reorderLayers: (newOrder) => set(() => ({ layerOrder: newOrder })),
       alignCanvasElements: (align, canvasWidth) =>

@@ -735,3 +735,74 @@ export const PositionSliderGroup: React.FC<{
     </div>
   );
 };
+
+export const BooleanIcons = {
+  Union: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M3 4a1 1 0 011-1h9a1 1 0 011 1v4h4a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1v-4H4a1 1 0 01-1-1V4zm7 6h4a1 1 0 011 1v4h2v-7h-7v2z"
+      />
+    </svg>
+  ),
+  Subtract: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M3 4a1 1 0 011-1h9a1 1 0 011 1v4h-3a1 1 0 00-1 1v4H4a1 1 0 01-1-1V4zm7 7v4h4v-4h-4z"
+      />
+      <rect
+        x="10"
+        y="10"
+        width="10"
+        height="10"
+        rx="1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="2 2"
+        opacity="0.4"
+      />
+    </svg>
+  ),
+  Intersect: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <rect
+        x="4"
+        y="4"
+        width="10"
+        height="10"
+        rx="1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="2 2"
+        opacity="0.4"
+      />
+      <rect
+        x="10"
+        y="10"
+        width="10"
+        height="10"
+        rx="1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="2 2"
+        opacity="0.4"
+      />
+      <rect x="10" y="10" width="4" height="4" rx="0.5" fill="currentColor" />
+    </svg>
+  ),
+  Exclude: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M4 3a1 1 0 00-1 1v9a1 1 0 001 1h4v4a1 1 0 001 1h9a1 1 0 001-1v-9a1 1 0 00-1-1h-4V4a1 1 0 00-1-1H4zm6 7V5H5v7h4v-2zm4 4h4v-4h-4v4z"
+      />
+    </svg>
+  ),
+};
