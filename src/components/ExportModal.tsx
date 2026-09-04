@@ -267,6 +267,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setIsExporting(true);
     setExportingType('video');
     setExportProgress(0);
+    onChange({ isExporting: true, exportTimeSec: 0, isPlaying: false, currentTimeSec: 0 });
 
     // Suppress CSS transitions during video export
     if (canvasRef.current) {
@@ -556,7 +557,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           }
 
           const targetTimeSec = (frame / totalFrames) * durationSec;
-          onChange({ currentTimeSec: targetTimeSec });
+          const frameTimeSec = globalTimeOffsetSec + targetTimeSec;
+          onChange({ currentTimeSec: targetTimeSec, exportTimeSec: frameTimeSec });
 
           // Synchronize any mockup video decoders to exact target timestamp
           if (activeVideoDecoders.size > 0) {
@@ -649,6 +651,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }
 
       if (cancelVideoRef.current) {
+        onChange({ isExporting: false, exportTimeSec: null });
         setIsExporting(false);
         setExportingType(null);
         setExportProgress(0);
@@ -705,6 +708,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       setExportingType(null);
       setExportProgress(0);
     } finally {
+      onChange({ isExporting: false, exportTimeSec: null });
       if (canvasRef.current) {
         canvasRef.current.classList.remove('exporting-no-transitions');
       }

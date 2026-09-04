@@ -10,6 +10,7 @@ import { VideoBetaModal } from '../components/VideoBetaModal';
 import { AnimationTimeline } from '../components/AnimationTimeline';
 import { StageManagerToolbar } from '../components/StageManagerToolbar';
 import { ProjectSpotlight } from '../components/ProjectSpotlight';
+import { StepperSlider } from '../components/StepperSlider';
 import {
   FlipBackward,
   FlipForward,
@@ -1018,13 +1019,14 @@ export const Studio: React.FC = () => {
               >
                 200%
               </button>
-              <input
-                type="range"
-                min="25"
-                max="200"
+              <StepperSlider
+                min={25}
+                max={200}
+                step={5}
                 value={previewCanvasZoom}
-                onChange={(e) => updateState({ previewCanvasZoom: Number(e.target.value) })}
-                className="flex-1 min-w-[80px] sm:min-w-0 w-auto bg-neutral-800 rounded-lg cursor-pointer accent-pastel-pink"
+                onChange={(v) => updateState({ previewCanvasZoom: v })}
+                accentColor="#ffafcc"
+                className="flex-1 min-w-[90px] sm:min-w-[120px]"
               />
               <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
                 {previewCanvasZoom}%

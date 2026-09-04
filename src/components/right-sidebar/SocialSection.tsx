@@ -3,6 +3,7 @@ import { useStudioStore } from '../../store/useStudioStore';
 import { Plus, Copy01, Trash01 } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
 import { SocialPlatformSelect, FontSelect } from './shared';
+import { StepperSlider } from '../StepperSlider';
 
 export const SocialSection: React.FC = () => {
   const state = useStudioStore();
@@ -251,17 +252,17 @@ export const SocialSection: React.FC = () => {
                   {selectedLayer.iconSize || Math.round(selectedLayer.fontSize * 1.1)}px
                 </span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={10}
                 max={60}
+                step={1}
                 value={selectedLayer.iconSize || Math.round(selectedLayer.fontSize * 1.1)}
-                onChange={(e) =>
+                onChange={(val) =>
                   state.updateTextLayer(selectedLayer.id, {
-                    iconSize: Number(e.target.value),
+                    iconSize: val,
                   })
                 }
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                accentColor="#a2d2ff"
               />
             </div>
 
@@ -270,17 +271,17 @@ export const SocialSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Font Size</span>
                 <span className="font-mono text-slate-400">{selectedLayer.fontSize}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={10}
                 max={60}
+                step={1}
                 value={selectedLayer.fontSize}
-                onChange={(e) =>
+                onChange={(val) =>
                   state.updateTextLayer(selectedLayer.id, {
-                    fontSize: Number(e.target.value),
+                    fontSize: val,
                   })
                 }
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                accentColor="#a2d2ff"
               />
             </div>
           </div>
@@ -305,15 +306,15 @@ export const SocialSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Position X (Horizontal)</span>
                 <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={-400}
                 max={400}
+                step={1}
                 value={selectedLayer.x}
-                onChange={(e) =>
-                  state.updateTextLayer(selectedLayer.id, { x: Number(e.target.value) })
+                onChange={(val) =>
+                  state.updateTextLayer(selectedLayer.id, { x: val })
                 }
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                accentColor="#a2d2ff"
               />
             </div>
 
@@ -322,15 +323,15 @@ export const SocialSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Position Y (Vertical)</span>
                 <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={-400}
                 max={400}
+                step={1}
                 value={selectedLayer.y}
-                onChange={(e) =>
-                  state.updateTextLayer(selectedLayer.id, { y: Number(e.target.value) })
+                onChange={(val) =>
+                  state.updateTextLayer(selectedLayer.id, { y: val })
                 }
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                accentColor="#a2d2ff"
               />
             </div>
           </div>

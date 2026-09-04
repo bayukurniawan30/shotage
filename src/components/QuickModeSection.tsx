@@ -764,6 +764,7 @@ export const QuickModeSection: React.FC = () => {
           <ConfettiBackground
             presetId={state.confettiPreset || 'confetti-1'}
             customPreset={state.customConfettiObj}
+            isMini
           />
         </div>
       );

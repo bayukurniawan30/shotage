@@ -2,6 +2,7 @@ import React from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { ShinePreset } from '../../types/studio';
 import { MiniCanvasBackground } from './MiniCanvasBackground';
+import { StepperSlider } from '../StepperSlider';
 
 export const ShineSection: React.FC = () => {
   const state = useStudioStore();
@@ -114,13 +115,13 @@ export const ShineSection: React.FC = () => {
             <span className="font-medium text-slate-300">Shine Opacity</span>
             <span className="font-mono text-[11px] py-0.5">{opacity}%</span>
           </div>
-          <input
-            type="range"
-            min="5"
-            max="100"
+          <StepperSlider
+            min={5}
+            max={100}
+            step={1}
             value={opacity}
-            onChange={(e) => onChange({ shineOpacity: Number(e.target.value) })}
-            className="w-full accent-[#a2d2ff] bg-slate-800 rounded-lg cursor-pointer h-1.5"
+            onChange={(v) => onChange({ shineOpacity: v })}
+            accentColor="#a2d2ff"
           />
         </div>
       )}

@@ -12,6 +12,7 @@ import {
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { FontSelect } from './shared';
+import { StepperSlider } from '../StepperSlider';
 import {
   GRADIENT_PRESETS,
   parseColorAndAlpha,
@@ -495,21 +496,21 @@ export const TextSection: React.FC = () => {
                           {parseColorAndAlpha(selectedLayer.gradient.color1).alpha}%
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
+                      <StepperSlider
+                        min={0}
+                        max={100}
+                        step={1}
                         value={parseColorAndAlpha(selectedLayer.gradient.color1).alpha}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const hex = parseColorAndAlpha(selectedLayer.gradient!.color1).hex;
                           state.updateTextLayer(selectedLayer.id, {
                             gradient: {
                               ...selectedLayer.gradient!,
-                              color1: formatColorWithAlpha(hex, Number(e.target.value)),
+                              color1: formatColorWithAlpha(hex, val),
                             },
                           });
                         }}
-                        className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -594,48 +595,48 @@ export const TextSection: React.FC = () => {
                           {parseColorAndAlpha(selectedLayer.gradient.color2).alpha}%
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
+                      <StepperSlider
+                        min={0}
+                        max={100}
+                        step={1}
                         value={parseColorAndAlpha(selectedLayer.gradient.color2).alpha}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const hex = parseColorAndAlpha(selectedLayer.gradient!.color2).hex;
                           state.updateTextLayer(selectedLayer.id, {
                             gradient: {
                               ...selectedLayer.gradient!,
-                              color2: formatColorWithAlpha(hex, Number(e.target.value)),
+                              color2: formatColorWithAlpha(hex, val),
                             },
                           });
                         }}
-                        className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Angle</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedLayer.gradient.angle}°
-                    </span>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Angle</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedLayer.gradient.angle}°
+                      </span>
+                    </div>
+                    <StepperSlider
+                      min={0}
+                      max={360}
+                      step={1}
+                      value={selectedLayer.gradient.angle}
+                      onChange={(val) =>
+                        state.updateTextLayer(selectedLayer.id, {
+                          gradient: {
+                            ...selectedLayer.gradient!,
+                            angle: val,
+                          },
+                        })
+                      }
+                      accentColor="#ffafcc"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
-                    value={selectedLayer.gradient.angle}
-                    onChange={(e) =>
-                      state.updateTextLayer(selectedLayer.id, {
-                        gradient: {
-                          ...selectedLayer.gradient!,
-                          angle: Number(e.target.value),
-                        },
-                      })
-                    }
-                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
-                  />
                 </div>
               </div>
             )}
@@ -726,17 +727,17 @@ export const TextSection: React.FC = () => {
                       {selectedLayer.bgImageZoom ?? 100}%
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="400"
+                  <StepperSlider
+                    min={10}
+                    max={400}
+                    step={1}
                     value={selectedLayer.bgImageZoom ?? 100}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updateTextLayer(selectedLayer.id, {
-                        bgImageZoom: Number(e.target.value),
+                        bgImageZoom: val,
                       })
                     }
-                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                    accentColor="#ffafcc"
                   />
                 </div>
 
@@ -748,17 +749,17 @@ export const TextSection: React.FC = () => {
                         {selectedLayer.bgImageOffsetX || 0}px
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="-300"
-                      max="300"
+                    <StepperSlider
+                      min={-300}
+                      max={300}
+                      step={1}
                       value={selectedLayer.bgImageOffsetX || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
-                          bgImageOffsetX: Number(e.target.value),
+                          bgImageOffsetX: val,
                         })
                       }
-                      className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -769,17 +770,17 @@ export const TextSection: React.FC = () => {
                         {selectedLayer.bgImageOffsetY || 0}px
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="-300"
-                      max="300"
+                    <StepperSlider
+                      min={-300}
+                      max={300}
+                      step={1}
                       value={selectedLayer.bgImageOffsetY || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
-                          bgImageOffsetY: Number(e.target.value),
+                          bgImageOffsetY: val,
                         })
                       }
-                      className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -892,17 +893,17 @@ export const TextSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Font Size</span>
                       <span className="font-mono text-slate-400">{selectedLayer.fontSize}px</span>
                     </div>
-                    <input
-                      type="range"
-                      min="12"
-                      max="500"
+                    <StepperSlider
+                      min={12}
+                      max={500}
+                      step={1}
                       value={selectedLayer.fontSize}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
-                          fontSize: Number(e.target.value),
+                          fontSize: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -914,18 +915,17 @@ export const TextSection: React.FC = () => {
                           {(selectedLayer.scaleX ?? 1).toFixed(2)}x
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="8.0"
-                        step="0.05"
+                      <StepperSlider
+                        min={0.1}
+                        max={8.0}
+                        step={0.05}
                         value={selectedLayer.scaleX ?? 1}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateTextLayer(selectedLayer.id, {
-                            scaleX: Number(e.target.value),
+                            scaleX: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
 
@@ -936,18 +936,17 @@ export const TextSection: React.FC = () => {
                           {(selectedLayer.scaleY ?? 1).toFixed(2)}x
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="8.0"
-                        step="0.05"
+                      <StepperSlider
+                        min={0.1}
+                        max={8.0}
+                        step={0.05}
                         value={selectedLayer.scaleY ?? 1}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateTextLayer(selectedLayer.id, {
-                            scaleY: Number(e.target.value),
+                            scaleY: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -962,15 +961,15 @@ export const TextSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position X</span>
                       <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
                     </div>
-                    <input
-                      type="range"
-                      min="-300"
-                      max="300"
+                    <StepperSlider
+                      min={-300}
+                      max={300}
+                      step={1}
                       value={selectedLayer.x}
-                      onChange={(e) =>
-                        state.updateTextLayer(selectedLayer.id, { x: Number(e.target.value) })
+                      onChange={(val) =>
+                        state.updateTextLayer(selectedLayer.id, { x: val })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -979,15 +978,15 @@ export const TextSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position Y</span>
                       <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
                     </div>
-                    <input
-                      type="range"
-                      min="-300"
-                      max="300"
+                    <StepperSlider
+                      min={-300}
+                      max={300}
+                      step={1}
                       value={selectedLayer.y}
-                      onChange={(e) =>
-                        state.updateTextLayer(selectedLayer.id, { y: Number(e.target.value) })
+                      onChange={(val) =>
+                        state.updateTextLayer(selectedLayer.id, { y: val })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -1003,17 +1002,17 @@ export const TextSection: React.FC = () => {
                         {selectedLayer.rotation ?? 0}°
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="-180"
-                      max="180"
+                    <StepperSlider
+                      min={-180}
+                      max={180}
+                      step={1}
                       value={selectedLayer.rotation ?? 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
-                          rotation: Number(e.target.value),
+                          rotation: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1025,17 +1024,17 @@ export const TextSection: React.FC = () => {
                           {selectedLayer.pitch ?? 0}°
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="-30"
-                        max="30"
+                      <StepperSlider
+                        min={-30}
+                        max={30}
+                        step={1}
                         value={selectedLayer.pitch ?? 0}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateTextLayer(selectedLayer.id, {
-                            pitch: Number(e.target.value),
+                            pitch: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
 
@@ -1046,17 +1045,17 @@ export const TextSection: React.FC = () => {
                           {selectedLayer.yaw ?? 0}°
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="-30"
-                        max="30"
+                      <StepperSlider
+                        min={-30}
+                        max={30}
+                        step={1}
                         value={selectedLayer.yaw ?? 0}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateTextLayer(selectedLayer.id, {
-                            yaw: Number(e.target.value),
+                            yaw: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -1073,17 +1072,17 @@ export const TextSection: React.FC = () => {
                         {selectedLayer.skewX ?? 0}°
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="-60"
-                      max="60"
+                    <StepperSlider
+                      min={-60}
+                      max={60}
+                      step={1}
                       value={selectedLayer.skewX ?? 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
-                          skewX: Number(e.target.value),
+                          skewX: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1094,17 +1093,17 @@ export const TextSection: React.FC = () => {
                         {selectedLayer.skewY ?? 0}°
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="-60"
-                      max="60"
+                    <StepperSlider
+                      min={-60}
+                      max={60}
+                      step={1}
                       value={selectedLayer.skewY ?? 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
-                          skewY: Number(e.target.value),
+                          skewY: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -1119,15 +1118,15 @@ export const TextSection: React.FC = () => {
                       {selectedLayer.opacity ?? 100}%
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
+                  <StepperSlider
+                    min={0}
+                    max={100}
+                    step={1}
                     value={selectedLayer.opacity ?? 100}
-                    onChange={(e) =>
-                      state.updateTextLayer(selectedLayer.id, { opacity: Number(e.target.value) })
+                    onChange={(val) =>
+                      state.updateTextLayer(selectedLayer.id, { opacity: val })
                     }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    accentColor="#ffafcc"
                   />
                 </div>
               )}

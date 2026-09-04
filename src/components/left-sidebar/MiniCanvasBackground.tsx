@@ -8,6 +8,8 @@ import { SpectralBackground } from '../SpectralBackground';
 import { RadiantBackground } from '../RadiantBackground';
 import { AnimatedGradientBackground, AnimatedMeshBackground } from '../AnimatedBackgrounds';
 import { ConfettiBackground } from '../ConfettiBackground';
+import { FlowBackground } from '../FlowBackground';
+import { MistBackground } from '../MistBackground';
 
 export const MiniCanvasBackground: React.FC<{ className?: string }> = ({ className = '' }) => {
   const state = useStudioStore();
@@ -37,6 +39,31 @@ export const MiniCanvasBackground: React.FC<{ className?: string }> = ({ classNa
     content = (
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
+      </div>
+    );
+  } else if (bgType === 'flow') {
+    content = (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <FlowBackground
+          colors={state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']}
+          speed={0}
+          isMini
+        />
+      </div>
+    );
+  } else if (bgType === 'mist') {
+    content = (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <MistBackground
+          stops={state.mistStops}
+          ranges={state.mistRanges}
+          horizon={state.mistHorizon}
+          peaks={state.mistPeaks}
+          sharp={state.mistSharp}
+          haze={state.mistHaze}
+          seed={state.mistSeed}
+          isMini
+        />
       </div>
     );
   } else if (bgType === 'wave') {
@@ -73,6 +100,7 @@ export const MiniCanvasBackground: React.FC<{ className?: string }> = ({ classNa
         <ConfettiBackground
           presetId={state.confettiPreset || 'confetti-1'}
           customPreset={state.customConfettiObj}
+          isMini
         />
       </div>
     );

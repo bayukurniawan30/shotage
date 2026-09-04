@@ -4,24 +4,28 @@ import { CONFETTI_PRESETS } from '../utils/confettiPresets';
 interface ConfettiBackgroundProps {
   presetId?: string;
   customPreset?: any;
+  isMini?: boolean;
 }
 
 export const ConfettiBackground: React.FC<ConfettiBackgroundProps> = ({
   presetId = 'confetti-1',
   customPreset,
+  isMini = false,
 }) => {
   const preset = customPreset || CONFETTI_PRESETS.find((c) => c.id === presetId) || CONFETTI_PRESETS[0];
 
   const renderShape = (shape: (typeof preset.shapes)[0], index: number) => {
     const { type, x, y, size, color, rotation, opacity } = shape;
+    // Scale particle size down for small previews so it looks delicate and proportional
+    const effectiveSize = isMini ? Math.max(2.5, Math.round(size * 0.45 * 10) / 10) : size;
     const style: React.CSSProperties = {
       position: 'absolute',
       left: `${x}%`,
       top: `${y}%`,
-      width: `${size * 2}px`,
-      height: `${size * 2}px`,
+      width: `${effectiveSize * 2}px`,
+      height: `${effectiveSize * 2}px`,
       transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-      opacity,
+      opacity: isMini ? Math.min(1, opacity + 0.15) : opacity,
       pointerEvents: 'none',
     };
 
@@ -33,7 +37,7 @@ export const ConfettiBackground: React.FC<ConfettiBackgroundProps> = ({
             style={{
               ...style,
               backgroundColor: color,
-              borderRadius: '4px',
+              borderRadius: isMini ? '1px' : '4px',
             }}
           />
         );
@@ -46,9 +50,9 @@ export const ConfettiBackground: React.FC<ConfettiBackgroundProps> = ({
               ...style,
               width: 0,
               height: 0,
-              borderLeft: `${size}px solid transparent`,
-              borderRight: `${size}px solid transparent`,
-              borderBottom: `${size * 2}px solid ${color}`,
+              borderLeft: `${effectiveSize}px solid transparent`,
+              borderRight: `${effectiveSize}px solid transparent`,
+              borderBottom: `${effectiveSize * 2}px solid ${color}`,
             }}
           />
         );
@@ -75,12 +79,18 @@ export const ConfettiBackground: React.FC<ConfettiBackgroundProps> = ({
     }
   };
 
+  const rawShapes = preset.shapes || [];
+  // For mini preview cards: select a well-spaced subset (around 12-14 particles) so the tiny space isn't overwhelmed
+  const shapesToRender = isMini
+    ? rawShapes.filter((_: any, idx: number) => idx % 3 === 0).slice(0, 14)
+    : rawShapes;
+
   return (
     <div
       className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"
       style={{ backgroundColor: preset.bgColor }}
     >
-      {preset.shapes?.map((shape: any, i: number) => renderShape(shape, i))}
+      {shapesToRender.map((shape: any, i: number) => renderShape(shape, i))}
     </div>
   );
 };

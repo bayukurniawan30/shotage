@@ -11,9 +11,13 @@ import { RadiantBackground } from './RadiantBackground';
 import { ShadeshifterBackground } from './ShadeshifterBackground';
 import { SpectralBackground } from './SpectralBackground';
 import { AnimatedGradientBackground, AnimatedMeshBackground } from './AnimatedBackgrounds';
+import { FlowBackground } from './FlowBackground';
+import { MistBackground } from './MistBackground';
 import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { parseColorAndAlpha, formatColorWithAlpha } from '../utils/gradientPresets';
 import { getPatternSvgUrl } from '../utils/patternPresets';
+import { getGrainSvgUrl, getGrainTileSize } from '../utils/grain';
+import { PenDrawingOverlay } from './PenDrawingOverlay';
 import { WatermarkOverlay } from './WatermarkOverlay';
 import { GOOGLE_FONTS } from './RightSidebar';
 import { SocialIcon } from './SocialIcons';
@@ -66,6 +70,8 @@ interface CenterPointIndicatorProps {
   rotation?: number;
   flipX?: boolean;
   flipY?: boolean;
+  scaleX?: number;
+  scaleY?: number;
   visible?: boolean;
 }
 
@@ -75,10 +81,13 @@ const CenterPointIndicator: React.FC<CenterPointIndicatorProps> = ({
   rotation = 0,
   flipX = false,
   flipY = false,
+  scaleX = 1,
+  scaleY = 1,
   visible = true,
 }) => {
   if (!visible) return null;
 
+  const scaleTransform = scaleX !== 1 || scaleY !== 1 ? `scale(${scaleX}, ${scaleY}) ` : '';
   const flipTransform = flipX || flipY ? `scale(${flipX ? -1 : 1}, ${flipY ? -1 : 1}) ` : '';
   const rotTransform = rotation ? `rotate(${-rotation}deg)` : '';
 
@@ -87,7 +96,7 @@ const CenterPointIndicator: React.FC<CenterPointIndicatorProps> = ({
       style={{
         top,
         left,
-        transform: `translate(-50%, -50%) ${flipTransform}${rotTransform}`.trim(),
+        transform: `translate(-50%, -50%) ${scaleTransform}${flipTransform}${rotTransform}`.trim(),
       }}
       className="absolute w-2 h-2 rounded-full bg-pastel-pink border-2 border-white shadow-[0_0_10px_rgba(244,114,182,1)] flex items-center justify-center pointer-events-none z-50"
     />
@@ -96,6 +105,11 @@ const CenterPointIndicator: React.FC<CenterPointIndicatorProps> = ({
 
 export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUpload }) => {
   const state = useStudioStore();
+
+  // Pen Tool Drawing State & Action References
+  const [penNodeCount, setPenNodeCount] = useState(0);
+  const finishPenRef = useRef<((isClosed: boolean) => void) | null>(null);
+  const undoPenRef = useRef<(() => void) | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && onImageUpload) {
@@ -161,6 +175,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         LINEAR_SWATCH_PRESETS.find((p) => p.id === state.linearSwatchesPreset) ||
         LINEAR_SWATCH_PRESETS[0];
       return { background: preset.css };
+    }
+    if (state.backgroundType === 'flow') {
+      return { backgroundColor: state.flowColors?.[0] || '#1E50A2' };
+    }
+    if (state.backgroundType === 'mist') {
+      return { backgroundColor: state.mistStops?.[state.mistStops.length - 1] || '#463A5E' };
     }
     return { backgroundColor: '#0f172a' };
   };
@@ -547,20 +567,29 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           >
             {/* Hover Bounding Box (Constant 1px dashed border) */}
             {!isSelected && !layerLocked && (
-              <div
-                className="absolute -top-1 -left-1 border border-dashed border-slate-400 rounded-md pointer-events-none z-10 opacity-0 group-hover/textlayer:opacity-100 transition-opacity"
-                style={{
-                  width: `calc(100% * ${sx} + 8px)`,
-                  height: `calc(100% * ${sy} + 8px)`,
-                }}
-              />
+              <div className="absolute -inset-1 pointer-events-none z-10 opacity-0 group-hover/textlayer:opacity-100 transition-opacity">
+                <div
+                  className="absolute top-0 left-0 right-0 border-t border-dashed border-slate-400"
+                  style={{ height: `${1 / (sy * motion.scale)}px` }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 right-0 border-b border-dashed border-slate-400"
+                  style={{ height: `${1 / (sy * motion.scale)}px` }}
+                />
+                <div
+                  className="absolute top-0 bottom-0 left-0 border-l border-dashed border-slate-400"
+                  style={{ width: `${1 / (sx * motion.scale)}px` }}
+                />
+                <div
+                  className="absolute top-0 bottom-0 right-0 border-r border-dashed border-slate-400"
+                  style={{ width: `${1 / (sx * motion.scale)}px` }}
+                />
+              </div>
             )}
 
-            {/* Stretched Text Content */}
+            {/* Text Content */}
             <div
               style={{
-                transform: `scale(${sx}, ${sy})`,
-                transformOrigin: 'top left',
                 display: 'inline-block',
                 fontFamily: 'inherit',
                 ...textFillStyle,
@@ -672,7 +701,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               <IconComp
                 weight={layer.weight || 'regular'}
                 size={layer.size || 36}
-                color={layer.color || '#a2d2ff'}
+                color={layer.color || '#ffffff'}
               />
             </div>
           </div>
@@ -705,6 +734,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const elScaleX = (kfValues.scaleX ?? 1) * (el.flipX ? -1 : 1);
         const elScaleY = (kfValues.scaleY ?? 1) * (el.flipY ? -1 : 1);
 
+        const combinedBlur = (el.blur ?? 0) + (motion.blur ?? 0);
+
         return (
           <div
             key={el.id}
@@ -722,16 +753,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('element', el.id, positionFilter),
               transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`,
               opacity: motion.isVisible ? (elOpacity / 100) * motion.opacity : 0,
-              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
+              filter: `${combinedBlur > 0 ? `blur(${combinedBlur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
               width: `${elWidth}px`,
               height: `${elHeight}px`,
             }}
           >
             {el.category === 'emoji' ? (
-              <div
-                className="w-full h-full flex items-center justify-center select-none pointer-events-none"
-                style={{ filter: el.blur ? `blur(${el.blur}px)` : 'none' }}
-              >
+              <div className="w-full h-full flex items-center justify-center select-none pointer-events-none">
                 <img
                   src={el.src}
                   alt="Emoji Element"
@@ -743,7 +771,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 className="w-full h-full"
                 style={{
                   backgroundColor: el.color || '#a2d2ff',
-                  filter: el.blur ? `blur(${el.blur}px)` : 'none',
                   WebkitMaskImage: `url("${el.src}")`,
                   maskImage: `url("${el.src}")`,
                   WebkitMaskSize: 'contain',
@@ -1921,10 +1948,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const [resizeDragItem, setResizeDragItem] = useState<{
     type: 'text' | 'phosphor' | 'element' | 'shape';
     id: string;
+    corner: 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r';
     startX: number;
     startY: number;
     initialWidth: number;
     initialHeight: number;
+    initialX: number;
+    initialY: number;
     initialFontSize: number;
     initialSize: number;
     initialScaleX?: number;
@@ -1933,6 +1963,28 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     rotation: number;
     shapeType?: import('../types/studio').ShapeType;
   } | null>(null);
+
+  // Helper for resize cursor (corners and edge handles)
+  const getResizeCursor = (corner?: 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r') => {
+    switch (corner) {
+      case 'tl':
+        return 'cursor-nw-resize';
+      case 'tr':
+        return 'cursor-ne-resize';
+      case 'bl':
+        return 'cursor-sw-resize';
+      case 'br':
+        return 'cursor-se-resize';
+      case 't':
+      case 'b':
+        return 'cursor-ns-resize';
+      case 'l':
+      case 'r':
+        return 'cursor-ew-resize';
+      default:
+        return 'cursor-se-resize';
+    }
+  };
 
   // On-canvas drag of multiple selected layers together
   const [groupDrag, setGroupDrag] = useState<{
@@ -1982,6 +2034,42 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   useEffect(() => {
     setPan({ x: 0, y: 0 });
   }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
+
+  // Double-click confirmation state for delete handles (must be clicked twice within 1000ms)
+  const pendingDeleteRef = useRef<{ id: string; time: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const handleDeleteWithConfirm = (e: React.MouseEvent, id: string, deleteFn: () => void) => {
+    e.stopPropagation();
+    const now = Date.now();
+
+    if (pendingDeleteRef.current && pendingDeleteRef.current.id === id && now - pendingDeleteRef.current.time <= 1000) {
+      // Second click within 1 second - confirm and delete!
+      clearTimeout(pendingDeleteRef.current.timer);
+      pendingDeleteRef.current = null;
+      setConfirmDeleteId(null);
+      deleteFn();
+    } else {
+      // First click - start 1-second countdown window
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current.timer);
+      }
+      setConfirmDeleteId(id);
+      const timer = setTimeout(() => {
+        setConfirmDeleteId(null);
+        pendingDeleteRef.current = null;
+      }, 1000);
+      pendingDeleteRef.current = { id, time: now, timer };
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current.timer);
+      }
+    };
+  }, []);
 
   // 2-Finger Trackpad Pan & Pinch-to-Zoom on Mac/Windows
   useEffect(() => {
@@ -2094,6 +2182,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   }, [state.aspectRatio, state.layoutCount]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (state.isPenDrawingMode) return;
     const target = e.target as HTMLElement;
     if (
       target.tagName === 'INPUT' ||
@@ -2118,6 +2207,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
       const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
       const shapeLayerEl = target.closest('.shape-layer-item') as HTMLElement | null;
+      const corner = (resizeHandleEl.dataset.corner as 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r') || 'br';
 
       let currentScale = 1;
       const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
@@ -2140,10 +2230,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           setResizeDragItem({
             type: 'text',
             id: layer.id,
+            corner,
             startX: e.clientX,
             startY: e.clientY,
             initialWidth: baseW,
             initialHeight: baseH,
+            initialX: layer.x || 0,
+            initialY: layer.y || 0,
             initialFontSize: layer.fontSize || 32,
             initialScaleX: currentScaleX,
             initialScaleY: currentScaleY,
@@ -2160,10 +2253,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           setResizeDragItem({
             type: 'phosphor',
             id: layer.id,
+            corner,
             startX: e.clientX,
             startY: e.clientY,
             initialWidth: 0,
             initialHeight: 0,
+            initialX: layer.x || 0,
+            initialY: layer.y || 0,
             initialFontSize: 0,
             initialSize: layer.size || 36,
             scale: currentScale,
@@ -2178,10 +2274,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           setResizeDragItem({
             type: 'element',
             id: layer.id,
+            corner,
             startX: e.clientX,
             startY: e.clientY,
             initialWidth: layer.width || 90,
             initialHeight: layer.height || 90,
+            initialX: layer.x || 0,
+            initialY: layer.y || 0,
             initialFontSize: 0,
             initialSize: 0,
             scale: currentScale,
@@ -2196,10 +2295,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           setResizeDragItem({
             type: 'shape',
             id: layer.id,
+            corner,
             startX: e.clientX,
             startY: e.clientY,
             initialWidth: layer.width || 120,
             initialHeight: layer.height || 120,
+            initialX: layer.x || 0,
+            initialY: layer.y || 0,
             initialFontSize: 0,
             initialSize: 0,
             scale: currentScale,
@@ -2502,92 +2604,204 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const sin = Math.sin(-rad);
       const deltaX = screenDeltaX * cos - screenDeltaY * sin;
       const deltaY = screenDeltaX * sin + screenDeltaY * cos;
-      const delta = (deltaX + deltaY) / 2;
+
+      const corner = resizeDragItem.corner || 'br';
+      const factorX =
+        corner === 'tl' || corner === 'bl' || corner === 'l'
+          ? -1
+          : corner === 'tr' || corner === 'br' || corner === 'r'
+            ? 1
+            : 0;
+      const factorY =
+        corner === 'tl' || corner === 'tr' || corner === 't'
+          ? -1
+          : corner === 'bl' || corner === 'br' || corner === 'b'
+            ? 1
+            : 0;
+
+      const localDeltaX = deltaX * factorX;
+      const localDeltaY = deltaY * factorY;
 
       if (resizeDragItem.type === 'text') {
-        const baseW = Math.max(resizeDragItem.initialWidth || 100, 20);
-        const baseH = Math.max(resizeDragItem.initialHeight || 30, 10);
-        const initScaleX = resizeDragItem.initialScaleX ?? 1;
-        const initScaleY = resizeDragItem.initialScaleY ?? 1;
+        const initW = Math.max(resizeDragItem.initialWidth || 100, 20);
+        const initH = Math.max(resizeDragItem.initialHeight || 30, 10);
+        const initSx = resizeDragItem.initialScaleX ?? 1;
+        const initSy = resizeDragItem.initialScaleY ?? 1;
 
-        if (e.shiftKey) {
-          // Proportional Uniform Scaling when holding Shift
-          const initVisualW = baseW * initScaleX;
-          const initVisualH = baseH * initScaleY;
-          const avgVisualDelta = (deltaX + deltaY) / 2;
-          const scaleRatio = 1 + avgVisualDelta / Math.max(initVisualW, initVisualH, 30);
-          const nextScaleX = Math.max(0.1, Math.min(20.0, initScaleX * scaleRatio));
-          const nextScaleY = Math.max(0.1, Math.min(20.0, initScaleY * scaleRatio));
+        if (corner === 'l' || corner === 'r') {
+          // Stretch X directly on canvas via side handle
+          const nextScaleX = Math.max(0.1, Math.min(8.0, initSx + localDeltaX / initW));
+          const actualDW = (nextScaleX - initSx) * initW;
+          const shiftLocalX = (factorX * actualDW) / 2;
+
+          const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+          const shiftCanvasX = shiftLocalX * Math.cos(radNorm);
+          const shiftCanvasY = shiftLocalX * Math.sin(radNorm);
+
+          const newX = Math.round(resizeDragItem.initialX + shiftCanvasX);
+          const newY = Math.round(resizeDragItem.initialY + shiftCanvasY);
+
           scheduleDragUpdate(() =>
             state.updateTextLayer(resizeDragItem.id, {
               scaleX: Math.round(nextScaleX * 100) / 100,
+              x: newX,
+              y: newY,
+            })
+          );
+        } else if (corner === 't' || corner === 'b') {
+          // Stretch Y directly on canvas via top/bottom handle
+          const nextScaleY = Math.max(0.1, Math.min(8.0, initSy + localDeltaY / initH));
+          const actualDH = (nextScaleY - initSy) * initH;
+          const shiftLocalY = (factorY * actualDH) / 2;
+
+          const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+          const shiftCanvasX = -shiftLocalY * Math.sin(radNorm);
+          const shiftCanvasY = shiftLocalY * Math.cos(radNorm);
+
+          const newX = Math.round(resizeDragItem.initialX + shiftCanvasX);
+          const newY = Math.round(resizeDragItem.initialY + shiftCanvasY);
+
+          scheduleDragUpdate(() =>
+            state.updateTextLayer(resizeDragItem.id, {
               scaleY: Math.round(nextScaleY * 100) / 100,
+              x: newX,
+              y: newY,
             })
           );
         } else {
-          // 1:1 Pixel-Perfect Cursor Tracking (nextVisualW = initVisualW + deltaX => nextScaleX = initScaleX + deltaX / baseW)
-          const nextScaleX = Math.max(0.1, Math.min(20.0, initScaleX + deltaX / baseW));
-          const nextScaleY = Math.max(0.1, Math.min(20.0, initScaleY + deltaY / baseH));
+          // Corner handles: proportional fontSize resize
+          const initFontSize = resizeDragItem.initialFontSize || 32;
+          const initVisualW = initW * initSx;
+          const initVisualH = initH * initSy;
+
+          const avgDelta = (localDeltaX + localDeltaY) / 2;
+          const scaleRatio = 1 + avgDelta / Math.max(initVisualW, initVisualH, 30);
+          const newFontSize = Math.max(8, Math.min(500, Math.round(initFontSize * scaleRatio)));
+
+          const fontRatio = newFontSize / initFontSize;
+          const dW = (fontRatio - 1) * initVisualW;
+          const dH = (fontRatio - 1) * initVisualH;
+
+          const shiftLocalX = (factorX * dW) / 2;
+          const shiftLocalY = (factorY * dH) / 2;
+
+          const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+          const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
+          const shiftCanvasY = shiftLocalX * Math.sin(radNorm) + shiftLocalY * Math.cos(radNorm);
+
+          const newX = Math.round(resizeDragItem.initialX + shiftCanvasX);
+          const newY = Math.round(resizeDragItem.initialY + shiftCanvasY);
+
           scheduleDragUpdate(() =>
             state.updateTextLayer(resizeDragItem.id, {
-              scaleX: Math.round(nextScaleX * 100) / 100,
-              scaleY: Math.round(nextScaleY * 100) / 100,
+              fontSize: newFontSize,
+              x: newX,
+              y: newY,
             })
           );
         }
       } else if (resizeDragItem.type === 'phosphor') {
-        // 1:1 Pixel-Perfect Cursor Tracking for Phosphor Icons (diagonal displacement on square aspect)
+        const initSize = resizeDragItem.initialSize || 36;
+        const avgDelta = (localDeltaX + localDeltaY) / 2;
         const newSize = Math.max(
           16,
-          Math.min(600, Math.round(resizeDragItem.initialSize + (deltaX + deltaY) / 2))
+          Math.min(600, Math.round(initSize + avgDelta))
         );
+
+        const dS = newSize - initSize;
+        const shiftLocalX = (factorX * dS) / 2;
+        const shiftLocalY = (factorY * dS) / 2;
+
+        const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+        const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
+        const shiftCanvasY = shiftLocalX * Math.sin(radNorm) + shiftLocalY * Math.cos(radNorm);
+
+        const newX = Math.round(resizeDragItem.initialX + shiftCanvasX);
+        const newY = Math.round(resizeDragItem.initialY + shiftCanvasY);
+
         scheduleDragUpdate(() =>
-          state.updatePhosphorIconLayer(resizeDragItem.id, { size: newSize })
+          state.updatePhosphorIconLayer(resizeDragItem.id, {
+            size: newSize,
+            x: newX,
+            y: newY,
+          })
         );
       } else if (resizeDragItem.type === 'element') {
-        // 1:1 Pixel-Perfect Cursor Tracking for Canvas Elements (emojis, arrows, lines)
         const initW = resizeDragItem.initialWidth || 90;
         const initH = resizeDragItem.initialHeight || 90;
         const isSquare = Math.abs(initW - initH) < 2;
 
+        let newWidth = initW;
+        let newHeight = initH;
+
         if (isSquare || e.shiftKey) {
-          // Uniform 1:1 aspect scaling (e.g. emojis)
-          const avgDelta = (deltaX + deltaY) / 2;
+          const avgDelta = (localDeltaX + localDeltaY) / 2;
           const aspect = initH > 0 ? initW / initH : 1;
-          const newWidth = Math.max(10, Math.min(1200, Math.round(initW + avgDelta)));
-          const newHeight = Math.max(10, Math.min(1200, Math.round(newWidth / aspect)));
-          scheduleDragUpdate(() =>
-            state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
-          );
+          newWidth = Math.max(10, Math.min(1200, Math.round(initW + avgDelta)));
+          newHeight = Math.max(10, Math.min(1200, Math.round(newWidth / aspect)));
         } else {
-          // Freeform 2D sizing
-          const newWidth = Math.max(10, Math.min(1200, Math.round(initW + deltaX)));
-          const newHeight = Math.max(10, Math.min(1200, Math.round(initH + deltaY)));
-          scheduleDragUpdate(() =>
-            state.updateCanvasElement(resizeDragItem.id, { width: newWidth, height: newHeight })
-          );
+          newWidth = Math.max(10, Math.min(1200, Math.round(initW + localDeltaX)));
+          newHeight = Math.max(10, Math.min(1200, Math.round(initH + localDeltaY)));
         }
+
+        const dW = newWidth - initW;
+        const dH = newHeight - initH;
+        const shiftLocalX = (factorX * dW) / 2;
+        const shiftLocalY = (factorY * dH) / 2;
+
+        const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+        const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
+        const shiftCanvasY = shiftLocalX * Math.sin(radNorm) + shiftLocalY * Math.cos(radNorm);
+
+        const newX = Math.round(resizeDragItem.initialX + shiftCanvasX);
+        const newY = Math.round(resizeDragItem.initialY + shiftCanvasY);
+
+        scheduleDragUpdate(() =>
+          state.updateCanvasElement(resizeDragItem.id, {
+            width: newWidth,
+            height: newHeight,
+            x: newX,
+            y: newY,
+          })
+        );
       } else if (resizeDragItem.type === 'shape') {
-        // 1:1 Pixel-Perfect Cursor Tracking for Shapes
         const isUniform = resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
         const initW = resizeDragItem.initialWidth || 120;
         const initH = resizeDragItem.initialHeight || 120;
 
+        let newWidth = initW;
+        let newHeight = initH;
+
         if (isUniform || e.shiftKey) {
-          const avgDelta = (deltaX + deltaY) / 2;
+          const avgDelta = (localDeltaX + localDeltaY) / 2;
           const aspect = initH > 0 ? initW / initH : 1;
-          const newWidth = Math.max(10, Math.min(2000, Math.round(initW + avgDelta)));
-          const newHeight = Math.max(10, Math.min(2000, Math.round(newWidth / aspect)));
-          scheduleDragUpdate(() =>
-            state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
-          );
+          newWidth = Math.max(10, Math.min(2000, Math.round(initW + avgDelta)));
+          newHeight = Math.max(10, Math.min(2000, Math.round(newWidth / aspect)));
         } else {
-          const newWidth = Math.max(10, Math.min(2000, Math.round(initW + deltaX)));
-          const newHeight = Math.max(10, Math.min(2000, Math.round(initH + deltaY)));
-          scheduleDragUpdate(() =>
-            state.updateShapeLayer(resizeDragItem.id, { width: newWidth, height: newHeight })
-          );
+          newWidth = Math.max(10, Math.min(2000, Math.round(initW + localDeltaX)));
+          newHeight = Math.max(10, Math.min(2000, Math.round(initH + localDeltaY)));
         }
+
+        const dW = newWidth - initW;
+        const dH = newHeight - initH;
+        const shiftLocalX = (factorX * dW) / 2;
+        const shiftLocalY = (factorY * dH) / 2;
+
+        const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
+        const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
+        const shiftCanvasY = shiftLocalX * Math.sin(radNorm) + shiftLocalY * Math.cos(radNorm);
+
+        const newX = Math.round(resizeDragItem.initialX + shiftCanvasX);
+        const newY = Math.round(resizeDragItem.initialY + shiftCanvasY);
+
+        scheduleDragUpdate(() =>
+          state.updateShapeLayer(resizeDragItem.id, {
+            width: newWidth,
+            height: newHeight,
+            x: newX,
+            y: newY,
+          })
+        );
       }
     } else if (groupDrag) {
       const scale = groupDrag.scale || 1;
@@ -2777,7 +2991,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div
               key={`gizmo-shape-${layer.id}`}
               data-layer-id={layer.id}
-              className="shape-layer-item selection-gizmo-item absolute cursor-move select-none ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40 pointer-events-auto"
+              className="shape-layer-item selection-gizmo-item absolute cursor-move select-none ring-1 ring-white shadow-[0_0_2px_rgba(0,0,0,0.6)] pointer-events-auto"
               style={{
                 transform: transformStr,
                 transformStyle: has3D ? 'preserve-3d' : undefined,
@@ -2785,39 +2999,61 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 height: `${shapeHeight}px`,
               }}
             >
-              <div
-                data-action="delete"
-                title="Delete shape"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  state.removeShapeLayer(layer.id);
-                }}
-                className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.TrashIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-shapeRot}deg)` }}
-                />
-              </div>
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
-                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowClockwiseIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-shapeRot}deg)` }}
-                />
-              </div>
+              {/* 4 Corner Resize Handles - Crisp White Squares */}
               <div
                 data-action="resize"
-                title="Drag to resize shape"
-                className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowsOutSimpleIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-shapeRot}deg)` }}
-                />
+                data-corner="tl"
+                title="Drag to resize"
+                className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+              <div
+                data-action="resize"
+                data-corner="tr"
+                title="Drag to resize"
+                className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+              <div
+                data-action="resize"
+                data-corner="bl"
+                title="Drag to resize"
+                className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+              <div
+                data-action="resize"
+                data-corner="br"
+                title="Drag to resize"
+                className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+
+              {/* Bottom Action Bar: Rotate & Delete buttons side-by-side */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto">
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
+                >
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-shapeRot}deg)` }}
+                  />
+                </div>
+                <div
+                  data-action="delete"
+                  title={confirmDeleteId === layer.id ? 'Click again to confirm delete' : 'Delete shape (click twice)'}
+                  onClick={(e) =>
+                    handleDeleteWithConfirm(e, layer.id, () => state.removeShapeLayer(layer.id))
+                  }
+                  className={`delete-handle w-6 h-6 rounded-full text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer transition-all ${
+                    confirmDeleteId === layer.id
+                      ? 'bg-rose-600 scale-125 ring-2 ring-rose-400 animate-pulse'
+                      : 'bg-rose-500 hover:scale-110'
+                  }`}
+                >
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-shapeRot}deg)` }}
+                  />
+                </div>
               </div>
 
               <CenterPointIndicator
@@ -2857,55 +3093,77 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div
               key={`gizmo-el-${el.id}`}
               data-layer-id={el.id}
-              className="canvas-element-item selection-gizmo-item absolute cursor-move select-none rounded-none ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40 pointer-events-auto"
+              className="canvas-element-item selection-gizmo-item absolute cursor-move select-none rounded-none ring-1 ring-white shadow-[0_0_2px_rgba(0,0,0,0.6)] pointer-events-auto"
               style={{
                 transform: transformStr,
                 width: `${elWidth}px`,
                 height: `${elHeight}px`,
               }}
             >
-              <div
-                data-action="delete"
-                title="Delete element"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  state.removeCanvasElement(el.id);
-                }}
-                className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{
-                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-                }}
-              >
-                <PhosphorIcons.TrashIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-elRot}deg)` }}
-                />
-              </div>
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
-                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{
-                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
-                }}
-              >
-                <PhosphorIcons.ArrowClockwiseIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-elRot}deg)` }}
-                />
-              </div>
+              {/* 4 Corner Resize Handles - Crisp White Squares */}
               <div
                 data-action="resize"
-                title="Drag to resize element"
-                className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                data-corner="tl"
+                title="Drag to resize"
+                className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
+              />
+              <div
+                data-action="resize"
+                data-corner="tr"
+                title="Drag to resize"
+                className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
+              />
+              <div
+                data-action="resize"
+                data-corner="bl"
+                title="Drag to resize"
+                className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
+              />
+              <div
+                data-action="resize"
+                data-corner="br"
+                title="Drag to resize"
+                className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
+              />
+
+              {/* Bottom Action Bar: Rotate & Delete buttons side-by-side */}
+              <div
+                className="absolute top-full left-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto"
                 style={{
-                  transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
+                  transform: `translateX(-50%) scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
                 }}
               >
-                <PhosphorIcons.ArrowsOutSimpleIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-elRot}deg)` }}
-                />
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
+                >
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-elRot}deg)` }}
+                  />
+                </div>
+                <div
+                  data-action="delete"
+                  title={confirmDeleteId === el.id ? 'Click again to confirm delete' : 'Delete element (click twice)'}
+                  onClick={(e) =>
+                    handleDeleteWithConfirm(e, el.id, () => state.removeCanvasElement(el.id))
+                  }
+                  className={`delete-handle w-6 h-6 rounded-full text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer transition-all ${
+                    confirmDeleteId === el.id
+                      ? 'bg-rose-600 scale-125 ring-2 ring-rose-400 animate-pulse'
+                      : 'bg-rose-500 hover:scale-110'
+                  }`}
+                >
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-elRot}deg)` }}
+                  />
+                </div>
               </div>
 
               <CenterPointIndicator
@@ -2943,46 +3201,68 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <div
               key={`gizmo-icon-${layer.id}`}
               data-layer-id={layer.id}
-              className="phosphor-icon-layer-item selection-gizmo-item absolute cursor-move select-none ring-2 ring-pastel-pink ring-offset-2 ring-offset-neutral-950/40 rounded-none pointer-events-auto"
+              className="phosphor-icon-layer-item selection-gizmo-item absolute cursor-move select-none ring-1 ring-white shadow-[0_0_2px_rgba(0,0,0,0.6)] rounded-none pointer-events-auto"
               style={{
                 transform: transformStr,
                 width: `${iconSize}px`,
                 height: `${iconSize}px`,
               }}
             >
-              <div
-                data-action="delete"
-                title="Delete icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  state.removePhosphorIconLayer(layer.id);
-                }}
-                className="delete-handle absolute -top-3 -left-3 w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.TrashIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-iconRot}deg)` }}
-                />
-              </div>
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
-                className="rotate-handle absolute -top-3 -right-3 w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowClockwiseIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-iconRot}deg)` }}
-                />
-              </div>
+              {/* 4 Corner Resize Handles - Crisp White Squares */}
               <div
                 data-action="resize"
-                title="Drag to resize icon"
-                className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowsOutSimpleIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-iconRot}deg)` }}
-                />
+                data-corner="tl"
+                title="Drag to resize"
+                className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+              <div
+                data-action="resize"
+                data-corner="tr"
+                title="Drag to resize"
+                className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+              <div
+                data-action="resize"
+                data-corner="bl"
+                title="Drag to resize"
+                className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+              <div
+                data-action="resize"
+                data-corner="br"
+                title="Drag to resize"
+                className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+              />
+
+              {/* Bottom Action Bar: Rotate & Delete buttons side-by-side */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto">
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
+                >
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-iconRot}deg)` }}
+                  />
+                </div>
+                <div
+                  data-action="delete"
+                  title={confirmDeleteId === layer.id ? 'Click again to confirm delete' : 'Delete icon (click twice)'}
+                  onClick={(e) =>
+                    handleDeleteWithConfirm(e, layer.id, () => state.removePhosphorIconLayer(layer.id))
+                  }
+                  className={`delete-handle w-6 h-6 rounded-full text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer transition-all ${
+                    confirmDeleteId === layer.id
+                      ? 'bg-rose-600 scale-125 ring-2 ring-rose-400 animate-pulse'
+                      : 'bg-rose-500 hover:scale-110'
+                  }`}
+                >
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-iconRot}deg)` }}
+                  />
+                </div>
               </div>
 
               <CenterPointIndicator
@@ -3015,11 +3295,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           const posFontSize = kfValues.fontSize ?? layer.fontSize;
           const sx = kfValues.scaleX ?? layer.scaleX ?? 1;
           const sy = kfValues.scaleY ?? layer.scaleY ?? 1;
-          const has3D = posPitch !== 0 || posYaw !== 0;
+          const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
+          const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
 
-          const transformStr = has3D
-            ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) scale(${motion.scale})`
-            : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${posRot}deg) scale(${motion.scale})`;
+          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`;
 
           const textAlign = layer.textAlign || 'center';
           const currentText = motion.animatedText ?? layer.text;
@@ -3029,6 +3308,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               ? `${motion.animatedText}${motion.untypedText}`
               : currentText;
 
+          const totalScaleX = (sx || 1) * (motion.scale || 1);
+          const totalScaleY = (sy || 1) * (motion.scale || 1);
+          const invScaleX = totalScaleX !== 0 ? 1 / totalScaleX : 1;
+          const invScaleY = totalScaleY !== 0 ? 1 / totalScaleY : 1;
+          const handleScaleStyle = { transform: `scale(${invScaleX}, ${invScaleY})` };
+
           return (
             <div
               key={`gizmo-text-${layer.id}`}
@@ -3036,86 +3321,182 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="text-layer-item selection-gizmo-item absolute cursor-move select-none pointer-events-auto"
               style={{
                 transform: transformStr,
-                transformStyle: has3D ? 'preserve-3d' : undefined,
+                transformStyle: 'preserve-3d',
+                fontFamily: fontFamilyCss,
                 fontSize: `${posFontSize}px`,
+                lineHeight: 1.2,
                 fontWeight: layer.fontWeight,
                 fontStyle: layer.fontStyle,
+                textAlign: layer.textAlign,
                 whiteSpace: fullText.includes('\n') ? 'pre-wrap' : 'pre',
                 width: 'max-content',
                 maxWidth: 'none',
               }}
             >
+              {/* Outer line element framing the text */}
+              <div className="absolute -inset-1 rounded-none pointer-events-none z-30">
+                {/* 4 Constant 1px Borders (thickness never changes when scaleX or scaleY changes) */}
+                <div
+                  className="absolute top-0 left-0 right-0 bg-white shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                  style={{ height: `${invScaleY}px` }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 right-0 bg-white shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                  style={{ height: `${invScaleY}px` }}
+                />
+                <div
+                  className="absolute top-0 bottom-0 left-0 bg-white shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                  style={{ width: `${invScaleX}px` }}
+                />
+                <div
+                  className="absolute top-0 bottom-0 right-0 bg-white shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                  style={{ width: `${invScaleX}px` }}
+                />
+                {/* 4 Corner Resize Handles - Crisp White Squares (constant size) */}
+                <div
+                  data-action="resize"
+                  data-corner="tl"
+                  title="Drag to resize text"
+                  style={handleScaleStyle}
+                  className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+                <div
+                  data-action="resize"
+                  data-corner="tr"
+                  title="Drag to resize text"
+                  style={handleScaleStyle}
+                  className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+                <div
+                  data-action="resize"
+                  data-corner="bl"
+                  title="Drag to resize text"
+                  style={handleScaleStyle}
+                  className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+                <div
+                  data-action="resize"
+                  data-corner="br"
+                  title="Drag to resize text"
+                  style={handleScaleStyle}
+                  className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+
+                {/* 4 Side Edge Handles - Crisp White Bars (constant size, for stretching X & Y) */}
+                <div
+                  data-action="resize"
+                  data-corner="t"
+                  title="Drag to stretch height (scaleY)"
+                  style={{
+                    transform: `translateX(-50%) scale(${invScaleX}, ${invScaleY})`,
+                  }}
+                  className="resize-handle absolute -top-[4px] left-1/2 w-4 h-1.5 bg-white border border-neutral-400 rounded-full shadow-sm cursor-ns-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+                <div
+                  data-action="resize"
+                  data-corner="b"
+                  title="Drag to stretch height (scaleY)"
+                  style={{
+                    transform: `translateX(-50%) scale(${invScaleX}, ${invScaleY})`,
+                  }}
+                  className="resize-handle absolute -bottom-[4px] left-1/2 w-4 h-1.5 bg-white border border-neutral-400 rounded-full shadow-sm cursor-ns-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+                <div
+                  data-action="resize"
+                  data-corner="l"
+                  title="Drag to stretch width (scaleX)"
+                  style={{
+                    transform: `translateY(-50%) scale(${invScaleX}, ${invScaleY})`,
+                  }}
+                  className="resize-handle absolute -left-[4px] top-1/2 w-1.5 h-4 bg-white border border-neutral-400 rounded-full shadow-sm cursor-ew-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+                <div
+                  data-action="resize"
+                  data-corner="r"
+                  title="Drag to stretch width (scaleX)"
+                  style={{
+                    transform: `translateY(-50%) scale(${invScaleX}, ${invScaleY})`,
+                  }}
+                  className="resize-handle absolute -right-[4px] top-1/2 w-1.5 h-4 bg-white border border-neutral-400 rounded-full shadow-sm cursor-ew-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
+                />
+              </div>
+
+              {/* Invisible content that matches the exact text layer dimensions */}
               <div
-                className="absolute -top-1 -left-1 border-2 border-pastel-pink rounded-none pointer-events-none z-30 ring-2 ring-pastel-pink/30"
                 style={{
-                  width: `calc(100% * ${sx} + 8px)`,
-                  height: `calc(100% * ${sy} + 8px)`,
-                }}
-              />
-              <div
-                style={{
-                  transform: `scale(${sx}, ${sy})`,
-                  transformOrigin: 'top left',
                   display: 'inline-block',
                   visibility: 'hidden',
+                  pointerEvents: 'none',
+                  fontFamily: 'inherit',
                 }}
               >
                 {layer.socialPlatform ? (
-                  <div className="flex items-center gap-2.5 px-3.5 py-1.5">
-                    <span style={{ fontSize: `${layer.fontSize}px` }}>{fullText}</span>
+                  <div
+                    className={`flex items-center gap-2.5 ${
+                      layer.socialStyle === 'badge-light'
+                        ? 'bg-white text-slate-900 border border-slate-200/90 shadow-md rounded-lg px-3.5 py-1.5'
+                        : layer.socialStyle === 'badge-dark'
+                          ? 'bg-neutral-950/90 text-white border border-neutral-800 shadow-md rounded-lg px-3.5 py-1.5'
+                          : layer.socialStyle === 'glass-dark'
+                            ? 'bg-neutral-950/40 backdrop-blur-md border border-white/15 text-white shadow-xl rounded-lg px-3.5 py-1.5'
+                            : layer.socialStyle === 'glass-light'
+                              ? 'bg-white/30 backdrop-blur-md border border-white/50 text-slate-900 shadow-xl rounded-lg px-3.5 py-1.5'
+                              : ''
+                    }`}
+                  >
+                    <SocialIcon
+                      platform={layer.socialPlatform}
+                      size={layer.iconSize || layer.fontSize * 1.1}
+                      color="transparent"
+                    />
+                    <span style={{ fontFamily: fontFamilyCss }}>{fullText}</span>
                   </div>
                 ) : (
                   fullText
                 )}
               </div>
+
+              {/* Bottom Action Bar: Rotate & Delete buttons side-by-side (constant size) */}
               <div
-                data-action="delete"
-                title="Delete layer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  state.removeTextLayer(layer.id);
-                }}
-                style={{ top: '-14px', left: '-14px' }}
-                className="delete-handle absolute w-6 h-6 rounded-full bg-rose-400 text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.TrashIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-posRot}deg)` }}
-                />
-              </div>
-              <div
-                data-action="rotate"
-                title="Drag to rotate"
+                className="absolute top-full left-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto"
                 style={{
-                  top: '-14px',
-                  left: `calc(100% * ${sx} - 10px)`,
+                  transform: `translateX(-50%) scale(${invScaleX}, ${invScaleY})`,
+                  transformOrigin: 'top center',
                 }}
-                className="rotate-handle absolute w-6 h-6 rounded-full bg-pastel-pink text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-grab active:cursor-grabbing hover:scale-125 transition-transform z-50 pointer-events-auto"
               >
-                <PhosphorIcons.ArrowClockwiseIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-posRot}deg)` }}
-                />
-              </div>
-              <div
-                data-action="resize"
-                title="Drag to stretch text (Hold Shift for proportional scale)"
-                style={{
-                  top: `calc(100% * ${sy} - 10px)`,
-                  left: `calc(100% * ${sx} - 10px)`,
-                }}
-                className="resize-handle absolute w-6 h-6 rounded-full bg-[#a2d2ff] text-slate-950 flex items-center justify-center shadow-lg border-2 border-white cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              >
-                <PhosphorIcons.ArrowsOutSimpleIcon
-                  className="w-3.5 h-3.5 font-bold pointer-events-none"
-                  style={{ transform: `rotate(${-posRot}deg)` }}
-                />
+                <div
+                  data-action="rotate"
+                  title="Drag to rotate"
+                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
+                >
+                  <PhosphorIcons.ArrowClockwiseIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-posRot}deg)` }}
+                  />
+                </div>
+                <div
+                  data-action="delete"
+                  title={confirmDeleteId === layer.id ? 'Click again to confirm delete' : 'Delete layer (click twice)'}
+                  onClick={(e) =>
+                    handleDeleteWithConfirm(e, layer.id, () => state.removeTextLayer(layer.id))
+                  }
+                  className={`delete-handle w-6 h-6 rounded-full text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer transition-all ${
+                    confirmDeleteId === layer.id
+                      ? 'bg-rose-600 scale-125 ring-2 ring-rose-400 animate-pulse'
+                      : 'bg-rose-500 hover:scale-110'
+                  }`}
+                >
+                  <PhosphorIcons.TrashIcon
+                    className="w-3.5 h-3.5 font-bold pointer-events-none"
+                    style={{ transform: `rotate(${-posRot}deg)` }}
+                  />
+                </div>
               </div>
 
               <CenterPointIndicator
-                top={`calc(50% * ${sy})`}
-                left={`calc(50% * ${sx})`}
                 rotation={posRot}
+                scaleX={invScaleX}
+                scaleY={invScaleY}
                 visible={
                   dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
                 }
@@ -3138,13 +3519,74 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className={`absolute inset-0 max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
-        rotateDragItem || resizeDragItem || groupDrag || dragItem
-          ? 'cursor-move select-none'
-          : isPanning
-            ? 'cursor-grabbing select-none'
-            : 'cursor-grab'
+        rotateDragItem
+          ? 'cursor-grabbing select-none'
+          : resizeDragItem
+            ? `${getResizeCursor(resizeDragItem.corner)} select-none`
+            : groupDrag || dragItem
+              ? 'cursor-move select-none'
+              : isPanning
+                ? 'cursor-grabbing select-none'
+                : 'cursor-grab'
       }`}
     >
+      {/* Floating Pen Tool Toolbar (Fixed minimal vertical icon-only bar on top-left) */}
+      {state.isPenDrawingMode && (
+        <div className="absolute top-4 left-4 z-40 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md p-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto select-none">
+          {/* Active Pen Indicator */}
+          <div
+            title="Pen Tool Active"
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-pastel-pink/15 text-pastel-pink cursor-default"
+          >
+            <PhosphorIcons.PenNib weight="fill" className="w-4 h-4" />
+          </div>
+
+          <div className="w-4 h-px bg-neutral-800" />
+
+          {/* Close Shape / Done (Check icon) */}
+          <button
+            type="button"
+            disabled={penNodeCount < 2}
+            onClick={() => finishPenRef.current?.(penNodeCount >= 3)}
+            title={penNodeCount >= 3 ? 'Close Shape (Enter)' : 'Done (Enter)'}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+              penNodeCount >= 2
+                ? 'bg-gradient-to-tr from-pastel-pink to-[#a2d2ff] text-slate-950 hover:scale-110 shadow-md shadow-pastel-pink/20 cursor-pointer'
+                : 'bg-neutral-800/60 text-neutral-600 cursor-not-allowed'
+            }`}
+          >
+            <PhosphorIcons.Check weight="bold" className="w-4 h-4" />
+          </button>
+
+          {/* Undo Point (ArrowUUpLeft icon) */}
+          <button
+            type="button"
+            disabled={penNodeCount === 0}
+            onClick={() => undoPenRef.current?.()}
+            title="Undo Point (Backspace)"
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+              penNodeCount > 0
+                ? 'text-slate-300 hover:text-white hover:bg-neutral-800 cursor-pointer'
+                : 'text-neutral-600 cursor-not-allowed'
+            }`}
+          >
+            <PhosphorIcons.ArrowUUpLeft className="w-4 h-4" />
+          </button>
+
+          <div className="w-4 h-px bg-neutral-800" />
+
+          {/* Cancel Drawing (X icon) */}
+          <button
+            type="button"
+            onClick={() => state.setPenDrawingMode(false)}
+            title="Cancel Drawing (Esc)"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+          >
+            <PhosphorIcons.X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Canvas Viewport Scaling & Drag Pan Wrapper */}
       <div
         className="transition-transform duration-75 flex items-center justify-center touch-none relative"
@@ -3241,6 +3683,38 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
             )}
 
+            {/* Flow Animated Gradient Background Layer */}
+            {state.backgroundType === 'flow' && (
+              <FlowBackground
+                colors={state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']}
+                speed={state.flowSpeed ?? 30}
+                distortion={state.flowDistortion ?? 60}
+                swirl={state.flowSwirl ?? 15}
+                scale={state.flowScale ?? 50}
+                timeSec={
+                  state.isExporting && state.exportTimeSec != null
+                    ? state.exportTimeSec
+                    : state.isAnimationMode
+                    ? state.currentTimeSec
+                    : undefined
+                }
+                isExporting={state.isExporting}
+              />
+            )}
+
+            {/* Mist Mountains Background Layer */}
+            {state.backgroundType === 'mist' && (
+              <MistBackground
+                stops={state.mistStops}
+                ranges={state.mistRanges}
+                horizon={state.mistHorizon}
+                peaks={state.mistPeaks}
+                sharp={state.mistSharp}
+                haze={state.mistHaze}
+                seed={state.mistSeed}
+              />
+            )}
+
             {/* Pure CSS Animated Gradient Background Layer */}
             {state.backgroundType === 'animatedGradient' && (
               <AnimatedGradientBackground
@@ -3282,10 +3756,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           {/* Grain Effect Noise Overlay Layer */}
           {(state.bgGrain ?? 0) > 0 && (
             <div
-              className="absolute inset-0 overflow-hidden pointer-events-none z-[2] mix-blend-overlay"
+              className="absolute inset-0 overflow-hidden pointer-events-none z-[2]"
               style={{
                 opacity: (state.bgGrain ?? 0) / 100,
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                mixBlendMode: (state.bgGrainBlendMode || 'overlay') as React.CSSProperties['mixBlendMode'],
+                backgroundImage: `url("${getGrainSvgUrl(state.bgGrainSize || 'fine', state.bgGrainColor || 'monochrome')}")`,
+                backgroundRepeat: 'repeat',
+                backgroundSize: getGrainTileSize(state.bgGrainSize || 'fine'),
               }}
             />
           )}
@@ -3424,6 +3901,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
             const getBadgeClass = () => {
               switch (config.badgeStyle) {
+                case 'glass-frosted':
+                  return 'bg-white/60 backdrop-blur-xl border border-white/70 shadow-[0_8px_32px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] rounded-xl p-2.5';
+                case 'glass-smoky':
+                  return 'bg-neutral-900/65 backdrop-blur-2xl border border-neutral-700/60 shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_0_12px_rgba(255,255,255,0.05)] rounded-xl p-2.5';
+                case 'glass-crystal':
+                  return 'bg-white/[0.08] backdrop-blur-md border border-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.6)] rounded-xl p-2.5';
                 case 'glass-dark':
                   return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
                 case 'glass-light':
@@ -3536,6 +4019,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
             const getBadgeClass = () => {
               switch (config.badgeStyle) {
+                case 'glass-frosted':
+                  return 'bg-white/60 backdrop-blur-xl border border-white/70 shadow-[0_8px_32px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] rounded-xl p-2.5';
+                case 'glass-smoky':
+                  return 'bg-neutral-900/65 backdrop-blur-2xl border border-neutral-700/60 shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_0_12px_rgba(255,255,255,0.05)] rounded-xl p-2.5';
+                case 'glass-crystal':
+                  return 'bg-white/[0.08] backdrop-blur-md border border-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.6)] rounded-xl p-2.5';
                 case 'glass-dark':
                   return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
                 case 'glass-light':
@@ -3606,6 +4095,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
           {/* Unclipped Selection Gizmos Layer (Photoshop-like outer line & corner indicator buttons) */}
           {renderSelectionGizmos()}
+
+          {/* Interactive Vector Pen Drawing Overlay */}
+          {state.isPenDrawingMode && (
+            <PenDrawingOverlay
+              canvasRef={canvasRef}
+              onNodeCountChange={setPenNodeCount}
+              finishRef={finishPenRef}
+              undoRef={undoPenRef}
+            />
+          )}
         </div>
 
         {/* Multi-Select Align Toolbar (Editor-only, not part of export canvas) */}

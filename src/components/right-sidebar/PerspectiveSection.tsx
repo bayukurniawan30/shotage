@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { TiltSliderGroup, PositionSliderGroup } from './shared';
+import { StepperSlider } from '../StepperSlider';
 
 export const PerspectiveSection: React.FC = () => {
   const state = useStudioStore();
@@ -48,13 +49,13 @@ export const PerspectiveSection: React.FC = () => {
               </span>
               <span className="font-mono text-slate-400">{state.zoom}%</span>
             </div>
-            <input
-              type="range"
-              min="50"
-              max="200"
+            <StepperSlider
+              min={50}
+              max={200}
+              step={1}
               value={state.zoom}
-              onChange={(e) => onChange({ zoom: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              onChange={(v) => onChange({ zoom: v })}
+              accentColor="#ffafcc"
             />
           </div>
 
@@ -65,13 +66,13 @@ export const PerspectiveSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Zoom (Slot 2)</span>
                 <span className="font-mono text-slate-400">{state.slot2Zoom}%</span>
               </div>
-              <input
-                type="range"
-                min="50"
-                max="200"
+              <StepperSlider
+                min={50}
+                max={200}
+                step={1}
                 value={state.slot2Zoom}
-                onChange={(e) => onChange({ slot2Zoom: Number(e.target.value) })}
-                className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                onChange={(v) => onChange({ slot2Zoom: v })}
+                accentColor="#ffafcc"
               />
             </div>
           )}
@@ -81,13 +82,13 @@ export const PerspectiveSection: React.FC = () => {
             <div className="flex justify-between text-xs mb-1">
               <span className="font-medium text-slate-300">Canvas Padding</span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="120"
+            <StepperSlider
+              min={0}
+              max={120}
+              step={1}
               value={state.padding}
-              onChange={(e) => onChange({ padding: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              onChange={(v) => onChange({ padding: v })}
+              accentColor="#ffafcc"
             />
           </div>
         </div>
@@ -177,13 +178,13 @@ export const PerspectiveSection: React.FC = () => {
                   <span className="font-medium text-slate-300">Depth Thickness</span>
                   <span className="font-mono text-slate-400">{state.slabThickness ?? 12}px</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="60"
+                <StepperSlider
+                  min={0}
+                  max={60}
+                  step={1}
                   value={state.slabThickness ?? 12}
-                  onChange={(e) => onChange({ slabThickness: Number(e.target.value) })}
-                  className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                  onChange={(v) => onChange({ slabThickness: v })}
+                  accentColor="#ffafcc"
                 />
               </div>
 

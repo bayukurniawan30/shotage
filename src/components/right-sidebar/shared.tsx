@@ -4,6 +4,7 @@ import * as PhosphorIcons from '@phosphor-icons/react';
 import { Coolshape } from 'coolshapes-react';
 import { BackgroundType, ShapeType } from '../../types/studio';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from '../SocialIcons';
+import { StepperSlider } from '../StepperSlider';
 
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
@@ -98,6 +99,13 @@ export interface BackgroundStyleOption {
 
 export const BACKGROUND_STYLE_OPTIONS: BackgroundStyleOption[] = [
   {
+    id: 'flow',
+    label: 'Flow Animated Gradient',
+    category: 'Animated & Dynamic',
+    desc: 'Fluid harmonic Japanese flow (4+ colors)',
+    iconNode: <PhosphorIcons.Wind className="w-4 h-4 text-pastel-green shrink-0" />,
+  },
+  {
     id: 'animatedGradient',
     label: 'Animated Gradient',
     category: 'Animated & Dynamic',
@@ -124,6 +132,13 @@ export const BACKGROUND_STYLE_OPTIONS: BackgroundStyleOption[] = [
     category: 'Colors & Gradients',
     desc: 'Grainy iridescent multi-mesh gradients',
     iconNode: <PhosphorIcons.Sparkle className="w-4 h-4 text-violet-400 shrink-0" />,
+  },
+  {
+    id: 'mist',
+    label: 'Mist Mountains',
+    category: 'Colors & Gradients',
+    desc: 'Painterly layered mountain ridges with soft haze',
+    iconNode: <PhosphorIcons.CloudFog className="w-4 h-4 text-sky-300 shrink-0" />,
   },
   {
     id: 'spectral',
@@ -538,13 +553,13 @@ export const TiltSliderGroup: React.FC<{
           <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
           <span className="font-mono text-slate-400">{values.rotateX}°</span>
         </div>
-        <input
-          type="range"
-          min="-30"
-          max="30"
+        <StepperSlider
+          min={-30}
+          max={30}
+          step={1}
           value={values.rotateX}
-          onChange={(e) => handlers.onRotateX(Number(e.target.value))}
-          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          onChange={(v) => handlers.onRotateX(v)}
+          accentColor="#ffafcc"
         />
       </div>
 
@@ -553,13 +568,13 @@ export const TiltSliderGroup: React.FC<{
           <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
           <span className="font-mono text-slate-400">{values.rotateY}°</span>
         </div>
-        <input
-          type="range"
-          min="-30"
-          max="30"
+        <StepperSlider
+          min={-30}
+          max={30}
+          step={1}
           value={values.rotateY}
-          onChange={(e) => handlers.onRotateY(Number(e.target.value))}
-          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          onChange={(v) => handlers.onRotateY(v)}
+          accentColor="#ffafcc"
         />
       </div>
 
@@ -569,13 +584,13 @@ export const TiltSliderGroup: React.FC<{
             <span className="font-medium text-slate-300">Skew X</span>
             <span className="font-mono text-slate-400">{values.skewX}°</span>
           </div>
-          <input
-            type="range"
-            min="-60"
-            max="60"
+          <StepperSlider
+            min={-60}
+            max={60}
+            step={1}
             value={values.skewX}
-            onChange={(e) => handlers.onSkewX(Number(e.target.value))}
-            className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            onChange={(v) => handlers.onSkewX(v)}
+            accentColor="#ffafcc"
           />
         </div>
 
@@ -584,13 +599,13 @@ export const TiltSliderGroup: React.FC<{
             <span className="font-medium text-slate-300">Skew Y</span>
             <span className="font-mono text-slate-400">{values.skewY}°</span>
           </div>
-          <input
-            type="range"
-            min="-60"
-            max="60"
+          <StepperSlider
+            min={-60}
+            max={60}
+            step={1}
             value={values.skewY}
-            onChange={(e) => handlers.onSkewY(Number(e.target.value))}
-            className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            onChange={(v) => handlers.onSkewY(v)}
+            accentColor="#ffafcc"
           />
         </div>
       </div>
@@ -600,14 +615,13 @@ export const TiltSliderGroup: React.FC<{
           <span className="font-medium text-slate-300">Perspective Depth</span>
           <span className="font-mono text-slate-400">{values.perspective}px</span>
         </div>
-        <input
-          type="range"
-          min="500"
-          max="2000"
-          step="50"
+        <StepperSlider
+          min={500}
+          max={2000}
+          step={50}
           value={values.perspective}
-          onChange={(e) => handlers.onPerspective(Number(e.target.value))}
-          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          onChange={(v) => handlers.onPerspective(v)}
+          accentColor="#ffafcc"
         />
       </div>
 
@@ -616,13 +630,13 @@ export const TiltSliderGroup: React.FC<{
           <span className="font-medium text-slate-300">Rotation</span>
           <span className="font-mono text-slate-400">{values.rotation}°</span>
         </div>
-        <input
-          type="range"
-          min="-180"
-          max="180"
+        <StepperSlider
+          min={-180}
+          max={180}
+          step={1}
           value={values.rotation}
-          onChange={(e) => handlers.onRotation(Number(e.target.value))}
-          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          onChange={(v) => handlers.onRotation(v)}
+          accentColor="#ffafcc"
         />
       </div>
     </div>
@@ -679,16 +693,16 @@ export const PositionSliderGroup: React.FC<{
           <span className="font-medium text-slate-300">Horizontal Offset</span>
           <span className="font-mono text-slate-400">{values.offsetX}px</span>
         </div>
-        <input
-          type="range"
-          min="-800"
-          max="800"
+        <StepperSlider
+          min={-800}
+          max={800}
+          step={1}
           value={values.offsetX}
-          onChange={(e) => handlers.onOffsetX(Number(e.target.value))}
+          onChange={(v) => handlers.onOffsetX(v)}
           onPointerDown={handlers.onDragStart}
           onPointerUp={handlers.onDragEnd}
           onPointerCancel={handlers.onDragEnd}
-          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          accentColor="#ffafcc"
         />
       </div>
 
@@ -697,16 +711,16 @@ export const PositionSliderGroup: React.FC<{
           <span className="font-medium text-slate-300">Vertical Offset</span>
           <span className="font-mono text-slate-400">{values.offsetY}px</span>
         </div>
-        <input
-          type="range"
-          min="-800"
-          max="800"
+        <StepperSlider
+          min={-800}
+          max={800}
+          step={1}
           value={values.offsetY}
-          onChange={(e) => handlers.onOffsetY(Number(e.target.value))}
+          onChange={(v) => handlers.onOffsetY(v)}
           onPointerDown={handlers.onDragStart}
           onPointerUp={handlers.onDragEnd}
           onPointerCancel={handlers.onDragEnd}
-          className="w-full bg-slate-800 rounded-lg cursor-pointer"
+          accentColor="#ffafcc"
         />
       </div>
     </div>

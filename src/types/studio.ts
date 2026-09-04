@@ -47,7 +47,15 @@ export interface TechStackConfig {
   gap: number;
   style: TechStackLayoutStyle;
   position: TechStackPosition;
-  badgeStyle: 'plain' | 'glass-dark' | 'glass-light' | 'badge-dark' | 'badge-light';
+  badgeStyle:
+    | 'plain'
+    | 'glass-dark'
+    | 'glass-light'
+    | 'glass-frosted'
+    | 'glass-smoky'
+    | 'glass-crystal'
+    | 'badge-dark'
+    | 'badge-light';
   xOffset: number;
   yOffset: number;
 }
@@ -129,6 +137,13 @@ export interface ShapeLayer {
   keyframes?: import('./animationTypes').LayerKeyframe[];
 }
 
+export interface PenNode {
+  x: number;
+  y: number;
+  handleIn?: { x: number; y: number };
+  handleOut?: { x: number; y: number };
+}
+
 export interface CanvasElement {
   id: string;
   category: ElementCategory;
@@ -190,7 +205,15 @@ export interface PhosphorIconConfig {
   color: string;
   style: TechStackLayoutStyle;
   position: TechStackPosition;
-  badgeStyle: 'plain' | 'glass-dark' | 'glass-light' | 'badge-dark' | 'badge-light';
+  badgeStyle:
+    | 'plain'
+    | 'glass-dark'
+    | 'glass-light'
+    | 'glass-frosted'
+    | 'glass-smoky'
+    | 'glass-crystal'
+    | 'badge-dark'
+    | 'badge-light';
   xOffset: number;
   yOffset: number;
 }
@@ -242,6 +265,8 @@ export type WatermarkSize = 'sm' | 'md' | 'lg';
 export type BackgroundType =
   | 'solid'
   | 'gradient'
+  | 'flow'
+  | 'mist'
   | 'shadeshifter'
   | 'spectral'
   | 'animatedGradient'
@@ -333,6 +358,21 @@ export interface StudioState {
   spectralAngle?: number;
   animatedGradientPreset?: string;
   animatedMeshPreset?: string;
+  flowPreset?: string;
+  flowColors?: string[];
+  flowSpeed?: number;
+  flowDistortion?: number;
+  flowSwirl?: number;
+  flowScale?: number;
+  mistPreset?: string;
+  mistStops?: string[];
+  mistRanges?: number;
+  mistHorizon?: number;
+  mistPeaks?: number;
+  sharp?: number; // legacy/alias if needed
+  mistSharp?: number;
+  mistHaze?: number;
+  mistSeed?: number;
   confettiPreset: string;
   customConfettiObj: any | null;
   radiantPreset: string;
@@ -346,6 +386,9 @@ export interface StudioState {
   bgImageUrl: string | null;
   bgBlur: number; // 0 to 20
   bgGrain: number; // 0 to 100
+  bgGrainBlendMode?: 'overlay' | 'soft-light' | 'screen' | 'multiply';
+  bgGrainSize?: 'fine' | 'medium' | 'coarse' | 'dot';
+  bgGrainColor?: 'monochrome' | 'chromatic';
   bgPatternEnabled: boolean;
   bgPatternPreset: string;
   bgPatternColor: string;
@@ -405,6 +448,9 @@ export interface StudioState {
   secondImageName: string;
   exportFormat: 'png' | 'jpeg' | 'webp';
   exportScale: 1 | 2 | 3;
+  // Video Export System State
+  isExporting?: boolean;
+  exportTimeSec?: number | null;
   // Animation System State
   isAnimationMode: boolean;
   isPlaying: boolean;
@@ -429,6 +475,8 @@ export interface StudioState {
   shapeLayers: ShapeLayer[];
   selectedShapeId: string | null;
   selectedShapeIds: string[];
+  // Pen Drawing Mode State
+  isPenDrawingMode?: boolean;
   sidebarMode: 'quick' | 'advanced';
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
@@ -492,12 +540,29 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   spectralAngle: 215,
   animatedGradientPreset: 'anim-grad-1',
   animatedMeshPreset: 'anim-mesh-1',
+  flowPreset: 'flow-1',
+  flowColors: ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A'],
+  flowSpeed: 30,
+  flowDistortion: 60,
+  flowSwirl: 15,
+  flowScale: 50,
+  mistPreset: 'morning-mist',
+  mistStops: ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'],
+  mistRanges: 5,
+  mistHorizon: 42,
+  mistPeaks: 50,
+  mistSharp: 55,
+  mistHaze: 50,
+  mistSeed: 7,
   confettiPreset: 'confetti-1',
   customConfettiObj: null,
   radiantPreset: 'radiant-1',
   linearSwatchesPreset: 'ls-1',
   backgroundColor: '#0f172a',
   bgGrain: 0,
+  bgGrainBlendMode: 'overlay',
+  bgGrainSize: 'fine',
+  bgGrainColor: 'monochrome',
   gradient: (() => {
     const initialPreset = getRandomGradientPreset();
     return {
@@ -562,6 +627,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shapeLayers: [],
   selectedShapeId: null,
   selectedShapeIds: [],
+  isPenDrawingMode: false,
   sidebarMode: 'quick',
   techStackConfig: {
     enabled: false,
@@ -591,4 +657,6 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   stages: [],
   layerOrder: [],
   resetKey: 0,
+  isExporting: false,
+  exportTimeSec: null,
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from '../TechStackIcons';
 import { TechStackConfig, TechStackPosition } from '../../types/studio';
+import { StepperSlider } from '../StepperSlider';
 
 export const TechStackSection: React.FC = () => {
   const state = useStudioStore();
@@ -200,25 +201,29 @@ export const TechStackSection: React.FC = () => {
             <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
               Badge & Background Style
             </label>
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
               {[
-                { id: 'plain', label: 'Default' },
-                { id: 'glass-dark', label: 'Dark Glass' },
-                { id: 'glass-light', label: 'Light Glass' },
-                { id: 'badge-dark', label: 'Dark Badge' },
-                { id: 'badge-light', label: 'Light Badge' },
+                { id: 'plain', label: 'Default', dot: 'border border-dashed border-neutral-600' },
+                { id: 'glass-crystal', label: 'Crystal Clear', dot: 'bg-white/10 border border-white/50 shadow-xs' },
+                { id: 'glass-frosted', label: 'Frosted White', dot: 'bg-white/70 border border-white/90 shadow-xs' },
+                { id: 'glass-smoky', label: 'Smoky Dark', dot: 'bg-neutral-900/80 border border-neutral-600 shadow-xs' },
+                { id: 'glass-light', label: 'Light Glass', dot: 'bg-white/30 border border-white/50' },
+                { id: 'glass-dark', label: 'Dark Glass', dot: 'bg-neutral-950/40 border border-white/20' },
+                { id: 'badge-light', label: 'Light Badge', dot: 'bg-white border border-slate-300' },
+                { id: 'badge-dark', label: 'Dark Badge', dot: 'bg-neutral-900 border border-neutral-700' },
               ].map((bg) => (
                 <button
                   key={bg.id}
                   type="button"
                   onClick={() => updateConfig({ badgeStyle: bg.id as any })}
-                  className={`py-1.5 text-[10px] font-medium rounded-lg transition-all text-center cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition-all text-left cursor-pointer ${
                     config.badgeStyle === bg.id
                       ? 'bg-[#a2d2ff]/20 border border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50 border border-transparent'
                   }`}
                 >
-                  {bg.label}
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${bg.dot}`} />
+                  <span className="truncate">{bg.label}</span>
                 </button>
               ))}
             </div>
@@ -231,13 +236,13 @@ export const TechStackSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Logo Size</span>
                 <span className="font-mono text-slate-400">{config.size || 28}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={16}
                 max={64}
+                step={1}
                 value={config.size || 28}
-                onChange={(e) => updateConfig({ size: Number(e.target.value) })}
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                onChange={(val) => updateConfig({ size: val })}
+                accentColor="#a2d2ff"
               />
             </div>
 
@@ -246,13 +251,13 @@ export const TechStackSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Gap</span>
                 <span className="font-mono text-slate-400">{config.gap || 12}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={4}
                 max={36}
+                step={1}
                 value={config.gap || 12}
-                onChange={(e) => updateConfig({ gap: Number(e.target.value) })}
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                onChange={(val) => updateConfig({ gap: val })}
+                accentColor="#a2d2ff"
               />
             </div>
           </div>
@@ -264,13 +269,13 @@ export const TechStackSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Offset X</span>
                 <span className="font-mono text-slate-400">{config.xOffset || 0}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={-200}
                 max={200}
+                step={1}
                 value={config.xOffset || 0}
-                onChange={(e) => updateConfig({ xOffset: Number(e.target.value) })}
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                onChange={(val) => updateConfig({ xOffset: val })}
+                accentColor="#a2d2ff"
               />
             </div>
 
@@ -279,13 +284,13 @@ export const TechStackSection: React.FC = () => {
                 <span className="font-medium text-slate-300">Offset Y</span>
                 <span className="font-mono text-slate-400">{config.yOffset || 0}px</span>
               </div>
-              <input
-                type="range"
+              <StepperSlider
                 min={-200}
                 max={200}
+                step={1}
                 value={config.yOffset || 0}
-                onChange={(e) => updateConfig({ yOffset: Number(e.target.value) })}
-                className="w-full accent-pastel-blue bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                onChange={(val) => updateConfig({ yOffset: val })}
+                accentColor="#a2d2ff"
               />
             </div>
           </div>

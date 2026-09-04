@@ -84,6 +84,7 @@ interface StudioStore extends StudioState {
   toggleSelectShapeLayer: (id: string) => void;
   mergeSelectedShapes: (operation?: BooleanOperation) => boolean;
   booleanOperationOnShapes: (operation?: BooleanOperation) => boolean;
+  setPenDrawingMode: (active: boolean) => void;
   reorderLayers: (
     newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]
   ) => void;
@@ -237,12 +238,29 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     spectralAngle,
     animatedGradientPreset,
     animatedMeshPreset,
+    flowPreset,
+    flowColors,
+    flowSpeed,
+    flowDistortion,
+    flowSwirl,
+    flowScale,
+    mistPreset,
+    mistStops,
+    mistRanges,
+    mistHorizon,
+    mistPeaks,
+    mistSharp,
+    mistHaze,
+    mistSeed,
     confettiPreset,
     customConfettiObj,
     radiantPreset,
     linearSwatchesPreset,
     backgroundColor,
     bgGrain,
+    bgGrainBlendMode,
+    bgGrainSize,
+    bgGrainColor,
     bgPatternEnabled,
     bgPatternPreset,
     bgPatternColor,
@@ -336,12 +354,29 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     spectralAngle,
     animatedGradientPreset,
     animatedMeshPreset,
+    flowPreset,
+    flowColors: flowColors ? [...flowColors] : undefined,
+    flowSpeed,
+    flowDistortion,
+    flowSwirl,
+    flowScale,
+    mistPreset,
+    mistStops: mistStops ? [...mistStops] : undefined,
+    mistRanges,
+    mistHorizon,
+    mistPeaks,
+    mistSharp,
+    mistHaze,
+    mistSeed,
     confettiPreset,
     customConfettiObj: customConfettiObj ? JSON.parse(JSON.stringify(customConfettiObj)) : null,
     radiantPreset,
     linearSwatchesPreset,
     backgroundColor,
     bgGrain,
+    bgGrainBlendMode,
+    bgGrainSize,
+    bgGrainColor,
     bgPatternEnabled,
     bgPatternPreset,
     bgPatternColor,
@@ -601,7 +636,7 @@ export const useStudioStore = create<StudioStore>()(
             textAlign: 'center',
             x: 0,
             y: 0,
-            shadow: true,
+            shadow: false,
             opacity: 100,
             rotation: 0,
             pitch: 0,
@@ -835,15 +870,15 @@ export const useStudioStore = create<StudioStore>()(
           selectedTextLayerId: null,
           selectedTextLayerIds: [],
         })),
-      addPhosphorIconLayer: (iconId) =>
+      addPhosphorIconLayer: (iconId, customProps) =>
         set((state) => {
           const newLayer: import('../types/studio').PhosphorIconLayer = {
             id: `phosphor-${Date.now()}`,
             iconId: iconId || 'Sparkle',
             weight: 'regular',
             size: 40,
-            color: '#a2d2ff',
-            badgeStyle: 'circle-dark',
+            color: '#ffffff',
+            badgeStyle: 'plain',
             x: 0,
             y: 0,
             rotation: 0,
@@ -853,6 +888,7 @@ export const useStudioStore = create<StudioStore>()(
             name: iconId || 'Sparkle',
             visible: true,
             locked: false,
+            ...customProps,
           };
           return {
             phosphorIconLayers: [...(state.phosphorIconLayers || []), newLayer],
@@ -1055,6 +1091,7 @@ export const useStudioStore = create<StudioStore>()(
         });
         return newId;
       },
+      setPenDrawingMode: (active) => set({ isPenDrawingMode: active }),
       updateShapeLayer: (id, updates) =>
         set((state) => ({
           shapeLayers: (state.shapeLayers || []).map((s) =>

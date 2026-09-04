@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { MiniCanvasBackground } from './MiniCanvasBackground';
+import { StepperSlider } from '../StepperSlider';
 
 export const ShadowOverlaySection: React.FC = () => {
   const state = useStudioStore();
@@ -72,13 +73,13 @@ export const ShadowOverlaySection: React.FC = () => {
                 {state.shadowOverlayOpacity ?? 85}%
               </span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
+            <StepperSlider
+              min={0}
+              max={100}
+              step={1}
               value={state.shadowOverlayOpacity ?? 85}
-              onChange={(e) => onChange({ shadowOverlayOpacity: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              onChange={(v) => onChange({ shadowOverlayOpacity: v })}
+              accentColor="#a2d2ff"
             />
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
 import { ChevronDown, Check } from '@untitledui/icons';
+import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
 
 export const FrameSection: React.FC = () => {
@@ -502,14 +503,14 @@ export const FrameSection: React.FC = () => {
             })}
           </div>
 
-          {/* Continuous Corner Radius Slider */}
-          <input
-            type="range"
-            min="0"
-            max="32"
+          {/* Continuous Corner Radius Slider with - / + continuous steppers */}
+          <StepperSlider
+            min={0}
+            max={32}
+            step={1}
             value={state.borderRadius}
-            onChange={(e) => onChange({ borderRadius: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg cursor-pointer"
+            onChange={(val) => onChange({ borderRadius: val })}
+            accentColor="#a2d2ff"
           />
         </div>
       )}

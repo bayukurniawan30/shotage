@@ -5,6 +5,7 @@ import * as PhosphorIcons from '@phosphor-icons/react';
 import { Coolshape } from 'coolshapes-react';
 import { Toggle } from '../Toggle';
 import { ShapePreview, BooleanIcons } from './shared';
+import { StepperSlider } from '../StepperSlider';
 import { ShapeType, CoolshapeCategory } from '../../types/studio';
 import {
   GRADIENT_PRESETS,
@@ -405,6 +406,61 @@ export const ElementsSection: React.FC = () => {
             {(state.shapeLayers || []).length} shapes
           </span>
         </div>
+
+        {/* Vector Pen Tool Hero Button */}
+        <button
+          type="button"
+          onClick={() => state.setPenDrawingMode(!state.isPenDrawingMode)}
+          className={`w-full py-2 px-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer group ${
+            state.isPenDrawingMode
+              ? 'bg-pastel-pink text-slate-950 border-pastel-pink shadow-md shadow-pastel-pink/20 scale-[1.01]'
+              : 'bg-gradient-to-r from-neutral-900 to-neutral-950 hover:from-neutral-850 hover:to-neutral-900 border-neutral-800 hover:border-neutral-700 text-white shadow-xs'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                state.isPenDrawingMode
+                  ? 'bg-slate-950 text-pastel-pink shadow-xs'
+                  : 'bg-pastel-pink/15 text-pastel-pink group-hover:scale-110'
+              }`}
+            >
+              <PhosphorIcons.PenNib weight="fill" className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold leading-tight flex items-center gap-1.5">
+                <span>Vector Pen Tool</span>
+                <span
+                  className={`text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded-full font-semibold ${
+                    state.isPenDrawingMode
+                      ? 'bg-slate-950 text-pastel-pink'
+                      : 'bg-pastel-pink/20 text-pastel-pink'
+                  }`}
+                >
+                  {state.isPenDrawingMode ? 'Active' : 'Draw'}
+                </span>
+              </div>
+              <div
+                className={`text-[10px] ${
+                  state.isPenDrawingMode
+                    ? 'text-slate-800 font-medium'
+                    : 'text-slate-400 group-hover:text-slate-300'
+                }`}
+              >
+                {state.isPenDrawingMode
+                  ? 'Drawing on canvas... (Click start or Enter to finish)'
+                  : 'Click & drag custom Bézier curves'}
+              </div>
+            </div>
+          </div>
+          <PhosphorIcons.PencilSimpleLine
+            className={`w-4 h-4 transition-transform ${
+              state.isPenDrawingMode
+                ? 'rotate-12 text-slate-950 font-bold'
+                : 'text-slate-400 group-hover:text-pastel-pink'
+            }`}
+          />
+        </button>
 
         {/* Tab switch between Basic Shapes and Coolshapes */}
         <div className="flex items-center gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
@@ -1100,21 +1156,21 @@ export const ElementsSection: React.FC = () => {
                           {parseColorAndAlpha(selectedShape.gradient.color1).alpha}%
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
+                      <StepperSlider
+                        min={0}
+                        max={100}
+                        step={1}
                         value={parseColorAndAlpha(selectedShape.gradient.color1).alpha}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const hex = parseColorAndAlpha(selectedShape.gradient!.color1).hex;
                           state.updateShapeLayer(selectedShape.id, {
                             gradient: {
                               ...selectedShape.gradient!,
-                              color1: formatColorWithAlpha(hex, Number(e.target.value)),
+                              color1: formatColorWithAlpha(hex, val),
                             },
                           });
                         }}
-                        className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -1199,21 +1255,21 @@ export const ElementsSection: React.FC = () => {
                           {parseColorAndAlpha(selectedShape.gradient.color2).alpha}%
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
+                      <StepperSlider
+                        min={0}
+                        max={100}
+                        step={1}
                         value={parseColorAndAlpha(selectedShape.gradient.color2).alpha}
-                        onChange={(e) => {
+                        onChange={(val) => {
                           const hex = parseColorAndAlpha(selectedShape.gradient!.color2).hex;
                           state.updateShapeLayer(selectedShape.id, {
                             gradient: {
                               ...selectedShape.gradient!,
-                              color2: formatColorWithAlpha(hex, Number(e.target.value)),
+                              color2: formatColorWithAlpha(hex, val),
                             },
                           });
                         }}
-                        className="w-full accent-pastel-pink bg-neutral-800 rounded-lg cursor-pointer h-1"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -1227,20 +1283,20 @@ export const ElementsSection: React.FC = () => {
                       {selectedShape.gradient.angle}°
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
+                  <StepperSlider
+                    min={0}
+                    max={360}
+                    step={1}
                     value={selectedShape.gradient.angle}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updateShapeLayer(selectedShape.id, {
                         gradient: {
                           ...selectedShape.gradient!,
-                          angle: Number(e.target.value),
+                          angle: val,
                         },
                       })
                     }
-                    className="w-full bg-slate-800 rounded-lg cursor-pointer"
+                    accentColor="#ffafcc"
                   />
                 </div>
               </div>
@@ -1338,17 +1394,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedShape.bgImageZoom ?? 100}%
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="400"
+                    <StepperSlider
+                      min={10}
+                      max={400}
+                      step={1}
                       value={selectedShape.bgImageZoom ?? 100}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          bgImageZoom: Number(e.target.value),
+                          bgImageZoom: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1360,17 +1416,17 @@ export const ElementsSection: React.FC = () => {
                           {selectedShape.bgImageOffsetX || 0}px
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="-300"
-                        max="300"
+                      <StepperSlider
+                        min={-300}
+                        max={300}
+                        step={1}
                         value={selectedShape.bgImageOffsetX || 0}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
-                            bgImageOffsetX: Number(e.target.value),
+                            bgImageOffsetX: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
 
@@ -1381,17 +1437,17 @@ export const ElementsSection: React.FC = () => {
                           {selectedShape.bgImageOffsetY || 0}px
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min="-300"
-                        max="300"
+                      <StepperSlider
+                        min={-300}
+                        max={300}
+                        step={1}
                         value={selectedShape.bgImageOffsetY || 0}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
-                            bgImageOffsetY: Number(e.target.value),
+                            bgImageOffsetY: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -1557,16 +1613,15 @@ export const ElementsSection: React.FC = () => {
                         {selectedShape.width || 120}px
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={10}
                       max={400}
+                      step={1}
                       value={selectedShape.width || 120}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
+                      onChange={(v) => {
                         state.updateShapeLayer(selectedShape.id, { width: v, height: v });
                       }}
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 ) : (
@@ -1578,17 +1633,17 @@ export const ElementsSection: React.FC = () => {
                           {selectedShape.width || 160}px
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <StepperSlider
                         min={10}
                         max={600}
+                        step={1}
                         value={selectedShape.width || 160}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
-                            width: Number(e.target.value),
+                            width: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
 
@@ -1599,17 +1654,17 @@ export const ElementsSection: React.FC = () => {
                           {selectedShape.height || 100}px
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <StepperSlider
                         min={10}
                         max={600}
+                        step={1}
                         value={selectedShape.height || 100}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
-                            height: Number(e.target.value),
+                            height: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -1623,17 +1678,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position X</span>
                       <span className="font-mono text-slate-400">{selectedShape.x || 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-400}
                       max={400}
+                      step={1}
                       value={selectedShape.x || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          x: Number(e.target.value),
+                          x: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1642,17 +1697,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position Y</span>
                       <span className="font-mono text-slate-400">{selectedShape.y || 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-400}
                       max={400}
+                      step={1}
                       value={selectedShape.y || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          y: Number(e.target.value),
+                          y: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -1667,17 +1722,17 @@ export const ElementsSection: React.FC = () => {
                       {selectedShape.borderRadius ?? 8}px
                     </span>
                   </div>
-                  <input
-                    type="range"
+                  <StepperSlider
                     min={0}
                     max={200}
+                    step={1}
                     value={selectedShape.borderRadius ?? 8}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updateShapeLayer(selectedShape.id, {
-                        borderRadius: Number(e.target.value),
+                        borderRadius: val,
                       })
                     }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    accentColor="#ffafcc"
                   />
                 </div>
               )}
@@ -1692,17 +1747,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedShape.rotation || 0}°
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-180}
                       max={180}
+                      step={1}
                       value={selectedShape.rotation || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          rotation: Number(e.target.value),
+                          rotation: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1714,17 +1769,17 @@ export const ElementsSection: React.FC = () => {
                           {selectedShape.pitch || 0}°
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <StepperSlider
                         min={-30}
                         max={30}
+                        step={1}
                         value={selectedShape.pitch || 0}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
-                            pitch: Number(e.target.value),
+                            pitch: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
 
@@ -1733,17 +1788,17 @@ export const ElementsSection: React.FC = () => {
                         <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
                         <span className="font-mono text-slate-400">{selectedShape.yaw || 0}°</span>
                       </div>
-                      <input
-                        type="range"
+                      <StepperSlider
                         min={-30}
                         max={30}
+                        step={1}
                         value={selectedShape.yaw || 0}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
-                            yaw: Number(e.target.value),
+                            yaw: val,
                           })
                         }
-                        className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                        accentColor="#ffafcc"
                       />
                     </div>
                   </div>
@@ -1758,17 +1813,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Skew X</span>
                       <span className="font-mono text-slate-400">{selectedShape.skewX || 0}°</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-60}
                       max={60}
+                      step={1}
                       value={selectedShape.skewX || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          skewX: Number(e.target.value),
+                          skewX: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1777,17 +1832,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Skew Y</span>
                       <span className="font-mono text-slate-400">{selectedShape.skewY || 0}°</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-60}
                       max={60}
+                      step={1}
                       value={selectedShape.skewY || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          skewY: Number(e.target.value),
+                          skewY: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -1803,17 +1858,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedShape.opacity ?? 100}%
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={10}
                       max={100}
+                      step={1}
                       value={selectedShape.opacity ?? 100}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          opacity: Number(e.target.value),
+                          opacity: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -1822,17 +1877,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Blur</span>
                       <span className="font-mono text-slate-400">{selectedShape.blur ?? 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={0}
                       max={40}
+                      step={1}
                       value={selectedShape.blur ?? 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
-                          blur: Number(e.target.value),
+                          blur: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -1887,17 +1942,17 @@ export const ElementsSection: React.FC = () => {
                       {selectedShape.glassmorphismBlur ?? 16}px
                     </span>
                   </div>
-                  <input
-                    type="range"
+                  <StepperSlider
                     min={4}
                     max={50}
+                    step={1}
                     value={selectedShape.glassmorphismBlur ?? 16}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updateShapeLayer(selectedShape.id, {
-                        glassmorphismBlur: Number(e.target.value),
+                        glassmorphismBlur: val,
                       })
                     }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    accentColor="#ffafcc"
                   />
                 </div>
 
@@ -2153,17 +2208,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedElement.width || 90}px
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={20}
                       max={800}
+                      step={1}
                       value={selectedElement.width || 90}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          width: Number(e.target.value),
+                          width: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -2174,17 +2229,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedElement.height || 90}px
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={20}
                       max={800}
+                      step={1}
                       value={selectedElement.height || 90}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          height: Number(e.target.value),
+                          height: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -2198,17 +2253,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position X</span>
                       <span className="font-mono text-slate-400">{selectedElement.x || 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-400}
                       max={400}
+                      step={1}
                       value={selectedElement.x || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          x: Number(e.target.value),
+                          x: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -2217,17 +2272,17 @@ export const ElementsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position Y</span>
                       <span className="font-mono text-slate-400">{selectedElement.y || 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-400}
                       max={400}
+                      step={1}
                       value={selectedElement.y || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          y: Number(e.target.value),
+                          y: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -2243,17 +2298,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedElement.rotation || 0}°
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-180}
                       max={180}
+                      step={1}
                       value={selectedElement.rotation || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          rotation: Number(e.target.value),
+                          rotation: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -2310,17 +2365,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedElement.opacity ?? 100}%
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={10}
                       max={100}
+                      step={1}
                       value={selectedElement.opacity ?? 100}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          opacity: Number(e.target.value),
+                          opacity: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -2331,17 +2386,17 @@ export const ElementsSection: React.FC = () => {
                         {selectedElement.blur ?? 0}px
                       </span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={0}
                       max={40}
+                      step={1}
                       value={selectedElement.blur ?? 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
-                          blur: Number(e.target.value),
+                          blur: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>

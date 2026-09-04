@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useStudioStore } from '../../store/useStudioStore';
-import { ChevronDown, Check, Stars02, RefreshCw01 } from '@untitledui/icons';
+import { ChevronDown, Check, Stars02, RefreshCw01, Plus, Trash01, Play, PauseSquare } from '@untitledui/icons';
+import { StepperSlider } from '../StepperSlider';
 import { extractDominantColors, generateGradientVariations } from '../../utils/colorExtractor';
+import { FLOW_PRESETS, getRandomFlowColors } from '../../utils/flowPresets';
+import { MIST_PRESETS, getRandomMistPreset } from '../../utils/mistPresets';
 import { WAVE_PRESETS } from '../../utils/wavePresets';
 import { MESH_PRESETS } from '../../utils/meshPresets';
 import { CONFETTI_PRESETS, generateRandomConfettiPreset } from '../../utils/confettiPresets';
@@ -11,6 +14,8 @@ import { SPECTRAL_PRESETS } from '../../utils/spectralPresets';
 import { LINEAR_SWATCH_PRESETS } from '../../utils/linearSwatchPresets';
 import { GRADIENT_PRESETS } from '../../utils/gradientPresets';
 import { PATTERN_PRESETS } from '../../utils/patternPresets';
+import { FlowBackground } from '../FlowBackground';
+import { MistBackground } from '../MistBackground';
 import { WaveBackground } from '../WaveBackground';
 import { MeshBackground } from '../MeshBackground';
 import { ConfettiBackground } from '../ConfettiBackground';
@@ -25,12 +30,15 @@ import {
 } from '../AnimatedBackgrounds';
 import { Toggle } from '../Toggle';
 import { BackgroundStyleSelect, MiniFocalPad } from './shared';
+import { GRAIN_SIZES, GRAIN_BLEND_MODES, GrainSize, GrainBlendMode } from '../../utils/grain';
 
 export const BackgroundSection: React.FC = () => {
   const state = useStudioStore();
   const onChange = state.updateState;
 
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [showAllFlow, setShowAllFlow] = useState(false);
+  const [showAllMist, setShowAllMist] = useState(false);
   const [showAllShadeshifter, setShowAllShadeshifter] = useState(false);
   const [showAllSpectral, setShowAllSpectral] = useState(false);
   const [showAllAnimatedGradients, setShowAllAnimatedGradients] = useState(false);
@@ -230,6 +238,567 @@ export const BackgroundSection: React.FC = () => {
         </div>
       )}
 
+      {state.backgroundType === 'flow' && (
+        <div className="space-y-3.5 pt-1 border-t border-slate-800/60">
+          {/* Presets Header */}
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Flow Presets ({FLOW_PRESETS.length})
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const newColors = getRandomFlowColors();
+                  onChange({ flowColors: newColors });
+                }}
+                className="text-[11px] text-slate-400 hover:text-pastel-pink flex items-center gap-1 cursor-pointer transition-colors px-1.5 py-0.5 rounded-md hover:bg-slate-800/50"
+                title="Shuffle flow colors"
+              >
+                <RefreshCw01 className="w-3 h-3" />
+                <span>Shuffle</span>
+              </button>
+              {showAllFlow && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllFlow(false)}
+                  className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Collapse presets"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Presets Grid */}
+          <div
+            className={`grid grid-cols-4 gap-2.5 ${
+              showAllFlow ? 'max-h-56 overflow-y-auto no-scrollbar p-1.5' : 'p-1'
+            }`}
+          >
+            {(!showAllFlow ? FLOW_PRESETS.slice(0, 3) : FLOW_PRESETS).map((preset) => {
+              const isSelected = (state.flowPreset || 'flow-1') === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      flowPreset: preset.id,
+                      flowColors: [...preset.colors],
+                      flowDistortion: preset.distortion ?? 60,
+                      flowSwirl: preset.swirl ?? 15,
+                      flowScale: preset.scale ?? 50,
+                      flowSpeed: preset.speed ?? 30,
+                    })
+                  }
+                  className={`h-11 rounded-xl border shadow-sm transition-all flex items-center justify-center cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-105 shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-105 opacity-90 hover:opacity-100'
+                  }`}
+                  title={preset.name}
+                >
+                  <FlowBackground colors={preset.colors} speed={0} isMini />
+                  {isSelected && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm">
+                        <Check className="w-3 h-3 text-pastel-pink" />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {!showAllFlow && FLOW_PRESETS.length > 3 && (
+              <div className="relative h-11">
+                <div className="absolute inset-0 rounded-xl bg-neutral-900/90 border border-neutral-700 translate-x-1.5 translate-y-1 rotate-6 shadow-md" />
+                <button
+                  type="button"
+                  onClick={() => setShowAllFlow(true)}
+                  title={`Show all ${FLOW_PRESETS.length} presets`}
+                  className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
+                >
+                  <FlowBackground colors={FLOW_PRESETS[3].colors} speed={0} isMini />
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
+                    <span className="text-[10px] font-bold tracking-tight">
+                      +{FLOW_PRESETS.length - 3}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Color Stops Customizer */}
+          <div className="p-2.5 bg-neutral-900/60 border border-neutral-800/80 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-300">
+                Color Palette ({(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).length} stops)
+              </span>
+              <button
+                type="button"
+                disabled={(state.flowColors || []).length >= 6}
+                onClick={() => {
+                  const curr = state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A'];
+                  if (curr.length < 6) {
+                    onChange({ flowColors: [...curr, '#7058A3'] });
+                  }
+                }}
+                className={`text-[10px] flex items-center gap-1 font-medium transition-colors ${
+                  (state.flowColors || []).length >= 6
+                    ? 'text-slate-600 cursor-not-allowed'
+                    : 'text-pastel-pink hover:text-pastel-pinkLight cursor-pointer'
+                }`}
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add Color</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).map((color, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-1.5 p-1.5 bg-neutral-950/80 rounded-lg border border-neutral-800/80"
+                >
+                  <label
+                    className="w-5 h-5 rounded-md border border-neutral-700 cursor-pointer shrink-0 shadow-xs relative overflow-hidden"
+                    style={{ backgroundColor: color }}
+                  >
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => {
+                        const newColors = [...(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A'])];
+                        newColors[idx] = e.target.value;
+                        onChange({ flowColors: newColors });
+                      }}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={color.toUpperCase()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const newColors = [...(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A'])];
+                      newColors[idx] = val;
+                      onChange({ flowColors: newColors });
+                    }}
+                    className="w-full bg-transparent text-[11px] font-mono text-slate-200 focus:outline-none"
+                  />
+                  {(state.flowColors || []).length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newColors = (state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).filter(
+                          (_, i) => i !== idx
+                        );
+                        onChange({ flowColors: newColors });
+                      }}
+                      className="text-slate-500 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
+                      title="Remove color stop"
+                    >
+                      <Trash01 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Flow Speed Slider */}
+          <div className="space-y-1 pt-1">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-medium text-slate-300">Flow Speed</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onChange({ flowSpeed: (state.flowSpeed ?? 30) > 0 ? 0 : 30 })}
+                  className="p-1 rounded text-slate-400 hover:text-pastel-pink hover:bg-slate-800/60 transition-colors cursor-pointer"
+                  title={(state.flowSpeed ?? 30) > 0 ? 'Pause Animation' : 'Resume Animation'}
+                >
+                  {(state.flowSpeed ?? 30) > 0 ? (
+                    <PauseSquare className="w-3 h-3" />
+                  ) : (
+                    <Play className="w-3 h-3" />
+                  )}
+                </button>
+                <span className="font-mono text-slate-400">{state.flowSpeed ?? 30}%</span>
+              </div>
+            </div>
+            <StepperSlider
+              min={0}
+              max={100}
+              step={1}
+              value={state.flowSpeed ?? 30}
+              onChange={(val) => onChange({ flowSpeed: val })}
+              accentColor="#ffafcc"
+            />
+          </div>
+
+          {/* Fluid Wave Distortion Slider */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Fluid Distortion</span>
+              <span className="font-mono text-slate-400">{state.flowDistortion ?? 60}%</span>
+            </div>
+            <StepperSlider
+              min={0}
+              max={100}
+              step={1}
+              value={state.flowDistortion ?? 60}
+              onChange={(val) => onChange({ flowDistortion: val })}
+              accentColor="#ffafcc"
+            />
+          </div>
+
+          {/* Center Swirl Slider */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Center Swirl</span>
+              <span className="font-mono text-slate-400">{state.flowSwirl ?? 15}%</span>
+            </div>
+            <StepperSlider
+              min={0}
+              max={100}
+              step={1}
+              value={state.flowSwirl ?? 15}
+              onChange={(val) => onChange({ flowSwirl: val })}
+              accentColor="#ffafcc"
+            />
+          </div>
+
+          {/* Field Scale Slider */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-slate-300">Field Scale</span>
+              <span className="font-mono text-slate-400">{state.flowScale ?? 50}%</span>
+            </div>
+            <StepperSlider
+              min={10}
+              max={100}
+              step={1}
+              value={state.flowScale ?? 50}
+              onChange={(val) => onChange({ flowScale: val })}
+              accentColor="#ffafcc"
+            />
+          </div>
+        </div>
+      )}
+
+      {state.backgroundType === 'mist' && (
+        <div className="space-y-3.5 pt-1 border-t border-slate-800/60">
+          {/* Presets Header */}
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+              Mist Presets ({MIST_PRESETS.length})
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const randomPreset = getRandomMistPreset();
+                  onChange({
+                    mistPreset: randomPreset.id,
+                    mistStops: [...randomPreset.stops],
+                    mistRanges: randomPreset.ranges,
+                    mistHorizon: randomPreset.horizon,
+                    mistPeaks: randomPreset.peaks,
+                    mistSharp: randomPreset.sharp,
+                    mistHaze: randomPreset.haze,
+                    mistSeed: Math.floor(Math.random() * 10000),
+                  });
+                }}
+                className="text-[11px] text-slate-400 hover:text-pastel-pink flex items-center gap-1 cursor-pointer transition-colors px-1.5 py-0.5 rounded-md hover:bg-slate-800/50"
+                title="Randomize mist preset"
+              >
+                <RefreshCw01 className="w-3 h-3" />
+                <span>Shuffle</span>
+              </button>
+              {showAllMist && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllMist(false)}
+                  className="text-[11px] text-pastel-pink hover:text-pastel-pinkLight font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Collapse presets"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Presets Grid */}
+          <div
+            className={`grid grid-cols-3 gap-2 ${
+              showAllMist ? 'max-h-60 overflow-y-auto no-scrollbar p-1' : 'p-0.5'
+            }`}
+          >
+            {(!showAllMist ? MIST_PRESETS.slice(0, 3) : MIST_PRESETS).map((preset) => {
+              const isSelected = (state.mistPreset || 'morning-mist') === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      mistPreset: preset.id,
+                      mistStops: [...preset.stops],
+                      mistRanges: preset.ranges,
+                      mistHorizon: preset.horizon,
+                      mistPeaks: preset.peaks,
+                      mistSharp: preset.sharp,
+                      mistHaze: preset.haze,
+                      mistSeed: preset.seed,
+                    })
+                  }
+                  className={`h-14 rounded-xl border shadow-sm transition-all flex flex-col justify-end p-1.5 cursor-pointer relative overflow-hidden text-left ${
+                    isSelected
+                      ? 'border-white ring-2 ring-pastel-pink scale-[1.02] shadow-md shadow-pastel-pink/30'
+                      : 'border-slate-700/80 hover:scale-[1.02] opacity-90 hover:opacity-100'
+                  }`}
+                  title={preset.name}
+                >
+                  <MistBackground
+                    stops={preset.stops}
+                    ranges={preset.ranges}
+                    horizon={preset.horizon}
+                    peaks={preset.peaks}
+                    sharp={preset.sharp}
+                    haze={preset.haze}
+                    seed={preset.seed}
+                    isMini
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                  <div className="relative z-10">
+                    <span className="text-[10px] font-bold text-white block truncate leading-tight drop-shadow-sm">
+                      {preset.name}
+                    </span>
+                  </div>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 z-20">
+                      <div className="w-3.5 h-3.5 rounded-full bg-slate-950/90 flex items-center justify-center text-white shadow-sm border border-white/20">
+                        <Check className="w-2.5 h-2.5 text-pastel-pink" />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {!showAllMist && MIST_PRESETS.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllMist(true)}
+                title={`Show all ${MIST_PRESETS.length} presets`}
+                className="h-14 rounded-xl border border-slate-700/80 bg-neutral-900/90 shadow-md flex flex-col items-center justify-center cursor-pointer transition-all hover:border-pastel-pink hover:scale-[1.02] relative overflow-hidden text-center"
+              >
+                <MistBackground
+                  stops={MIST_PRESETS[3].stops}
+                  ranges={MIST_PRESETS[3].ranges}
+                  horizon={MIST_PRESETS[3].horizon}
+                  peaks={MIST_PRESETS[3].peaks}
+                  sharp={MIST_PRESETS[3].sharp}
+                  haze={MIST_PRESETS[3].haze}
+                  seed={MIST_PRESETS[3].seed}
+                  isMini
+                />
+                <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center gap-0.5 text-white z-10">
+                  <span className="text-[10px] font-bold tracking-tight">
+                    +{MIST_PRESETS.length - 3} More
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-pastel-pink" />
+                </div>
+              </button>
+            )}
+          </div>
+
+          {/* Color Palette Stops */}
+          <div className="p-2.5 bg-neutral-900/60 border border-neutral-800/80 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-300">
+                Color Palette ({(state.mistStops || []).length} stops)
+              </span>
+              <button
+                type="button"
+                disabled={(state.mistStops || []).length >= 6}
+                onClick={() => {
+                  const curr = state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'];
+                  if (curr.length < 6) {
+                    onChange({ mistStops: [...curr, '#2A2035'], mistPreset: 'custom' });
+                  }
+                }}
+                className={`text-[10px] flex items-center gap-1 font-medium transition-colors ${
+                  (state.mistStops || []).length >= 6
+                    ? 'text-slate-600 cursor-not-allowed'
+                    : 'text-pastel-pink hover:text-pastel-pinkLight cursor-pointer'
+                }`}
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add Color</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {(state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E']).map((color, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-1.5 p-1.5 bg-neutral-950/80 rounded-lg border border-neutral-800/80"
+                >
+                  <label
+                    className="w-5 h-5 rounded-md border border-neutral-700 cursor-pointer shrink-0 shadow-xs relative overflow-hidden"
+                    style={{ backgroundColor: color }}
+                  >
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => {
+                        const newStops = [...(state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'])];
+                        newStops[idx] = e.target.value;
+                        onChange({ mistStops: newStops, mistPreset: 'custom' });
+                      }}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={color.toUpperCase()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const newStops = [...(state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'])];
+                      newStops[idx] = val;
+                      onChange({ mistStops: newStops, mistPreset: 'custom' });
+                    }}
+                    className="w-full bg-transparent text-[11px] font-mono text-slate-200 focus:outline-none"
+                  />
+                  {(state.mistStops || []).length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newStops = (state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E']).filter(
+                          (_, i) => i !== idx
+                        );
+                        onChange({ mistStops: newStops, mistPreset: 'custom' });
+                      }}
+                      className="text-slate-500 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
+                      title="Remove color stop"
+                    >
+                      <Trash01 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mountains Geometry Group */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-300">Mountains</span>
+              <button
+                type="button"
+                onClick={() => onChange({ mistSeed: Math.floor(Math.random() * 10000) })}
+                className="text-[10px] text-slate-400 hover:text-pastel-pink flex items-center gap-1 cursor-pointer transition-colors px-1.5 py-0.5 rounded-md hover:bg-slate-800/50"
+                title="Shuffle mountain silhouette shape"
+              >
+                <RefreshCw01 className="w-3 h-3" />
+                <span>Shuffle Shape</span>
+              </button>
+            </div>
+
+            {/* Ranges Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Ranges</span>
+                <span className="font-mono text-slate-400">{state.mistRanges ?? 5} ranges</span>
+              </div>
+              <StepperSlider
+                min={3}
+                max={9}
+                step={1}
+                value={state.mistRanges ?? 5}
+                onChange={(val) => onChange({ mistRanges: val })}
+                accentColor="#ffafcc"
+              />
+            </div>
+
+            {/* Horizon Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Horizon (Sky Share)</span>
+                <span className="font-mono text-slate-400">{state.mistHorizon ?? 42}% sky</span>
+              </div>
+              <StepperSlider
+                min={20}
+                max={58}
+                step={1}
+                value={state.mistHorizon ?? 42}
+                onChange={(val) => onChange({ mistHorizon: val })}
+                accentColor="#ffafcc"
+              />
+            </div>
+
+            {/* Peaks Height Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Peak Height</span>
+                <span className="font-mono text-slate-400">{state.mistPeaks ?? 50}%</span>
+              </div>
+              <StepperSlider
+                min={0}
+                max={100}
+                step={1}
+                value={state.mistPeaks ?? 50}
+                onChange={(val) => onChange({ mistPeaks: val })}
+                accentColor="#ffafcc"
+              />
+            </div>
+
+            {/* Sharpness Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Alpine Sharpness</span>
+                <span className="font-mono text-slate-400">{state.mistSharp ?? 55}%</span>
+              </div>
+              <StepperSlider
+                min={0}
+                max={100}
+                step={1}
+                value={state.mistSharp ?? 55}
+                onChange={(val) => onChange({ mistSharp: val })}
+                accentColor="#ffafcc"
+              />
+            </div>
+          </div>
+
+          {/* Atmosphere Group */}
+          <div className="space-y-2.5 pt-1 border-t border-slate-800/60">
+            <span className="font-semibold text-slate-300 text-xs block">Atmosphere</span>
+
+            {/* Fog Density Haze Slider (Without Sun and Drift as requested) */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Haze (Fog Density)</span>
+                <span className="font-mono text-slate-400">{state.mistHaze ?? 50}%</span>
+              </div>
+              <StepperSlider
+                min={0}
+                max={100}
+                step={1}
+                value={state.mistHaze ?? 50}
+                onChange={(val) => onChange({ mistHaze: val })}
+                accentColor="#ffafcc"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {state.backgroundType === 'shadeshifter' && (
         <div className="space-y-3 pt-1 border-t border-slate-800/60">
           <div className="flex items-center justify-between text-xs mb-1">
@@ -314,13 +883,13 @@ export const BackgroundSection: React.FC = () => {
               <span className="font-medium text-slate-300">Mesh Blur Depth</span>
               <span className="font-mono text-slate-400">{state.shadeshifterBlur ?? 40}px</span>
             </div>
-            <input
-              type="range"
-              min="10"
-              max="80"
+            <StepperSlider
+              min={10}
+              max={80}
+              step={1}
               value={state.shadeshifterBlur ?? 40}
-              onChange={(e) => onChange({ shadeshifterBlur: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              onChange={(val) => onChange({ shadeshifterBlur: val })}
+              accentColor="#ffafcc"
             />
           </div>
         </div>
@@ -415,13 +984,13 @@ export const BackgroundSection: React.FC = () => {
               <span className="font-medium text-slate-300">Spectrum Angle</span>
               <span className="font-mono text-slate-400">{state.spectralAngle ?? 135}°</span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="360"
+            <StepperSlider
+              min={0}
+              max={360}
+              step={1}
               value={state.spectralAngle ?? 135}
-              onChange={(e) => onChange({ spectralAngle: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              onChange={(val) => onChange({ spectralAngle: val })}
+              accentColor="#ffafcc"
             />
           </div>
 
@@ -431,13 +1000,13 @@ export const BackgroundSection: React.FC = () => {
               <span className="font-medium text-slate-300">Prism Blur Depth</span>
               <span className="font-mono text-slate-400">{state.spectralBlur ?? 45}px</span>
             </div>
-            <input
-              type="range"
-              min="10"
-              max="80"
+            <StepperSlider
+              min={10}
+              max={80}
+              step={1}
               value={state.spectralBlur ?? 45}
-              onChange={(e) => onChange({ spectralBlur: Number(e.target.value) })}
-              className="w-full bg-slate-800 rounded-lg cursor-pointer"
+              onChange={(val) => onChange({ spectralBlur: val })}
+              accentColor="#ffafcc"
             />
           </div>
         </div>
@@ -573,7 +1142,7 @@ export const BackgroundSection: React.FC = () => {
                     }`}
                     title={confetti.name}
                   >
-                    <ConfettiBackground presetId={confetti.id} />
+                    <ConfettiBackground presetId={confetti.id} isMini />
                     {isSelected && (
                       <div className="w-4 h-4 rounded-full bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white shadow-sm relative z-10">
                         <Check className="w-3 h-3 text-pastel-pink" />
@@ -593,7 +1162,7 @@ export const BackgroundSection: React.FC = () => {
                   title={`Show all ${CONFETTI_PRESETS.length} presets`}
                   className="relative z-10 w-full h-full rounded-xl border border-slate-700 shadow-md flex items-center justify-center cursor-pointer transition-colors hover:border-pastel-pink overflow-hidden"
                 >
-                  <ConfettiBackground presetId={CONFETTI_PRESETS[3].id} />
+                  <ConfettiBackground presetId={CONFETTI_PRESETS[3].id} isMini />
                   <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center gap-0.5 text-white z-10">
                     <span className="text-[10px] font-bold tracking-tight">
                       +{CONFETTI_PRESETS.length - 3}
@@ -874,15 +1443,15 @@ export const BackgroundSection: React.FC = () => {
               <span className="font-medium text-slate-300">Angle</span>
               <span className="font-mono text-slate-400">{state.gradient.angle}°</span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="360"
+            <StepperSlider
+              min={0}
+              max={360}
+              step={1}
               value={state.gradient.angle}
-              onChange={(e) =>
-                onChange({ gradient: { ...state.gradient, angle: Number(e.target.value) } })
+              onChange={(val) =>
+                onChange({ gradient: { ...state.gradient, angle: val } })
               }
-              className="w-full bg-slate-800 rounded-lg"
+              accentColor="#ffafcc"
             />
           </div>
         </div>
@@ -1097,20 +1666,125 @@ export const BackgroundSection: React.FC = () => {
 
       {/* Global Background Adjustments (Grain & Blur) */}
       <div className="pt-3 border-t border-slate-800/60 space-y-3">
-        {/* Grain Effect Slider */}
-        <div>
-          <div className="flex justify-between text-xs mb-1">
+        {/* Grain Effect Section */}
+        <div className="space-y-2.5">
+          <div className="flex justify-between items-center text-xs">
             <span className="font-medium text-slate-300">Grain Effect</span>
-            <span className="font-mono text-slate-400">{state.bgGrain || 0}%</span>
+            <div className="flex items-center gap-2">
+              {(state.bgGrain || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ bgGrain: 0 })}
+                  className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                >
+                  Reset
+                </button>
+              )}
+              <span className="font-mono text-slate-400">{state.bgGrain || 0}%</span>
+            </div>
           </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
+          <StepperSlider
+            min={0}
+            max={100}
+            step={1}
             value={state.bgGrain || 0}
-            onChange={(e) => onChange({ bgGrain: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+            onChange={(val) => onChange({ bgGrain: val })}
+            accentColor="#ffafcc"
           />
+
+          {(state.bgGrain || 0) > 0 && (
+            <div className="p-2.5 bg-neutral-900/60 border border-neutral-800/80 rounded-xl space-y-3">
+              {/* Grain Texture / Size */}
+              <div>
+                <div className="flex justify-between items-center text-[11px] mb-1.5 text-slate-400">
+                  <span>Texture Style</span>
+                  <span className="text-slate-500 text-[10px]">
+                    {GRAIN_SIZES[(state.bgGrainSize as GrainSize) || 'fine']?.desc}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1">
+                  {(Object.keys(GRAIN_SIZES) as GrainSize[]).map((key) => {
+                    const cfg = GRAIN_SIZES[key];
+                    const isSelected = (state.bgGrainSize || 'fine') === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => onChange({ bgGrainSize: key })}
+                        className={`py-1 px-1.5 rounded-lg text-xs font-medium transition-all text-center cursor-pointer ${
+                          isSelected
+                            ? 'bg-pastel-pink text-slate-950 font-semibold shadow-sm'
+                            : 'bg-neutral-950/70 text-slate-400 hover:text-slate-200 hover:bg-neutral-800/60 border border-neutral-800/60'
+                        }`}
+                        title={cfg.desc}
+                      >
+                        {cfg.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Blend Mode */}
+              <div>
+                <div className="flex justify-between items-center text-[11px] mb-1.5 text-slate-400">
+                  <span>Blend Mode</span>
+                  <span className="text-slate-500 text-[10px]">
+                    {GRAIN_BLEND_MODES.find((m) => m.id === (state.bgGrainBlendMode || 'overlay'))?.desc}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {GRAIN_BLEND_MODES.map((mode) => {
+                    const isSelected = (state.bgGrainBlendMode || 'overlay') === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => onChange({ bgGrainBlendMode: mode.id as GrainBlendMode })}
+                        className={`py-1 px-2 rounded-lg text-xs transition-all text-left flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? 'bg-neutral-800 text-pastel-pink border border-pastel-pink/40 font-medium'
+                            : 'bg-neutral-950/70 text-slate-400 hover:text-slate-200 hover:bg-neutral-800/60 border border-neutral-800/60'
+                        }`}
+                      >
+                        <span>{mode.label}</span>
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-pastel-pink" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Color Style (Monochrome vs Chromatic) */}
+              <div className="flex items-center justify-between pt-1 border-t border-neutral-800/50">
+                <span className="text-[11px] text-slate-400">Color Spectrum</span>
+                <div className="flex bg-neutral-950 rounded-lg p-0.5 border border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => onChange({ bgGrainColor: 'monochrome' })}
+                    className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all cursor-pointer ${
+                      (state.bgGrainColor || 'monochrome') === 'monochrome'
+                        ? 'bg-neutral-800 text-pastel-pink font-semibold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Monochrome
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange({ bgGrainColor: 'chromatic' })}
+                    className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all cursor-pointer ${
+                      state.bgGrainColor === 'chromatic'
+                        ? 'bg-neutral-800 text-pastel-pink font-semibold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Chromatic
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Background Blur Slider */}
@@ -1119,13 +1793,13 @@ export const BackgroundSection: React.FC = () => {
             <span className="font-medium text-slate-300">Background Blur</span>
             <span className="font-mono text-slate-400">{state.bgBlur || 0}px</span>
           </div>
-          <input
-            type="range"
-            min="0"
-            max="20"
+          <StepperSlider
+            min={0}
+            max={20}
+            step={1}
             value={state.bgBlur || 0}
-            onChange={(e) => onChange({ bgBlur: Number(e.target.value) })}
-            className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+            onChange={(val) => onChange({ bgBlur: val })}
+            accentColor="#ffafcc"
           />
         </div>
 
@@ -1177,13 +1851,13 @@ export const BackgroundSection: React.FC = () => {
                   <span className="font-medium text-slate-300">Blur Intensity</span>
                   <span className="font-mono text-slate-400">{state.lensBlurAmount || 0}px</span>
                 </div>
-                <input
-                  type="range"
-                  min="4"
-                  max="50"
+                <StepperSlider
+                  min={4}
+                  max={50}
+                  step={1}
                   value={state.lensBlurAmount || 24}
-                  onChange={(e) => onChange({ lensBlurAmount: Number(e.target.value) })}
-                  className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+                  onChange={(val) => onChange({ lensBlurAmount: val })}
+                  accentColor="#ffafcc"
                 />
               </div>
 
@@ -1193,13 +1867,13 @@ export const BackgroundSection: React.FC = () => {
                   <span className="font-medium text-slate-300">Focal Sharp Area</span>
                   <span className="font-mono text-slate-400">{state.lensBlurRadius || 20}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="80"
+                <StepperSlider
+                  min={5}
+                  max={80}
+                  step={1}
                   value={state.lensBlurRadius || 20}
-                  onChange={(e) => onChange({ lensBlurRadius: Number(e.target.value) })}
-                  className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+                  onChange={(val) => onChange({ lensBlurRadius: val })}
+                  accentColor="#ffafcc"
                 />
               </div>
             </div>
@@ -1371,13 +2045,13 @@ export const BackgroundSection: React.FC = () => {
                   <span className="font-medium text-slate-300">Pattern Opacity</span>
                   <span className="font-mono text-slate-400">{state.bgPatternOpacity ?? 40}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="100"
+                <StepperSlider
+                  min={5}
+                  max={100}
+                  step={1}
                   value={state.bgPatternOpacity ?? 40}
-                  onChange={(e) => onChange({ bgPatternOpacity: Number(e.target.value) })}
-                  className="w-full bg-slate-800 rounded-lg accent-pastel-pink cursor-pointer"
+                  onChange={(val) => onChange({ bgPatternOpacity: val })}
+                  accentColor="#ffafcc"
                 />
               </div>
             </div>

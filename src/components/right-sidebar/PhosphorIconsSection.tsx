@@ -3,6 +3,7 @@ import { useStudioStore } from '../../store/useStudioStore';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Copy01, Trash01 } from '@untitledui/icons';
 import { Toggle } from '../Toggle';
+import { StepperSlider } from '../StepperSlider';
 import { PhosphorWeight, PhosphorBadgeStyle } from '../../types/studio';
 
 export const PhosphorIconsSection: React.FC = () => {
@@ -535,7 +536,7 @@ export const PhosphorIconsSection: React.FC = () => {
                     state.updatePhosphorIconLayer(selectedLayer.id, { badgeStyle: b.id })
                   }
                   className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all cursor-pointer truncate text-center ${
-                    (selectedLayer.badgeStyle || 'circle-dark') === b.id
+                    (selectedLayer.badgeStyle || 'plain') === b.id
                       ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink shadow-xs'
                       : 'bg-neutral-950 border-neutral-800 text-slate-400 hover:text-slate-200'
                   }`}
@@ -554,7 +555,7 @@ export const PhosphorIconsSection: React.FC = () => {
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={selectedLayer.color || '#a2d2ff'}
+                value={selectedLayer.color || '#ffffff'}
                 onChange={(e) =>
                   state.updatePhosphorIconLayer(selectedLayer.id, { color: e.target.value })
                 }
@@ -562,7 +563,7 @@ export const PhosphorIconsSection: React.FC = () => {
               />
               <input
                 type="text"
-                value={selectedLayer.color || '#a2d2ff'}
+                value={selectedLayer.color || '#ffffff'}
                 onChange={(e) =>
                   state.updatePhosphorIconLayer(selectedLayer.id, { color: e.target.value })
                 }
@@ -660,17 +661,17 @@ export const PhosphorIconsSection: React.FC = () => {
                     <span className="font-medium text-slate-300">Icon Size</span>
                     <span className="font-mono text-slate-400">{selectedLayer.size || 40}px</span>
                   </div>
-                  <input
-                    type="range"
+                  <StepperSlider
                     min={16}
                     max={120}
+                    step={1}
                     value={selectedLayer.size || 40}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updatePhosphorIconLayer(selectedLayer.id, {
-                        size: Number(e.target.value),
+                        size: val,
                       })
                     }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    accentColor="#ffafcc"
                   />
                 </div>
               )}
@@ -683,17 +684,17 @@ export const PhosphorIconsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position X</span>
                       <span className="font-mono text-slate-400">{selectedLayer.x || 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-400}
                       max={400}
+                      step={1}
                       value={selectedLayer.x || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updatePhosphorIconLayer(selectedLayer.id, {
-                          x: Number(e.target.value),
+                          x: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
 
@@ -702,17 +703,17 @@ export const PhosphorIconsSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Position Y</span>
                       <span className="font-mono text-slate-400">{selectedLayer.y || 0}px</span>
                     </div>
-                    <input
-                      type="range"
+                    <StepperSlider
                       min={-400}
                       max={400}
+                      step={1}
                       value={selectedLayer.y || 0}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         state.updatePhosphorIconLayer(selectedLayer.id, {
-                          y: Number(e.target.value),
+                          y: val,
                         })
                       }
-                      className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                      accentColor="#ffafcc"
                     />
                   </div>
                 </div>
@@ -727,17 +728,17 @@ export const PhosphorIconsSection: React.FC = () => {
                       {selectedLayer.rotation || 0}°
                     </span>
                   </div>
-                  <input
-                    type="range"
+                  <StepperSlider
                     min={-180}
                     max={180}
+                    step={1}
                     value={selectedLayer.rotation || 0}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updatePhosphorIconLayer(selectedLayer.id, {
-                        rotation: Number(e.target.value),
+                        rotation: val,
                       })
                     }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    accentColor="#ffafcc"
                   />
                 </div>
               )}
@@ -751,17 +752,17 @@ export const PhosphorIconsSection: React.FC = () => {
                       {selectedLayer.opacity ?? 100}%
                     </span>
                   </div>
-                  <input
-                    type="range"
+                  <StepperSlider
                     min={10}
                     max={100}
+                    step={1}
                     value={selectedLayer.opacity ?? 100}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       state.updatePhosphorIconLayer(selectedLayer.id, {
-                        opacity: Number(e.target.value),
+                        opacity: val,
                       })
                     }
-                    className="w-full accent-pastel-pink bg-neutral-900 rounded-lg cursor-pointer h-1.5"
+                    accentColor="#ffafcc"
                   />
                 </div>
               )}
