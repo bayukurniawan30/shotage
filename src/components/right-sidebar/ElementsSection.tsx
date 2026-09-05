@@ -46,6 +46,17 @@ export const ElementsSection: React.FC = () => {
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   };
 
+  const isCustomShape = (s?: import('../../types/studio').ShapeLayer | null): boolean => {
+    if (!s) return false;
+    if (s.shapeType === 'custom-path' || Boolean(s.pathData) || Boolean(s.unitPathData)) return true;
+    if (s.shapeType === 'coolshape' || s.shapeType === 'quote') return true;
+    const name = (s.name || '').toLowerCase();
+    if (name.includes('custom') || name.includes('pen') || name.includes('vector') || name.includes('path')) return true;
+    const basicTypes = ['rectangle', 'square', 'circle', 'triangle', 'hexagon'];
+    if (!basicTypes.includes(s.shapeType)) return true;
+    return false;
+  };
+
   const arrowItems = Array.from({ length: 10 }).map((_, i) => ({
     id: `arrow-${i + 1}`,
     src: `/element/arrow/${i + 1}.svg`,
@@ -759,12 +770,27 @@ export const ElementsSection: React.FC = () => {
       )}
 
       {/* Multi-Shape Boolean Operations */}
-      {(state.selectedShapeIds || []).length >= 2 && (
-        <div className="p-3.5 rounded-xl bg-gradient-to-r from-pastel-pink/15 via-purple-500/10 to-pastel-blue/15 border border-pastel-pink/30 space-y-3 animate-in fade-in duration-200">
+      {(() => {
+        const allSelectedIds = new Set([
+          ...(state.selectedShapeIds || []),
+          ...(state.selectedShapeId ? [state.selectedShapeId] : []),
+        ]);
+        if (allSelectedIds.size < 2) return null;
+
+        const selectedShapes = (state.shapeLayers || []).filter((s) =>
+          allSelectedIds.has(s.id)
+        );
+        if (selectedShapes.length < 2) return null;
+
+        // Hide if any selected shape is a custom shape or pen-drawn shape
+        if (selectedShapes.some(isCustomShape) || isCustomShape(selectedShape)) return null;
+
+        return (
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-pastel-pink/15 via-purple-500/10 to-pastel-blue/15 border border-pastel-pink/30 space-y-3 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <PhosphorIcons.IntersectIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
-              {state.selectedShapeIds.length} Shapes Selected
+              {selectedShapes.length} Shapes Selected
             </span>
           </div>
           <p className="text-[11px] text-slate-400 leading-snug">
@@ -832,7 +858,8 @@ export const ElementsSection: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Selected Shape Editor */}
       {selectedShape && (

@@ -340,6 +340,27 @@ export const LayersSection: React.FC = () => {
     </div>
   );
 
+  const isCustomShape = (s?: import('../../types/studio').ShapeLayer | null): boolean => {
+    if (!s) return false;
+    if (s.shapeType === 'custom-path' || Boolean(s.pathData) || Boolean(s.unitPathData)) return true;
+    if (s.shapeType === 'coolshape' || s.shapeType === 'quote') return true;
+    const name = (s.name || '').toLowerCase();
+    if (name.includes('custom') || name.includes('pen') || name.includes('vector') || name.includes('path')) return true;
+    const basicTypes = ['rectangle', 'square', 'circle', 'triangle', 'hexagon'];
+    if (!basicTypes.includes(s.shapeType)) return true;
+    return false;
+  };
+
+  const allSelectedShapeIds = new Set([
+    ...(state.selectedShapeIds || []),
+    ...(state.selectedShapeId ? [state.selectedShapeId] : []),
+  ]);
+  const selectedShapes = (state.shapeLayers || []).filter((s) =>
+    allSelectedShapeIds.has(s.id)
+  );
+  const hasCustomPenShapeSelected =
+    selectedShapes.length < 2 || selectedShapes.some(isCustomShape);
+
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
@@ -351,13 +372,13 @@ export const LayersSection: React.FC = () => {
       </div>
 
       {/* Multi-Shape Boolean Action Bar */}
-      {(state.selectedShapeIds || []).length >= 2 && (
+      {allSelectedShapeIds.size >= 2 && !hasCustomPenShapeSelected && (
         <div className="p-2.5 rounded-lg bg-pastel-pink/10 border border-pastel-pink/30 space-y-2 animate-in fade-in duration-150">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <PhosphorIcons.IntersectIcon weight="duotone" className="w-3.5 h-3.5 text-pastel-pink" />
               <span className="text-[11px] text-slate-200 font-medium">
-                {state.selectedShapeIds.length} shapes selected
+                {selectedShapes.length} shapes selected
               </span>
             </div>
             <span className="text-[9px] font-mono text-pastel-pink/80 uppercase">Boolean</span>

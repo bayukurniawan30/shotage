@@ -1168,7 +1168,12 @@ export const useStudioStore = create<StudioStore>()(
       booleanOperationOnShapes: (operation: BooleanOperation = 'union') => {
         let mergedSuccessfully = false;
         set((state) => {
-          const selectedIds = state.selectedShapeIds || [];
+          const selectedIds = Array.from(
+            new Set([
+              ...(state.selectedShapeIds || []),
+              ...(state.selectedShapeId ? [state.selectedShapeId] : []),
+            ])
+          );
           if (selectedIds.length < 2) return state;
 
           const layerOrder = state.layerOrder || [];
@@ -1182,6 +1187,18 @@ export const useStudioStore = create<StudioStore>()(
             });
 
           if (sortedShapes.length < 2) return state;
+
+          // Disable boolean operations when any custom shape or pen shape is among the selected shapes
+          const isCustom = (s: import('../types/studio').ShapeLayer) =>
+            !s ||
+            s.shapeType === 'custom-path' ||
+            Boolean(s.pathData) ||
+            Boolean(s.unitPathData) ||
+            s.shapeType === 'coolshape' ||
+            s.shapeType === 'quote' ||
+            !['rectangle', 'square', 'circle', 'triangle', 'hexagon'].includes(s.shapeType);
+
+          if (sortedShapes.some(isCustom)) return state;
 
           // For Subtract (Difference): the bottom-most layer (highest index in layerOrder)
           // is the base subject, and the layers on top of it are the cutters.
