@@ -121,11 +121,19 @@ export const LayersSection: React.FC = () => {
   const aboveRows = sortByOrder(allRows.filter((r) => r.position === 'above'));
   const underRows = sortByOrder(allRows.filter((r) => r.position === 'underneath'));
 
-  const select = (row: (typeof allRows)[0]) => {
-    if (row.type === 'text') state.selectTextLayer(row.id);
-    else if (row.type === 'phosphor') state.selectPhosphorIconLayer(row.id);
-    else if (row.type === 'shape') state.selectShapeLayer(row.id);
-    else state.selectCanvasElement(row.id);
+  const select = (row: (typeof allRows)[0], e?: React.MouseEvent) => {
+    const isMulti = e?.shiftKey || e?.metaKey || e?.ctrlKey || state.isMultiSelectMode;
+    if (isMulti) {
+      if (row.type === 'text') state.toggleTextLayer(row.id);
+      else if (row.type === 'phosphor') state.toggleSelectPhosphorIconLayer(row.id);
+      else if (row.type === 'shape') state.toggleSelectShapeLayer(row.id);
+      else state.toggleSelectCanvasElement(row.id);
+    } else {
+      if (row.type === 'text') state.selectTextLayer(row.id);
+      else if (row.type === 'phosphor') state.selectPhosphorIconLayer(row.id);
+      else if (row.type === 'shape') state.selectShapeLayer(row.id);
+      else state.selectCanvasElement(row.id);
+    }
   };
 
   const update = (row: (typeof allRows)[0], updates: Record<string, unknown>) => {
@@ -193,7 +201,7 @@ export const LayersSection: React.FC = () => {
       onDragOver={(e) => handleDragOver(e, row.key)}
       onDrop={() => handleDrop(row)}
       onDragEnd={handleDragEnd}
-      onClick={() => select(row)}
+      onClick={(e) => select(row, e)}
       className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${
         layerDropIndicator === row.key
           ? 'border-pastel-pink/70 bg-pastel-pink/5'

@@ -23,6 +23,7 @@ import {
   Heart,
   DotsVertical,
 } from '@untitledui/icons';
+import * as PhosphorIcons from '@phosphor-icons/react';
 
 import {
   saveSession,
@@ -43,6 +44,14 @@ export const Studio: React.FC = () => {
   const isPreviewMode = useStudioStore((state) => state.isPreviewMode);
   const togglePreviewMode = useStudioStore((state) => state.togglePreviewMode);
   const previewCanvasZoom = useStudioStore((state) => state.previewCanvasZoom);
+  const isMultiSelectMode = useStudioStore((state) => state.isMultiSelectMode);
+  const toggleMultiSelectMode = useStudioStore((state) => state.toggleMultiSelectMode);
+  const clearAllSelection = useStudioStore((state) => state.clearAllSelection);
+  const selectedElementCount =
+    (useStudioStore((state) => state.selectedElementIds)?.length ?? 0) +
+    (useStudioStore((state) => state.selectedTextLayerIds)?.length ?? 0) +
+    (useStudioStore((state) => state.selectedPhosphorIconLayerIds)?.length ?? 0) +
+    (useStudioStore((state) => state.selectedShapeIds)?.length ?? 0);
   const isAnimationMode = useStudioStore((state) => state.isAnimationMode);
   const updateState = useStudioStore((state) => state.updateState);
 
@@ -1031,6 +1040,42 @@ export const Studio: React.FC = () => {
               <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
                 {previewCanvasZoom}%
               </span>
+
+              {/* Multi-Select Mode Toggle for Mobile Only */}
+              <div className="h-3.5 w-px bg-neutral-800 shrink-0 mx-0.5 md:hidden" />
+              <div className="flex md:hidden items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => toggleMultiSelectMode()}
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer select-none ${
+                    isMultiSelectMode
+                      ? 'bg-pastel-pink text-neutral-950 shadow-md shadow-pastel-pink/25 font-extrabold'
+                      : 'text-slate-300 hover:text-white hover:bg-neutral-800 border border-neutral-700/60'
+                  }`}
+                  title={
+                    isMultiSelectMode
+                      ? 'Multi-select mode is ON (tap canvas elements or layers to select multiple)'
+                      : 'Toggle multi-select mode (convenient for mobile touch)'
+                  }
+                >
+                  <PhosphorIcons.BoundingBox
+                    size={13}
+                    weight={isMultiSelectMode ? 'fill' : 'bold'}
+                  />
+                  <span>Multi{selectedElementCount > 0 ? ` (${selectedElementCount})` : ''}</span>
+                </button>
+
+                {selectedElementCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => clearAllSelection()}
+                    className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-neutral-800 text-[10px] transition-colors shrink-0"
+                    title="Clear selection"
+                  >
+                    <PhosphorIcons.X size={12} weight="bold" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />

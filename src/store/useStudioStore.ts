@@ -85,6 +85,9 @@ interface StudioStore extends StudioState {
   mergeSelectedShapes: (operation?: BooleanOperation) => boolean;
   booleanOperationOnShapes: (operation?: BooleanOperation) => boolean;
   setPenDrawingMode: (active: boolean) => void;
+  setMultiSelectMode: (enabled: boolean | ((prev: boolean) => boolean)) => void;
+  toggleMultiSelectMode: () => void;
+  clearAllSelection: () => void;
   reorderLayers: (
     newOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[]
   ) => void;
@@ -1092,6 +1095,26 @@ export const useStudioStore = create<StudioStore>()(
         return newId;
       },
       setPenDrawingMode: (active) => set({ isPenDrawingMode: active }),
+      setMultiSelectMode: (enabled) =>
+        set((state) => ({
+          isMultiSelectMode:
+            typeof enabled === 'function' ? enabled(state.isMultiSelectMode ?? false) : enabled,
+        })),
+      toggleMultiSelectMode: () =>
+        set((state) => ({
+          isMultiSelectMode: !state.isMultiSelectMode,
+        })),
+      clearAllSelection: () =>
+        set(() => ({
+          selectedTextLayerId: null,
+          selectedTextLayerIds: [],
+          selectedPhosphorIconLayerId: null,
+          selectedPhosphorIconLayerIds: [],
+          selectedElementId: null,
+          selectedElementIds: [],
+          selectedShapeId: null,
+          selectedShapeIds: [],
+        })),
       updateShapeLayer: (id, updates) =>
         set((state) => ({
           shapeLayers: (state.shapeLayers || []).map((s) =>

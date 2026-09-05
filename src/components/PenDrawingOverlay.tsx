@@ -7,6 +7,8 @@ interface PenDrawingOverlayProps {
   onNodeCountChange?: (count: number) => void;
   finishRef?: React.MutableRefObject<((isClosed: boolean) => void) | null>;
   undoRef?: React.MutableRefObject<(() => void) | null>;
+  cornerRef?: React.MutableRefObject<(() => void) | null>;
+  onLastHasHandleChange?: (hasHandle: boolean) => void;
 }
 
 /**
@@ -51,9 +53,12 @@ export function generateSvgPathFromNodes(nodes: PenNode[], isClosed: boolean): s
 }
 
 export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
+  canvasRef,
   onNodeCountChange,
   finishRef,
   undoRef,
+  cornerRef,
+  onLastHasHandleChange,
 }) => {
   const state = useStudioStore();
   const overlayRef = useRef<SVGSVGElement | null>(null);
@@ -63,27 +68,32 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
   const [isNearStart, setIsNearStart] = useState(false);
+  const [isNearLast, setIsNearLast] = useState(false);
 
   // Viewport zoom scale compensation
   const zoomScale = Math.max(0.2, (state.previewCanvasZoom || 100) / 100);
   const invZoom = 1 / zoomScale;
 
-  // Convert client viewport coordinates to unscaled canvas local coordinates
-  const getCanvasCoords = useCallback((e: React.PointerEvent | PointerEvent) => {
-    if (!overlayRef.current) return { x: 0, y: 0 };
-    const rect = overlayRef.current.getBoundingClientRect();
-    const clientW = overlayRef.current.clientWidth || rect.width;
-    const clientH = overlayRef.current.clientHeight || rect.height;
+  // Convert client viewport coordinates to unscaled canvas local coordinates (supports points inside and outside canvas)
+  const getCanvasCoords = useCallback(
+    (e: React.PointerEvent | PointerEvent) => {
+      const targetEl = canvasRef?.current || overlayRef.current;
+      if (!targetEl) return { x: 0, y: 0 };
+      const canvasRect = targetEl.getBoundingClientRect();
+      const clientW = targetEl.clientWidth || 800;
+      const clientH = targetEl.clientHeight || 600;
 
-    // True scale ratio between screen pixels and local canvas layout pixels
-    const scaleX = rect.width / clientW;
-    const scaleY = rect.height / clientH;
+      // True scale ratio between screen pixels and local canvas layout pixels
+      const scaleX = canvasRect.width / clientW;
+      const scaleY = canvasRect.height / clientH;
 
-    return {
-      x: Math.round(((e.clientX - rect.left) / scaleX) * 10) / 10,
-      y: Math.round(((e.clientY - rect.top) / scaleY) * 10) / 10,
-    };
-  }, []);
+      return {
+        x: Math.round(((e.clientX - canvasRect.left) / scaleX) * 10) / 10,
+        y: Math.round(((e.clientY - canvasRect.top) / scaleY) * 10) / 10,
+      };
+    },
+    [canvasRef]
+  );
 
   // Complete drawing and add ShapeLayer to store
   const finishPath = useCallback(
@@ -96,15 +106,10 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
         return;
       }
 
-      if (!overlayRef.current) {
-        state.setPenDrawingMode(false);
-        return;
-      }
+      const clientW = canvasRef?.current?.clientWidth || 800;
+      const clientH = canvasRef?.current?.clientHeight || 600;
 
-      const clientW = overlayRef.current.clientWidth || 800;
-      const clientH = overlayRef.current.clientHeight || 600;
-
-      // Calculate bounding box across all anchors and control handles
+      // Calculate bounding box across all anchors and control handles (supports outside coordinates)
       let minX = Infinity;
       let minY = Infinity;
       let maxX = -Infinity;
@@ -160,7 +165,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
 
       state.setPenDrawingMode(false);
     },
-    [nodes, activeNode, state]
+    [nodes, activeNode, state, canvasRef]
   );
 
   // Undo last placed node
@@ -168,16 +173,33 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
     setNodes((prev) => prev.slice(0, -1));
   }, []);
 
-  // Expose finish and undo callbacks to parent toolbar
+  // Convert last node to acute corner (retract outgoing handle, Photoshop-style)
+  const convertLastNodeToCorner = useCallback(() => {
+    setNodes((prev) => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      const lastIdx = updated.length - 1;
+      updated[lastIdx] = {
+        ...updated[lastIdx],
+        handleOut: undefined,
+      };
+      return updated;
+    });
+  }, []);
+
+  // Expose finish, undo, and corner callbacks to parent toolbar
   useEffect(() => {
     if (finishRef) finishRef.current = finishPath;
     if (undoRef) undoRef.current = undoLastNode;
-  }, [finishPath, undoLastNode, finishRef, undoRef]);
+    if (cornerRef) cornerRef.current = convertLastNodeToCorner;
+  }, [finishPath, undoLastNode, convertLastNodeToCorner, finishRef, undoRef, cornerRef]);
 
-  // Sync node count with toolbar
+  // Sync node count and last node handle status with toolbar
+  const lastHasHandle = nodes.length > 0 && !!nodes[nodes.length - 1].handleOut;
   useEffect(() => {
     onNodeCountChange?.(nodes.length);
-  }, [nodes.length, onNodeCountChange]);
+    onLastHasHandleChange?.(lastHasHandle);
+  }, [nodes.length, lastHasHandle, onNodeCountChange, onLastHasHandleChange]);
 
   // Pointer Down: Start point or initiate curve drag
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -191,6 +213,18 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
     if (isNearStart && nodes.length >= 3) {
       finishPath(true);
       return;
+    }
+
+    // Photoshop-style Convert Point / Retract Outgoing Handle:
+    // If clicking or Option/Alt-clicking the last placed anchor point, retract handleOut
+    // so the next stroke forms a sharp acute angle instead of a continuous curve!
+    if (nodes.length > 0) {
+      const last = nodes[nodes.length - 1];
+      const distLast = Math.hypot(x - last.x, y - last.y);
+      if (distLast <= 14 * invZoom && (last.handleOut || e.altKey)) {
+        convertLastNodeToCorner();
+        return;
+      }
     }
 
     // Set active node at current pointer location
@@ -212,17 +246,40 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
       setIsNearStart(false);
     }
 
+    // Check distance to last point (for acute corner conversion on click)
+    if (nodes.length > 0) {
+      const last = nodes[nodes.length - 1];
+      const distLast = Math.hypot(x - last.x, y - last.y);
+      setIsNearLast(distLast <= 14 * invZoom);
+    } else {
+      setIsNearLast(false);
+    }
+
     // If dragging while creating a point, extend tangent handles
     if (isDragging && activeNode) {
       const dx = x - activeNode.x;
       const dy = y - activeNode.y;
 
-      // HandleOut follows cursor; HandleIn mirrors symmetrically (Photoshop style)
-      setActiveNode({
-        ...activeNode,
-        handleOut: { x: activeNode.x + dx, y: activeNode.y + dy },
-        handleIn: { x: activeNode.x - dx, y: activeNode.y - dy },
-      });
+      if (e.altKey) {
+        // Option/Alt key held during drag: Cusp / acute angle mode (Photoshop style)
+        // Only adjust handleOut, keeping handleIn fixed
+        setActiveNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                handleOut: { x: prev.x + dx, y: prev.y + dy },
+                handleIn: prev.handleIn,
+              }
+            : null
+        );
+      } else {
+        // Symmetrical smooth Bezier handles
+        setActiveNode({
+          ...activeNode,
+          handleOut: { x: activeNode.x + dx, y: activeNode.y + dy },
+          handleIn: { x: activeNode.x - dx, y: activeNode.y - dy },
+        });
+      }
     }
   };
 
@@ -289,143 +346,187 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
   const strokeWidthGuide = 1.5 * invZoom;
   const strokeWidthHandle = 1 * invZoom;
 
+  const EXTEND_PX = 4000;
+
   return (
-    <div className="absolute inset-0 z-[100] pointer-events-auto select-none overflow-visible">
+    <div
+      className="absolute z-[100] pointer-events-auto select-none overflow-visible"
+      style={{
+        top: `-${EXTEND_PX}px`,
+        left: `-${EXTEND_PX}px`,
+        width: `calc(100% + ${EXTEND_PX * 2}px)`,
+        height: `calc(100% + ${EXTEND_PX * 2}px)`,
+      }}
+    >
       {/* SVG Drawing Canvas Overlay */}
       <svg
         ref={overlayRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className={`absolute inset-0 w-full h-full overflow-visible ${
-          isNearStart ? 'cursor-pointer' : 'cursor-crosshair'
+        className={`w-full h-full overflow-visible ${
+          isNearStart
+            ? 'cursor-pointer'
+            : isNearLast && lastHasHandle
+              ? 'cursor-pointer'
+              : 'cursor-crosshair'
         }`}
         style={{ touchAction: 'none' }}
       >
-        {/* Live SVG Path Silhouette (includes all committed nodes and active node during drag) */}
-        {livePathStr && (
-          <path
-            d={livePathStr}
-            fill="rgba(162, 210, 255, 0.12)"
-            stroke="#a2d2ff"
-            strokeWidth={strokeWidthMain}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-
-        {/* Live curve segment highlight while dragging and sculpting curve */}
-        {isDragging && nodes.length > 0 && activeNode && (() => {
-          const prev = nodes[nodes.length - 1];
-          const cp1x = prev.handleOut ? prev.handleOut.x : prev.x;
-          const cp1y = prev.handleOut ? prev.handleOut.y : prev.y;
-          const cp2x = activeNode.handleIn ? activeNode.handleIn.x : activeNode.x;
-          const cp2y = activeNode.handleIn ? activeNode.handleIn.y : activeNode.y;
-          const segD = `M ${prev.x} ${prev.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${activeNode.x} ${activeNode.y}`;
-          return (
+        <g transform={`translate(${EXTEND_PX}, ${EXTEND_PX})`}>
+          {/* Live SVG Path Silhouette (includes all committed nodes and active node during drag) */}
+          {livePathStr && (
             <path
-              d={segD}
-              fill="none"
-              stroke="#f472b6"
-              strokeWidth={strokeWidthMain * 1.3}
+              d={livePathStr}
+              fill="rgba(162, 210, 255, 0.12)"
+              stroke="#a2d2ff"
+              strokeWidth={strokeWidthMain}
               strokeLinecap="round"
-              className="drop-shadow-[0_0_6px_rgba(244,114,182,0.8)]"
+              strokeLinejoin="round"
             />
-          );
-        })()}
+          )}
 
-        {/* Live Elastic Line to Cursor when hovering */}
-        {previewSegmentStr && (
-          <path
-            d={previewSegmentStr}
-            fill="none"
-            stroke={isNearStart ? '#f472b6' : '#a2d2ff'}
-            strokeWidth={strokeWidthGuide}
-            strokeDasharray={`${4 * invZoom} ${4 * invZoom}`}
-            className="animate-pulse"
-          />
-        )}
+          {/* Live curve segment highlight while dragging and sculpting curve */}
+          {isDragging && nodes.length > 0 && activeNode && (() => {
+            const prev = nodes[nodes.length - 1];
+            const cp1x = prev.handleOut ? prev.handleOut.x : prev.x;
+            const cp1y = prev.handleOut ? prev.handleOut.y : prev.y;
+            const cp2x = activeNode.handleIn ? activeNode.handleIn.x : activeNode.x;
+            const cp2y = activeNode.handleIn ? activeNode.handleIn.y : activeNode.y;
+            const segD = `M ${prev.x} ${prev.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${activeNode.x} ${activeNode.y}`;
+            return (
+              <path
+                d={segD}
+                fill="none"
+                stroke="#f472b6"
+                strokeWidth={strokeWidthMain * 1.3}
+                strokeLinecap="round"
+                className="drop-shadow-[0_0_6px_rgba(244,114,182,0.8)]"
+              />
+            );
+          })()}
 
-        {/* Tangent Control Handle Lines and Knobs for all nodes */}
-        {allNodes.map((n, idx) => (
-          <g key={`handles-${idx}`}>
-            {/* Handle In line & knob */}
-            {n.handleIn && (
-              <>
-                <line
-                  x1={n.x}
-                  y1={n.y}
-                  x2={n.handleIn.x}
-                  y2={n.handleIn.y}
-                  stroke="#93c5fd"
-                  strokeWidth={strokeWidthHandle}
-                />
-                <circle
-                  cx={n.handleIn.x}
-                  cy={n.handleIn.y}
-                  r={knobRadius}
-                  fill="#ffffff"
-                  stroke="#3b82f6"
-                  strokeWidth={strokeWidthHandle * 1.5}
-                />
-              </>
-            )}
+          {/* Live Elastic Line to Cursor when hovering */}
+          {previewSegmentStr && (
+            <path
+              d={previewSegmentStr}
+              fill="none"
+              stroke={isNearStart ? '#f472b6' : '#a2d2ff'}
+              strokeWidth={strokeWidthGuide}
+              strokeDasharray={`${4 * invZoom} ${4 * invZoom}`}
+              className="animate-pulse"
+            />
+          )}
 
-            {/* Handle Out line & knob */}
-            {n.handleOut && (
-              <>
-                <line
-                  x1={n.x}
-                  y1={n.y}
-                  x2={n.handleOut.x}
-                  y2={n.handleOut.y}
-                  stroke="#93c5fd"
-                  strokeWidth={strokeWidthHandle}
-                />
-                <circle
-                  cx={n.handleOut.x}
-                  cy={n.handleOut.y}
-                  r={knobRadius}
-                  fill="#ffffff"
-                  stroke="#3b82f6"
-                  strokeWidth={strokeWidthHandle * 1.5}
-                />
-              </>
-            )}
-          </g>
-        ))}
-
-        {/* Anchor Points (Crisp Square Knobs) */}
-        {allNodes.map((n, idx) => {
-          const isFirst = idx === 0;
-          return (
-            <g key={`anchor-${idx}`}>
-              {/* Highlight circle on initial point when hovering near to close path */}
-              {isFirst && isNearStart && (
-                <circle
-                  cx={n.x}
-                  cy={n.y}
-                  r={12 * invZoom}
-                  fill="rgba(244, 114, 182, 0.25)"
-                  stroke="#f472b6"
-                  strokeWidth={2 * invZoom}
-                  className="animate-ping"
-                />
+          {/* Tangent Control Handle Lines and Knobs for all nodes */}
+          {allNodes.map((n, idx) => (
+            <g key={`handles-${idx}`}>
+              {/* Handle In line & knob */}
+              {n.handleIn && (
+                <>
+                  <line
+                    x1={n.x}
+                    y1={n.y}
+                    x2={n.handleIn.x}
+                    y2={n.handleIn.y}
+                    stroke="#93c5fd"
+                    strokeWidth={strokeWidthHandle}
+                  />
+                  <circle
+                    cx={n.handleIn.x}
+                    cy={n.handleIn.y}
+                    r={knobRadius}
+                    fill="#ffffff"
+                    stroke="#3b82f6"
+                    strokeWidth={strokeWidthHandle * 1.5}
+                  />
+                </>
               )}
 
-              {/* Anchor Square Point */}
-              <rect
-                x={n.x - anchorHalf}
-                y={n.y - anchorHalf}
-                width={anchorSize}
-                height={anchorSize}
-                fill={isFirst && isNearStart ? '#f472b6' : '#ffffff'}
-                stroke={isFirst ? '#3b82f6' : '#1d4ed8'}
-                strokeWidth={1.5 * invZoom}
-              />
+              {/* Handle Out line & knob */}
+              {n.handleOut && (
+                <>
+                  <line
+                    x1={n.x}
+                    y1={n.y}
+                    x2={n.handleOut.x}
+                    y2={n.handleOut.y}
+                    stroke="#93c5fd"
+                    strokeWidth={strokeWidthHandle}
+                  />
+                  <circle
+                    cx={n.handleOut.x}
+                    cy={n.handleOut.y}
+                    r={knobRadius}
+                    fill="#ffffff"
+                    stroke="#3b82f6"
+                    strokeWidth={strokeWidthHandle * 1.5}
+                  />
+                </>
+              )}
             </g>
-          );
-        })}
+          ))}
+
+          {/* Anchor Points (Crisp Square Knobs) */}
+          {allNodes.map((n, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === nodes.length - 1 && !activeNode;
+            const isLastWithHandle = isLast && !!n.handleOut;
+
+            return (
+              <g key={`anchor-${idx}`}>
+                {/* Highlight circle on initial point when hovering near to close path */}
+                {isFirst && isNearStart && (
+                  <circle
+                    cx={n.x}
+                    cy={n.y}
+                    r={12 * invZoom}
+                    fill="rgba(244, 114, 182, 0.25)"
+                    stroke="#f472b6"
+                    strokeWidth={2 * invZoom}
+                    className="animate-ping"
+                  />
+                )}
+
+                {/* Acute corner conversion highlight when hovering over last point with handle */}
+                {isLastWithHandle && isNearLast && (
+                  <circle
+                    cx={n.x}
+                    cy={n.y}
+                    r={11 * invZoom}
+                    fill="rgba(251, 191, 36, 0.25)"
+                    stroke="#f59e0b"
+                    strokeWidth={1.5 * invZoom}
+                    strokeDasharray={`${3 * invZoom} ${2 * invZoom}`}
+                  />
+                )}
+
+                {/* Anchor Square Point */}
+                <rect
+                  x={n.x - anchorHalf}
+                  y={n.y - anchorHalf}
+                  width={anchorSize}
+                  height={anchorSize}
+                  fill={
+                    isFirst && isNearStart
+                      ? '#f472b6'
+                      : isLastWithHandle && isNearLast
+                        ? '#f59e0b'
+                        : '#ffffff'
+                  }
+                  stroke={
+                    isFirst
+                      ? '#3b82f6'
+                      : isLastWithHandle && isNearLast
+                        ? '#d97706'
+                        : '#1d4ed8'
+                  }
+                  strokeWidth={1.5 * invZoom}
+                />
+              </g>
+            );
+          })}
+        </g>
       </svg>
     </div>
   );

@@ -477,6 +477,7 @@ export interface StudioState {
   selectedShapeIds: string[];
   // Pen Drawing Mode State
   isPenDrawingMode?: boolean;
+  isMultiSelectMode?: boolean;
   sidebarMode: 'quick' | 'advanced';
   // Tech Stack Overlay
   techStackConfig: TechStackConfig;
@@ -628,6 +629,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   selectedShapeId: null,
   selectedShapeIds: [],
   isPenDrawingMode: false,
+  isMultiSelectMode: false,
   sidebarMode: 'quick',
   techStackConfig: {
     enabled: false,

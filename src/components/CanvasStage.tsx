@@ -108,8 +108,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // Pen Tool Drawing State & Action References
   const [penNodeCount, setPenNodeCount] = useState(0);
+  const [penLastHasHandle, setPenLastHasHandle] = useState(false);
   const finishPenRef = useRef<((isClosed: boolean) => void) | null>(null);
   const undoPenRef = useRef<(() => void) | null>(null);
+  const cornerPenRef = useRef<(() => void) | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && onImageUpload) {
@@ -535,7 +537,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (e.shiftKey || e.metaKey) {
+              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleTextLayer(layer.id);
               } else {
                 state.selectTextLayer(layer.id);
@@ -683,7 +685,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (e.shiftKey || e.metaKey) {
+              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleSelectPhosphorIconLayer(layer.id);
               } else {
                 state.selectPhosphorIconLayer(layer.id);
@@ -742,7 +744,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={el.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (e.shiftKey || e.metaKey) {
+              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleSelectCanvasElement(el.id);
               } else {
                 state.selectCanvasElement(el.id);
@@ -946,7 +948,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             data-layer-id={layer.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (e.shiftKey || e.metaKey) {
+              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleSelectShapeLayer(layer.id);
               } else {
                 state.selectShapeLayer(layer.id);
@@ -2398,7 +2400,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     // Modifier+click on a layer: let the native click event handle multi-select
     // toggling instead of starting a drag / pan / single-select here.
-    const multiKey = e.shiftKey || e.metaKey || e.ctrlKey;
+    const multiKey = e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode;
     if ((textLayerEl || phosphorIconLayerEl || canvasElementEl || shapeLayerEl) && multiKey) {
       return;
     }
@@ -2476,7 +2478,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const id = textLayerEl.dataset.layerId || '';
         const layer = (state.textLayers || []).find((l) => l.id === id);
         if (layer) {
-          state.selectTextLayer(layer.id);
+          if (!multiKey) {
+            state.selectTextLayer(layer.id);
+          }
           setDragItem({
             type: 'text',
             id: layer.id,
@@ -2492,7 +2496,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const id = phosphorIconLayerEl.dataset.layerId || '';
         const layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
         if (layer) {
-          state.selectPhosphorIconLayer(layer.id);
+          if (!multiKey) {
+            state.selectPhosphorIconLayer(layer.id);
+          }
           setDragItem({
             type: 'phosphor',
             id: layer.id,
@@ -2508,7 +2514,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const id = canvasElementEl.dataset.layerId || '';
         const layer = (state.canvasElements || []).find((l) => l.id === id);
         if (layer) {
-          state.selectCanvasElement(layer.id);
+          if (!multiKey) {
+            state.selectCanvasElement(layer.id);
+          }
           setDragItem({
             type: 'element',
             id: layer.id,
@@ -2524,7 +2532,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const id = shapeLayerEl.dataset.layerId || '';
         const layer = (state.shapeLayers || []).find((l) => l.id === id);
         if (layer) {
-          state.selectShapeLayer(layer.id);
+          if (!multiKey) {
+            state.selectShapeLayer(layer.id);
+          }
           setDragItem({
             type: 'shape',
             id: layer.id,
@@ -2538,7 +2548,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         }
       }
     } else {
-      if (!(e.shiftKey || e.metaKey || e.ctrlKey)) {
+      if (!multiKey) {
         if ((state.selectedTextLayerIds?.length ?? 0) > 0 && !textLayerEl)
           state.selectTextLayer(null);
         if ((state.selectedPhosphorIconLayerIds?.length ?? 0) > 0 && !phosphorIconLayerEl)
@@ -3573,6 +3583,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             <PhosphorIcons.ArrowUUpLeft className="w-4 h-4" />
           </button>
 
+          {/* Make Acute Corner (retract outgoing handle like Option-click in Photoshop) */}
+          <button
+            type="button"
+            disabled={!penLastHasHandle}
+            onClick={() => cornerPenRef.current?.()}
+            title="Make Acute Corner (Option-Click last point)"
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+              penLastHasHandle
+                ? 'bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 hover:scale-110 cursor-pointer shadow-sm shadow-amber-400/20'
+                : 'text-neutral-600 cursor-not-allowed'
+            }`}
+          >
+            <PhosphorIcons.CornersIn weight="bold" className="w-4 h-4" />
+          </button>
+
           <div className="w-4 h-px bg-neutral-800" />
 
           {/* Cancel Drawing (X icon) */}
@@ -4103,6 +4128,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               onNodeCountChange={setPenNodeCount}
               finishRef={finishPenRef}
               undoRef={undoPenRef}
+              cornerRef={cornerPenRef}
+              onLastHasHandleChange={setPenLastHasHandle}
             />
           )}
         </div>
