@@ -7,6 +7,7 @@ web_modules/
 dist/
 build/
 out/
+public/assets/
 
 # Local database file
 local_db.json
