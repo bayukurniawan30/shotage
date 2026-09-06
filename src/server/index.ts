@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = new Hono();
 
@@ -39,14 +43,22 @@ app.get('/*', async (c, next) => {
     return await next();
   }
 
-  const publicPath = path.join(process.cwd(), 'public', reqPath);
-  const distPath = path.join(process.cwd(), 'dist', reqPath);
+  const cleanPath = reqPath.startsWith('/') ? reqPath.slice(1) : reqPath;
+  const candidatePaths = [
+    path.join(process.cwd(), 'dist', cleanPath),
+    path.join(process.cwd(), 'public', cleanPath),
+    path.resolve(__dirname, '../../dist', cleanPath),
+    path.resolve(__dirname, '../../public', cleanPath),
+    path.resolve(__dirname, '../dist', cleanPath),
+    path.resolve(__dirname, '../public', cleanPath),
+  ];
 
   let targetPath: string | null = null;
-  if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
-    targetPath = publicPath;
-  } else if (fs.existsSync(distPath) && fs.statSync(distPath).isFile()) {
-    targetPath = distPath;
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+      targetPath = p;
+      break;
+    }
   }
 
   if (targetPath) {
@@ -87,8 +99,15 @@ const renderInertiaPage = (componentName: string, props = {}, search = '') => {
   });
 
   // Inject into index.html
-  const indexPath = path.join(process.cwd(), 'dist', 'index.html');
-  if (fs.existsSync(indexPath)) {
+  const possibleIndexPaths = [
+    path.join(process.cwd(), 'dist', 'index.html'),
+    path.resolve(__dirname, '../../dist/index.html'),
+    path.resolve(__dirname, '../dist/index.html'),
+    path.resolve('dist/index.html'),
+    path.join(process.cwd(), 'index.html'),
+  ];
+  const indexPath = possibleIndexPaths.find((p) => fs.existsSync(p));
+  if (indexPath) {
     let html = fs.readFileSync(indexPath, 'utf-8');
     return html.replace(
       '<div id="app"></div>',

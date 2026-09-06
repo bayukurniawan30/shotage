@@ -2,13 +2,17 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install",
+  "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.ts"
+      "source": "/((?!assets/|mockup/|frame/|shadow/|element/|overlay/|style/|techstack/|video/|sw\\.js|robots\\.txt|sitemap\\.xml|favicon\\.ico|manifest\\.json|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|ttf|eot)$).*)",
+      "destination": "/api/index.ts"
     }
   ],
   "functions": {
+    "api/index.ts": {
+      "includeFiles": "dist/**, public/**"
+    },
     "index.ts": {
       "includeFiles": "dist/**, public/**"
     }
