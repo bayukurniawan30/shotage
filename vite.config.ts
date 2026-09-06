@@ -39,6 +39,30 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('@phosphor-icons')) return 'vendor-phosphor';
+              if (id.includes('@untitledui/icons')) return 'vendor-untitledui';
+              if (id.includes('remotion') || id.includes('@remotion')) return 'vendor-remotion';
+              if (id.includes('coolshapes')) return 'vendor-coolshapes';
+              if (id.includes('framer-motion')) return 'vendor-motion';
+              if (
+                id.includes('react') ||
+                id.includes('react-dom') ||
+                id.includes('zustand') ||
+                id.includes('zundo')
+              ) {
+                return 'vendor-framework';
+              }
+              return 'vendor';
+            }
+          },
+        },
+      },
+    },
     server: {
       port: 5173,
       open: true,

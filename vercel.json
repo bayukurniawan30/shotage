@@ -10,7 +10,10 @@
   ],
   "functions": {
     "index.ts": {
-      "includeFiles": "dist/**, public/**"
+      "includeFiles": [
+        "dist/**",
+        "public/**"
+      ]
     }
   }
 }

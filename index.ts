@@ -49,6 +49,12 @@ app.get('/*', async (c, next) => {
     path.join(process.cwd(), 'public', cleanPath),
     path.resolve(__dirname, 'dist', cleanPath),
     path.resolve(__dirname, 'public', cleanPath),
+    path.resolve(__dirname, '../dist', cleanPath),
+    path.resolve(__dirname, '../public', cleanPath),
+    path.resolve(__dirname, '../../dist', cleanPath),
+    path.resolve(__dirname, '../../public', cleanPath),
+    path.resolve('dist', cleanPath),
+    path.resolve('public', cleanPath),
   ];
 
   let targetPath: string | null = null;
@@ -61,20 +67,67 @@ app.get('/*', async (c, next) => {
 
   if (targetPath) {
     const content = fs.readFileSync(targetPath);
-    const ext = path.extname(targetPath);
+    const ext = path.extname(targetPath).toLowerCase();
     let mime = 'application/octet-stream';
-    if (ext === '.png') mime = 'image/png';
+    if (ext === '.js' || ext === '.mjs') mime = 'application/javascript';
+    else if (ext === '.css') mime = 'text/css';
+    else if (ext === '.svg') mime = 'image/svg+xml';
+    else if (ext === '.json') mime = 'application/json';
+    else if (ext === '.png') mime = 'image/png';
     else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
     else if (ext === '.gif') mime = 'image/gif';
-    else if (ext === '.svg') mime = 'image/svg+xml';
     else if (ext === '.ico') mime = 'image/x-icon';
-    else if (ext === '.js') mime = 'application/javascript';
-    else if (ext === '.css') mime = 'text/css';
+    else if (ext === '.webp') mime = 'image/webp';
+    else if (ext === '.woff2') mime = 'font/woff2';
+    else if (ext === '.woff') mime = 'font/woff';
+    else if (ext === '.ttf') mime = 'font/ttf';
 
-    return c.body(content, 200, { 'Content-Type': mime });
+    const headers: Record<string, string> = {
+      'Content-Type': mime,
+    };
+    if (reqPath.startsWith('/assets/')) {
+      headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+    }
+
+    return c.body(content, 200, headers);
   }
 
   await next();
+});
+
+// Debug endpoint to verify serverless filesystem state
+app.get('/api/debug-dist', (c) => {
+  const cwd = process.cwd();
+  const check = (p: string) => ({ path: p, exists: fs.existsSync(p) });
+  let distFiles: string[] = [];
+  let assetsFiles: string[] = [];
+  try {
+    if (fs.existsSync(path.join(cwd, 'dist'))) {
+      distFiles = fs.readdirSync(path.join(cwd, 'dist'));
+    }
+  } catch (e: any) {
+    distFiles = [e.message];
+  }
+  try {
+    if (fs.existsSync(path.join(cwd, 'dist', 'assets'))) {
+      assetsFiles = fs.readdirSync(path.join(cwd, 'dist', 'assets'));
+    }
+  } catch (e: any) {
+    assetsFiles = [e.message];
+  }
+
+  return c.json({
+    cwd,
+    __dirname,
+    checks: [
+      check(path.join(cwd, 'dist')),
+      check(path.join(cwd, 'dist', 'index.html')),
+      check(path.join(cwd, 'dist', 'assets')),
+      check(path.resolve(__dirname, 'dist')),
+    ],
+    distFiles,
+    assetsFiles,
+  });
 });
 
 // Inertia HTML Page Renderer
@@ -100,6 +153,8 @@ const renderInertiaPage = (componentName: string, props = {}, search = '') => {
   const possibleIndexPaths = [
     path.join(process.cwd(), 'dist', 'index.html'),
     path.resolve(__dirname, 'dist/index.html'),
+    path.resolve(__dirname, '../dist/index.html'),
+    path.resolve(__dirname, '../../dist/index.html'),
     path.resolve('dist/index.html'),
     path.join(process.cwd(), 'index.html'),
   ];
