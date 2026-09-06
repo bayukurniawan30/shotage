@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import { MessageQuestionCircle, ArrowRight } from '@untitledui/icons';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import { EnvelopeSimpleIcon } from '@phosphor-icons/react';
 import { Footer } from '../components/Footer';
 
 const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
@@ -246,7 +246,7 @@ const Faq: React.FC = () => {
               href="mailto:bayukurniawan@baycore.dev"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pastel-pink to-[#a2d2ff] hover:brightness-110 text-slate-950 font-extrabold text-xs rounded-xl transition-all shadow-lg"
             >
-              <PhosphorIcons.EnvelopeSimple className="w-4 h-4 text-slate-950" weight="fill" />
+              <EnvelopeSimpleIcon className="w-4 h-4 text-slate-950" weight="fill" />
               <span>Contact Us</span>
             </a>
           </div>

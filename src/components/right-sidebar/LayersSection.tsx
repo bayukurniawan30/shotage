@@ -38,7 +38,10 @@ export const LayersSection: React.FC = () => {
   );
 
   (state.phosphorIconLayers || []).forEach((l) => {
-    const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.SparkleIcon;
+    const IconComp =
+      (PhosphorIcons as any)[l.iconId] ||
+      (PhosphorIcons as any)[`${l.iconId}Icon`] ||
+      PhosphorIcons.SparkleIcon;
     allRows.push(
       buildRow(
         'phosphor',
@@ -83,7 +86,8 @@ export const LayersSection: React.FC = () => {
           : s.shapeType === 'hexagon'
             ? PhosphorIcons.HexagonIcon
             : s.shapeType === 'quote'
-              ? (PhosphorIcons as any).Quotes ||
+              ? PhosphorIcons.QuotesIcon ||
+                (PhosphorIcons as any).Quotes ||
                 PhosphorIcons.ChatCircleIcon ||
                 PhosphorIcons.SquareIcon
               : s.shapeType === 'coolshape'
@@ -295,7 +299,7 @@ export const LayersSection: React.FC = () => {
             title={`Explode "${textLayer.text}" into ${nonSpaceCount} separate character layers (excluding spaces)`}
             className="p-1 rounded-md text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 transition-colors cursor-pointer shrink-0"
           >
-            <PhosphorIcons.Sparkle className="w-3.5 h-3.5" />
+            <PhosphorIcons.SparkleIcon className="w-3.5 h-3.5" />
           </button>
         );
       })()}

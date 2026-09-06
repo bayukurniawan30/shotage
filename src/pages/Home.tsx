@@ -13,7 +13,14 @@ import {
   LayersThree01,
   Sliders01,
 } from '@untitledui/icons';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import {
+  SparkleIcon,
+  CheckCircleIcon,
+  FilmStripIcon,
+  CpuIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+} from '@phosphor-icons/react';
 import { InstallPwaModal } from '../components/InstallPwaModal';
 import { ShadeshifterBackground } from '../components/ShadeshifterBackground';
 import { SpectralBackground } from '../components/SpectralBackground';
@@ -685,7 +692,7 @@ export const Home: React.FC = () => {
               }`}
             >
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#a2d2ff]/10 border border-[#a2d2ff]/30 text-xs font-bold uppercase tracking-widest text-[#a2d2ff] shadow-sm">
-                <PhosphorIcons.Sparkle className="w-4 h-4 text-[#a2d2ff]" />
+                <SparkleIcon className="w-4 h-4 text-[#a2d2ff]" />
                 <span>Animation Studio & Keyframe Engine</span>
               </div>
               <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.15]">
@@ -702,15 +709,15 @@ export const Home: React.FC = () => {
               {/* Rich Feature Metric Pills */}
               <div className="flex items-center justify-center gap-2.5 pt-2 flex-wrap text-xs">
                 <span className="px-3 py-1 rounded-xl bg-neutral-900/90 border border-neutral-800 text-slate-300 flex items-center gap-1.5 shadow-sm">
-                  <PhosphorIcons.CheckCircle className="w-4 h-4 text-pastel-pink" /> 60 FPS Hardware
+                  <CheckCircleIcon className="w-4 h-4 text-pastel-pink" /> 60 FPS Hardware
                   Render
                 </span>
                 <span className="px-3 py-1 rounded-xl bg-neutral-900/90 border border-neutral-800 text-slate-300 flex items-center gap-1.5 shadow-sm">
-                  <PhosphorIcons.CheckCircle className="w-4 h-4 text-[#a2d2ff]" /> Multi-Track
+                  <CheckCircleIcon className="w-4 h-4 text-[#a2d2ff]" /> Multi-Track
                   Keyframe Seeking
                 </span>
                 <span className="px-3 py-1 rounded-xl bg-neutral-900/90 border border-neutral-800 text-slate-300 flex items-center gap-1.5 shadow-sm">
-                  <PhosphorIcons.CheckCircle className="w-4 h-4 text-emerald-400" /> Bezier Cubic
+                  <CheckCircleIcon className="w-4 h-4 text-emerald-400" /> Bezier Cubic
                   Easing
                 </span>
               </div>
@@ -728,7 +735,7 @@ export const Home: React.FC = () => {
               <div className="hidden lg:block absolute left-72 -top-6 z-20 max-w-[240px] p-4 rounded-2xl bg-neutral-950/90 border border-neutral-800/90 backdrop-blur-xl shadow-2xl shadow-black/80 space-y-2 select-none animate-float-slow hover:scale-105 transition-transform">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#ffafcc]/15 border border-[#ffafcc]/30 flex items-center justify-center shrink-0">
-                    <PhosphorIcons.FilmStripIcon className="w-4 h-4 text-pastel-pink" />
+                    <FilmStripIcon className="w-4 h-4 text-pastel-pink" />
                   </div>
                   <h4 className="text-xs font-bold text-white">Video Timeline</h4>
                 </div>
@@ -742,7 +749,7 @@ export const Home: React.FC = () => {
               <div className="hidden lg:block absolute left-48 -bottom-24 z-20 max-w-[240px] p-4 rounded-2xl bg-neutral-950/90 border border-neutral-800/90 backdrop-blur-xl shadow-2xl shadow-black/80 space-y-2 select-none animate-float-delay hover:scale-105 transition-transform">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#a2d2ff]/15 border border-[#a2d2ff]/30 flex items-center justify-center shrink-0">
-                    <PhosphorIcons.SparkleIcon className="w-4 h-4 text-pastel-blue" />
+                    <SparkleIcon className="w-4 h-4 text-pastel-blue" />
                   </div>
                   <h4 className="text-xs font-bold text-white">Continuous Loops</h4>
                 </div>
@@ -756,7 +763,7 @@ export const Home: React.FC = () => {
               <div className="hidden lg:block absolute -right-16 top-4 z-20 max-w-[240px] p-4 rounded-2xl bg-neutral-950/90 border border-neutral-800/90 backdrop-blur-xl shadow-2xl shadow-black/80 space-y-2 select-none animate-float-reverse hover:scale-105 transition-transform">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#cdb4db]/15 border border-[#cdb4db]/30 flex items-center justify-center shrink-0">
-                    <PhosphorIcons.CpuIcon className="w-4 h-4 text-pastel-purple" />
+                    <CpuIcon className="w-4 h-4 text-pastel-purple" />
                   </div>
                   <h4 className="text-xs font-bold text-white">Hardware GPU Export</h4>
                 </div>
@@ -789,7 +796,7 @@ export const Home: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#ffafcc]/15 border border-[#ffafcc]/30 flex items-center justify-center">
-                      <PhosphorIcons.FilmStripIcon className="w-4 h-4 text-pastel-pink" />
+                      <FilmStripIcon className="w-4 h-4 text-pastel-pink" />
                     </div>
                     <h4 className="text-xs font-bold text-white">Video Timeline</h4>
                   </div>
@@ -800,7 +807,7 @@ export const Home: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#a2d2ff]/15 border border-[#a2d2ff]/30 flex items-center justify-center">
-                      <PhosphorIcons.SparkleIcon className="w-4 h-4 text-pastel-blue" />
+                      <SparkleIcon className="w-4 h-4 text-pastel-blue" />
                     </div>
                     <h4 className="text-xs font-bold text-white">Continuous Loops</h4>
                   </div>
@@ -812,7 +819,7 @@ export const Home: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#cdb4db]/15 border border-[#cdb4db]/30 flex items-center justify-center">
-                      <PhosphorIcons.CpuIcon className="w-4 h-4 text-pastel-purple" />
+                      <CpuIcon className="w-4 h-4 text-pastel-purple" />
                     </div>
                     <h4 className="text-xs font-bold text-white">GPU 60fps Export</h4>
                   </div>
@@ -883,14 +890,14 @@ export const Home: React.FC = () => {
                       className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                       title="Previous background style"
                     >
-                      <PhosphorIcons.CaretLeftIcon className="w-4 h-4" />
+                      <CaretLeftIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setBentoSlideIndex((prev) => (prev === 4 ? 0 : prev + 1))}
                       className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                       title="Next background style"
                     >
-                      <PhosphorIcons.CaretRightIcon className="w-4 h-4" />
+                      <CaretRightIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -1082,14 +1089,14 @@ export const Home: React.FC = () => {
                         className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                         title="Previous slide"
                       >
-                        <PhosphorIcons.CaretLeftIcon className="w-3.5 h-3.5" />
+                        <CaretLeftIcon className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setBento2SlideIndex((prev) => (prev === 2 ? 0 : prev + 1))}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                         title="Next slide"
                       >
-                        <PhosphorIcons.CaretRightIcon className="w-3.5 h-3.5" />
+                        <CaretRightIcon className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

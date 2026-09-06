@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import {
+  GradientIcon,
+  PaletteIcon,
+  CirclesFourIcon,
+  WavesIcon,
+  SparkleIcon,
+  RainbowIcon,
+  SunHorizonIcon,
+  FilmStripIcon,
+  MagicWandIcon,
+  PaintBrushIcon,
+  ArrowsClockwiseIcon,
+  ArrowsLeftRightIcon,
+  CheckIcon,
+  DeviceMobileIcon,
+} from '@phosphor-icons/react';
 import { useStudioStore } from '../store/useStudioStore';
 import { GRADIENT_PRESETS, GradientPreset } from '../utils/gradientPresets';
 import { LINEAR_SWATCH_PRESETS, LinearSwatchPreset } from '../utils/linearSwatchPresets';
@@ -64,61 +79,61 @@ const BG_CATEGORIES: BgCategoryDef[] = [
     id: 'gradient',
     name: 'Gradient Presets',
     shortLabel: 'Gradient',
-    icon: <PhosphorIcons.GradientIcon weight="duotone" className="w-5 h-5 text-pastel-pink" />,
+    icon: <GradientIcon weight="duotone" className="w-5 h-5 text-pastel-pink" />,
   },
   {
     id: 'linearSwatches',
     name: 'Linear Swatches',
     shortLabel: 'Linear Swatch',
-    icon: <PhosphorIcons.PaletteIcon weight="duotone" className="w-5 h-5 text-amber-300" />,
+    icon: <PaletteIcon weight="duotone" className="w-5 h-5 text-amber-300" />,
   },
   {
     id: 'mesh',
     name: 'Mesh Gradients',
     shortLabel: 'Mesh',
-    icon: <PhosphorIcons.CirclesFourIcon weight="duotone" className="w-5 h-5 text-violet-400" />,
+    icon: <CirclesFourIcon weight="duotone" className="w-5 h-5 text-violet-400" />,
   },
   {
     id: 'wave',
     name: 'Wave Flows',
     shortLabel: 'Wave',
-    icon: <PhosphorIcons.WavesIcon weight="duotone" className="w-5 h-5 text-cyan-300" />,
+    icon: <WavesIcon weight="duotone" className="w-5 h-5 text-cyan-300" />,
   },
   {
     id: 'shadeshifter',
     name: 'Shadeshifter',
     shortLabel: 'Shadeshifter',
-    icon: <PhosphorIcons.SparkleIcon weight="duotone" className="w-5 h-5 text-pastel-blue" />,
+    icon: <SparkleIcon weight="duotone" className="w-5 h-5 text-pastel-blue" />,
   },
   {
     id: 'spectral',
     name: 'Spectral Prisms',
     shortLabel: 'Spectral',
-    icon: <PhosphorIcons.RainbowIcon weight="duotone" className="w-5 h-5 text-emerald-400" />,
+    icon: <RainbowIcon weight="duotone" className="w-5 h-5 text-emerald-400" />,
   },
   {
     id: 'radiant',
     name: 'Radiant Glow',
     shortLabel: 'Radiant',
-    icon: <PhosphorIcons.SunHorizonIcon weight="duotone" className="w-5 h-5 text-amber-400" />,
+    icon: <SunHorizonIcon weight="duotone" className="w-5 h-5 text-amber-400" />,
   },
   {
     id: 'animatedGradient',
     name: 'Animated Gradients',
     shortLabel: 'Anim Gradient',
-    icon: <PhosphorIcons.FilmStripIcon weight="duotone" className="w-5 h-5 text-pink-400" />,
+    icon: <FilmStripIcon weight="duotone" className="w-5 h-5 text-pink-400" />,
   },
   {
     id: 'animatedMesh',
     name: 'Animated Mesh',
     shortLabel: 'Anim Mesh',
-    icon: <PhosphorIcons.MagicWandIcon weight="duotone" className="w-5 h-5 text-indigo-400" />,
+    icon: <MagicWandIcon weight="duotone" className="w-5 h-5 text-indigo-400" />,
   },
   {
     id: 'solid',
     name: 'Solid & Pastels',
     shortLabel: 'Solid',
-    icon: <PhosphorIcons.PaintBrushIcon weight="duotone" className="w-5 h-5 text-rose-300" />,
+    icon: <PaintBrushIcon weight="duotone" className="w-5 h-5 text-rose-300" />,
   },
 ];
 
@@ -1001,7 +1016,7 @@ export const QuickModeSection: React.FC = () => {
                     : 'bg-[#a2d2ff]/20 border-[#a2d2ff]/30 text-[#a2d2ff]'
                 } border flex items-center justify-center`}
               >
-                <PhosphorIcons.SparkleIcon className={`${isDual ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                <SparkleIcon className={`${isDual ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </div>
               <div className="w-4 h-0.5 bg-white/40 rounded-full self-center mb-0.5" />
             </div>
@@ -1058,7 +1073,7 @@ export const QuickModeSection: React.FC = () => {
                   : 'bg-[#a2d2ff]/20 border-[#a2d2ff]/30 text-[#a2d2ff]'
               } border flex items-center justify-center`}
             >
-              <PhosphorIcons.SparkleIcon className={`${isDual ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'}`} />
+              <SparkleIcon className={`${isDual ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'}`} />
             </div>
             <div className="w-4 h-0.5 bg-white/40 rounded-full self-center" />
           </div>
@@ -1160,7 +1175,7 @@ export const QuickModeSection: React.FC = () => {
       <div className="border border-neutral-800 rounded-2xl bg-neutral-950/70 p-3.5 space-y-2.5 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <PhosphorIcons.PaletteIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
+            <PaletteIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
               Background Style
             </span>
@@ -1176,7 +1191,7 @@ export const QuickModeSection: React.FC = () => {
               title="Shuffle swatches"
               className="p-1 text-slate-400 hover:text-pastel-pink hover:bg-neutral-800 rounded-md transition-colors cursor-pointer"
             >
-              <PhosphorIcons.ArrowsClockwiseIcon className="w-3.5 h-3.5" />
+              <ArrowsClockwiseIcon className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1193,7 +1208,7 @@ export const QuickModeSection: React.FC = () => {
             >
               {activeCategory.icon}
               <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-pastel-pink text-neutral-950 flex items-center justify-center text-[9px] font-bold shadow-xs">
-                <PhosphorIcons.ArrowsLeftRightIcon className="w-2.5 h-2.5" />
+                <ArrowsLeftRightIcon className="w-2.5 h-2.5" />
               </div>
             </button>
             <span className="text-[9px] font-semibold text-pastel-pink/90 truncate max-w-[48px] text-center">
@@ -1221,7 +1236,7 @@ export const QuickModeSection: React.FC = () => {
                   {renderSwatchPreview(item)}
                   {active && (
                     <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/25">
-                      <PhosphorIcons.CheckIcon className="w-3.5 h-3.5 text-white font-bold drop-shadow-md" />
+                      <CheckIcon className="w-3.5 h-3.5 text-white font-bold drop-shadow-md" />
                     </div>
                   )}
                 </button>
@@ -1236,7 +1251,7 @@ export const QuickModeSection: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
-            <PhosphorIcons.DeviceMobileIcon weight="duotone" className="w-4 h-4 text-pastel-blue" />
+            <DeviceMobileIcon weight="duotone" className="w-4 h-4 text-pastel-blue" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
               Mockup Variations {isDual ? '(2 Images)' : ''}
             </span>
@@ -1272,7 +1287,7 @@ export const QuickModeSection: React.FC = () => {
                   {/* Active Selection Badge */}
                   {active && (
                     <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full bg-pastel-pink text-slate-950 font-bold text-[9px] flex items-center gap-1 shadow-md animate-in fade-in">
-                      <PhosphorIcons.CheckIcon className="w-2.5 h-2.5 font-bold" />
+                      <CheckIcon className="w-2.5 h-2.5 font-bold" />
                       Applied
                     </div>
                   )}

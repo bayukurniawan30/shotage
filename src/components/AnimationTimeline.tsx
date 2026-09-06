@@ -637,7 +637,10 @@ export const AnimationTimeline: React.FC = () => {
     );
 
     (state.phosphorIconLayers || []).forEach((l) => {
-      const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.SparkleIcon;
+      const IconComp =
+        (PhosphorIcons as any)[l.iconId] ||
+        (PhosphorIcons as any)[`${l.iconId}Icon`] ||
+        PhosphorIcons.SparkleIcon;
       allRows.push(
         buildRow(
           'phosphor',
@@ -674,7 +677,8 @@ export const AnimationTimeline: React.FC = () => {
             : s.shapeType === 'hexagon'
               ? PhosphorIcons.HexagonIcon
               : s.shapeType === 'quote'
-                ? (PhosphorIcons as any).Quotes ||
+                ? PhosphorIcons.QuotesIcon ||
+                  (PhosphorIcons as any).Quotes ||
                   PhosphorIcons.ChatCircleIcon ||
                   PhosphorIcons.SquareIcon
                 : s.shapeType === 'coolshape'

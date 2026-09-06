@@ -633,7 +633,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((layer) => {
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
-        const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
+        const IconComp =
+          (PhosphorIcons as any)[layer.iconId] ||
+          (PhosphorIcons as any)[`${layer.iconId}Icon`] ||
+          PhosphorIcons.SparkleIcon;
         const motion = evaluateLayerMotion(
           layer.motions,
           layer.loopAnimation,
@@ -3538,7 +3541,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             title="Pen Tool Active"
             className="w-8 h-8 rounded-lg flex items-center justify-center bg-pastel-pink/15 text-pastel-pink cursor-default"
           >
-            <PhosphorIcons.PenNib weight="fill" className="w-4 h-4" />
+            <PhosphorIcons.PenNibIcon weight="fill" className="w-4 h-4" />
           </div>
 
           <div className="w-4 h-px bg-neutral-800" />
@@ -3555,7 +3558,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 : 'bg-neutral-800/60 text-neutral-600 cursor-not-allowed'
             }`}
           >
-            <PhosphorIcons.Check weight="bold" className="w-4 h-4" />
+            <PhosphorIcons.CheckIcon weight="bold" className="w-4 h-4" />
           </button>
 
           {/* Undo Point (ArrowUUpLeft icon) */}
@@ -3570,7 +3573,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 : 'text-neutral-600 cursor-not-allowed'
             }`}
           >
-            <PhosphorIcons.ArrowUUpLeft className="w-4 h-4" />
+            <PhosphorIcons.ArrowUUpLeftIcon className="w-4 h-4" />
           </button>
 
           <div className="w-4 h-px bg-neutral-800" />
@@ -3582,7 +3585,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             title="Cancel Drawing (Esc)"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
           >
-            <PhosphorIcons.X className="w-4 h-4" />
+            <PhosphorIcons.XIcon className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -4051,7 +4054,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   style={{ gap: `${config.gap || 12}px` }}
                 >
                   {(config.selectedIcons || []).map((iconId: string) => {
-                    const IconComp = (PhosphorIcons as any)[iconId] || PhosphorIcons.Sparkle;
+                    const IconComp =
+                      (PhosphorIcons as any)[iconId] ||
+                      (PhosphorIcons as any)[`${iconId}Icon`] ||
+                      PhosphorIcons.SparkleIcon;
                     return (
                       <IconComp
                         key={iconId}

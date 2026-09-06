@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Head } from '@inertiajs/react';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import {
+  ArrowRightIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+  WarningCircleIcon,
+  ArrowClockwiseIcon,
+  SparkleIcon,
+  ImageIcon,
+  ArrowUpRightIcon,
+  UserCircleIcon,
+} from '@phosphor-icons/react';
 import { Footer } from '../components/Footer';
 
 export interface ShotageShareablesContent {
@@ -167,7 +177,7 @@ export const Explore: React.FC = () => {
               }}
             >
               <span>Launch Studio</span>
-              <PhosphorIcons.ArrowRightIcon className="w-3.5 h-3.5" weight="bold" />
+              <ArrowRightIcon className="w-3.5 h-3.5" weight="bold" />
             </a>
           </div>
         </header>
@@ -188,7 +198,7 @@ export const Explore: React.FC = () => {
           {/* Search & Filter Controls */}
           <div className="max-w-xl mx-auto flex items-center gap-3">
             <div className="relative flex-1">
-              <PhosphorIcons.MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search templates or creators..."
@@ -201,7 +211,7 @@ export const Explore: React.FC = () => {
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
                 >
-                  <PhosphorIcons.XIcon className="w-4 h-4" />
+                  <XIcon className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -229,7 +239,7 @@ export const Explore: React.FC = () => {
           {/* Error State */}
           {!loading && error && (
             <div className="p-8 rounded-3xl border border-rose-500/30 bg-rose-500/10 text-center max-w-lg mx-auto space-y-3">
-              <PhosphorIcons.WarningCircleIcon
+              <WarningCircleIcon
                 className="w-8 h-8 text-rose-400 mx-auto"
                 weight="duotone"
               />
@@ -239,7 +249,7 @@ export const Explore: React.FC = () => {
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 mt-2"
               >
-                <PhosphorIcons.ArrowClockwiseIcon className="w-3.5 h-3.5" />
+                <ArrowClockwiseIcon className="w-3.5 h-3.5" />
                 <span>Retry</span>
               </button>
             </div>
@@ -249,7 +259,7 @@ export const Explore: React.FC = () => {
           {!loading && !error && filteredEntries.length === 0 && (
             <div className="p-12 rounded-3xl border border-neutral-800 bg-neutral-950/60 text-center max-w-md mx-auto space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-pastel-pink/15 border border-pastel-pink/30 flex items-center justify-center mx-auto text-pastel-pink">
-                <PhosphorIcons.SparkleIcon className="w-6 h-6" weight="duotone" />
+                <SparkleIcon className="w-6 h-6" weight="duotone" />
               </div>
               <h3 className="text-lg font-bold text-white">No Designs Found</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -299,7 +309,7 @@ export const Explore: React.FC = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-tr from-neutral-900 via-neutral-800 to-neutral-900 flex flex-col items-center justify-center text-slate-500 gap-1.5">
-                          <PhosphorIcons.Image className="w-6 h-6 opacity-60" />
+                          <ImageIcon className="w-6 h-6 opacity-60" />
                           <span className="text-[10px] font-medium">Shotage</span>
                         </div>
                       )}
@@ -307,7 +317,7 @@ export const Explore: React.FC = () => {
                       {/* Hover Overlay Badge */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="p-2 rounded-xl bg-white/95 text-neutral-950 font-extrabold text-xs shadow-lg flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform">
-                          <PhosphorIcons.ArrowUpRightIcon className="w-4 h-4" weight="bold" />
+                          <ArrowUpRightIcon className="w-4 h-4" weight="bold" />
                         </span>
                       </div>
                     </div>
@@ -319,7 +329,7 @@ export const Explore: React.FC = () => {
                           {name}
                         </h3>
                         <p className="text-xs text-slate-400 flex items-center gap-1.5 pt-1 truncate">
-                          <PhosphorIcons.UserCircleIcon
+                          <UserCircleIcon
                             className="w-3.5 h-3.5 text-slate-500 shrink-0"
                             weight="fill"
                           />
@@ -331,7 +341,7 @@ export const Explore: React.FC = () => {
                         <span className="text-[11px] text-slate-500">Shared Design</span>
                         <div className="flex items-center gap-1 text-pastel-pink group-hover:text-white font-semibold text-xs">
                           <span>Customize</span>
-                          <PhosphorIcons.ArrowRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                          <ArrowRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </div>
                     </div>

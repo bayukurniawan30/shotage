@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { XClose, Film01, Check, AlertCircle } from '@untitledui/icons';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import { CpuIcon, RulerIcon, SpeakerSlashIcon } from '@phosphor-icons/react';
 
 interface VideoBetaModalProps {
   isOpen: boolean;
@@ -54,7 +54,7 @@ export const VideoBetaModal: React.FC<VideoBetaModalProps> = ({ isOpen, onClose 
         {/* Informative Notice Cards */}
         <div className="space-y-2.5 bg-neutral-900/60 border border-neutral-800/80 rounded-2xl p-3.5 text-xs text-slate-300">
           <div className="flex items-start gap-2.5">
-            <PhosphorIcons.Cpu className="w-4 h-4 text-[#a2d2ff] shrink-0 mt-0.5" />
+            <CpuIcon className="w-4 h-4 text-[#a2d2ff] shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold text-slate-200">Hardware Encoding:</span>{' '}
               Export speed and performance depend on your device's browser & GPU encoder.
@@ -62,7 +62,7 @@ export const VideoBetaModal: React.FC<VideoBetaModalProps> = ({ isOpen, onClose 
           </div>
 
           <div className="flex items-start gap-2.5">
-            <PhosphorIcons.Ruler className="w-4 h-4 text-pastel-pink shrink-0 mt-0.5" />
+            <RulerIcon className="w-4 h-4 text-pastel-pink shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold text-slate-200">Recommended Limits:</span>{' '}
               Videos up to <strong className="text-white">Full HD (1080p)</strong> and{' '}
@@ -71,7 +71,7 @@ export const VideoBetaModal: React.FC<VideoBetaModalProps> = ({ isOpen, onClose 
           </div>
 
           <div className="flex items-start gap-2.5">
-            <PhosphorIcons.SpeakerSlash className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+            <SpeakerSlashIcon className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold text-slate-200">Visual Only:</span> Audio tracks
               from source videos are not included in the exported animation.
