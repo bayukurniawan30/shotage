@@ -48,7 +48,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       id: 'quick',
       label: 'Quick Mode',
       icon: (props) => (
-        <PhosphorIcons.Lightning
+        <PhosphorIcons.LightningIcon
           weight="fill"
           className={props.className || 'w-5 h-5 text-pastel-pink'}
         />
@@ -88,7 +88,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       id: 'icons',
       label: 'Icons by Phosphor',
       icon: (props) => (
-        <PhosphorIcons.Sparkle
+        <PhosphorIcons.SparkleIcon
           weight="duotone"
           className={props.className || 'w-5 h-5 text-pastel-pink'}
         />
@@ -109,7 +109,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       id: 'layers',
       label: 'Layers',
       icon: (props) => (
-        <PhosphorIcons.Stack
+        <PhosphorIcons.StackIcon
           weight="duotone"
           className={props.className || 'w-5 h-5 text-pastel-pink'}
         />

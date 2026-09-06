@@ -25,11 +25,7 @@ import {
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 
-import {
-  saveSession,
-  loadSavedSession,
-  clearSavedSession,
-} from '../utils/sessionStore';
+import { saveSession, loadSavedSession, clearSavedSession } from '../utils/sessionStore';
 import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
 import { purgeAllVideoDecoders } from '../components/VideoCanvasScreen';
 import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
@@ -84,7 +80,11 @@ export const Studio: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (PROJECT_SPOTLIGHT_GATED && sharedViewKey && !sessionStorage.getItem(SPOTLIGHT_SESSION_KEY)) {
+    if (
+      PROJECT_SPOTLIGHT_GATED &&
+      sharedViewKey &&
+      !sessionStorage.getItem(SPOTLIGHT_SESSION_KEY)
+    ) {
       sessionStorage.setItem(SPOTLIGHT_SESSION_KEY, '1');
       setIsSpotlightOpen(true);
     }
@@ -514,7 +514,9 @@ export const Studio: React.FC = () => {
 
   const handleImageUpload = (file: File) => {
     if (!isValidMediaFile(file)) {
-      alert('Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)');
+      alert(
+        'Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)'
+      );
       return;
     }
 
@@ -1058,7 +1060,7 @@ export const Studio: React.FC = () => {
                       : 'Toggle multi-select mode (convenient for mobile touch)'
                   }
                 >
-                  <PhosphorIcons.BoundingBox
+                  <PhosphorIcons.BoundingBoxIcon
                     size={13}
                     weight={isMultiSelectMode ? 'fill' : 'bold'}
                   />
@@ -1072,7 +1074,7 @@ export const Studio: React.FC = () => {
                     className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-neutral-800 text-[10px] transition-colors shrink-0"
                     title="Clear selection"
                   >
-                    <PhosphorIcons.X size={12} weight="bold" />
+                    <PhosphorIcons.XIcon size={12} weight="bold" />
                   </button>
                 )}
               </div>
@@ -1228,9 +1230,7 @@ export const Studio: React.FC = () => {
       <InstallPwaModal showFloatingButton={!isMobileMenuOpen} />
 
       {/* Cross-project spotlight (random project ad) on shared designs */}
-      {isSpotlightOpen && (
-        <ProjectSpotlight onClose={() => setIsSpotlightOpen(false)} />
-      )}
+      {isSpotlightOpen && <ProjectSpotlight onClose={() => setIsSpotlightOpen(false)} />}
     </div>
   );
 };
