@@ -11,9 +11,6 @@
   "functions": {
     "index.ts": {
       "includeFiles": "dist/**, public/**"
-    },
-    "api/index.ts": {
-      "includeFiles": "dist/**, public/**"
     }
   }
 }

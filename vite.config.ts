@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       devServer({
-        entry: 'src/server/index.ts',
+        entry: 'index.ts',
         exclude: [
           /^\/(?!api).*/,
           /.*\.css$/,
