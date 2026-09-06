@@ -1,11 +1,5 @@
-import { getRequestListener } from '@hono/node-server';
+import { Hono } from 'hono';
 import app from './src/server/index.ts';
 
-const nodeListener = getRequestListener(app.fetch);
+export default app;
 
-export default function handler(req: any, res?: any) {
-  if (res && typeof res.writeHead === 'function') {
-    return nodeListener(req, res);
-  }
-  return app.fetch(req);
-}
