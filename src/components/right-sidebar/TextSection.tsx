@@ -10,7 +10,14 @@ import {
   AlignRight,
   ChevronDown,
 } from '@untitledui/icons';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import {
+  SparkleIcon,
+  TextAaIcon,
+  ArrowsOutCardinalIcon,
+  ArrowsClockwiseIcon,
+  ParallelogramIcon,
+  SunDimIcon,
+} from '@phosphor-icons/react';
 import { FontSelect } from './shared';
 import { StepperSlider } from '../StepperSlider';
 import {
@@ -112,7 +119,7 @@ export const TextSection: React.FC = () => {
                           className="p-1 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 rounded transition-colors"
                           title={`Explode into ${layerNonSpaceCount} separate character layers (excluding spaces)`}
                         >
-                          <PhosphorIcons.Sparkle className="w-3.5 h-3.5" />
+                          <SparkleIcon className="w-3.5 h-3.5" />
                         </button>
                       );
                     })()}
@@ -173,7 +180,7 @@ export const TextSection: React.FC = () => {
                         : 'Enter 2 or more characters to explode text into separate layers'
                     }
                   >
-                    <PhosphorIcons.Sparkle className="w-3 h-3 text-amber-400" />
+                    <SparkleIcon className="w-3 h-3 text-amber-400" />
                     <span>Explode ({selectedNonSpaceCount} chars)</span>
                   </button>
                 );
@@ -811,7 +818,7 @@ export const TextSection: React.FC = () => {
                   label: 'Size & Stretch',
                   tooltip: 'Font Size & Stretch Scale',
                   icon: (
-                    <PhosphorIcons.TextAaIcon
+                    <TextAaIcon
                       weight={activeOption === 'size' ? 'fill' : 'bold'}
                       className="w-3.5 h-3.5"
                     />
@@ -822,7 +829,7 @@ export const TextSection: React.FC = () => {
                   label: 'Position',
                   tooltip: 'Position (X / Y)',
                   icon: (
-                    <PhosphorIcons.ArrowsOutCardinalIcon
+                    <ArrowsOutCardinalIcon
                       weight={activeOption === 'position' ? 'bold' : 'regular'}
                       className="w-3.5 h-3.5"
                     />
@@ -833,7 +840,7 @@ export const TextSection: React.FC = () => {
                   label: 'Rotation & 3D Tilt',
                   tooltip: 'Rotation, Pitch & Yaw',
                   icon: (
-                    <PhosphorIcons.ArrowsClockwiseIcon
+                    <ArrowsClockwiseIcon
                       weight={activeOption === 'rotation' ? 'bold' : 'regular'}
                       className="w-3.5 h-3.5"
                     />
@@ -844,7 +851,7 @@ export const TextSection: React.FC = () => {
                   label: 'Skew',
                   tooltip: 'Skew Distortion (X / Y)',
                   icon: (
-                    <PhosphorIcons.ParallelogramIcon
+                    <ParallelogramIcon
                       weight={activeOption === 'skew' ? 'fill' : 'bold'}
                       className="w-3.5 h-3.5"
                     />
@@ -855,7 +862,7 @@ export const TextSection: React.FC = () => {
                   label: 'Opacity',
                   tooltip: 'Layer Opacity',
                   icon: (
-                    <PhosphorIcons.SunDimIcon
+                    <SunDimIcon
                       weight={activeOption === 'opacity' ? 'fill' : 'bold'}
                       className="w-3.5 h-3.5"
                     />

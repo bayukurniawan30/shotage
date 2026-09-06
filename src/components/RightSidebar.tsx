@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import * as PhosphorIcons from '@phosphor-icons/react';
+import { LightningIcon, SlidersHorizontalIcon } from '@phosphor-icons/react';
 import { QuickModeSection } from './QuickModeSection';
 import {
   PerspectiveSection,
@@ -64,7 +64,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900'
           }`}
         >
-          <PhosphorIcons.LightningIcon
+          <LightningIcon
             weight={sidebarMode === 'quick' ? 'fill' : 'bold'}
             className="w-3.5 h-3.5"
           />
@@ -79,7 +79,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => 
               : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900'
           }`}
         >
-          <PhosphorIcons.SlidersHorizontalIcon
+          <SlidersHorizontalIcon
             weight={sidebarMode === 'advanced' ? 'fill' : 'bold'}
             className="w-3.5 h-3.5"
           />
