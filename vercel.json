@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/((?!assets/|mockup/|frame/|shadow/|element/|overlay/|style/|techstack/|video/|sw\\.js|robots\\.txt|sitemap\\.xml|favicon\\.ico|manifest\\.json|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|ttf)$).*)",
-      "destination": "/index.ts"
+      "destination": "/index.html"
     }
   ],
   "functions": {

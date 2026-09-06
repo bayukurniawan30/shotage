@@ -48,10 +48,17 @@ export const ElementsSection: React.FC = () => {
 
   const isCustomShape = (s?: import('../../types/studio').ShapeLayer | null): boolean => {
     if (!s) return false;
-    if (s.shapeType === 'custom-path' || Boolean(s.pathData) || Boolean(s.unitPathData)) return true;
+    if (s.shapeType === 'custom-path' || Boolean(s.pathData) || Boolean(s.unitPathData))
+      return true;
     if (s.shapeType === 'coolshape' || s.shapeType === 'quote') return true;
     const name = (s.name || '').toLowerCase();
-    if (name.includes('custom') || name.includes('pen') || name.includes('vector') || name.includes('path')) return true;
+    if (
+      name.includes('custom') ||
+      name.includes('pen') ||
+      name.includes('vector') ||
+      name.includes('path')
+    )
+      return true;
     const basicTypes = ['rectangle', 'square', 'circle', 'triangle', 'hexagon'];
     if (!basicTypes.includes(s.shapeType)) return true;
     return false;
@@ -464,7 +471,7 @@ export const ElementsSection: React.FC = () => {
               </div>
             </div>
           </div>
-          <PhosphorIcons.PencilSimpleLine
+          <PhosphorIcons.PencilSimpleLineIcon
             className={`w-4 h-4 transition-transform ${
               state.isPenDrawingMode
                 ? 'rotate-12 text-slate-950 font-bold'
@@ -777,9 +784,7 @@ export const ElementsSection: React.FC = () => {
         ]);
         if (allSelectedIds.size < 2) return null;
 
-        const selectedShapes = (state.shapeLayers || []).filter((s) =>
-          allSelectedIds.has(s.id)
-        );
+        const selectedShapes = (state.shapeLayers || []).filter((s) => allSelectedIds.has(s.id));
         if (selectedShapes.length < 2) return null;
 
         // Hide if any selected shape is a custom shape or pen-drawn shape
@@ -787,77 +792,80 @@ export const ElementsSection: React.FC = () => {
 
         return (
           <div className="p-3.5 rounded-xl bg-gradient-to-r from-pastel-pink/15 via-purple-500/10 to-pastel-blue/15 border border-pastel-pink/30 space-y-3 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <PhosphorIcons.IntersectIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />
-              {selectedShapes.length} Shapes Selected
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <PhosphorIcons.IntersectIcon
+                  weight="duotone"
+                  className="w-4 h-4 text-pastel-pink"
+                />
+                {selectedShapes.length} Shapes Selected
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              Fuse, punch out, or intersect overlapping shapes into a single vector path:
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => state.booleanOperationOnShapes('union')}
+                className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
+                title="Union: Combine all selected shapes into one unified silhouette"
+              >
+                <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
+                  <BooleanIcons.Union className="w-3.5 h-3.5" />
+                </span>
+                <div className="text-left leading-tight">
+                  <span className="block font-bold text-[11px]">Union</span>
+                  <span className="text-[9px] opacity-70">Combine</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => state.booleanOperationOnShapes('subtract')}
+                className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
+                title="Subtract: Cut the top shape(s) out of the bottom shape"
+              >
+                <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
+                  <BooleanIcons.Subtract className="w-3.5 h-3.5" />
+                </span>
+                <div className="text-left leading-tight">
+                  <span className="block font-bold text-[11px]">Subtract</span>
+                  <span className="text-[9px] opacity-70">Cut Out</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => state.booleanOperationOnShapes('intersect')}
+                className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
+                title="Intersect: Keep only the overlapping region"
+              >
+                <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
+                  <BooleanIcons.Intersect className="w-3.5 h-3.5" />
+                </span>
+                <div className="text-left leading-tight">
+                  <span className="block font-bold text-[11px]">Intersect</span>
+                  <span className="text-[9px] opacity-70">Overlap</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => state.booleanOperationOnShapes('exclude')}
+                className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
+                title="Exclude: Keep non-overlapping parts and cut out the overlap (XOR)"
+              >
+                <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
+                  <BooleanIcons.Exclude className="w-3.5 h-3.5" />
+                </span>
+                <div className="text-left leading-tight">
+                  <span className="block font-bold text-[11px]">Exclude</span>
+                  <span className="text-[9px] opacity-70">Cut Overlap</span>
+                </div>
+              </button>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 leading-snug">
-            Fuse, punch out, or intersect overlapping shapes into a single vector path:
-          </p>
-          <div className="grid grid-cols-2 gap-2 pt-0.5">
-            <button
-              type="button"
-              onClick={() => state.booleanOperationOnShapes('union')}
-              className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
-              title="Union: Combine all selected shapes into one unified silhouette"
-            >
-              <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
-                <BooleanIcons.Union className="w-3.5 h-3.5" />
-              </span>
-              <div className="text-left leading-tight">
-                <span className="block font-bold text-[11px]">Union</span>
-                <span className="text-[9px] opacity-70">Combine</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => state.booleanOperationOnShapes('subtract')}
-              className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
-              title="Subtract: Cut the top shape(s) out of the bottom shape"
-            >
-              <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
-                <BooleanIcons.Subtract className="w-3.5 h-3.5" />
-              </span>
-              <div className="text-left leading-tight">
-                <span className="block font-bold text-[11px]">Subtract</span>
-                <span className="text-[9px] opacity-70">Cut Out</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => state.booleanOperationOnShapes('intersect')}
-              className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
-              title="Intersect: Keep only the overlapping region"
-            >
-              <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
-                <BooleanIcons.Intersect className="w-3.5 h-3.5" />
-              </span>
-              <div className="text-left leading-tight">
-                <span className="block font-bold text-[11px]">Intersect</span>
-                <span className="text-[9px] opacity-70">Overlap</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => state.booleanOperationOnShapes('exclude')}
-              className="p-2 rounded-lg bg-neutral-900/90 hover:bg-pastel-pink hover:text-slate-950 border border-neutral-800 hover:border-pastel-pink text-slate-200 transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer group shadow-sm active:scale-[0.98]"
-              title="Exclude: Keep non-overlapping parts and cut out the overlap (XOR)"
-            >
-              <span className="w-6 h-6 rounded-md bg-neutral-800 group-hover:bg-slate-950/20 flex items-center justify-center text-pastel-pink group-hover:text-slate-950 shrink-0">
-                <BooleanIcons.Exclude className="w-3.5 h-3.5" />
-              </span>
-              <div className="text-left leading-tight">
-                <span className="block font-bold text-[11px]">Exclude</span>
-                <span className="text-[9px] opacity-70">Cut Overlap</span>
-              </div>
-            </button>
-          </div>
-        </div>
         );
       })()}
 
