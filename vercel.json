@@ -2,15 +2,13 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.ts"
-    }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.ts" }
   ],
   "functions": {
     "index.ts": {
-      "includeFiles": "dist/**, public/**"
+      "includeFiles": ["dist/**", "public/**"]
     }
   }
 }
