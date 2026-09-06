@@ -789,7 +789,7 @@ export const Home: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#ffafcc]/15 border border-[#ffafcc]/30 flex items-center justify-center">
-                      <PhosphorIcons.FilmStrip className="w-4 h-4 text-pastel-pink" />
+                      <PhosphorIcons.FilmStripIcon className="w-4 h-4 text-pastel-pink" />
                     </div>
                     <h4 className="text-xs font-bold text-white">Video Timeline</h4>
                   </div>
@@ -800,7 +800,7 @@ export const Home: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#a2d2ff]/15 border border-[#a2d2ff]/30 flex items-center justify-center">
-                      <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-blue" />
+                      <PhosphorIcons.SparkleIcon className="w-4 h-4 text-pastel-blue" />
                     </div>
                     <h4 className="text-xs font-bold text-white">Continuous Loops</h4>
                   </div>
@@ -812,7 +812,7 @@ export const Home: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#cdb4db]/15 border border-[#cdb4db]/30 flex items-center justify-center">
-                      <PhosphorIcons.Cpu className="w-4 h-4 text-pastel-purple" />
+                      <PhosphorIcons.CpuIcon className="w-4 h-4 text-pastel-purple" />
                     </div>
                     <h4 className="text-xs font-bold text-white">GPU 60fps Export</h4>
                   </div>
@@ -883,14 +883,14 @@ export const Home: React.FC = () => {
                       className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                       title="Previous background style"
                     >
-                      <PhosphorIcons.CaretLeft className="w-4 h-4" />
+                      <PhosphorIcons.CaretLeftIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setBentoSlideIndex((prev) => (prev === 4 ? 0 : prev + 1))}
                       className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                       title="Next background style"
                     >
-                      <PhosphorIcons.CaretRight className="w-4 h-4" />
+                      <PhosphorIcons.CaretRightIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -1082,14 +1082,14 @@ export const Home: React.FC = () => {
                         className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                         title="Previous slide"
                       >
-                        <PhosphorIcons.CaretLeft className="w-3.5 h-3.5" />
+                        <PhosphorIcons.CaretLeftIcon className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setBento2SlideIndex((prev) => (prev === 2 ? 0 : prev + 1))}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                         title="Next slide"
                       >
-                        <PhosphorIcons.CaretRight className="w-3.5 h-3.5" />
+                        <PhosphorIcons.CaretRightIcon className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

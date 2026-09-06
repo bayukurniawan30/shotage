@@ -229,7 +229,7 @@ export const Explore: React.FC = () => {
           {/* Error State */}
           {!loading && error && (
             <div className="p-8 rounded-3xl border border-rose-500/30 bg-rose-500/10 text-center max-w-lg mx-auto space-y-3">
-              <PhosphorIcons.WarningCircle
+              <PhosphorIcons.WarningCircleIcon
                 className="w-8 h-8 text-rose-400 mx-auto"
                 weight="duotone"
               />

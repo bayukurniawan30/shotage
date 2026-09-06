@@ -453,7 +453,7 @@ export const ElementsSection: React.FC = () => {
               </div>
             </div>
           </div>
-          <PhosphorIcons.PencilSimpleLine
+          <PhosphorIcons.PencilSimpleLineIcon
             className={`w-4 h-4 transition-transform ${
               state.isPenDrawingMode
                 ? 'rotate-12 text-slate-950 font-bold'
