@@ -8,9 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
-  // Load .env files into process.env so the Hono dev server can read
-  // server-side secrets (MORPHIC_API_KEY, CLOUDFLARE_TURNSTILE_SECRET)
+  // Load .env files so the Hono dev server can access
+  // server-side environment variables.
   const env = loadEnv(mode, process.cwd(), '');
+
   for (const [key, value] of Object.entries(env)) {
     if (process.env[key] === undefined) {
       process.env[key] = value;
@@ -20,10 +21,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+
       devServer({
-        entry: 'index.ts',
+        entry: 'src/server/index.ts',
         exclude: [
+          // Let Vite handle everything except /api
           /^\/(?!api).*/,
+
           /.*\.css$/,
           /.*\.js$/,
           /.*\.ts$/,
@@ -34,38 +38,21 @@ export default defineConfig(({ mode }) => {
         ],
       }),
     ],
+
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
     },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('@phosphor-icons')) return 'vendor-phosphor';
-              if (id.includes('@untitledui/icons')) return 'vendor-untitledui';
-              if (id.includes('remotion') || id.includes('@remotion')) return 'vendor-remotion';
-              if (id.includes('coolshapes')) return 'vendor-coolshapes';
-              if (id.includes('framer-motion')) return 'vendor-motion';
-              if (
-                id.includes('react') ||
-                id.includes('react-dom') ||
-                id.includes('zustand') ||
-                id.includes('zundo')
-              ) {
-                return 'vendor-framework';
-              }
-              return 'vendor';
-            }
-          },
-        },
-      },
-    },
+
     server: {
       port: 5173,
       open: true,
+    },
+
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
     },
   };
 });

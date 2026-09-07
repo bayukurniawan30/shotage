@@ -4,13 +4,13 @@
   "installCommand": "pnpm install",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/:path*",
       "destination": "/index.ts"
     }
   ],
   "functions": {
     "index.ts": {
-      "includeFiles": "dist/index.html"
+      "includeFiles": "dist/**"
     }
   }
 }
