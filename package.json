@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && cp -rf dist/assets public/assets",
+    "build": "tsc && vite build && rm -rf public/assets && cp -R dist/assets public/assets",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

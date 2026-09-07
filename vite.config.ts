@@ -8,9 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
-  // Load .env files into process.env so the Hono dev server can read
-  // server-side secrets (MORPHIC_API_KEY, CLOUDFLARE_TURNSTILE_SECRET)
+  // Load .env files so the Hono dev server can access
+  // server-side environment variables.
   const env = loadEnv(mode, process.cwd(), '');
+
   for (const [key, value] of Object.entries(env)) {
     if (process.env[key] === undefined) {
       process.env[key] = value;
@@ -20,10 +21,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+
       devServer({
         entry: 'src/server/index.ts',
         exclude: [
+          // Let Vite handle everything except /api
           /^\/(?!api).*/,
+
           /.*\.css$/,
           /.*\.js$/,
           /.*\.ts$/,
@@ -34,14 +38,21 @@ export default defineConfig(({ mode }) => {
         ],
       }),
     ],
+
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
     },
+
     server: {
       port: 5173,
       open: true,
+    },
+
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
     },
   };
 });
