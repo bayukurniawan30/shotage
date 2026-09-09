@@ -768,20 +768,7 @@ export const Studio: React.FC = () => {
 
           <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
 
-          {/* 5. Preview Toggle Button (Expand03 icon) */}
-          <button
-            onClick={togglePreviewMode}
-            className={`p-1.5 rounded-lg border transition-all ${
-              isPreviewMode
-                ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
-                : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
-            }`}
-            title={isPreviewMode ? 'Exit Full Preview' : 'Full Preview Mode (Expand Canvas)'}
-          >
-            <Expand03 className="w-4 h-4" />
-          </button>
-
-          {/* 6. More Options Dropdown Menu (DotsVertical) */}
+          {/* 5. More Options Dropdown Menu (DotsVertical) */}
           <div className="relative" ref={desktopMenuRef}>
             <button
               onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
@@ -797,6 +784,22 @@ export const Studio: React.FC = () => {
 
             {isDesktopMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    togglePreviewMode();
+                    setIsDesktopMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left cursor-pointer ${
+                    isPreviewMode
+                      ? 'bg-pastel-pink/15 text-pastel-pinkLight hover:bg-pastel-pink/20'
+                      : 'text-slate-300 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <Expand03 className="w-4 h-4" />
+                  <span>{isPreviewMode ? 'Exit Full Preview' : 'Full Preview'}</span>
+                </button>
+
                 <a
                   href="mailto:support@shotage.studio?subject=Feedback%20for%20Shotage%20Studio"
                   onClick={() => setIsDesktopMenuOpen(false)}
@@ -882,17 +885,6 @@ export const Studio: React.FC = () => {
                 <Play className="w-3.5 h-3.5" color={isAnimationMode ? '#bde0fe' : '#a2d2ff'} />
               </span>
             </button>
-            <button
-              onClick={togglePreviewMode}
-              className={`p-1.5 rounded-lg border transition-all ${
-                isPreviewMode
-                  ? 'bg-pastel-pink text-slate-950 border-pastel-pinkLight font-bold shadow-md shadow-pastel-pink/25'
-                  : 'bg-neutral-800 text-slate-300 border-neutral-700'
-              }`}
-              title={isPreviewMode ? 'Exit Full Preview' : 'Full Preview Mode'}
-            >
-              <Expand03 className="w-3.5 h-3.5" />
-            </button>
             <div className="relative" ref={mobileMenuRef}>
               <button
                 onClick={() => {
@@ -910,6 +902,22 @@ export const Studio: React.FC = () => {
 
               {isMobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-[100] animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      togglePreviewMode();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left cursor-pointer ${
+                      isPreviewMode
+                        ? 'bg-pastel-pink/15 text-pastel-pinkLight hover:bg-pastel-pink/20'
+                        : 'text-slate-300 hover:text-white hover:bg-neutral-800'
+                    }`}
+                  >
+                    <Expand03 className="w-4 h-4" />
+                    <span>{isPreviewMode ? 'Exit Full Preview' : 'Full Preview'}</span>
+                  </button>
+
                   <a
                     href="mailto:support@shotage.studio?subject=Feedback%20for%20Shotage%20Studio"
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -993,10 +1001,10 @@ export const Studio: React.FC = () => {
             <div
               className={`fixed left-1/2 -translate-x-1/2 z-20 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-md sm:w-auto justify-between ${
                 isAnimationMode
-                  ? 'bottom-[150px] sm:bottom-24'
+                  ? 'bottom-[158px] sm:bottom-[104px]'
                   : isPreviewMode
-                    ? 'bottom-4 sm:bottom-6'
-                    : 'bottom-24 sm:bottom-6'
+                    ? 'bottom-6 sm:bottom-8'
+                    : 'bottom-[104px] sm:bottom-8'
               }`}
             >
               <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">

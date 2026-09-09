@@ -359,16 +359,17 @@ export const Home: React.FC = () => {
 
             {/* CTA Button */}
             <div className="flex items-center gap-2 shrink-0">
-              <AuthButton compact={isScrolled} />
+              <AuthButton compact={!isDesktop || isScrolled} />
               <a
                 href="/studio"
                 onClick={handleHeaderAction}
-                className="px-4 py-2 text-slate-950 font-extrabold text-xs rounded-full shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer whitespace-nowrap"
+                className="px-3 sm:px-4 py-2 text-slate-950 font-extrabold text-xs rounded-full shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 sm:gap-2 hover:brightness-110 active:scale-95 cursor-pointer whitespace-nowrap"
                 style={{
                   backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
                 }}
               >
-                <span>Launch Studio</span>
+                <span className="sm:hidden">Studio</span>
+                <span className="hidden sm:inline">Launch Studio</span>
                 <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
               </a>
             </div>
