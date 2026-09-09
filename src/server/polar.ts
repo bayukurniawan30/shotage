@@ -394,7 +394,10 @@ export async function processPolarWebhook(payload: unknown) {
   }
 
   if (event.type === 'order.paid') {
-    if (!order.paid || order.netAmount <= 0) {
+    // A fully discounted checkout is still a legitimate paid order. The signed
+    // `paid` flag is authoritative; requiring a positive net amount would deny
+    // credits for valid 100%-off purchases.
+    if (!order.paid) {
       return { resultCode: 'IGNORED', balance: null, debt: null, changedCredits: 0 };
     }
     if (!order.checkoutId) {

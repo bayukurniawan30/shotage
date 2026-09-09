@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono';
-import { Webhooks } from '@polar-sh/hono';
+import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -562,18 +562,46 @@ app.post('/api/checkout/create', async (c) => {
 });
 
 app.post('/api/webhooks/polar', async (c) => {
+  const requestId = crypto.randomUUID();
   const webhookSecret = process.env.POLAR_WEBHOOK_SECRET?.trim();
   if (!webhookSecret) {
     return c.json({ error: 'Polar webhook is not configured' }, 503);
   }
 
-  return Webhooks({
-    webhookSecret,
-    onPayload: async (payload) => {
-      const result = await processPolarWebhook(payload);
-      console.info('Polar webhook processed:', payload.type, result.resultCode);
-    },
-  })(c);
+  const body = await c.req.text();
+  const webhookHeaders = {
+    'webhook-id': c.req.header('webhook-id') || '',
+    'webhook-timestamp': c.req.header('webhook-timestamp') || '',
+    'webhook-signature': c.req.header('webhook-signature') || '',
+  };
+
+  let payload: ReturnType<typeof validateEvent>;
+  try {
+    payload = validateEvent(body, webhookHeaders, webhookSecret);
+  } catch (error) {
+    if (error instanceof WebhookVerificationError) {
+      const webhookTimestamp = Number(webhookHeaders['webhook-timestamp']);
+      console.warn('Polar webhook signature rejected:', {
+        requestId,
+        reason: error.message,
+        bodyLength: Buffer.byteLength(body),
+        contentType: c.req.header('content-type') || null,
+        hasWebhookId: Boolean(webhookHeaders['webhook-id']),
+        hasWebhookTimestamp: Boolean(webhookHeaders['webhook-timestamp']),
+        hasWebhookSignature: Boolean(webhookHeaders['webhook-signature']),
+        timestampSkewSeconds: Number.isFinite(webhookTimestamp)
+          ? Math.round(Date.now() / 1000 - webhookTimestamp)
+          : null,
+        hasPolarGeneratedSecretPrefix: webhookSecret.startsWith('polar_whs_'),
+      });
+      return c.json({ received: false, requestId }, 403);
+    }
+    throw error;
+  }
+
+  const result = await processPolarWebhook(payload);
+  console.info('Polar webhook processed:', payload.type, result.resultCode);
+  return c.json({ received: true });
 });
 
 // Fetch a shared design. The URL key is the identifier UUID (new links) or the
