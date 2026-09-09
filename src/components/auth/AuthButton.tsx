@@ -435,6 +435,9 @@ export function AuthButton({ compact = false, variant = 'default' }: AuthButtonP
     ? 'hover:bg-neutral-800 hover:text-white'
     : 'hover:bg-slate-800 hover:text-white';
   const accountTriggerClassName = isStudio ? 'hover:bg-neutral-800/80' : 'hover:bg-slate-800/80';
+  const avatarClassName = isStudio
+    ? 'bg-neutral-800 shadow-[4px_4px_8px_rgba(0,0,0,0.6),-3px_-3px_7px_rgba(255,255,255,0.08)] hover:shadow-[3px_3px_6px_rgba(0,0,0,0.55),-2px_-2px_5px_rgba(255,255,255,0.1)]'
+    : 'bg-slate-800 shadow-[4px_4px_8px_rgba(0,0,0,0.55),-3px_-3px_7px_rgba(255,255,255,0.09)] hover:shadow-[3px_3px_6px_rgba(0,0,0,0.5),-2px_-2px_5px_rgba(255,255,255,0.12)]';
 
   useEffect(() => {
     if (!sessionId) {
@@ -521,8 +524,7 @@ export function AuthButton({ compact = false, variant = 'default' }: AuthButtonP
         className={`flex h-10 items-center gap-1.5 rounded-full border-0 bg-transparent p-1 pr-2 text-xs font-semibold transition-colors cursor-pointer ${accountTriggerClassName}`}
       >
         <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-[2px] shadow-[0_0_14px_rgba(255,175,204,0.42)] transition-shadow hover:shadow-[0_0_18px_rgba(162,210,255,0.55)]"
-          style={{ backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)' }}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-[3px] transition-[box-shadow,transform] duration-200 hover:-translate-y-px ${avatarClassName}`}
         >
           {user.image ? (
             <img
