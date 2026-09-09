@@ -3,6 +3,7 @@ import { AuthButton } from './auth/AuthButton';
 
 const links = [
   { href: '/', label: 'Home' },
+  { href: '/explore', label: 'Explore' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/faq', label: 'FAQ' },
   { href: '/terms', label: 'Terms' },
