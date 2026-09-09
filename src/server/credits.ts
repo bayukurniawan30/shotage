@@ -1,15 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { AuthUser } from './auth';
-import { getDatabase } from './db';
-import { EXPORT_COSTS, getExportCapacity } from '../lib/credits';
+import type { AuthUser } from './auth.js';
+import { getDatabase } from './db/index.js';
+import { EXPORT_COSTS, getExportCapacity } from '../lib/credits.js';
 
 export {
   EXPORT_COSTS,
   getExportCapacity,
   getImageExportCost,
   getVideoExportCost,
-} from '../lib/credits';
+} from '../lib/credits.js';
 
 export const WELCOME_CREDITS = 100;
 

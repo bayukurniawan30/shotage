@@ -50,15 +50,15 @@ describe('Polar configuration', () => {
   });
 
   it('requires secure checkout origins outside local development', () => {
-    expect(resolveCheckoutOrigin('http://127.0.0.1:4173/api/checkout/create')).toBe(
+    expect(resolveCheckoutOrigin('http://127.0.0.1:4173/api/checkout/create', '')).toBe(
       'http://127.0.0.1:4173'
     );
     expect(
       resolveCheckoutOrigin('http://ignored.test', 'https://preview.shotage.example/path')
     ).toBe('https://preview.shotage.example');
-    expect(() => resolveCheckoutOrigin('http://shotage.example/api/checkout/create')).toThrow(
-      'HTTPS'
-    );
+    expect(() =>
+      resolveCheckoutOrigin('http://shotage.example/api/checkout/create', '')
+    ).toThrow('HTTPS');
   });
 });
 

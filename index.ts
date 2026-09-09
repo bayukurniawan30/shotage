@@ -4,7 +4,7 @@ import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { authenticateRequest } from './src/server/auth';
+import { authenticateRequest } from './src/server/auth.js';
 import {
   ensureUserOnboarded,
   getExportCapacity,
@@ -15,13 +15,13 @@ import {
   reserveExportCredits,
   settleExportReservation,
   type ReservationResult,
-} from './src/server/credits';
+} from './src/server/credits.js';
 import {
   checkoutRequestSchema,
   createPolarCheckout,
   getPurchaseHistory,
   processPolarWebhook,
-} from './src/server/polar';
+} from './src/server/polar.js';
 import {
   canAccessPrivateShare,
   getUserDesignStatus,
@@ -29,7 +29,7 @@ import {
   isExploreEligibleShare,
   isPrivateShare,
   isShareVisibility,
-} from './src/server/share';
+} from './src/server/share.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -1,8 +1,8 @@
 import { Polar } from '@polar-sh/sdk';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { AuthUser } from './auth';
-import { getDatabase } from './db';
+import type { AuthUser } from './auth.js';
+import { getDatabase } from './db/index.js';
 
 export const CREDIT_PACKS = {
   starter: { credits: 900, productEnv: 'POLAR_PRODUCT_STARTER' },
