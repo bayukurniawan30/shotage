@@ -47,8 +47,7 @@ const polarCheckoutWebhookSchema = z.object({
 });
 
 type PolarWebhookPayload =
-  | z.infer<typeof polarOrderWebhookSchema>
-  | z.infer<typeof polarCheckoutWebhookSchema>;
+  z.infer<typeof polarOrderWebhookSchema> | z.infer<typeof polarCheckoutWebhookSchema>;
 
 type PaymentMutationRow = {
   result_code: string;
@@ -166,7 +165,7 @@ export async function createPolarCheckout(
     customerEmail: user.email || undefined,
     customerName: user.name || undefined,
     customerIpAddress,
-    allowDiscountCodes: false,
+    allowDiscountCodes: true,
     embedOrigin: origin,
     returnUrl: `${origin}/purchases?checkout=cancelled`,
     successUrl: `${origin}/purchases?checkout=success&checkout_id={CHECKOUT_ID}`,
