@@ -436,8 +436,8 @@ export function AuthButton({ compact = false, variant = 'default' }: AuthButtonP
     : 'hover:bg-slate-800 hover:text-white';
   const accountTriggerClassName = isStudio ? 'hover:bg-neutral-800/80' : 'hover:bg-slate-800/80';
   const avatarClassName = isStudio
-    ? 'bg-neutral-800 shadow-[4px_4px_8px_rgba(0,0,0,0.6),-3px_-3px_7px_rgba(255,255,255,0.08)] hover:shadow-[3px_3px_6px_rgba(0,0,0,0.55),-2px_-2px_5px_rgba(255,255,255,0.1)]'
-    : 'bg-slate-800 shadow-[4px_4px_8px_rgba(0,0,0,0.55),-3px_-3px_7px_rgba(255,255,255,0.09)] hover:shadow-[3px_3px_6px_rgba(0,0,0,0.5),-2px_-2px_5px_rgba(255,255,255,0.12)]';
+    ? 'bg-neutral-800 ring-1 ring-white/15 shadow-md shadow-black/35'
+    : 'bg-slate-800 ring-1 ring-white/15 shadow-md shadow-black/30';
 
   useEffect(() => {
     if (!sessionId) {
@@ -524,17 +524,17 @@ export function AuthButton({ compact = false, variant = 'default' }: AuthButtonP
         className={`flex h-10 items-center gap-1.5 rounded-full border-0 bg-transparent p-1 pr-2 text-xs font-semibold transition-colors cursor-pointer ${accountTriggerClassName}`}
       >
         <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-[3px] transition-[box-shadow,transform] duration-200 hover:-translate-y-px ${avatarClassName}`}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-lg hover:shadow-black/40 ${avatarClassName}`}
         >
           {user.image ? (
             <img
               src={user.image}
               alt=""
               referrerPolicy="no-referrer"
-              className="h-full w-full rounded-full bg-neutral-900 object-cover"
+              className="h-full w-full object-cover"
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-neutral-900 text-[10px] font-bold text-[#ffafcc]">
+            <span className="flex h-full w-full items-center justify-center bg-neutral-900 text-[10px] font-bold text-[#ffafcc]">
               {initials}
             </span>
           )}
