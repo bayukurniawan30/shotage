@@ -473,7 +473,7 @@ export function AuthButton({ compact = false, variant = 'default' }: AuthButtonP
     return () => window.removeEventListener('mousedown', closeOutside);
   }, [menuOpen]);
 
-  if (session.isPending) {
+  if (session.isPending || session.isRefetching) {
     return (
       <div
         className={`h-9 w-9 shrink-0 animate-pulse rounded-xl border ${

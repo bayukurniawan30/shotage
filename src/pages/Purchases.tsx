@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { AuthButton } from '../components/auth/AuthButton';
@@ -69,6 +69,8 @@ const Purchases: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const refetchSessionRef = useRef(session.refetch);
+  refetchSessionRef.current = session.refetch;
 
   const checkoutResult = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -77,6 +79,28 @@ const Purchases: React.FC = () => {
       checkoutId: params.get('checkout_id'),
     };
   }, []);
+
+  useEffect(() => {
+    if (checkoutResult.state !== 'cancelled' && checkoutResult.state !== 'success') return;
+
+    // Returning from Polar is a full cross-site navigation. Bypass Neon Auth's
+    // short-lived cookie cache so the UI restores the existing session instead
+    // of treating a stale empty response as a sign-out.
+    let cancelled = false;
+    const refreshSession = async () => {
+      if (cancelled) return;
+      await refetchSessionRef
+        .current({ query: { disableCookieCache: true } })
+        .catch(() => undefined);
+    };
+
+    void refreshSession();
+    const retryTimer = window.setTimeout(() => void refreshSession(), 750);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retryTimer);
+    };
+  }, [checkoutResult.state]);
 
   const loadPurchases = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -205,7 +229,7 @@ const Purchases: React.FC = () => {
           )}
 
           <section className="mt-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/55 shadow-2xl shadow-black/20 backdrop-blur-md">
-            {session.isPending || loading ? (
+            {session.isPending || session.isRefetching || loading ? (
               <div className="flex min-h-64 items-center justify-center gap-3 text-sm text-slate-400">
                 <PhosphorIcons.CircleNotchIcon className="h-5 w-5 animate-spin text-[#ffafcc]" />
                 Loading purchases…
