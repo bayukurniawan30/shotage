@@ -100,6 +100,46 @@ export type PurchaseHistoryItem = {
 
 type PolarEnvironment = Record<string, string | undefined>;
 
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : null;
+}
+
+/**
+ * Standard Webhooks returns Polar's raw snake_case JSON, while the Polar SDK
+ * returns camelCase models. Normalize only the fields used by our processor;
+ * metadata keys intentionally remain untouched.
+ */
+export function normalizePolarWebhookPayload(payload: unknown): unknown {
+  const event = asRecord(payload);
+  const rawData = asRecord(event?.data);
+  if (!event || !rawData) return payload;
+
+  const rawCustomer = asRecord(rawData.customer);
+  return {
+    ...event,
+    data: {
+      ...rawData,
+      checkoutId: rawData.checkoutId ?? rawData.checkout_id,
+      billingReason: rawData.billingReason ?? rawData.billing_reason,
+      productId: rawData.productId ?? rawData.product_id,
+      netAmount: rawData.netAmount ?? rawData.net_amount,
+      totalAmount: rawData.totalAmount ?? rawData.total_amount,
+      refundedAmount: rawData.refundedAmount ?? rawData.refunded_amount,
+      refundedTaxAmount: rawData.refundedTaxAmount ?? rawData.refunded_tax_amount,
+      customer: rawCustomer
+        ? {
+            ...rawCustomer,
+            externalId: rawCustomer.externalId ?? rawCustomer.external_id,
+          }
+        : rawData.customer,
+    },
+  };
+}
+
 export function getPolarServer(value = process.env.POLAR_SERVER): 'sandbox' | 'production' {
   if (!value || value === 'sandbox') return 'sandbox';
   if (value === 'production') return 'production';

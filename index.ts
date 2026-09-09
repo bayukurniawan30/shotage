@@ -1,5 +1,9 @@
 import { Hono, type Context } from 'hono';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
+import {
+  Webhook as StandardWebhook,
+  WebhookVerificationError as StandardWebhookVerificationError,
+} from 'standardwebhooks';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -20,6 +24,7 @@ import {
   checkoutRequestSchema,
   createPolarCheckout,
   getPurchaseHistory,
+  normalizePolarWebhookPayload,
   processPolarWebhook,
 } from './src/server/polar.js';
 import {
@@ -575,32 +580,53 @@ app.post('/api/webhooks/polar', async (c) => {
     'webhook-signature': c.req.header('webhook-signature') || '',
   };
 
-  let payload: ReturnType<typeof validateEvent>;
+  let payload: unknown;
+  let signatureMode: 'legacy' | 'standard' = 'legacy';
   try {
     payload = validateEvent(body, webhookHeaders, webhookSecret);
   } catch (error) {
     if (error instanceof WebhookVerificationError) {
-      const webhookTimestamp = Number(webhookHeaders['webhook-timestamp']);
-      console.warn('Polar webhook signature rejected:', {
-        requestId,
-        reason: error.message,
-        bodyLength: Buffer.byteLength(body),
-        contentType: c.req.header('content-type') || null,
-        hasWebhookId: Boolean(webhookHeaders['webhook-id']),
-        hasWebhookTimestamp: Boolean(webhookHeaders['webhook-timestamp']),
-        hasWebhookSignature: Boolean(webhookHeaders['webhook-signature']),
-        timestampSkewSeconds: Number.isFinite(webhookTimestamp)
-          ? Math.round(Date.now() / 1000 - webhookTimestamp)
-          : null,
-        hasPolarGeneratedSecretPrefix: webhookSecret.startsWith('polar_whs_'),
-      });
-      return c.json({ received: false, requestId }, 403);
+      try {
+        // Polar endpoints created on or after 2026-09-08 use Standard Webhooks
+        // key derivation. The current Polar SDK still validates the original
+        // literal-secret scheme, so retain it first for existing endpoints and
+        // use the standard verifier for newly generated whsec_ secrets.
+        const standardPayload = new StandardWebhook(webhookSecret).verify(body, webhookHeaders);
+        payload = normalizePolarWebhookPayload(standardPayload);
+        signatureMode = 'standard';
+      } catch (standardError) {
+        if (standardError instanceof StandardWebhookVerificationError) {
+          const webhookTimestamp = Number(webhookHeaders['webhook-timestamp']);
+          console.warn('Polar webhook signature rejected:', {
+            requestId,
+            legacyReason: error.message,
+            standardReason: standardError.message,
+            bodyLength: Buffer.byteLength(body),
+            contentType: c.req.header('content-type') || null,
+            hasWebhookId: Boolean(webhookHeaders['webhook-id']),
+            hasWebhookTimestamp: Boolean(webhookHeaders['webhook-timestamp']),
+            hasWebhookSignature: Boolean(webhookHeaders['webhook-signature']),
+            timestampSkewSeconds: Number.isFinite(webhookTimestamp)
+              ? Math.round(Date.now() / 1000 - webhookTimestamp)
+              : null,
+            secretFormat: webhookSecret.startsWith('whsec_')
+              ? 'standard'
+              : webhookSecret.startsWith('polar_whs_')
+                ? 'polar'
+                : 'custom',
+          });
+          return c.json({ received: false, requestId }, 403);
+        }
+        throw standardError;
+      }
     }
-    throw error;
+    if (!(error instanceof WebhookVerificationError)) throw error;
   }
 
   const result = await processPolarWebhook(payload);
-  console.info('Polar webhook processed:', payload.type, result.resultCode);
+  const eventType =
+    payload && typeof payload === 'object' && 'type' in payload ? payload.type : 'unknown';
+  console.info('Polar webhook processed:', eventType, result.resultCode, signatureMode);
   return c.json({ received: true });
 });
 

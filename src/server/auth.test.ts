@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { Webhook } from 'standardwebhooks';
 import app from '../../index';
 import { resolveNeonAuthJwksUrl } from './auth';
 
@@ -73,6 +74,39 @@ describe('POST /api/webhooks/polar', () => {
       expect(response.status).toBe(503);
     } finally {
       if (previousSecret) process.env.POLAR_WEBHOOK_SECRET = previousSecret;
+    }
+  });
+
+  it('accepts Polar endpoints using Standard Webhooks signing', async () => {
+    const previousSecret = process.env.POLAR_WEBHOOK_SECRET;
+    const secret = `whsec_${Buffer.from('shotage-standard-webhook-key-32b').toString('base64')}`;
+    const body = JSON.stringify({
+      type: 'customer.created',
+      timestamp: new Date().toISOString(),
+      data: {},
+    });
+    const webhookId = crypto.randomUUID();
+    const timestamp = new Date();
+    const signature = new Webhook(secret).sign(webhookId, timestamp, body);
+    process.env.POLAR_WEBHOOK_SECRET = secret;
+
+    try {
+      const response = await app.request('/api/webhooks/polar', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'webhook-id': webhookId,
+          'webhook-timestamp': Math.floor(timestamp.getTime() / 1000).toString(),
+          'webhook-signature': signature,
+        },
+        body,
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ received: true });
+    } finally {
+      if (previousSecret === undefined) delete process.env.POLAR_WEBHOOK_SECRET;
+      else process.env.POLAR_WEBHOOK_SECRET = previousSecret;
     }
   });
 });

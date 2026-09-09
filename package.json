@@ -47,6 +47,7 @@
     "react-aria-components": "^1.19.0",
     "react-dom": "^19.2.8",
     "remotion": "^4.0.502",
+    "standardwebhooks": "^1.1.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "webm-muxer": "^5.1.4",

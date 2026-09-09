@@ -4,6 +4,7 @@ import {
   getConfiguredCreditPacks,
   getCreditPackByProductId,
   getPolarServer,
+  normalizePolarWebhookPayload,
   processPolarWebhook,
   resolveCheckoutOrigin,
 } from './polar';
@@ -56,13 +57,44 @@ describe('Polar configuration', () => {
     expect(
       resolveCheckoutOrigin('http://ignored.test', 'https://preview.shotage.example/path')
     ).toBe('https://preview.shotage.example');
-    expect(() =>
-      resolveCheckoutOrigin('http://shotage.example/api/checkout/create', '')
-    ).toThrow('HTTPS');
+    expect(() => resolveCheckoutOrigin('http://shotage.example/api/checkout/create', '')).toThrow(
+      'HTTPS'
+    );
   });
 });
 
 describe('Polar webhook routing', () => {
+  it('normalizes fields from Standard Webhooks without changing metadata keys', () => {
+    expect(
+      normalizePolarWebhookPayload({
+        type: 'order.paid',
+        data: {
+          checkout_id: 'checkout-id',
+          billing_reason: 'purchase',
+          product_id: 'product-id',
+          net_amount: 0,
+          total_amount: 0,
+          refunded_amount: 0,
+          refunded_tax_amount: 0,
+          metadata: { shotage_user_id: 'user-id' },
+          customer: { external_id: 'user-id' },
+        },
+      })
+    ).toMatchObject({
+      data: {
+        checkoutId: 'checkout-id',
+        billingReason: 'purchase',
+        productId: 'product-id',
+        netAmount: 0,
+        totalAmount: 0,
+        refundedAmount: 0,
+        refundedTaxAmount: 0,
+        metadata: { shotage_user_id: 'user-id' },
+        customer: { externalId: 'user-id' },
+      },
+    });
+  });
+
   it('ignores unrelated signed event types', async () => {
     await expect(processPolarWebhook({ type: 'customer.created' })).resolves.toEqual({
       resultCode: 'IGNORED',
