@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Head } from '@inertiajs/react';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Footer } from '../components/Footer';
+import { PublicHeader } from '../components/PublicHeader';
 
 export interface ShotageShareablesContent {
   name: string;
@@ -125,52 +126,7 @@ export const Explore: React.FC = () => {
           <div className="absolute bottom-10 left-10 w-[350px] sm:w-[800px] h-[300px] sm:h-[500px] bg-[#a2d2ff]/8 sm:bg-[#a2d2ff]/10 blur-[60px] sm:blur-[170px] rounded-full" />
         </div>
 
-        {/* Global Navigation Header */}
-        <header className="border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-xl sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2.5 group">
-              <img
-                src="/shotage-logo-small.png"
-                alt="Shotage Logo"
-                className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
-              />
-              <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-[#ffafcc] transition-colors">
-                Shotage
-              </span>
-            </a>
-
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-300">
-              <a href="/#frames" className="hover:text-white transition-colors">
-                Device Frames
-              </a>
-              <a href="/#animation" className="hover:text-white transition-colors">
-                Animation & Video
-              </a>
-              <a href="/#features" className="hover:text-white transition-colors">
-                Features
-              </a>
-              <a href="/explore" className="text-white font-bold flex items-center gap-1.5">
-                <span>Explore</span>
-              </a>
-              <a href="/faq" className="hover:text-white transition-colors">
-                FAQ
-              </a>
-            </div>
-
-            {/* Launch Studio CTA */}
-            <a
-              href="/studio"
-              className="px-4 py-2 text-slate-950 font-extrabold text-xs rounded-full shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer whitespace-nowrap"
-              style={{
-                backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
-              }}
-            >
-              <span>Launch Studio</span>
-              <PhosphorIcons.ArrowRightIcon className="w-3.5 h-3.5" weight="bold" />
-            </a>
-          </div>
-        </header>
+        <PublicHeader />
 
         {/* Main Content Area */}
         <main className="flex-1 relative z-10 max-w-7xl mx-auto px-6 py-12 md:py-16 space-y-10 w-full">

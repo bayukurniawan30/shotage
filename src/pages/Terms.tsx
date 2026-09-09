@@ -1,182 +1,148 @@
 import React from 'react';
-import { Shield01, CheckCircle, Lock01, Stars02, ArrowLeft } from '@untitledui/icons';
-import { Footer } from '../components/Footer';
+import { LegalPageLayout } from '../components/LegalPageLayout';
 
-const Terms: React.FC = () => {
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-hidden">
-      {/* Dynamic Background Glow Orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-pastel-pink/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-[#a2d2ff]/10 rounded-full blur-[160px] pointer-events-none" />
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="space-y-2.5">
+    <h2 className="text-base font-bold text-slate-100">{title}</h2>
+    <div className="space-y-2 text-slate-400">{children}</div>
+  </section>
+);
 
-      {/* Header */}
-      <header className="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
-            <img
-              src="/shotage-logo-small.png"
-              alt="Shotage Logo"
-              className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
-            />
-            <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-pastel-pinkLight transition-colors">
-              Shotage
-            </span>
-          </a>
+const Terms: React.FC = () => (
+  <LegalPageLayout
+    title="Terms of Service"
+    badge="Legal & ownership"
+    path="/terms"
+    description="The rules for using Shotage, creating exports, sharing designs, and purchasing credits."
+    updated="September 8, 2026"
+  >
+    <Section title="1. Acceptance and eligibility">
+      <p>
+        By accessing or using Shotage, you agree to these Terms. If you do not agree, do not use the
+        service. You must be legally able to enter into this agreement in your jurisdiction. If you
+        use Shotage for an organization, you confirm that you are authorized to bind it.
+      </p>
+    </Section>
 
-          <a
-            href="/studio"
-            className="px-3.5 sm:px-4 py-2 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-2 hover:brightness-110 active:scale-95 cursor-pointer"
-            style={{
-              backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
-            }}
-          >
-            <span>Launch Studio</span>
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M14 5l7 7m0 0l-7 7m7-7H3"
-              />
-            </svg>
-          </a>
-        </div>
-      </header>
+    <Section title="2. Accounts and authentication">
+      <p>
+        Shotage supports email magic links and Google or GitHub sign-in through Neon Auth. You are
+        responsible for access to your email or provider account and for activity performed through
+        your Shotage account. Do not share authentication links or attempt to access another user’s
+        account.
+      </p>
+      <p>
+        Google and GitHub may apply their own terms and policies to your use of their sign-in
+        services. Shotage does not receive or store your Google, GitHub, or email password.
+      </p>
+    </Section>
 
-      {/* Main Content */}
-      <main className="flex-1 relative z-10 max-w-4xl mx-auto px-6 py-12 md:py-16 space-y-12">
-        {/* Title Header */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pastel-blue/10 border border-pastel-blue/30 text-pastel-blue text-xs font-semibold">
-            <Shield01 className="w-3.5 h-3.5" />
-            <span>Legal & Ownership</span>
-          </div>
+    <Section title="3. Studio use and shared designs">
+      <p>
+        Most canvas editing and image or video rendering occurs in your browser. If you choose
+        <strong className="font-semibold text-slate-200"> Share Design</strong>, Shotage sends the
+        design name, publisher name, project settings, a preview thumbnail, and any media embedded
+        in the project, your account identifier, and your selected visibility to Morphic CMS so the
+        share can work. Private designs are limited to the account that created them. Public designs
+        can be opened by their link and are submitted for review before they may appear in Explore.
+      </p>
+      <p>
+        You must have the rights needed to upload, edit, export, and share your content. Do not
+        share confidential information or content that infringes another person’s rights.
+      </p>
+    </Section>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white">
-            Terms of Service
-          </h1>
+    <Section title="4. Credits and payments">
+      <p>
+        Some exports require Shotage credits. Credit packs are one-time purchases, not
+        subscriptions. The price, included credits, and estimated export capacity are displayed
+        before checkout. Credits are personal to your account, non-transferable, and have no cash
+        value. They do not expire under normal operation.
+      </p>
+      <p>
+        Polar acts as merchant of record and authorized reseller for purchases made through Polar
+        Checkout. Polar processes payment details, tax, receipts, refunds, and chargebacks. Shotage
+        does not receive your full card number. Taxes and the final charged amount are shown during
+        checkout.
+      </p>
+      <p>
+        Export costs are shown before export. Shotage may reserve credits while an export is being
+        generated, settle them after success, and release them after a detected failure or
+        cancellation. A matching retry may be free when the interface says so. See the{' '}
+        <a href="/refund-policy" className="font-semibold text-pastel-pink hover:underline">
+          Refund Policy
+        </a>{' '}
+        for purchase refund rules.
+      </p>
+    </Section>
 
-          <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            Transparent, creator-first terms. Shotage is built to give you total creative freedom
-            with complete data privacy.
-          </p>
+    <Section title="5. Your content and exported work">
+      <p>
+        As between you and Shotage, you retain your rights in content you provide and exports you
+        create. You grant Shotage and its service providers only the limited permission required to
+        operate features you request, such as storing and serving a shared design.
+      </p>
+      <p>
+        Shotage does not grant rights to third-party trademarks, images, fonts, icons, templates, or
+        other material included in your work. You remain responsible for confirming that your use of
+        those materials is permitted.
+      </p>
+    </Section>
 
-          <div className="pt-2 text-xs font-mono text-slate-400">Last Updated: August 2026</div>
-        </div>
+    <Section title="6. Acceptable use">
+      <p>
+        You may not use Shotage to break the law, violate intellectual-property or privacy rights,
+        distribute malware, impersonate others, exploit or disrupt the service, bypass credit or
+        security controls, automate abusive traffic, or publish unlawful, deceptive, or harmful
+        content.
+      </p>
+    </Section>
 
-        {/* 3 Core Pillars Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-          {/* Pillar 1 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-pastel-pink/20 text-pastel-pink flex items-center justify-center">
-              <Stars02 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-slate-100 text-base">100% Free to Use</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Shotage is completely free to use for both personal and commercial projects. No
-              subscription, no paywalls, and no mandatory watermarks.
-            </p>
-          </div>
+    <Section title="7. Availability and changes">
+      <p>
+        Shotage is provided on an “as is” and “as available” basis. Browser capabilities, local
+        device resources, third-party services, or maintenance may affect features and export
+        results. We may improve, replace, suspend, or discontinue features and will try to give
+        reasonable notice when a material change affects paid credits.
+      </p>
+    </Section>
 
-          {/* Pillar 2 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-pastel-purple/20 text-pastel-purple flex items-center justify-center">
-              <CheckCircle className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-slate-100 text-base">100% User Ownership</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              All exported images, 3D graphics, and video animation mockups remain 100% owned by
-              you. You retain full copyright and commercial rights.
-            </p>
-          </div>
+    <Section title="8. Suspension and termination">
+      <p>
+        We may restrict or suspend access when reasonably necessary to address fraud, abuse,
+        security risk, legal obligations, or a material breach of these Terms. You may stop using
+        Shotage at any time. To request account deletion, contact us at the address below.
+      </p>
+    </Section>
 
-          {/* Pillar 3 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#a2d2ff]/20 text-[#a2d2ff] flex items-center justify-center">
-              <Lock01 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-slate-100 text-base">100% Local & Private</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Processing is performed locally in your browser. No screenshots, images, or media
-              files are ever uploaded to external servers.
-            </p>
-          </div>
-        </div>
+    <Section title="9. Disclaimers and limitation of liability">
+      <p>
+        To the maximum extent permitted by law, Shotage disclaims implied warranties and is not
+        liable for indirect, incidental, special, consequential, or punitive damages, loss of data,
+        profits, or business opportunity. Nothing in these Terms excludes rights or liability that
+        cannot lawfully be excluded.
+      </p>
+    </Section>
 
-        {/* Detailed Sections */}
-        <div className="space-y-8 p-6 md:p-8 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md text-xs md:text-sm leading-relaxed text-slate-300">
-          <section className="space-y-2">
-            <h2 className="text-base font-bold text-slate-100">1. Commercial & Personal License</h2>
-            <p className="text-slate-400">
-              Shotage grants you a worldwide, royalty-free, non-exclusive license to use the
-              application to generate static graphics, social media banners, app store screenshots,
-              and video animations for any commercial or personal purpose.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-bold text-slate-100">
-              2. Intellectual Property & Content Ownership
-            </h2>
-            <p className="text-slate-400">
-              You maintain exclusive ownership of all uploaded artwork, screenshots, text overlays,
-              and exported media files created with Shotage. Shotage claims zero ownership or
-              copyright over content produced using our tools.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-bold text-slate-100">
-              3. Privacy, Client-Side Processing & Shared Designs
-            </h2>
-            <p className="text-slate-400">
-              Your privacy is fundamental. All canvas manipulations, 3D perspective transforms,
-              custom font styling, and video encoding loops execute strictly client-side on your
-              local device.
-            </p>
-            <p className="text-slate-400">
-              When using the optional{' '}
-              <strong className="text-slate-200 font-semibold">Share Design</strong> feature to
-              generate a shareable link or publish to the community showcase, your layout settings,
-              styling configuration, and preview thumbnail are saved. Any mockup screenshots or
-              background images included in the shared design are optimized and converted to compressed
-              Base64 format client-side at a maximum dimension of 1920px (preserving original aspect
-              ratio) solely to allow visitors to view and interact with your shared design.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-bold text-slate-100">4. Service Availability</h2>
-            <p className="text-slate-400">
-              Shotage is provided "as is" with maximum browser compatibility and Progressive Web App
-              (PWA) support for offline usage.
-            </p>
-          </section>
-        </div>
-
-        {/* Call to Action Bar */}
-        <div className="p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 text-center space-y-4 shadow-xl">
-          <h2 className="text-xl font-bold text-white">Ready to create stunning 3D mockups?</h2>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Transform plain screenshots into eye-catching graphics and video animations right in
-            your browser.
-          </p>
-          <div className="pt-2">
-            <a
-              href="/studio"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pastel-pink to-[#a2d2ff] hover:brightness-110 text-slate-950 font-extrabold text-xs rounded-xl transition-all shadow-lg"
-            >
-              <Stars02 className="w-4 h-4 text-slate-950" />
-              <span>Launch Studio Free</span>
-            </a>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <Footer className="w-full" />
-    </div>
-  );
-};
+    <Section title="10. Updates and contact">
+      <p>
+        We may update these Terms as the service changes. The date above identifies the latest
+        version. Material changes will be communicated through the service or another reasonable
+        channel. Questions can be sent to{' '}
+        <a
+          href="mailto:support@shotage.studio"
+          className="font-semibold text-pastel-pink hover:underline"
+        >
+          support@shotage.studio
+        </a>
+        . Please also review our{' '}
+        <a href="/privacy" className="font-semibold text-pastel-pink hover:underline">
+          Privacy Policy
+        </a>
+        .
+      </p>
+    </Section>
+  </LegalPageLayout>
+);
 
 export default Terms;

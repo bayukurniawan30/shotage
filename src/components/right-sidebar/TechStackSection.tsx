@@ -1,11 +1,11 @@
 import React from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from '../TechStackIcons';
 import { TechStackConfig, TechStackPosition } from '../../types/studio';
 import { StepperSlider } from '../StepperSlider';
 
 export const TechStackSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   const config: TechStackConfig = state.techStackConfig || {

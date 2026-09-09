@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import {
   Type01,
   Plus,
@@ -20,7 +20,7 @@ import {
 } from '../../utils/gradientPresets';
 
 export const TextSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const [showAllGradients, setShowAllGradients] = useState(false);
   const [activeOption, setActiveOption] = useState<'size' | 'position' | 'rotation' | 'skew' | 'opacity'>('size');
 

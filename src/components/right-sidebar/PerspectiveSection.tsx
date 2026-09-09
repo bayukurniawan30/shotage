@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { TiltSliderGroup, PositionSliderGroup } from './shared';
 import { StepperSlider } from '../StepperSlider';
 
 export const PerspectiveSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
   const reset3DPerspective = state.reset3DPerspective;
 
@@ -168,7 +168,7 @@ export const PerspectiveSection: React.FC = () => {
                   3D Thickness & Edge
                 </span>
                 <span className="text-[10px] font-mono text-pastel-pink font-semibold">
-                  {state.slabThickness ?? 12}px
+                  {state.slabThickness ?? 0}px
                 </span>
               </div>
 
@@ -176,13 +176,13 @@ export const PerspectiveSection: React.FC = () => {
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium text-slate-300">Depth Thickness</span>
-                  <span className="font-mono text-slate-400">{state.slabThickness ?? 12}px</span>
+                  <span className="font-mono text-slate-400">{state.slabThickness ?? 0}px</span>
                 </div>
                 <StepperSlider
                   min={0}
                   max={60}
                   step={1}
-                  value={state.slabThickness ?? 12}
+                  value={state.slabThickness ?? 0}
                   onChange={(v) => onChange({ slabThickness: v })}
                   accentColor="#ffafcc"
                 />

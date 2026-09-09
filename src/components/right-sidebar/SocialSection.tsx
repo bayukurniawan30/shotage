@@ -1,12 +1,12 @@
 import React from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { Plus, Copy01, Trash01 } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
 import { SocialPlatformSelect, FontSelect } from './shared';
 import { StepperSlider } from '../StepperSlider';
 
 export const SocialSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
 
   const socialLayers = state.textLayers.filter((l) => l.socialPlatform !== undefined);
   const selectedLayer = state.textLayers.find(

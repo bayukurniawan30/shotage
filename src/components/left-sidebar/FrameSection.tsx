@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ChevronDown, Check } from '@untitledui/icons';
 import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
 
 export const FrameSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   const [isFrameDropdownOpen, setIsFrameDropdownOpen] = useState(false);

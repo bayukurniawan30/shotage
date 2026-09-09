@@ -512,7 +512,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   padding: 48,
   borderRadius: 16,
   imageFit: 'cover',
-  slabThickness: 12,
+  slabThickness: 0,
   slabColor: '#1e293b',
   enableShine: false,
   shinePreset: 'none',

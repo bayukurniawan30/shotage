@@ -1,0 +1,83 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788752613430,
+      "tag": "0000_credit-foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788752966532,
+      "tag": "0001_onboard-first-authenticated-request",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788754327653,
+      "tag": "0002_fix-onboarding-ambiguity",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788754482714,
+      "tag": "0003_harden-onboarding-name-resolution",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788762912502,
+      "tag": "0004_credit-reservation-rpcs-and-rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788762946960,
+      "tag": "0005_reservation-operation-idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788762956734,
+      "tag": "0006_credit-reservation-functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788770897061,
+      "tag": "0007_polar-credit-transactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788784842084,
+      "tag": "0008_credit-purchase-history",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788784849018,
+      "tag": "0009_purchase-status-workflow",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788855720000,
+      "tag": "0010_unlimited_export_reservations",
+      "breakpoints": true
+    }
+  ]
+}

@@ -16,9 +16,9 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         <span>© {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio</span>
       </div>
 
-      <div className="flex items-center gap-6 font-semibold">
-        <a href="/explore" className="hover:text-white transition-colors">
-          Explore
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-semibold">
+        <a href="/pricing" className="hover:text-white transition-colors">
+          Pricing
         </a>
         <a href="/faq" className="hover:text-white transition-colors">
           FAQ
@@ -26,7 +26,13 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         <a href="/terms" className="hover:text-white transition-colors">
           Terms
         </a>
-        <a href="mailto:bayukurniawan@baycore.dev" className="text-pastel-pink hover:underline">
+        <a href="/privacy" className="hover:text-white transition-colors">
+          Privacy
+        </a>
+        <a href="/refund-policy" className="hover:text-white transition-colors">
+          Refunds
+        </a>
+        <a href="mailto:support@shotage.studio" className="text-pastel-pink hover:underline">
           Send Feedback
         </a>
       </div>

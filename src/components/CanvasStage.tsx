@@ -30,6 +30,7 @@ import {
 } from '../types/animationTypes';
 import { Coolshape } from 'coolshapes-react';
 import * as PhosphorIcons from '@phosphor-icons/react';
+import { getPhosphorIcon } from './phosphorIconRegistry';
 import {
   ImageUp,
   Heart,
@@ -616,13 +617,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                     size={layer.iconSize || layer.fontSize * 1.1}
                     color={layer.iconColor || layer.color}
                   />
-                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>{renderTextContent()}</span>
+                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>
+                    {renderTextContent()}
+                  </span>
                 </div>
               ) : (
                 renderTextContent()
               )}
             </div>
-
           </div>
         );
       });
@@ -635,7 +637,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .map((layer) => {
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
-        const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.Sparkle;
+        const IconComp = getPhosphorIcon(layer.iconId);
         const motion = evaluateLayerMotion(
           layer.motions,
           layer.loopAnimation,
@@ -696,7 +698,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
               transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) scale(${iconScale * motion.scale})`,
               opacity: motion.isVisible ? (iconOpacity / 100) * motion.opacity : 0,
-              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
+              filter:
+                `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
+                'none',
             }}
           >
             <div className={getBadgeClass(layer.badgeStyle)}>
@@ -755,7 +759,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('element', el.id, positionFilter),
               transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`,
               opacity: motion.isVisible ? (elOpacity / 100) * motion.opacity : 0,
-              filter: `${combinedBlur > 0 ? `blur(${combinedBlur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() || 'none',
+              filter:
+                `${combinedBlur > 0 ? `blur(${combinedBlur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
+                'none',
               width: `${elWidth}px`,
               height: `${elHeight}px`,
             }}
@@ -784,7 +790,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 }}
               />
             )}
-
           </div>
         );
       });
@@ -881,8 +886,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             if (layer.gradient) {
               const p1 = parseColorAndAlpha(layer.gradient.color1);
               const p2 = parseColorAndAlpha(layer.gradient.color2);
-              const a1 = Math.round(Math.min(60, Math.max(5, (p1.alpha < 100 ? p1.alpha : 35) * userOpacity)));
-              const a2 = Math.round(Math.min(60, Math.max(5, (p2.alpha < 100 ? p2.alpha : 15) * userOpacity)));
+              const a1 = Math.round(
+                Math.min(60, Math.max(5, (p1.alpha < 100 ? p1.alpha : 35) * userOpacity))
+              );
+              const a2 = Math.round(
+                Math.min(60, Math.max(5, (p2.alpha < 100 ? p2.alpha : 15) * userOpacity))
+              );
               return {
                 backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${formatColorWithAlpha(p1.hex, a1)}, ${formatColorWithAlpha(p2.hex, a2)})`,
                 backgroundColor: 'transparent',
@@ -920,9 +929,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const shapeOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
 
-        const has3D =
-          shapePitch !== 0 ||
-          shapeYaw !== 0;
+        const has3D = shapePitch !== 0 || shapeYaw !== 0;
         const shouldDropShadow = layer.shadow && (!isGlass || isPolygonOrMask);
         const transformStr = has3D
           ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
@@ -936,8 +943,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   Math.round(((parseFloat(x) + shapeWidth / 2) / Math.max(1, shapeWidth)) * 10000) /
                   10000;
                 const uy =
-                  Math.round(((parseFloat(y) + shapeHeight / 2) / Math.max(1, shapeHeight)) * 10000) /
-                  10000;
+                  Math.round(
+                    ((parseFloat(y) + shapeHeight / 2) / Math.max(1, shapeHeight)) * 10000
+                  ) / 10000;
                 return `${cmd} ${ux} ${uy}`;
               })
             : '');
@@ -959,8 +967,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
-              opacity: motion.isVisible ? (isGlass ? motion.opacity : (shapeOpacity / 100) * motion.opacity) : 0,
-              filter: `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${shouldDropShadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.55))' : ''}`.trim() || 'none',
+              opacity: motion.isVisible
+                ? isGlass
+                  ? motion.opacity
+                  : (shapeOpacity / 100) * motion.opacity
+                : 0,
+              filter:
+                `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${shouldDropShadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.55))' : ''}`.trim() ||
+                'none',
               width: `${shapeWidth}px`,
               height: `${shapeHeight}px`,
               overflow: isSelected
@@ -1037,99 +1051,106 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               )}
 
               {/* Merged Custom Path SVG Silhouette */}
-              {layer.shapeType === 'custom-path' && layer.pathData && (() => {
-                const zoom = (layer.bgImageZoom ?? 100) / 100;
-                const imgW = shapeWidth * zoom;
-                const imgH = shapeHeight * zoom;
-                const imgX = -shapeWidth / 2 + (layer.bgImageOffsetX || 0) - (imgW - shapeWidth) / 2;
-                const imgY = -shapeHeight / 2 + (layer.bgImageOffsetY || 0) - (imgH - shapeHeight) / 2;
+              {layer.shapeType === 'custom-path' &&
+                layer.pathData &&
+                (() => {
+                  const zoom = (layer.bgImageZoom ?? 100) / 100;
+                  const imgW = shapeWidth * zoom;
+                  const imgH = shapeHeight * zoom;
+                  const imgX =
+                    -shapeWidth / 2 + (layer.bgImageOffsetX || 0) - (imgW - shapeWidth) / 2;
+                  const imgY =
+                    -shapeHeight / 2 + (layer.bgImageOffsetY || 0) - (imgH - shapeHeight) / 2;
 
-                return (
-                  <svg
-                    className="w-full h-full pointer-events-none overflow-visible"
-                    viewBox={layer.viewBox || `${-shapeWidth / 2} ${-shapeHeight / 2} ${shapeWidth} ${shapeHeight}`}
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    <defs>
-                      <clipPath id={`shape-clip-${layer.id}`} clipRule="evenodd">
-                        <path d={layer.pathData} fillRule="evenodd" />
-                      </clipPath>
-                      {layer.gradient && (
-                        <linearGradient
-                          id={`shape-grad-${layer.id}`}
-                          x1={`${50 - 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
-                          y1={`${50 - 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
-                          x2={`${50 + 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
-                          y2={`${50 + 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
-                        >
-                          <stop offset="0%" stopColor={layer.gradient.color1} />
-                          <stop offset="100%" stopColor={layer.gradient.color2} />
-                        </linearGradient>
-                      )}
-                      {layer.bgImage && layer.bgImageRepeat && (
-                        <pattern
-                          id={`shape-pattern-${layer.id}`}
-                          patternUnits="userSpaceOnUse"
-                          width={imgW}
-                          height={imgH}
-                          x={imgX}
-                          y={imgY}
-                        >
-                          <image
-                            href={layer.bgImage}
+                  return (
+                    <svg
+                      className="w-full h-full pointer-events-none overflow-visible"
+                      viewBox={
+                        layer.viewBox ||
+                        `${-shapeWidth / 2} ${-shapeHeight / 2} ${shapeWidth} ${shapeHeight}`
+                      }
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      <defs>
+                        <clipPath id={`shape-clip-${layer.id}`} clipRule="evenodd">
+                          <path d={layer.pathData} fillRule="evenodd" />
+                        </clipPath>
+                        {layer.gradient && (
+                          <linearGradient
+                            id={`shape-grad-${layer.id}`}
+                            x1={`${50 - 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                            y1={`${50 - 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                            x2={`${50 + 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                            y2={`${50 + 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
+                          >
+                            <stop offset="0%" stopColor={layer.gradient.color1} />
+                            <stop offset="100%" stopColor={layer.gradient.color2} />
+                          </linearGradient>
+                        )}
+                        {layer.bgImage && layer.bgImageRepeat && (
+                          <pattern
+                            id={`shape-pattern-${layer.id}`}
+                            patternUnits="userSpaceOnUse"
                             width={imgW}
                             height={imgH}
-                            preserveAspectRatio="none"
-                          />
-                        </pattern>
-                      )}
-                    </defs>
+                            x={imgX}
+                            y={imgY}
+                          >
+                            <image
+                              href={layer.bgImage}
+                              width={imgW}
+                              height={imgH}
+                              preserveAspectRatio="none"
+                            />
+                          </pattern>
+                        )}
+                      </defs>
 
-                    {layer.bgImage ? (
-                      layer.bgImageRepeat ? (
+                      {layer.bgImage ? (
+                        layer.bgImageRepeat ? (
+                          <path
+                            d={layer.pathData}
+                            fillRule="evenodd"
+                            fill={`url(#shape-pattern-${layer.id})`}
+                          />
+                        ) : (
+                          <g clipPath={`url(#shape-clip-${layer.id})`}>
+                            <image
+                              href={layer.bgImage}
+                              x={imgX}
+                              y={imgY}
+                              width={imgW}
+                              height={imgH}
+                              preserveAspectRatio="xMidYMid slice"
+                            />
+                          </g>
+                        )
+                      ) : !isGlass ? (
                         <path
                           d={layer.pathData}
                           fillRule="evenodd"
-                          fill={`url(#shape-pattern-${layer.id})`}
+                          fill={
+                            layer.gradient
+                              ? `url(#shape-grad-${layer.id})`
+                              : layer.color || '#a2d2ff'
+                          }
                         />
-                      ) : (
-                        <g clipPath={`url(#shape-clip-${layer.id})`}>
-                          <image
-                            href={layer.bgImage}
-                            x={imgX}
-                            y={imgY}
-                            width={imgW}
-                            height={imgH}
-                            preserveAspectRatio="xMidYMid slice"
-                          />
-                        </g>
-                      )
-                    ) : !isGlass ? (
-                      <path
-                        d={layer.pathData}
-                        fillRule="evenodd"
-                        fill={
-                          layer.gradient
-                            ? `url(#shape-grad-${layer.id})`
-                            : layer.color || '#a2d2ff'
-                        }
-                      />
-                    ) : null}
+                      ) : null}
 
-                    {/* Outer Stroke (Glassmorphic border outline) */}
-                    {isGlass && layer.glassmorphismBorder !== false && (
-                      <path
-                        d={layer.pathData}
-                        fill="none"
-                        stroke="rgba(255, 255, 255, 0.45)"
-                        strokeWidth={1.5}
-                        vectorEffect="non-scaling-stroke"
-                        fillRule="evenodd"
-                      />
-                    )}
-                  </svg>
-                );
-              })()}
+                      {/* Outer Stroke (Glassmorphic border outline) */}
+                      {isGlass && layer.glassmorphismBorder !== false && (
+                        <path
+                          d={layer.pathData}
+                          fill="none"
+                          stroke="rgba(255, 255, 255, 0.45)"
+                          strokeWidth={1.5}
+                          vectorEffect="non-scaling-stroke"
+                          fillRule="evenodd"
+                        />
+                      )}
+                    </svg>
+                  );
+                })()}
 
               {/* Hexagon glassmorphic frosted border outline */}
               {isGlass && layer.shapeType === 'hexagon' && layer.glassmorphismBorder !== false && (
@@ -1553,7 +1574,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const rotYVal = slotIndex === 2 ? slot2RY : animTransform.rotateY;
       const isImg =
         slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
-      const userThick = state.slabThickness ?? 12;
+      const userThick = state.slabThickness ?? 0;
       const is3D = isFrameless && isImg && userThick > 0;
 
       let borderStyleClasses = '';
@@ -1633,7 +1654,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const isImage =
       slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
-    const userThickness = state.slabThickness ?? 12;
+    const userThickness = state.slabThickness ?? 0;
     const is3DActive = isFrameless && isImage && userThickness > 0;
 
     const rawColor = state.slabColor || '#1e293b';
@@ -1701,14 +1722,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const floorCastY = (lightDirY * (userThickness + 8) + 12).toFixed(1);
         const floorBlur = userThickness * 2.5 + 24;
         const floorAlpha = (0.55 * shadowMul).toFixed(2);
-        sideShadows.push(`${floorCastX}px ${floorCastY}px ${floorBlur}px rgba(0,0,0,${floorAlpha})`);
+        sideShadows.push(
+          `${floorCastX}px ${floorCastY}px ${floorBlur}px rgba(0,0,0,${floorAlpha})`
+        );
 
         // Secondary closer contact shadow for realistic grounding
         const contactX = (lightDirX * userThickness * 0.5).toFixed(1);
         const contactY = (lightDirY * userThickness * 0.5 + 6).toFixed(1);
         const contactBlur = userThickness + 8;
         const contactAlpha = (0.35 * shadowMul).toFixed(2);
-        sideShadows.push(`${contactX}px ${contactY}px ${contactBlur}px rgba(0,0,0,${contactAlpha})`);
+        sideShadows.push(
+          `${contactX}px ${contactY}px ${contactBlur}px rgba(0,0,0,${contactAlpha})`
+        );
       }
 
       const sheenOpacity = Math.min(
@@ -1821,6 +1846,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const firstFrameElement = (
       <div
+        data-video-export-mockup="1"
         className={state.isAnimationMode && state.isPlaying ? '' : 'transition-all duration-200'}
         style={{
           transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) skewX(${state.skewX}deg) skewY(${state.skewY}deg) scale(${state.isAnimationMode ? animTransform.zoom / 100 : state.zoom / 100}) translate(${state.isAnimationMode ? animTransform.offsetX : state.offsetX}px, ${state.isAnimationMode ? animTransform.offsetY : state.offsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot1Rotate ?? 0) : state.slot1Rotate || 0}deg)`,
@@ -1833,6 +1859,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
     const secondFrameElement = (
       <div
+        data-video-export-mockup="2"
         className={state.isAnimationMode && state.isPlaying ? '' : 'transition-all duration-200'}
         style={{
           transform: `perspective(${slot2Perspective}px) rotateX(${slot2RX}deg) rotateY(${slot2RY}deg) skewX(${slot2SkewX}deg) skewY(${slot2SkewY}deg) scale(${state.isAnimationMode ? animTransform.slot2Zoom / 100 : state.slot2Zoom / 100}) translate(${state.isAnimationMode ? animTransform.slot2OffsetX : state.slot2OffsetX}px, ${state.isAnimationMode ? animTransform.slot2OffsetY : state.slot2OffsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot2Rotate ?? 0) : state.slot2Rotate || 0}deg)`,
@@ -2038,14 +2065,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
 
   // Double-click confirmation state for delete handles (must be clicked twice within 1000ms)
-  const pendingDeleteRef = useRef<{ id: string; time: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const pendingDeleteRef = useRef<{
+    id: string;
+    time: number;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleDeleteWithConfirm = (e: React.MouseEvent, id: string, deleteFn: () => void) => {
     e.stopPropagation();
     const now = Date.now();
 
-    if (pendingDeleteRef.current && pendingDeleteRef.current.id === id && now - pendingDeleteRef.current.time <= 1000) {
+    if (
+      pendingDeleteRef.current &&
+      pendingDeleteRef.current.id === id &&
+      now - pendingDeleteRef.current.time <= 1000
+    ) {
       // Second click within 1 second - confirm and delete!
       clearTimeout(pendingDeleteRef.current.timer);
       pendingDeleteRef.current = null;
@@ -2209,7 +2244,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       const phosphorIconLayerEl = target.closest('.phosphor-icon-layer-item') as HTMLElement | null;
       const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
       const shapeLayerEl = target.closest('.shape-layer-item') as HTMLElement | null;
-      const corner = (resizeHandleEl.dataset.corner as 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r') || 'br';
+      const corner =
+        (resizeHandleEl.dataset.corner as 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r') ||
+        'br';
 
       let currentScale = 1;
       const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
@@ -2713,10 +2750,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       } else if (resizeDragItem.type === 'phosphor') {
         const initSize = resizeDragItem.initialSize || 36;
         const avgDelta = (localDeltaX + localDeltaY) / 2;
-        const newSize = Math.max(
-          16,
-          Math.min(600, Math.round(initSize + avgDelta))
-        );
+        const newSize = Math.max(16, Math.min(600, Math.round(initSize + avgDelta)));
 
         const dS = newSize - initSize;
         const shiftLocalX = (factorX * dS) / 2;
@@ -2949,8 +2983,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     );
     const selectedTexts = (state.textLayers || []).filter(
       (l) =>
-        ((state.selectedTextLayerIds || []).includes(l.id) ||
-          state.selectedTextLayerId === l.id) &&
+        ((state.selectedTextLayerIds || []).includes(l.id) || state.selectedTextLayerId === l.id) &&
         l.visible !== false
     );
 
@@ -2980,7 +3013,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           );
           if (!motion.isVisible) return null;
 
-          const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+          const kfValues = evaluateLayerKeyframes(
+            layer,
+            state.currentTimeSec,
+            state.animationEasing
+          );
           const posX = kfValues.x ?? layer.x;
           const posY = kfValues.y ?? layer.y;
           const shapeWidth = kfValues.width ?? layer.width ?? 120;
@@ -3049,7 +3086,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 </div>
                 <div
                   data-action="delete"
-                  title={confirmDeleteId === layer.id ? 'Click again to confirm delete' : 'Delete shape (click twice)'}
+                  title={
+                    confirmDeleteId === layer.id
+                      ? 'Click again to confirm delete'
+                      : 'Delete shape (click twice)'
+                  }
                   onClick={(e) =>
                     handleDeleteWithConfirm(e, layer.id, () => state.removeShapeLayer(layer.id))
                   }
@@ -3159,7 +3200,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 </div>
                 <div
                   data-action="delete"
-                  title={confirmDeleteId === el.id ? 'Click again to confirm delete' : 'Delete element (click twice)'}
+                  title={
+                    confirmDeleteId === el.id
+                      ? 'Click again to confirm delete'
+                      : 'Delete element (click twice)'
+                  }
                   onClick={(e) =>
                     handleDeleteWithConfirm(e, el.id, () => state.removeCanvasElement(el.id))
                   }
@@ -3196,7 +3241,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           );
           if (!motion.isVisible) return null;
 
-          const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+          const kfValues = evaluateLayerKeyframes(
+            layer,
+            state.currentTimeSec,
+            state.animationEasing
+          );
           const posX = kfValues.x ?? layer.x;
           const posY = kfValues.y ?? layer.y;
           const iconSize = layer.size || 36;
@@ -3258,9 +3307,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 </div>
                 <div
                   data-action="delete"
-                  title={confirmDeleteId === layer.id ? 'Click again to confirm delete' : 'Delete icon (click twice)'}
+                  title={
+                    confirmDeleteId === layer.id
+                      ? 'Click again to confirm delete'
+                      : 'Delete icon (click twice)'
+                  }
                   onClick={(e) =>
-                    handleDeleteWithConfirm(e, layer.id, () => state.removePhosphorIconLayer(layer.id))
+                    handleDeleteWithConfirm(e, layer.id, () =>
+                      state.removePhosphorIconLayer(layer.id)
+                    )
                   }
                   className={`delete-handle w-6 h-6 rounded-full text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer transition-all ${
                     confirmDeleteId === layer.id
@@ -3296,7 +3351,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           );
           if (!motion.isVisible) return null;
 
-          const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+          const kfValues = evaluateLayerKeyframes(
+            layer,
+            state.currentTimeSec,
+            state.animationEasing
+          );
           const posX = kfValues.x ?? layer.x;
           const posY = kfValues.y ?? layer.y;
           const posRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
@@ -3486,7 +3545,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 </div>
                 <div
                   data-action="delete"
-                  title={confirmDeleteId === layer.id ? 'Click again to confirm delete' : 'Delete layer (click twice)'}
+                  title={
+                    confirmDeleteId === layer.id
+                      ? 'Click again to confirm delete'
+                      : 'Delete layer (click twice)'
+                  }
                   onClick={(e) =>
                     handleDeleteWithConfirm(e, layer.id, () => state.removeTextLayer(layer.id))
                   }
@@ -3658,464 +3721,466 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             }}
           >
             {/* Global Canvas Background Layer Container with Blur Support */}
-          <div
-            className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-200 ${
-              (state.bgBlur ?? 0) > 0 ? 'scale-105' : ''
-            }`}
-            style={{
-              ...getBackgroundStyle(),
-              filter: (state.bgBlur ?? 0) > 0 ? `blur(${state.bgBlur}px)` : undefined,
-            }}
-          >
-            {/* SVG Wave Background Layer */}
-            {state.backgroundType === 'wave' && (
-              <WaveBackground presetId={state.wavePreset || 'wave-1'} />
-            )}
-
-            {/* Dynamic Mesh Background Layer */}
-            {state.backgroundType === 'mesh' && (
-              <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
-            )}
-
-            {/* Confetti Shapes Background Layer */}
-            {state.backgroundType === 'confetti' && (
-              <ConfettiBackground
-                presetId={state.confettiPreset || 'confetti-1'}
-                customPreset={state.customConfettiObj}
-              />
-            )}
-
-            {/* Shadeshifter Grainient Mesh Layer */}
-            {state.backgroundType === 'shadeshifter' && (
-              <ShadeshifterBackground
-                presetId={state.shadeshifterPreset || 'shadeshifter-1'}
-                grainOpacity={0}
-                blur={state.shadeshifterBlur ?? 40}
-              />
-            )}
-
-            {/* Spectral Chromatic Prism Layer */}
-            {state.backgroundType === 'spectral' && (
-              <SpectralBackground
-                presetId={state.spectralPreset || 'spectral-1'}
-                blur={state.spectralBlur}
-                angle={state.spectralAngle}
-              />
-            )}
-
-            {/* Radiant Glow Background Layer */}
-            {state.backgroundType === 'radiant' && (
-              <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
-            )}
-
-            {/* Flow Animated Gradient Background Layer */}
-            {state.backgroundType === 'flow' && (
-              <FlowBackground
-                colors={state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']}
-                speed={state.flowSpeed ?? 30}
-                distortion={state.flowDistortion ?? 60}
-                swirl={state.flowSwirl ?? 15}
-                scale={state.flowScale ?? 50}
-                timeSec={
-                  state.isExporting && state.exportTimeSec != null
-                    ? state.exportTimeSec
-                    : state.isAnimationMode
-                    ? state.currentTimeSec
-                    : undefined
-                }
-                isExporting={state.isExporting}
-              />
-            )}
-
-            {/* Mist Mountains Background Layer */}
-            {state.backgroundType === 'mist' && (
-              <MistBackground
-                stops={state.mistStops}
-                ranges={state.mistRanges}
-                horizon={state.mistHorizon}
-                peaks={state.mistPeaks}
-                sharp={state.mistSharp}
-                haze={state.mistHaze}
-                seed={state.mistSeed}
-              />
-            )}
-
-            {/* Pure CSS Animated Gradient Background Layer */}
-            {state.backgroundType === 'animatedGradient' && (
-              <AnimatedGradientBackground
-                presetId={state.animatedGradientPreset || 'anim-grad-1'}
-              />
-            )}
-
-            {/* Pure CSS Animated Mesh Background Layer */}
-            {state.backgroundType === 'animatedMesh' && (
-              <AnimatedMeshBackground presetId={state.animatedMeshPreset || 'anim-mesh-1'} />
-            )}
-
-            {/* Background Image Layer */}
-            {state.backgroundType === 'image' && state.bgImageUrl && (
-              <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${state.bgImageUrl})`,
-                }}
-              />
-            )}
-          </div>
-
-          {/* Pattern Add-on Overlay Layer */}
-          {state.bgPatternEnabled && (
             <div
-              className="absolute inset-0 overflow-hidden pointer-events-none z-[1]"
-              style={{
-                opacity: (state.bgPatternOpacity ?? 40) / 100,
-                backgroundImage: getPatternSvgUrl(
-                  state.bgPatternPreset || 'pattern-1',
-                  state.bgPatternColor || '#9C92AC'
-                ),
-                backgroundRepeat: 'repeat',
-              }}
-            />
-          )}
-
-          {/* Grain Effect Noise Overlay Layer */}
-          {(state.bgGrain ?? 0) > 0 && (
-            <div
-              className="absolute inset-0 overflow-hidden pointer-events-none z-[2]"
-              style={{
-                opacity: (state.bgGrain ?? 0) / 100,
-                mixBlendMode: (state.bgGrainBlendMode || 'overlay') as React.CSSProperties['mixBlendMode'],
-                backgroundImage: `url("${getGrainSvgUrl(state.bgGrainSize || 'fine', state.bgGrainColor || 'monochrome')}")`,
-                backgroundRepeat: 'repeat',
-                backgroundSize: getGrainTileSize(state.bgGrainSize || 'fine'),
-              }}
-            />
-          )}
-
-          {/* Shadow Overlay Layer */}
-          {state.shadowOverlay && state.shadowOverlay !== 'none' && (
-            <img
-              src={`/overlay/${state.shadowOverlay}.png`}
-              alt="Shadow Overlay"
-              className={`absolute inset-0 overflow-hidden w-full h-full object-cover pointer-events-none mix-blend-multiply ${
-                (state.shadowOverlayPosition || 'above') === 'behind' ? 'z-[1]' : 'z-[30]'
+              data-video-export-background-layer="true"
+              className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-200 ${
+                (state.bgBlur ?? 0) > 0 ? 'scale-105' : ''
               }`}
               style={{
-                opacity: (state.shadowOverlayOpacity ?? 85) / 100,
+                ...getBackgroundStyle(),
+                filter: (state.bgBlur ?? 0) > 0 ? `blur(${state.bgBlur}px)` : undefined,
               }}
-            />
-          )}
+            >
+              {/* SVG Wave Background Layer */}
+              {state.backgroundType === 'wave' && (
+                <WaveBackground presetId={state.wavePreset || 'wave-1'} />
+              )}
 
-          {/* Underneath Static Text & Icon Layers (Rendered behind the 3D mockup frame) */}
-          {renderTextLayers('underneath')}
-          {renderPhosphorIconLayers('underneath')}
-          {renderCanvasElements('underneath')}
-          {renderShapeLayers('underneath')}
+              {/* Dynamic Mesh Background Layer */}
+              {state.backgroundType === 'mesh' && (
+                <MeshBackground presetId={state.meshPreset || 'mesh-1'} />
+              )}
 
-          {/* 3D Transform Wrapper */}
-          <div
-            className={`flex-1 h-full max-w-full flex items-center justify-center relative z-10 ${
-              state.hideMockup ? 'pointer-events-none' : ''
-            }`}
-            style={transformStyle}
-          >
-            {renderFrameContent()}
-          </div>
+              {/* Confetti Shapes Background Layer */}
+              {state.backgroundType === 'confetti' && (
+                <ConfettiBackground
+                  presetId={state.confettiPreset || 'confetti-1'}
+                  customPreset={state.customConfettiObj}
+                />
+              )}
 
-          {/* Above Static Text & Icon Layers (Rendered on top of the 3D mockup frame) */}
-          {renderTextLayers('above')}
-          {renderPhosphorIconLayers('above')}
-          {renderCanvasElements('above')}
-          {renderShapeLayers('above')}
+              {/* Shadeshifter Grainient Mesh Layer */}
+              {state.backgroundType === 'shadeshifter' && (
+                <ShadeshifterBackground
+                  presetId={state.shadeshifterPreset || 'shadeshifter-1'}
+                  grainOpacity={0}
+                  blur={state.shadeshifterBlur ?? 40}
+                />
+              )}
 
-          {/* Center Alignment Guide Lines & Dashed Grid Overlay (Shown while dragging) */}
-          {state.isPositionDragging && (
-            <div className="absolute inset-0 pointer-events-none z-20 animate-in fade-in duration-100 overflow-hidden">
-              {/* Grid of small squares with dashed lines */}
+              {/* Spectral Chromatic Prism Layer */}
+              {state.backgroundType === 'spectral' && (
+                <SpectralBackground
+                  presetId={state.spectralPreset || 'spectral-1'}
+                  blur={state.spectralBlur}
+                  angle={state.spectralAngle}
+                />
+              )}
+
+              {/* Radiant Glow Background Layer */}
+              {state.backgroundType === 'radiant' && (
+                <RadiantBackground presetId={state.radiantPreset || 'radiant-1'} />
+              )}
+
+              {/* Flow Animated Gradient Background Layer */}
+              {state.backgroundType === 'flow' && (
+                <FlowBackground
+                  colors={state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']}
+                  speed={state.flowSpeed ?? 30}
+                  distortion={state.flowDistortion ?? 60}
+                  swirl={state.flowSwirl ?? 15}
+                  scale={state.flowScale ?? 50}
+                  timeSec={
+                    state.isExporting && state.exportTimeSec != null
+                      ? state.exportTimeSec
+                      : state.isAnimationMode
+                        ? state.currentTimeSec
+                        : undefined
+                  }
+                  isExporting={state.isExporting}
+                />
+              )}
+
+              {/* Mist Mountains Background Layer */}
+              {state.backgroundType === 'mist' && (
+                <MistBackground
+                  stops={state.mistStops}
+                  ranges={state.mistRanges}
+                  horizon={state.mistHorizon}
+                  peaks={state.mistPeaks}
+                  sharp={state.mistSharp}
+                  haze={state.mistHaze}
+                  seed={state.mistSeed}
+                />
+              )}
+
+              {/* Pure CSS Animated Gradient Background Layer */}
+              {state.backgroundType === 'animatedGradient' && (
+                <AnimatedGradientBackground
+                  presetId={state.animatedGradientPreset || 'anim-grad-1'}
+                />
+              )}
+
+              {/* Pure CSS Animated Mesh Background Layer */}
+              {state.backgroundType === 'animatedMesh' && (
+                <AnimatedMeshBackground presetId={state.animatedMeshPreset || 'anim-mesh-1'} />
+              )}
+
+              {/* Background Image Layer */}
+              {state.backgroundType === 'image' && state.bgImageUrl && (
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${state.bgImageUrl})`,
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Pattern Add-on Overlay Layer */}
+            {state.bgPatternEnabled && (
               <div
-                className="absolute inset-0 opacity-80"
+                className="absolute inset-0 overflow-hidden pointer-events-none z-[1]"
                 style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 32 0 L 0 0 0 32' fill='none' stroke='rgba(148,163,184,0.9)' stroke-width='2' stroke-dasharray='4 4'/%3E%3C/svg%3E")`,
-                  backgroundPosition: 'center center',
+                  opacity: (state.bgPatternOpacity ?? 40) / 100,
+                  backgroundImage: getPatternSvgUrl(
+                    state.bgPatternPreset || 'pattern-1',
+                    state.bgPatternColor || '#9C92AC'
+                  ),
                   backgroundRepeat: 'repeat',
                 }}
               />
-              {/* Vertical Center Alignment Line */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-300 shadow-[0_0_4px_1px_rgba(203,213,225,0.7)]" />
-              {/* Horizontal Center Alignment Line */}
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-slate-300 shadow-[0_0_4px_1px_rgba(203,213,225,0.7)]" />
-            </div>
-          )}
+            )}
 
-          {/* Tech Stack Overlay */}
-          {(() => {
-            const config = state.techStackConfig;
-            if (
-              !config ||
-              !config.enabled ||
-              !config.selectedIcons ||
-              config.selectedIcons.length === 0
-            ) {
-              return null;
-            }
-
-            const getPositionStyles = (): React.CSSProperties => {
-              let baseTX = '0%';
-              let baseTY = '0%';
-              let top: string | undefined;
-              let bottom: string | undefined;
-              let left: string | undefined;
-              let right: string | undefined;
-
-              switch (config.position) {
-                case 'top-left':
-                  top = '1.5rem';
-                  left = '1.5rem';
-                  break;
-                case 'top-center':
-                  top = '1.5rem';
-                  left = '50%';
-                  baseTX = '-50%';
-                  break;
-                case 'top-right':
-                  top = '1.5rem';
-                  right = '1.5rem';
-                  break;
-                case 'center-left':
-                  top = '50%';
-                  left = '1.5rem';
-                  baseTY = '-50%';
-                  break;
-                case 'center':
-                  top = '50%';
-                  left = '50%';
-                  baseTX = '-50%';
-                  baseTY = '-50%';
-                  break;
-                case 'center-right':
-                  top = '50%';
-                  right = '1.5rem';
-                  baseTY = '-50%';
-                  break;
-                case 'bottom-left':
-                  bottom = '1.5rem';
-                  left = '1.5rem';
-                  break;
-                case 'bottom-center':
-                  bottom = '1.5rem';
-                  left = '50%';
-                  baseTX = '-50%';
-                  break;
-                case 'bottom-right':
-                  bottom = '1.5rem';
-                  right = '1.5rem';
-                  break;
-              }
-
-              const xOff = config.xOffset || 0;
-              const yOff = config.yOffset || 0;
-
-              return {
-                top,
-                bottom,
-                left,
-                right,
-                transform: `translate(calc(${baseTX} + ${xOff}px), calc(${baseTY} + ${yOff}px))`,
-              };
-            };
-
-            const getBadgeClass = () => {
-              switch (config.badgeStyle) {
-                case 'glass-frosted':
-                  return 'bg-white/60 backdrop-blur-xl border border-white/70 shadow-[0_8px_32px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] rounded-xl p-2.5';
-                case 'glass-smoky':
-                  return 'bg-neutral-900/65 backdrop-blur-2xl border border-neutral-700/60 shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_0_12px_rgba(255,255,255,0.05)] rounded-xl p-2.5';
-                case 'glass-crystal':
-                  return 'bg-white/[0.08] backdrop-blur-md border border-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.6)] rounded-xl p-2.5';
-                case 'glass-dark':
-                  return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
-                case 'glass-light':
-                  return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-xl p-2.5';
-                case 'badge-dark':
-                  return 'bg-neutral-950/90 border border-neutral-800 shadow-md rounded-xl p-2.5';
-                case 'badge-light':
-                  return 'bg-white border border-slate-200/90 shadow-md rounded-xl p-2.5';
-                case 'plain':
-                default:
-                  return '';
-              }
-            };
-
-            return (
+            {/* Grain Effect Noise Overlay Layer */}
+            {(state.bgGrain ?? 0) > 0 && (
               <div
-                className={`absolute z-[5] pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
-                style={getPositionStyles()}
-              >
-                <div
-                  className={`flex items-center ${
-                    config.style === 'column' ? 'flex-col' : 'flex-row'
-                  }`}
-                  style={{ gap: `${config.gap || 12}px` }}
-                >
-                  {config.selectedIcons.map((iconId) => (
-                    <TechStackIcon key={iconId} id={iconId} size={config.size || 28} />
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
+                className="absolute inset-0 overflow-hidden pointer-events-none z-[2]"
+                style={{
+                  opacity: (state.bgGrain ?? 0) / 100,
+                  mixBlendMode: (state.bgGrainBlendMode ||
+                    'overlay') as React.CSSProperties['mixBlendMode'],
+                  backgroundImage: `url("${getGrainSvgUrl(state.bgGrainSize || 'fine', state.bgGrainColor || 'monochrome')}")`,
+                  backgroundRepeat: 'repeat',
+                  backgroundSize: getGrainTileSize(state.bgGrainSize || 'fine'),
+                }}
+              />
+            )}
 
-          {/* Phosphor Icons Overlay */}
-          {(() => {
-            const config = state.phosphorIconConfig;
-            if (
-              !config ||
-              !config.enabled ||
-              !config.selectedIcons ||
-              config.selectedIcons.length === 0
-            ) {
-              return null;
-            }
+            {/* Shadow Overlay Layer */}
+            {state.shadowOverlay && state.shadowOverlay !== 'none' && (
+              <img
+                src={`/overlay/${state.shadowOverlay}.png`}
+                alt="Shadow Overlay"
+                className={`absolute inset-0 overflow-hidden w-full h-full object-cover pointer-events-none mix-blend-multiply ${
+                  (state.shadowOverlayPosition || 'above') === 'behind' ? 'z-[1]' : 'z-[30]'
+                }`}
+                style={{
+                  opacity: (state.shadowOverlayOpacity ?? 85) / 100,
+                }}
+              />
+            )}
 
-            const getPositionStyles = (): React.CSSProperties => {
-              let baseTX = '0%';
-              let baseTY = '0%';
-              let top: string | undefined;
-              let bottom: string | undefined;
-              let left: string | undefined;
-              let right: string | undefined;
+            {/* Underneath Static Text & Icon Layers (Rendered behind the 3D mockup frame) */}
+            {renderTextLayers('underneath')}
+            {renderPhosphorIconLayers('underneath')}
+            {renderCanvasElements('underneath')}
+            {renderShapeLayers('underneath')}
 
-              switch (config.position) {
-                case 'top-left':
-                  top = '1.5rem';
-                  left = '1.5rem';
-                  break;
-                case 'top-center':
-                  top = '1.5rem';
-                  left = '50%';
-                  baseTX = '-50%';
-                  break;
-                case 'top-right':
-                  top = '1.5rem';
-                  right = '1.5rem';
-                  break;
-                case 'center-left':
-                  top = '50%';
-                  left = '1.5rem';
-                  baseTY = '-50%';
-                  break;
-                case 'center':
-                  top = '50%';
-                  left = '50%';
-                  baseTX = '-50%';
-                  baseTY = '-50%';
-                  break;
-                case 'center-right':
-                  top = '50%';
-                  right = '1.5rem';
-                  baseTY = '-50%';
-                  break;
-                case 'bottom-left':
-                  bottom = '1.5rem';
-                  left = '1.5rem';
-                  break;
-                case 'bottom-center':
-                  bottom = '1.5rem';
-                  left = '50%';
-                  baseTX = '-50%';
-                  break;
-                case 'bottom-right':
-                  bottom = '1.5rem';
-                  right = '1.5rem';
-                  break;
-              }
-
-              const xOff = config.xOffset || 0;
-              const yOff = config.yOffset || 0;
-
-              return {
-                top,
-                bottom,
-                left,
-                right,
-                transform: `translate(calc(${baseTX} + ${xOff}px), calc(${baseTY} + ${yOff}px))`,
-              };
-            };
-
-            const getBadgeClass = () => {
-              switch (config.badgeStyle) {
-                case 'glass-frosted':
-                  return 'bg-white/60 backdrop-blur-xl border border-white/70 shadow-[0_8px_32px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] rounded-xl p-2.5';
-                case 'glass-smoky':
-                  return 'bg-neutral-900/65 backdrop-blur-2xl border border-neutral-700/60 shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_0_12px_rgba(255,255,255,0.05)] rounded-xl p-2.5';
-                case 'glass-crystal':
-                  return 'bg-white/[0.08] backdrop-blur-md border border-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.6)] rounded-xl p-2.5';
-                case 'glass-dark':
-                  return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
-                case 'glass-light':
-                  return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-xl p-2.5';
-                case 'badge-dark':
-                  return 'bg-neutral-950/90 border border-neutral-800 shadow-md rounded-xl p-2.5';
-                case 'badge-light':
-                  return 'bg-white border border-slate-200/90 shadow-md rounded-xl p-2.5';
-                case 'plain':
-                default:
-                  return '';
-              }
-            };
-
-            return (
-              <div
-                className={`absolute z-[5] pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
-                style={getPositionStyles()}
-              >
-                <div
-                  className={`flex items-center ${
-                    config.style === 'column' ? 'flex-col' : 'flex-row'
-                  }`}
-                  style={{ gap: `${config.gap || 12}px` }}
-                >
-                  {(config.selectedIcons || []).map((iconId: string) => {
-                    const IconComp = (PhosphorIcons as any)[iconId] || PhosphorIcons.Sparkle;
-                    return (
-                      <IconComp
-                        key={iconId}
-                        weight={config.weight || 'regular'}
-                        size={config.size || 28}
-                        color={config.color || '#a2d2ff'}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Top-Level Lens Blur (Depth of Field) Overlay covering the entire stage & mockup */}
-          {state.lensBlurEnabled && (state.lensBlurAmount ?? 0) > 0 && (
+            {/* 3D Transform Wrapper */}
             <div
-              className="absolute inset-0 pointer-events-none z-40 transition-all duration-200 scale-[1.03]"
-              style={{
-                backdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
-                WebkitBackdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
-                WebkitMaskImage: `radial-gradient(circle at ${state.lensBlurFocalX ?? 50}% ${
-                  state.lensBlurFocalY ?? 50
-                }%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) ${state.lensBlurRadius ?? 20}%, rgba(0,0,0,1) ${Math.min(
-                  100,
-                  (state.lensBlurRadius ?? 20) + 35
-                )}%)`,
-                maskImage: `radial-gradient(circle at ${state.lensBlurFocalX ?? 50}% ${
-                  state.lensBlurFocalY ?? 50
-                }%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) ${state.lensBlurRadius ?? 20}%, rgba(0,0,0,1) ${Math.min(
-                  100,
-                  (state.lensBlurRadius ?? 20) + 35
-                )}%)`,
-              }}
-            />
-          )}
+              className={`flex-1 h-full max-w-full flex items-center justify-center relative z-10 ${
+                state.hideMockup ? 'pointer-events-none' : ''
+              }`}
+              style={transformStyle}
+            >
+              {renderFrameContent()}
+            </div>
 
-          {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
-          <WatermarkOverlay />
+            {/* Above Static Text & Icon Layers (Rendered on top of the 3D mockup frame) */}
+            {renderTextLayers('above')}
+            {renderPhosphorIconLayers('above')}
+            {renderCanvasElements('above')}
+            {renderShapeLayers('above')}
+
+            {/* Center Alignment Guide Lines & Dashed Grid Overlay (Shown while dragging) */}
+            {state.isPositionDragging && (
+              <div className="absolute inset-0 pointer-events-none z-20 animate-in fade-in duration-100 overflow-hidden">
+                {/* Grid of small squares with dashed lines */}
+                <div
+                  className="absolute inset-0 opacity-80"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 32 0 L 0 0 0 32' fill='none' stroke='rgba(148,163,184,0.9)' stroke-width='2' stroke-dasharray='4 4'/%3E%3C/svg%3E")`,
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'repeat',
+                  }}
+                />
+                {/* Vertical Center Alignment Line */}
+                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-300 shadow-[0_0_4px_1px_rgba(203,213,225,0.7)]" />
+                {/* Horizontal Center Alignment Line */}
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-slate-300 shadow-[0_0_4px_1px_rgba(203,213,225,0.7)]" />
+              </div>
+            )}
+
+            {/* Tech Stack Overlay */}
+            {(() => {
+              const config = state.techStackConfig;
+              if (
+                !config ||
+                !config.enabled ||
+                !config.selectedIcons ||
+                config.selectedIcons.length === 0
+              ) {
+                return null;
+              }
+
+              const getPositionStyles = (): React.CSSProperties => {
+                let baseTX = '0%';
+                let baseTY = '0%';
+                let top: string | undefined;
+                let bottom: string | undefined;
+                let left: string | undefined;
+                let right: string | undefined;
+
+                switch (config.position) {
+                  case 'top-left':
+                    top = '1.5rem';
+                    left = '1.5rem';
+                    break;
+                  case 'top-center':
+                    top = '1.5rem';
+                    left = '50%';
+                    baseTX = '-50%';
+                    break;
+                  case 'top-right':
+                    top = '1.5rem';
+                    right = '1.5rem';
+                    break;
+                  case 'center-left':
+                    top = '50%';
+                    left = '1.5rem';
+                    baseTY = '-50%';
+                    break;
+                  case 'center':
+                    top = '50%';
+                    left = '50%';
+                    baseTX = '-50%';
+                    baseTY = '-50%';
+                    break;
+                  case 'center-right':
+                    top = '50%';
+                    right = '1.5rem';
+                    baseTY = '-50%';
+                    break;
+                  case 'bottom-left':
+                    bottom = '1.5rem';
+                    left = '1.5rem';
+                    break;
+                  case 'bottom-center':
+                    bottom = '1.5rem';
+                    left = '50%';
+                    baseTX = '-50%';
+                    break;
+                  case 'bottom-right':
+                    bottom = '1.5rem';
+                    right = '1.5rem';
+                    break;
+                }
+
+                const xOff = config.xOffset || 0;
+                const yOff = config.yOffset || 0;
+
+                return {
+                  top,
+                  bottom,
+                  left,
+                  right,
+                  transform: `translate(calc(${baseTX} + ${xOff}px), calc(${baseTY} + ${yOff}px))`,
+                };
+              };
+
+              const getBadgeClass = () => {
+                switch (config.badgeStyle) {
+                  case 'glass-frosted':
+                    return 'bg-white/60 backdrop-blur-xl border border-white/70 shadow-[0_8px_32px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] rounded-xl p-2.5';
+                  case 'glass-smoky':
+                    return 'bg-neutral-900/65 backdrop-blur-2xl border border-neutral-700/60 shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_0_12px_rgba(255,255,255,0.05)] rounded-xl p-2.5';
+                  case 'glass-crystal':
+                    return 'bg-white/[0.08] backdrop-blur-md border border-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.6)] rounded-xl p-2.5';
+                  case 'glass-dark':
+                    return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
+                  case 'glass-light':
+                    return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-xl p-2.5';
+                  case 'badge-dark':
+                    return 'bg-neutral-950/90 border border-neutral-800 shadow-md rounded-xl p-2.5';
+                  case 'badge-light':
+                    return 'bg-white border border-slate-200/90 shadow-md rounded-xl p-2.5';
+                  case 'plain':
+                  default:
+                    return '';
+                }
+              };
+
+              return (
+                <div
+                  className={`absolute z-[5] pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
+                  style={getPositionStyles()}
+                >
+                  <div
+                    className={`flex items-center ${
+                      config.style === 'column' ? 'flex-col' : 'flex-row'
+                    }`}
+                    style={{ gap: `${config.gap || 12}px` }}
+                  >
+                    {config.selectedIcons.map((iconId) => (
+                      <TechStackIcon key={iconId} id={iconId} size={config.size || 28} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Phosphor Icons Overlay */}
+            {(() => {
+              const config = state.phosphorIconConfig;
+              if (
+                !config ||
+                !config.enabled ||
+                !config.selectedIcons ||
+                config.selectedIcons.length === 0
+              ) {
+                return null;
+              }
+
+              const getPositionStyles = (): React.CSSProperties => {
+                let baseTX = '0%';
+                let baseTY = '0%';
+                let top: string | undefined;
+                let bottom: string | undefined;
+                let left: string | undefined;
+                let right: string | undefined;
+
+                switch (config.position) {
+                  case 'top-left':
+                    top = '1.5rem';
+                    left = '1.5rem';
+                    break;
+                  case 'top-center':
+                    top = '1.5rem';
+                    left = '50%';
+                    baseTX = '-50%';
+                    break;
+                  case 'top-right':
+                    top = '1.5rem';
+                    right = '1.5rem';
+                    break;
+                  case 'center-left':
+                    top = '50%';
+                    left = '1.5rem';
+                    baseTY = '-50%';
+                    break;
+                  case 'center':
+                    top = '50%';
+                    left = '50%';
+                    baseTX = '-50%';
+                    baseTY = '-50%';
+                    break;
+                  case 'center-right':
+                    top = '50%';
+                    right = '1.5rem';
+                    baseTY = '-50%';
+                    break;
+                  case 'bottom-left':
+                    bottom = '1.5rem';
+                    left = '1.5rem';
+                    break;
+                  case 'bottom-center':
+                    bottom = '1.5rem';
+                    left = '50%';
+                    baseTX = '-50%';
+                    break;
+                  case 'bottom-right':
+                    bottom = '1.5rem';
+                    right = '1.5rem';
+                    break;
+                }
+
+                const xOff = config.xOffset || 0;
+                const yOff = config.yOffset || 0;
+
+                return {
+                  top,
+                  bottom,
+                  left,
+                  right,
+                  transform: `translate(calc(${baseTX} + ${xOff}px), calc(${baseTY} + ${yOff}px))`,
+                };
+              };
+
+              const getBadgeClass = () => {
+                switch (config.badgeStyle) {
+                  case 'glass-frosted':
+                    return 'bg-white/60 backdrop-blur-xl border border-white/70 shadow-[0_8px_32px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] rounded-xl p-2.5';
+                  case 'glass-smoky':
+                    return 'bg-neutral-900/65 backdrop-blur-2xl border border-neutral-700/60 shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_0_12px_rgba(255,255,255,0.05)] rounded-xl p-2.5';
+                  case 'glass-crystal':
+                    return 'bg-white/[0.08] backdrop-blur-md border border-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.6)] rounded-xl p-2.5';
+                  case 'glass-dark':
+                    return 'bg-neutral-950/40 backdrop-blur-md border border-white/15 shadow-xl rounded-xl p-2.5';
+                  case 'glass-light':
+                    return 'bg-white/30 backdrop-blur-md border border-white/50 shadow-xl rounded-xl p-2.5';
+                  case 'badge-dark':
+                    return 'bg-neutral-950/90 border border-neutral-800 shadow-md rounded-xl p-2.5';
+                  case 'badge-light':
+                    return 'bg-white border border-slate-200/90 shadow-md rounded-xl p-2.5';
+                  case 'plain':
+                  default:
+                    return '';
+                }
+              };
+
+              return (
+                <div
+                  className={`absolute z-[5] pointer-events-none select-none transition-all duration-150 ${getBadgeClass()}`}
+                  style={getPositionStyles()}
+                >
+                  <div
+                    className={`flex items-center ${
+                      config.style === 'column' ? 'flex-col' : 'flex-row'
+                    }`}
+                    style={{ gap: `${config.gap || 12}px` }}
+                  >
+                    {(config.selectedIcons || []).map((iconId: string) => {
+                      const IconComp = getPhosphorIcon(iconId);
+                      return (
+                        <IconComp
+                          key={iconId}
+                          weight={config.weight || 'regular'}
+                          size={config.size || 28}
+                          color={config.color || '#a2d2ff'}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Top-Level Lens Blur (Depth of Field) Overlay covering the entire stage & mockup */}
+            {state.lensBlurEnabled && (state.lensBlurAmount ?? 0) > 0 && (
+              <div
+                className="absolute inset-0 pointer-events-none z-40 transition-all duration-200 scale-[1.03]"
+                style={{
+                  backdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
+                  WebkitBackdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
+                  WebkitMaskImage: `radial-gradient(circle at ${state.lensBlurFocalX ?? 50}% ${
+                    state.lensBlurFocalY ?? 50
+                  }%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) ${state.lensBlurRadius ?? 20}%, rgba(0,0,0,1) ${Math.min(
+                    100,
+                    (state.lensBlurRadius ?? 20) + 35
+                  )}%)`,
+                  maskImage: `radial-gradient(circle at ${state.lensBlurFocalX ?? 50}% ${
+                    state.lensBlurFocalY ?? 50
+                  }%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) ${state.lensBlurRadius ?? 20}%, rgba(0,0,0,1) ${Math.min(
+                    100,
+                    (state.lensBlurRadius ?? 20) + 35
+                  )}%)`,
+                }}
+              />
+            )}
+
+            {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
+            <WatermarkOverlay />
           </div>
 
           {/* Unclipped Selection Gizmos Layer (Photoshop-like outer line & corner indicator buttons) */}

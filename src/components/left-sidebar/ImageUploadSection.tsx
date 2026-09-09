@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore, useStudioStore } from '../../store/useStudioStore';
 import {
   UploadCloud01,
   XClose,
@@ -18,7 +18,7 @@ interface ImageUploadSectionProps {
 }
 
 export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageUpload }) => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 

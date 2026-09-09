@@ -1,10 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useRef, useEffect, useState } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { CanvasStage } from '../components/CanvasStage';
 import { LeftSidebar } from '../components/LeftSidebar';
 import { RightSidebar } from '../components/RightSidebar';
 import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
-import { ExportModal } from '../components/ExportModal';
 import { InstallPwaModal } from '../components/InstallPwaModal';
 import { VideoBetaModal } from '../components/VideoBetaModal';
 import { AnimationTimeline } from '../components/AnimationTimeline';
@@ -20,7 +19,7 @@ import {
   Download01,
   UploadCloud01,
   Play,
-  Heart,
+  // Heart,
   DotsVertical,
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
@@ -30,11 +29,18 @@ import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/vi
 import { purgeAllVideoDecoders } from '../components/VideoCanvasScreen';
 import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
 import { decompressGzipString } from '../utils/gzipCompression';
+import { hydrateSharedStudioState } from '../utils/sharedDesign';
+import { AuthButton } from '../components/auth/AuthButton';
+import { authClient, getOptionalAuthToken } from '../lib/auth/client';
 
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
+const ExportModal = lazy(() =>
+  import('../components/ExportModal').then((module) => ({ default: module.ExportModal }))
+);
 
 export const Studio: React.FC = () => {
+  const authSession = authClient.useSession();
   const setImage = useStudioStore((state) => state.setImage);
   const resetAll = useStudioStore((state) => state.resetAll);
   const isPreviewMode = useStudioStore((state) => state.isPreviewMode);
@@ -210,7 +216,7 @@ export const Studio: React.FC = () => {
       save();
     };
 
-    const unsubscribe = useStudioStore.subscribe(schedule);
+    const unsubscribe = useStudioStore.temporal.subscribe(schedule);
     window.addEventListener('beforeunload', flush);
 
     return () => {
@@ -269,9 +275,14 @@ export const Studio: React.FC = () => {
 
   // When the URL carries ?s=<entryId>, fetch and apply the shared design
   useEffect(() => {
-    if (!sharedViewKey) return;
+    if (!sharedViewKey || authSession.isPending) return;
     let cancelled = false;
-    fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`)
+    getOptionalAuthToken()
+      .then((token) =>
+        fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+      )
       .then((res) => res.json())
       .then(async (data) => {
         if (cancelled) return;
@@ -282,15 +293,10 @@ export const Studio: React.FC = () => {
         try {
           const jsonString = await decompressGzipString(data.json_string);
           const parsed = JSON.parse(jsonString);
-          const initialStage =
-            parsed.stages && Array.isArray(parsed.stages) && parsed.stages.length > 0
-              ? parsed.stages[0]
-              : {};
+          const hydratedState = hydrateSharedStudioState(parsed);
 
           useStudioStore.getState().updateState({
-            ...parsed,
-            ...initialStage,
-            activeStageIndex: 0,
+            ...hydratedState,
             shareIdentifier: data.identifier || sharedViewKey,
             sharedDesignName: data.name || null,
             sharedDesignPublisher: data.publisher || null,
@@ -306,7 +312,7 @@ export const Studio: React.FC = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedViewKey]);
+  }, [authSession.data?.session?.id, authSession.isPending, sharedViewKey]);
 
   const restoreSession = () => {
     const data = savedSessionDataRef.current;
@@ -792,7 +798,7 @@ export const Studio: React.FC = () => {
             {isDesktopMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <a
-                  href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
+                  href="mailto:support@shotage.studio?subject=Feedback%20for%20Shotage%20Studio"
                   onClick={() => setIsDesktopMenuOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
                 >
@@ -905,7 +911,7 @@ export const Studio: React.FC = () => {
               {isMobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-[100] animate-in fade-in zoom-in-95 duration-100">
                   <a
-                    href="mailto:bayukurniawan@baycore.dev?subject=Feedback%20for%20Shotage%20Studio"
+                    href="mailto:support@shotage.studio?subject=Feedback%20for%20Shotage%20Studio"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
                   >
@@ -937,6 +943,8 @@ export const Studio: React.FC = () => {
             </div>
           </div>
 
+          <AuthButton compact variant="studio" />
+          {/* Support Me is temporarily hidden.
           <a
             href="https://saweria.co/bayukurniawan30"
             target="_blank"
@@ -945,7 +953,7 @@ export const Studio: React.FC = () => {
           >
             <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
             <span className="hidden sm:inline">Support Me</span>
-          </a>
+          </a> */}
           <button
             onClick={() => setIsExportModalOpen(true)}
             className="px-3 sm:px-4 py-1.5 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98]"
@@ -1214,11 +1222,11 @@ export const Studio: React.FC = () => {
       )}
 
       {/* Export Options Modal */}
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        canvasRef={canvasRef}
-      />
+      {isExportModalOpen && (
+        <Suspense fallback={null}>
+          <ExportModal isOpen onClose={() => setIsExportModalOpen(false)} canvasRef={canvasRef} />
+        </Suspense>
+      )}
 
       {/* Video Feature Beta Notice Modal */}
       <VideoBetaModal

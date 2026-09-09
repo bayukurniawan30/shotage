@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ChevronDown, Check, Stars02, RefreshCw01, Plus, Trash01, Play, PauseSquare } from '@untitledui/icons';
 import { StepperSlider } from '../StepperSlider';
 import { extractDominantColors, generateGradientVariations } from '../../utils/colorExtractor';
@@ -33,7 +33,7 @@ import { BackgroundStyleSelect, MiniFocalPad } from './shared';
 import { GRAIN_SIZES, GRAIN_BLEND_MODES, GrainSize, GrainBlendMode } from '../../utils/grain';
 
 export const BackgroundSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   const [showAllGradients, setShowAllGradients] = useState(false);

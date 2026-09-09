@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { LINEAR_SWATCH_PRESETS } from '../../utils/linearSwatchPresets';
 import { MeshBackground } from '../MeshBackground';
 import { WaveBackground } from '../WaveBackground';
@@ -12,7 +12,7 @@ import { FlowBackground } from '../FlowBackground';
 import { MistBackground } from '../MistBackground';
 
 export const MiniCanvasBackground: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const bgType = state.backgroundType || 'gradient';
 
   let content: React.ReactNode = null;

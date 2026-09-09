@@ -11,6 +11,7 @@ import {
   ChevronUp,
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
+import { getPhosphorIcon } from './phosphorIconRegistry';
 import {
   ANIMATION_PRESETS,
   AnimationKeyframe,
@@ -637,7 +638,7 @@ export const AnimationTimeline: React.FC = () => {
     );
 
     (state.phosphorIconLayers || []).forEach((l) => {
-      const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.SparkleIcon;
+      const IconComp = getPhosphorIcon(l.iconId);
       allRows.push(
         buildRow(
           'phosphor',
@@ -674,9 +675,7 @@ export const AnimationTimeline: React.FC = () => {
             : s.shapeType === 'hexagon'
               ? PhosphorIcons.HexagonIcon
               : s.shapeType === 'quote'
-                ? (PhosphorIcons as any).Quotes ||
-                  PhosphorIcons.ChatCircleIcon ||
-                  PhosphorIcons.SquareIcon
+                ? PhosphorIcons.QuotesIcon
                 : s.shapeType === 'coolshape'
                   ? PhosphorIcons.SparkleIcon || PhosphorIcons.SquareIcon
                   : s.shapeType === 'custom-path'

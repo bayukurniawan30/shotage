@@ -1,0 +1,4 @@
+ALTER TABLE "credit_reservations" ADD COLUMN "settle_idempotency_key" text;--> statement-breakpoint
+ALTER TABLE "credit_reservations" ADD COLUMN "release_idempotency_key" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "credit_reservations_settle_idempotency_key_unique" ON "credit_reservations" USING btree ("settle_idempotency_key") WHERE "credit_reservations"."settle_idempotency_key" is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "credit_reservations_release_idempotency_key_unique" ON "credit_reservations" USING btree ("release_idempotency_key") WHERE "credit_reservations"."release_idempotency_key" is not null;

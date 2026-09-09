@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { temporal } from 'zundo';
 import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
 import {
@@ -12,6 +14,7 @@ import { GOOGLE_FONTS } from '../components/right-sidebar/shared';
 import {
   mergeShapeLayers,
   booleanOperationOnShapes,
+  canBooleanOperateOnShape,
   BooleanOperation,
 } from '../utils/shapeBoolean';
 
@@ -135,6 +138,44 @@ interface StudioStore extends StudioState {
     layerId: string,
     timeSec?: number
   ) => void;
+}
+
+const TRANSIENT_STUDIO_KEYS = [
+  'currentTimeSec',
+  'exportTimeSec',
+  'isPlaying',
+  'isExporting',
+  'isPositionDragging',
+  'isPreviewMode',
+  'previewCanvasZoom',
+  'selectedTextLayerId',
+  'selectedTextLayerIds',
+  'selectedPhosphorIconLayerId',
+  'selectedPhosphorIconLayerIds',
+  'selectedElementId',
+  'selectedElementIds',
+  'selectedShapeId',
+  'selectedShapeIds',
+] as const satisfies readonly (keyof StudioStore)[];
+
+const PLAYBACK_FRAME_KEYS = [
+  'currentTimeSec',
+  'exportTimeSec',
+  'isPlaying',
+  'isExporting',
+  'isPositionDragging',
+] as const satisfies readonly (keyof StudioStore)[];
+
+function withoutTransientStudioState(state: StudioStore) {
+  const persistentState = { ...state };
+  for (const key of TRANSIENT_STUDIO_KEYS) delete persistentState[key];
+  return persistentState;
+}
+
+function withoutPlaybackFrameState(state: StudioStore) {
+  const editorState = { ...state };
+  for (const key of PLAYBACK_FRAME_KEYS) delete editorState[key];
+  return editorState;
 }
 
 function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k: string]: any }>(
@@ -617,7 +658,7 @@ export const useStudioStore = create<StudioStore>()(
           offsetY: 0,
           slot2OffsetX: 0,
           slot2OffsetY: 0,
-          slabThickness: 12,
+          slabThickness: 0,
           slabColor: '#1e293b',
         }),
       resetAll: () => set((s) => ({ ...DEFAULT_STUDIO_STATE, resetKey: s.resetKey + 1 })),
@@ -1188,17 +1229,7 @@ export const useStudioStore = create<StudioStore>()(
 
           if (sortedShapes.length < 2) return state;
 
-          // Disable boolean operations when any custom shape or pen shape is among the selected shapes
-          const isCustom = (s: import('../types/studio').ShapeLayer) =>
-            !s ||
-            s.shapeType === 'custom-path' ||
-            Boolean(s.pathData) ||
-            Boolean(s.unitPathData) ||
-            s.shapeType === 'coolshape' ||
-            s.shapeType === 'quote' ||
-            !['rectangle', 'square', 'circle', 'triangle', 'hexagon'].includes(s.shapeType);
-
-          if (sortedShapes.some(isCustom)) return state;
+          if (sortedShapes.some((shape) => !canBooleanOperateOnShape(shape))) return state;
 
           // For Subtract (Difference): the bottom-most layer (highest index in layerOrder)
           // is the base subject, and the layers on top of it are the cutters.
@@ -1764,11 +1795,15 @@ export const useStudioStore = create<StudioStore>()(
     }),
     {
       limit: 50, // Keep last 50 history steps
-      partialize: (state) => {
-        // Exclude transient state like isPreviewMode from history tracking
-        const { isPreviewMode, ...rest } = state;
-        return rest;
-      },
+      partialize: withoutTransientStudioState,
+      equality: shallow,
     }
   )
 );
+
+/**
+ * Use in editor controls that do not render the live animation clock. This
+ * prevents every timeline frame from rerendering all sidebars and pickers.
+ */
+export const useStudioEditorStore = () =>
+  useStudioStore(useShallow(withoutPlaybackFrameState));

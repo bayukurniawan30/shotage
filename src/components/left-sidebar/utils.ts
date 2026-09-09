@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { LINEAR_SWATCH_PRESETS } from '../../utils/linearSwatchPresets';
 
 export const FRAME_LABELS: Record<string, string> = {
@@ -99,7 +99,7 @@ export const getRecommendedZoomForAspect = (
 };
 
 export const useMiniCanvasBgStyle = (): React.CSSProperties => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const bgType = state.backgroundType || 'gradient';
 
   if (bgType === 'solid') {
