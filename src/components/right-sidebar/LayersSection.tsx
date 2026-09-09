@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { BooleanIcons } from './shared';
+import { canBooleanOperateOnShape } from '../../utils/shapeBoolean';
+import { getPhosphorIcon } from '../phosphorIconRegistry';
 
 export const LayersSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const layerDragSrcKey = useRef<string | null>(null);
   const layerDragOverKey = useRef<string | null>(null);
   const [layerDropIndicator, setLayerDropIndicator] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export const LayersSection: React.FC = () => {
   );
 
   (state.phosphorIconLayers || []).forEach((l) => {
-    const IconComp = (PhosphorIcons as any)[l.iconId] || PhosphorIcons.SparkleIcon;
+    const IconComp = getPhosphorIcon(l.iconId);
     allRows.push(
       buildRow(
         'phosphor',
@@ -83,11 +85,9 @@ export const LayersSection: React.FC = () => {
           : s.shapeType === 'hexagon'
             ? PhosphorIcons.HexagonIcon
             : s.shapeType === 'quote'
-              ? (PhosphorIcons as any).Quotes ||
-                PhosphorIcons.ChatCircleIcon ||
-                PhosphorIcons.SquareIcon
+              ? PhosphorIcons.QuotesIcon
               : s.shapeType === 'coolshape'
-                ? (PhosphorIcons as any).SparkleIcon || PhosphorIcons.SquareIcon
+              ? PhosphorIcons.SparkleIcon
                 : s.shapeType === 'custom-path'
                   ? PhosphorIcons.IntersectIcon || PhosphorIcons.SquareIcon
                   : s.shapeType === 'rectangle'
@@ -340,17 +340,6 @@ export const LayersSection: React.FC = () => {
     </div>
   );
 
-  const isCustomShape = (s?: import('../../types/studio').ShapeLayer | null): boolean => {
-    if (!s) return false;
-    if (s.shapeType === 'custom-path' || Boolean(s.pathData) || Boolean(s.unitPathData)) return true;
-    if (s.shapeType === 'coolshape' || s.shapeType === 'quote') return true;
-    const name = (s.name || '').toLowerCase();
-    if (name.includes('custom') || name.includes('pen') || name.includes('vector') || name.includes('path')) return true;
-    const basicTypes = ['rectangle', 'square', 'circle', 'triangle', 'hexagon'];
-    if (!basicTypes.includes(s.shapeType)) return true;
-    return false;
-  };
-
   const allSelectedShapeIds = new Set([
     ...(state.selectedShapeIds || []),
     ...(state.selectedShapeId ? [state.selectedShapeId] : []),
@@ -358,8 +347,8 @@ export const LayersSection: React.FC = () => {
   const selectedShapes = (state.shapeLayers || []).filter((s) =>
     allSelectedShapeIds.has(s.id)
   );
-  const hasCustomPenShapeSelected =
-    selectedShapes.length < 2 || selectedShapes.some(isCustomShape);
+  const hasUnsupportedShapeSelected =
+    selectedShapes.length < 2 || selectedShapes.some((shape) => !canBooleanOperateOnShape(shape));
 
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
@@ -372,7 +361,7 @@ export const LayersSection: React.FC = () => {
       </div>
 
       {/* Multi-Shape Boolean Action Bar */}
-      {allSelectedShapeIds.size >= 2 && !hasCustomPenShapeSelected && (
+      {allSelectedShapeIds.size >= 2 && !hasUnsupportedShapeSelected && (
         <div className="p-2.5 rounded-lg bg-pastel-pink/10 border border-pastel-pink/30 space-y-2 animate-in fade-in duration-150">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">

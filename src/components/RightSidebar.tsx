@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStudioStore } from '../store/useStudioStore';
+import { useStudioEditorStore } from '../store/useStudioStore';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { QuickModeSection } from './QuickModeSection';
 import {
@@ -32,7 +32,7 @@ export interface RightSidebarProps {
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({ mobileSection }) => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   if (mobileSection) {

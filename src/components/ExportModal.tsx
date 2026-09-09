@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useStudioStore } from '../store/useStudioStore';
 import { toPng, toJpeg, toBlob, toCanvas, getFontEmbedCSS } from 'html-to-image';
 import {
@@ -11,7 +12,6 @@ import {
   Copy01,
   Loading01,
   Check,
-  Heart,
 } from '@untitledui/icons';
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
@@ -19,6 +19,26 @@ import { activeVideoDecoders } from './VideoCanvasScreen';
 import { PROJECTS } from './ProjectSpotlight';
 import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
 import { compressGzipString } from '../utils/gzipCompression';
+import {
+  canUseCachedVideoFrameRenderer,
+  createCachedVideoFrameRenderer,
+  type CachedVideoFrameRenderer,
+} from '../utils/cachedVideoFrameRenderer';
+import { AuthButton, CreditPackDialog } from './auth/AuthButton';
+import {
+  announceCreditBalanceUpdated,
+  authClient,
+  CreditApiError,
+  fetchVerifiedAccount,
+  getAuthToken,
+  releaseExportReservation,
+  reserveImageExport,
+  reserveVideoExport,
+  settleExportReservation,
+  type ExportReservation,
+  type VerifiedAccount,
+} from '../lib/auth/client';
+import { getExportCapacity, getImageExportCost, getVideoExportCost } from '../lib/credits';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -26,30 +46,76 @@ interface ExportModalProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
 }
 
+async function createProjectHash(value: unknown) {
+  const ignoredKeys = new Set([
+    'currentTimeSec',
+    'exportTimeSec',
+    'isExporting',
+    'isPlaying',
+    'isPositionDragging',
+    'previewCanvasZoom',
+    'shareId',
+    'shareIdentifier',
+    'sharedDesignName',
+    'sharedDesignPublisher',
+  ]);
+  const serialized = JSON.stringify(value, (key, item) => {
+    if (typeof item === 'function' || ignoredKeys.has(key) || key.startsWith('selected')) {
+      return undefined;
+    }
+    return item;
+  });
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function retryReservationMutation(mutation: () => Promise<ExportReservation>, attempts = 3) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await mutation();
+    } catch (error) {
+      lastError = error;
+      if (error instanceof CreditApiError && error.status < 500) throw error;
+    }
+  }
+  throw lastError;
+}
+
 export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canvasRef }) => {
   const state = useStudioStore();
+  const session = authClient.useSession();
   const onChange = state.updateState;
   const [isExporting, setIsExporting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [exportingType, setExportingType] = useState<'image' | 'video' | null>(null);
   const [videoFormat, setVideoFormat] = useState<'mp4' | 'webm'>('mp4');
-  const [videoFps, setVideoFps] = useState<30 | 60>(60);
+  const [videoFps, setVideoFps] = useState<30 | 60>(30);
   const [activeTab, setActiveTab] = useState<'image' | 'video' | 'share'>(
     state.isAnimationMode ? 'video' : 'image'
   );
   const [exportProgress, setExportProgress] = useState(0);
-  const [supportCountdown, setSupportCountdown] = useState(0);
   const [exportScope, setExportScope] = useState<'current' | 'all'>('current');
   const [shareName, setShareName] = useState('');
   const [sharePublisher, setSharePublisher] = useState('');
+  const [shareVisibility, setShareVisibility] = useState<'private' | 'public'>('private');
   const [isSharing, setIsSharing] = useState(false);
   const [sponsoredProject] = useState(() => PROJECTS[Math.floor(Math.random() * PROJECTS.length)]);
   const [shareUrl, setShareUrl] = useState('');
   const [shareError, setShareError] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [isShareCopied, setIsShareCopied] = useState(false);
+  const [verifiedAccount, setVerifiedAccount] = useState<VerifiedAccount | null>(null);
+  const [accountPending, setAccountPending] = useState(false);
+  const [imageExportError, setImageExportError] = useState('');
+  const [imageExportNotice, setImageExportNotice] = useState('');
+  const [videoExportError, setVideoExportError] = useState('');
+  const [videoExportNotice, setVideoExportNotice] = useState('');
+  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const cancelVideoRef = useRef(false);
+  const imageExportLockRef = useRef(false);
+  const videoExportLockRef = useRef(false);
 
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
@@ -60,7 +126,45 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setIsSharing(false);
     setTurnstileToken('');
     setIsShareCopied(false);
+    setImageExportError('');
+    setImageExportNotice('');
+    setVideoExportError('');
+    setVideoExportNotice('');
+    setCreditDialogOpen(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!session.isPending && !session.data?.user && activeTab === 'share') {
+      setActiveTab(state.isAnimationMode ? 'video' : 'image');
+    }
+  }, [activeTab, session.data?.user, session.isPending, state.isAnimationMode]);
+
+  useEffect(() => {
+    const user = session.data?.user;
+    if (!isOpen || !user) return;
+    setSharePublisher((current) =>
+      current.trim() ? current : user.name?.trim() || user.email?.split('@')[0] || 'Shotage Creator'
+    );
+  }, [isOpen, session.data?.user]);
+
+  useEffect(() => {
+    const sessionId = session.data?.session?.id;
+    if (!isOpen || !sessionId) {
+      setVerifiedAccount(null);
+      setAccountPending(false);
+      return;
+    }
+
+    let cancelled = false;
+    setAccountPending(true);
+    fetchVerifiedAccount()
+      .then((account) => !cancelled && setVerifiedAccount(account))
+      .catch(() => !cancelled && setVerifiedAccount(null))
+      .finally(() => !cancelled && setAccountPending(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, session.data?.session?.id]);
 
   useEffect(() => {
     if (!isOpen || activeTab !== 'share' || !turnstileRef.current || !turnstileSiteKey) return;
@@ -108,18 +212,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   };
 
   useEffect(() => {
-    let timer: any;
-    if (supportCountdown > 0) {
-      timer = setInterval(() => {
-        setSupportCountdown((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [supportCountdown]);
-
-  useEffect(() => {
     if (isOpen) {
-      setSupportCountdown(0);
       setIsExporting(false);
       setExportingType(null);
     }
@@ -127,7 +220,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !creditDialogOpen) {
         onClose();
       }
     };
@@ -135,32 +228,121 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [creditDialogOpen, isOpen, onClose]);
+
+  const totalImageStages = state.stages?.length || 1;
+  const imageStageCount = exportScope === 'all' ? totalImageStages : 1;
+  const imageDownloadCost = getImageExportCost(state.exportScale, imageStageCount);
+  const imageCopyCost = getImageExportCost(state.exportScale);
+  const sessionUser = session.data?.user;
+  const hasUnlimitedExports = verifiedAccount?.credits.unlimited === true;
+  const imageDownloadInsufficient = Boolean(
+    verifiedAccount && !hasUnlimitedExports && verifiedAccount.credits.balance < imageDownloadCost
+  );
+  const imageCopyInsufficient = Boolean(
+    verifiedAccount && !hasUnlimitedExports && verifiedAccount.credits.balance < imageCopyCost
+  );
+  const imageActionsDisabled = isExporting || session.isPending || accountPending || !sessionUser;
+  const videoStageCount = exportScope === 'all' ? totalImageStages : 1;
+  const videoDurationSeconds = Number(
+    (exportScope === 'all' && totalImageStages > 1
+      ? (state.stages || []).reduce((total, stage) => total + (stage.durationSec || 10), 0)
+      : state.durationSec || 10
+    ).toFixed(3)
+  );
+  const videoExportCost = getVideoExportCost(videoDurationSeconds);
+  const videoDurationInvalid = videoDurationSeconds <= 0 || videoDurationSeconds > 30;
+  const videoExportInsufficient = Boolean(
+    verifiedAccount && !hasUnlimitedExports && verifiedAccount.credits.balance < videoExportCost
+  );
+  const videoActionsDisabled =
+    isExporting || session.isPending || accountPending || !sessionUser || videoDurationInvalid;
+
+  const syncCreditBalance = (balance: number) => {
+    setVerifiedAccount((account) =>
+      account
+        ? {
+            ...account,
+            credits: {
+              ...account.credits,
+              balance,
+              exportCapacity: getExportCapacity(balance),
+            },
+          }
+        : account
+    );
+    announceCreditBalanceUpdated(balance);
+  };
 
   if (!isOpen) return null;
 
   const handleExport = async (format: 'png' | 'jpeg' | 'webp', isCopy = false) => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || imageExportLockRef.current) return;
+    if (!sessionUser) {
+      setImageExportError('Sign in before exporting a high-resolution image.');
+      return;
+    }
+
+    const stageScope = isCopy ? 'current' : exportScope;
+    const stageCount = stageScope === 'all' ? totalImageStages : 1;
+    const expectedCost = getImageExportCost(state.exportScale, stageCount);
+    if (
+      verifiedAccount &&
+      !verifiedAccount.credits.unlimited &&
+      verifiedAccount.credits.balance < expectedCost
+    ) {
+      setImageExportError(
+        `You need ${expectedCost} credits for this export. Your balance is ${verifiedAccount.credits.balance}.`
+      );
+      setCreditDialogOpen(true);
+      return;
+    }
+
+    imageExportLockRef.current = true;
     state.selectTextLayer(null);
     state.selectShapeLayer(null);
     state.selectPhosphorIconLayer(null);
     state.selectCanvasElement(null);
+    setImageExportError('');
+    setImageExportNotice('');
     setIsExporting(true);
     setExportingType('image');
 
-    // Suppress CSS transitions during export so layers and stages snap to exact coordinates instantly
-    if (canvasRef.current) {
-      canvasRef.current.classList.add('exporting-no-transitions');
-    }
-
-    // Ensure all web fonts are loaded and DOM has reflowed after deselecting layers
-    if ('fonts' in document) {
-      await document.fonts.ready;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    let reservation: ExportReservation | null = null;
+    let renderCompleted = false;
+    const initialStageIndex = state.activeStageIndex;
+    const temporaryObjectUrls: string[] = [];
+    const reservationKey = crypto.randomUUID();
+    const settlementKey = crypto.randomUUID();
+    const releaseKey = crypto.randomUUID();
 
     try {
+      const projectHash = await createProjectHash(useStudioStore.getState());
+      reservation = await retryReservationMutation(() =>
+        reserveImageExport({
+          idempotencyKey: reservationKey,
+          projectHash,
+          kind: 'image',
+          format,
+          scale: state.exportScale,
+          stageScope,
+          stageCount,
+          videoDurationSeconds: null,
+        })
+      );
+      syncCreditBalance(reservation.balance);
+      if (reservation.unlimited) {
+        setImageExportNotice('Included with your Creator plan — no credits charged.');
+      } else if (reservation.protectedRetry) {
+        setImageExportNotice('Free retry applied — no credits charged.');
+      }
+
+      // Suppress transitions and wait for fonts so the captured DOM is stable.
+      canvasRef.current.classList.add('exporting-no-transitions');
+      if ('fonts' in document) await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
       const options = {
         pixelRatio: state.exportScale,
         quality: 0.95,
@@ -182,18 +364,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         ...(state.backgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
       };
 
-      const totalStages = state.stages?.length || 1;
+      if (stageScope === 'all' && totalImageStages > 1 && !isCopy) {
+        const stagedDownloads: Array<{ href: string; filename: string }> = [];
 
-      if (exportScope === 'all' && totalStages > 1 && !isCopy) {
-        const initialStageIndex = state.activeStageIndex;
-
-        for (let i = 0; i < totalStages; i++) {
+        for (let i = 0; i < totalImageStages; i++) {
           state.selectStage(i);
-          setExportProgress(Math.round(((i + 1) / totalStages) * 100));
+          setExportProgress(Math.round(((i + 1) / totalImageStages) * 100));
 
           // Wait for React DOM flush and browser layout computation
           await new Promise((resolve) => setTimeout(resolve, 80));
-          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          );
           if ('fonts' in document) await document.fonts.ready;
 
           let dataUrl: string;
@@ -201,37 +383,40 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
             if (!blob) throw new Error('Failed to generate WebP blob');
             dataUrl = URL.createObjectURL(blob);
+            temporaryObjectUrls.push(dataUrl);
           } else if (format === 'jpeg') {
             dataUrl = await toJpeg(canvasRef.current, options);
           } else {
             dataUrl = await toPng(canvasRef.current, options);
           }
 
-          const link = document.createElement('a');
-          link.download = `shotage-stage-${i + 1}-${Date.now()}.${format}`;
-          link.href = dataUrl;
-          link.click();
-          if (format === 'webp') {
-            setTimeout(() => URL.revokeObjectURL(dataUrl), 2000);
-          }
-          await new Promise((resolve) => setTimeout(resolve, 150));
+          stagedDownloads.push({
+            href: dataUrl,
+            filename: `shotage-stage-${i + 1}-${Date.now()}.${format}`,
+          });
         }
 
         state.selectStage(initialStageIndex);
-        setSupportCountdown(10);
+        for (const download of stagedDownloads) {
+          const link = document.createElement('a');
+          link.download = download.filename;
+          link.href = download.href;
+          link.click();
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
       } else {
         if (isCopy) {
           const blob = await toBlob(canvasRef.current, options);
-          if (blob) {
-            await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-            alert('Copied high-res image to clipboard!');
-          }
+          if (!blob) throw new Error('Failed to generate image for the clipboard');
+          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+          alert('Copied high-res image to clipboard!');
         } else {
           let dataUrl: string;
           if (format === 'webp') {
             const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
             if (!blob) throw new Error('Failed to generate WebP blob');
             dataUrl = URL.createObjectURL(blob);
+            temporaryObjectUrls.push(dataUrl);
           } else if (format === 'jpeg') {
             dataUrl = await toJpeg(canvasRef.current, options);
           } else {
@@ -242,44 +427,103 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           link.download = `shotage-${Date.now()}.${format}`;
           link.href = dataUrl;
           link.click();
-          if (format === 'webp') {
-            setTimeout(() => URL.revokeObjectURL(dataUrl), 2000);
-          }
-          setSupportCountdown(10);
         }
       }
+      renderCompleted = true;
+
+      const settled = await retryReservationMutation(() =>
+        settleExportReservation(reservation!.reservationId, settlementKey)
+      );
+      syncCreditBalance(settled.balance);
+      setImageExportNotice(
+        reservation.unlimited
+          ? 'Export complete — included with your Creator plan.'
+          : reservation.protectedRetry
+            ? 'Free retry complete — no credits charged.'
+            : `Export complete — ${reservation.creditAmount} credits used. One matching retry is free for 5 minutes.`
+      );
     } catch (err) {
       console.error('Export error:', err);
-      alert('Failed to export canvas image. Please try again.');
+      if (reservation && !renderCompleted && reservation.status === 'reserved') {
+        try {
+          const released = await retryReservationMutation(() =>
+            releaseExportReservation(reservation!.reservationId, releaseKey)
+          );
+          syncCreditBalance(released.balance);
+        } catch (releaseError) {
+          console.error('Credit reservation release failed:', releaseError);
+        }
+      }
+
+      if (err instanceof CreditApiError) {
+        if (typeof err.balance === 'number') syncCreditBalance(err.balance);
+        if (err.code === 'INSUFFICIENT_CREDITS') setCreditDialogOpen(true);
+        setImageExportError(err.message);
+      } else if (renderCompleted) {
+        setImageExportError(
+          'Your image was exported, but credit finalization is still pending. Do not export again yet.'
+        );
+      } else {
+        setImageExportError('The image export failed. Reserved credits were released.');
+      }
     } finally {
       if (canvasRef.current) {
         canvasRef.current.classList.remove('exporting-no-transitions');
       }
+      if (useStudioStore.getState().activeStageIndex !== initialStageIndex) {
+        state.selectStage(initialStageIndex);
+      }
+      temporaryObjectUrls.forEach((url) => setTimeout(() => URL.revokeObjectURL(url), 2_000));
       setIsExporting(false);
       setExportingType(null);
+      imageExportLockRef.current = false;
     }
   };
 
-  // High-Quality WebCodecs 60FPS Video Export (Exact Duration & Zero Lag)
+  // High-quality WebCodecs video export with a cached Canvas fast path.
   const handleExportVideo = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || videoExportLockRef.current) return;
+    if (!sessionUser) {
+      setVideoExportError('Sign in before exporting a video.');
+      return;
+    }
+    if (videoDurationInvalid) {
+      setVideoExportError('Paid video exports must be between 1 and 30 seconds.');
+      return;
+    }
+    if (
+      verifiedAccount &&
+      !verifiedAccount.credits.unlimited &&
+      verifiedAccount.credits.balance < videoExportCost
+    ) {
+      setVideoExportError(
+        `You need ${videoExportCost} credits for this video. Your balance is ${verifiedAccount.credits.balance}.`
+      );
+      setCreditDialogOpen(true);
+      return;
+    }
+
+    videoExportLockRef.current = true;
     cancelVideoRef.current = false;
+    setVideoExportError('');
+    setVideoExportNotice('');
     setIsExporting(true);
     setExportingType('video');
     setExportProgress(0);
-    onChange({ isExporting: true, exportTimeSec: 0, isPlaying: false, currentTimeSec: 0 });
-
-    // Suppress CSS transitions during video export
-    if (canvasRef.current) {
-      canvasRef.current.classList.add('exporting-no-transitions');
-    }
 
     let exportCanvas: HTMLCanvasElement | null = null;
     let ctx: CanvasRenderingContext2D | null = null;
     let videoEncoder: VideoEncoder | null = null;
     let muxer: any = null;
+    let cachedFrameRenderer: CachedVideoFrameRenderer | null = null;
     let cachedFontEmbedCSS = '';
     const initialStageIndex = state.activeStageIndex;
+    let reservation: ExportReservation | null = null;
+    let renderCompleted = false;
+    let usedCachedFrameRenderer = false;
+    const reservationKey = crypto.randomUUID();
+    const settlementKey = crypto.randomUUID();
+    const releaseKey = crypto.randomUUID();
 
     try {
       state.selectTextLayer(null);
@@ -287,20 +531,44 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       state.selectPhosphorIconLayer(null);
       state.selectCanvasElement(null);
 
+      const projectHash = await createProjectHash(useStudioStore.getState());
+      reservation = await retryReservationMutation(() =>
+        reserveVideoExport({
+          idempotencyKey: reservationKey,
+          projectHash,
+          kind: 'video',
+          format: videoFormat,
+          scale: state.exportScale,
+          stageScope: exportScope,
+          stageCount: videoStageCount,
+          videoDurationSeconds,
+        })
+      );
+      syncCreditBalance(reservation.balance);
+      if (reservation.unlimited) {
+        setVideoExportNotice('Included with your Creator plan — no credits charged.');
+      } else if (reservation.protectedRetry) {
+        setVideoExportNotice('Free retry applied — no credits charged.');
+      }
+
+      onChange({ isExporting: true, exportTimeSec: 0, isPlaying: false, currentTimeSec: 0 });
+      canvasRef.current.classList.add('exporting-no-transitions');
+
       const totalStages = state.stages?.length || 1;
       const isMultiStage = exportScope === 'all' && totalStages > 1;
       const stagesToRecord = isMultiStage
         ? Array.from({ length: totalStages }, (_, i) => i)
         : [state.activeStageIndex];
 
-      const fps = videoFps; // Dynamic 30 FPS or 60 FPS for ultra smooth video
+      const fps = videoFps;
 
       // Calculate total duration across all stages to record
       let grandTotalFrames = 0;
       for (const idx of stagesToRecord) {
-        const stageDuration =
-          (state.stages && state.stages[idx]?.durationSec) || state.durationSec || 10;
-        grandTotalFrames += Math.floor(stageDuration * fps);
+        const stageDuration = isMultiStage
+          ? state.stages?.[idx]?.durationSec || 10
+          : state.durationSec || 10;
+        grandTotalFrames += Math.max(1, Math.round(stageDuration * fps));
       }
 
       const rawWidth = canvasRef.current.offsetWidth || canvasRef.current.clientWidth || 1200;
@@ -439,7 +707,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           let failed = false;
           const testEnc = new VideoEncoder({
             output: () => {},
-            error: () => { failed = true; },
+            error: () => {
+              failed = true;
+            },
           });
           try {
             testEnc.configure(testConfig);
@@ -451,21 +721,32 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             tf.close();
             tc.width = 0;
             tc.height = 0;
-            testEnc.flush().then(() => {
-              try { testEnc.close(); } catch {}
-              resolve(!failed);
-            }).catch(() => {
-              try { testEnc.close(); } catch {}
-              resolve(false);
-            });
+            testEnc
+              .flush()
+              .then(() => {
+                try {
+                  testEnc.close();
+                } catch {}
+                resolve(!failed);
+              })
+              .catch(() => {
+                try {
+                  testEnc.close();
+                } catch {}
+                resolve(false);
+              });
           } catch {
-            try { testEnc.close(); } catch {}
+            try {
+              testEnc.close();
+            } catch {}
             resolve(false);
           }
         });
 
         if (!alphaWorks) {
-          console.warn('Browser does not support VP9 alpha encoding – falling back to opaque video.');
+          console.warn(
+            'Browser does not support VP9 alpha encoding – falling back to opaque video.'
+          );
           // Strip alpha from encoder config
           const { alpha: _a, ...opaqueConfig } = supportedConfig;
           supportedConfig = opaqueConfig as VideoEncoderConfig;
@@ -528,6 +809,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
       let globalTimeOffsetSec = 0;
       let completedFramesCount = 0;
+      let lastReportedProgress = 0;
 
       // Sequentially record each stage into the single video stream
       for (let sIdx = 0; sIdx < stagesToRecord.length; sIdx++) {
@@ -536,7 +818,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         if (isMultiStage) {
           state.selectStage(stageIndex);
           await new Promise((resolve) => setTimeout(resolve, 80));
-          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          );
           if ('fonts' in document) await document.fonts.ready;
         }
 
@@ -546,19 +830,38 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           console.warn('Could not pre-cache font embed CSS:', err);
         }
 
-        const durationSec = state.durationSec || 10;
-        const totalFrames = Math.floor(durationSec * fps);
-        const framePixelRatio = exportCanvas.width / (canvasRef.current.offsetWidth || exportCanvas.width);
+        const durationSec = isMultiStage
+          ? state.stages?.[stageIndex]?.durationSec || 10
+          : state.durationSec || 10;
+        const totalFrames = Math.max(1, Math.round(durationSec * fps));
+        const framePixelRatio =
+          exportCanvas.width / (canvasRef.current.offsetWidth || exportCanvas.width);
 
-        for (let frame = 0; frame <= totalFrames; frame++) {
+        flushSync(() => {
+          onChange({ currentTimeSec: 0, exportTimeSec: globalTimeOffsetSec });
+        });
+
+        if (canUseCachedVideoFrameRenderer(useStudioStore.getState())) {
+          cachedFrameRenderer = await createCachedVideoFrameRenderer(canvasRef.current, {
+            pixelRatio: framePixelRatio,
+            fontEmbedCSS: cachedFontEmbedCSS,
+            transparent: isTransparentExport,
+          });
+          usedCachedFrameRenderer ||= cachedFrameRenderer !== null;
+        }
+
+        for (let frame = 0; frame < totalFrames; frame++) {
           if (cancelVideoRef.current || encoderError) {
-            if (encoderError) console.error('Video export aborted due to encoder error:', encoderError);
+            if (encoderError)
+              console.error('Video export aborted due to encoder error:', encoderError);
             break;
           }
 
-          const targetTimeSec = (frame / totalFrames) * durationSec;
+          const targetTimeSec = frame / fps;
           const frameTimeSec = globalTimeOffsetSec + targetTimeSec;
-          onChange({ currentTimeSec: targetTimeSec, exportTimeSec: frameTimeSec });
+          flushSync(() => {
+            onChange({ currentTimeSec: targetTimeSec, exportTimeSec: frameTimeSec });
+          });
 
           // Synchronize any mockup video decoders to exact target timestamp
           if (activeVideoDecoders.size > 0) {
@@ -573,52 +876,59 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                     return resolve();
                   }
 
-                  const onSeeked = () => {
+                  let timeoutId = 0;
+                  let finished = false;
+                  const finish = () => {
+                    if (finished) return;
+                    finished = true;
                     video.removeEventListener('seeked', onSeeked);
+                    window.clearTimeout(timeoutId);
                     drawFrame();
                     resolve();
                   };
+                  const onSeeked = () => finish();
                   video.addEventListener('seeked', onSeeked, { once: true });
                   video.currentTime = vidTarget;
-                  setTimeout(() => {
-                    drawFrame();
-                    resolve();
-                  }, 80);
+                  timeoutId = window.setTimeout(finish, 80);
                 });
               })
             );
           }
 
           try {
-            const renderedCanvas = await toCanvas(canvasRef.current, {
-              pixelRatio: framePixelRatio,
-              cacheBust: false,
-              fontEmbedCSS: cachedFontEmbedCSS,
-              ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
-              filter: (node) => {
-                const el = node as HTMLElement;
-                if (el.tagName === 'VIDEO') return false;
-                if (
-                  el.classList?.contains('delete-handle') ||
-                  el.classList?.contains('rotate-handle') ||
-                  el.classList?.contains('resize-handle') ||
-                  el.classList?.contains('selection-gizmo-container') ||
-                  el.classList?.contains('selection-gizmo-item')
-                ) {
-                  return false;
-                }
-                return true;
-              },
-            });
+            const fastFrameRendered = cachedFrameRenderer?.render(ctx) ?? false;
+            if (!fastFrameRendered) {
+              const renderedCanvas = await toCanvas(canvasRef.current, {
+                pixelRatio: framePixelRatio,
+                cacheBust: false,
+                fontEmbedCSS: cachedFontEmbedCSS,
+                ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
+                filter: (node) => {
+                  const el = node as HTMLElement;
+                  if (el.tagName === 'VIDEO') return false;
+                  if (
+                    el.classList?.contains('delete-handle') ||
+                    el.classList?.contains('rotate-handle') ||
+                    el.classList?.contains('resize-handle') ||
+                    el.classList?.contains('selection-gizmo-container') ||
+                    el.classList?.contains('selection-gizmo-item')
+                  ) {
+                    return false;
+                  }
+                  return true;
+                },
+              });
 
-            // Draw directly to even-dimension exportCanvas
-            ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-            ctx.drawImage(renderedCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
+              ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+              ctx.drawImage(renderedCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
+              renderedCanvas.width = 0;
+              renderedCanvas.height = 0;
+            }
 
             // Compute exact continuous timestamp in microseconds for video output
             const frameTimeSec = globalTimeOffsetSec + targetTimeSec;
             const timestampMicros = Math.round(frameTimeSec * 1_000_000);
-            const isKeyFrame = frame === 0 || (frame % (fps * 2) === 0);
+            const isKeyFrame = frame === 0 || frame % (fps * 2) === 0;
 
             const videoFrame = new VideoFrame(exportCanvas, {
               timestamp: timestampMicros,
@@ -627,20 +937,34 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             videoEncoder.encode(videoFrame, { keyFrame: isKeyFrame });
             videoFrame.close();
 
-            // CRITICAL MEMORY RELEASE:
-            renderedCanvas.width = 0;
-            renderedCanvas.height = 0;
+            // Bound queued frame memory without serializing every encode.
+            if (videoEncoder.encodeQueueSize > (fps === 60 ? 12 : 6)) {
+              await videoEncoder.flush();
+            }
           } catch (e) {
             console.error('Frame render failed at frame', frame, e);
           }
 
           completedFramesCount++;
-          setExportProgress(Math.min(99, Math.round((completedFramesCount / grandTotalFrames) * 100)));
+          const nextProgress = Math.min(
+            99,
+            Math.round((completedFramesCount / grandTotalFrames) * 100)
+          );
+          if (nextProgress !== lastReportedProgress) {
+            lastReportedProgress = nextProgress;
+            setExportProgress(nextProgress);
+          }
 
-          // Yield to browser event loop on every frame so user cancellation and UI clicks process immediately
-          await new Promise((resolve) => setTimeout(resolve, 8));
+          // DOM capture already yields. The cached renderer only needs a periodic
+          // event-loop yield for cancellation and UI updates.
+          if (cachedFrameRenderer && frame % 4 === 3) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
           if (cancelVideoRef.current) break;
         }
+
+        cachedFrameRenderer?.dispose();
+        cachedFrameRenderer = null;
 
         globalTimeOffsetSec += durationSec;
         if (cancelVideoRef.current) break;
@@ -689,7 +1013,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
         // Revoke the blob URL after download triggers to release the video buffer from RAM
         setTimeout(() => URL.revokeObjectURL(url), 2000);
+        renderCompleted = true;
+      } else {
+        throw new Error('Could not finalize the video file.');
       }
+
+      const settled = await retryReservationMutation(() =>
+        settleExportReservation(reservation!.reservationId, settlementKey)
+      );
+      syncCreditBalance(settled.balance);
+      setVideoExportNotice(
+        reservation.unlimited
+          ? `Video complete — included with your Creator plan.${usedCachedFrameRenderer ? ' Fast Canvas renderer used.' : ''}`
+          : reservation.protectedRetry
+            ? `Free retry complete — no credits charged.${usedCachedFrameRenderer ? ' Fast Canvas renderer used.' : ''}`
+            : `Video complete — ${reservation.creditAmount} credits used. One matching retry is free for 5 minutes.${usedCachedFrameRenderer ? ' Fast Canvas renderer used.' : ''}`
+      );
 
       // Trigger 3D Success State
       setExportProgress(100);
@@ -702,12 +1041,39 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }, 2500);
     } catch (err) {
       console.error('Video Export error:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-      alert(`Failed to encode video: ${msg}`);
+      if (err instanceof CreditApiError) {
+        if (typeof err.balance === 'number') syncCreditBalance(err.balance);
+        if (err.code === 'INSUFFICIENT_CREDITS') setCreditDialogOpen(true);
+        setVideoExportError(err.message);
+      } else if (renderCompleted) {
+        setVideoExportError(
+          'Your video was exported, but credit finalization is still pending. Do not export again yet.'
+        );
+      } else if (!cancelVideoRef.current) {
+        const message = err instanceof Error ? err.message : String(err);
+        setVideoExportError(`Video export failed: ${message}`);
+      }
       setIsExporting(false);
       setExportingType(null);
       setExportProgress(0);
     } finally {
+      cachedFrameRenderer?.dispose();
+      if (reservation && !renderCompleted && reservation.status === 'reserved') {
+        try {
+          const released = await retryReservationMutation(() =>
+            releaseExportReservation(reservation!.reservationId, releaseKey)
+          );
+          syncCreditBalance(released.balance);
+          if (cancelVideoRef.current) {
+            setVideoExportNotice('Video export cancelled — reserved credits were returned.');
+          }
+        } catch (releaseError) {
+          console.error('Video credit reservation release failed:', releaseError);
+          setVideoExportError(
+            'The video stopped, but credit release is pending. Your reservation will expire automatically.'
+          );
+        }
+      }
       onChange({ isExporting: false, exportTimeSec: null });
       if (canvasRef.current) {
         canvasRef.current.classList.remove('exporting-no-transitions');
@@ -727,6 +1093,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       videoEncoder = null;
       muxer = null;
       cachedFontEmbedCSS = '';
+      if (useStudioStore.getState().activeStageIndex !== initialStageIndex) {
+        state.selectStage(initialStageIndex);
+      }
+      videoExportLockRef.current = false;
     }
   };
 
@@ -734,6 +1104,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const handleShare = async () => {
     setShareError('');
     setIsShareCopied(false);
+
+    if (!sessionUser) {
+      setShareError('Please sign in before sharing a design.');
+      return;
+    }
 
     if (!shareName.trim() || !sharePublisher.trim()) {
       setShareError('Please fill in both Design Name and Publisher.');
@@ -752,9 +1127,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     const hasMultipleStages = (rawStore.stages?.length || 0) > 1;
 
     try {
-      // 1. If multiple stages exist, switch to Stage 1 (index 0) so the store automatically
-      // flushes the current active stage into the stages array and activates Stage 1 for thumbnail capture
-      if (hasMultipleStages && initialStageIndex !== 0) {
+      // 1. Select Stage 1 even when it is already active. selectStage() first
+      // snapshots the live stage, preventing stale stages[0] data from replacing
+      // recent text transforms (including scaleX/scaleY) when the share is loaded.
+      if (hasMultipleStages) {
         rawStore.selectStage(0);
         await new Promise((resolve) => setTimeout(resolve, 80));
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -765,17 +1141,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       const storeState = await optimizeStudioStateForExport(synchronizedState);
 
       // Keep imageSrc, secondImageSrc, bgImageUrl, stages, etc. intact in the serialized payload
-      const {
-        isPlaying,
-        isPositionDragging,
-        shareId,
-        shareIdentifier,
-        ...rest
-      } = storeState;
+      const { isPlaying, isPositionDragging, shareId, shareIdentifier, ...rest } = storeState;
 
       // Stable session identifier: generated once, reused so the share URL never changes
       const identifier =
-        shareIdentifier ||
+        (shareId && shareIdentifier ? shareIdentifier : null) ||
         (crypto.randomUUID && crypto.randomUUID()) ||
         `share-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -792,14 +1162,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           if ('fonts' in document) await document.fonts.ready;
 
           const stage0BackgroundType =
-            (storeState.stages && storeState.stages[0]?.backgroundType) || storeState.backgroundType;
+            (storeState.stages && storeState.stages[0]?.backgroundType) ||
+            storeState.backgroundType;
 
           const rawCanvas = await toCanvas(canvasRef.current, {
             pixelRatio: 1,
             cacheBust: true,
-            ...(stage0BackgroundType === 'transparent'
-              ? { backgroundColor: 'transparent' }
-              : {}),
+            ...(stage0BackgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
           });
 
           const maxDim = 350;
@@ -842,15 +1211,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
       const rawJson = JSON.stringify(rest);
       const compressedJson = await compressGzipString(rawJson);
+      const authToken = await getAuthToken();
 
       const res = await fetch('/api/share', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           name: shareName.trim(),
           publisher: sharePublisher.trim(),
           identifier: identifier,
           json_string: compressedJson,
+          visibility: shareVisibility,
           turnstileToken,
           entryId: shareId,
           thumbnail: thumbnailDataUrl,
@@ -900,12 +1274,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
   return (
     <div
-      onClick={onClose}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
       className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 cursor-default text-slate-200"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-5 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
       >
         <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
           <div className="flex items-center gap-2.5">
@@ -929,7 +1303,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 {activeTab === 'video'
                   ? 'Record 3D motion animation as video'
                   : activeTab === 'share'
-                    ? 'Publish your design to the community'
+                    ? shareVisibility === 'public'
+                      ? 'Submit your design for Explore review'
+                      : 'Save a design only your account can open'
                     : 'Select file format and scale multiplier'}
               </p>
             </div>
@@ -975,17 +1351,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </span>
             </button>
           )}
-          <button
-            onClick={() => setActiveTab('share')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'share'
-                ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] border border-[#a2d2ff]/40 shadow-xs font-bold'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900 border border-transparent'
-            }`}
-          >
-            <Share01 className="w-3.5 h-3.5" />
-            <span>Share</span>
-          </button>
+          {sessionUser && (
+            <button
+              onClick={() => setActiveTab('share')}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'share'
+                  ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] border border-[#a2d2ff]/40 shadow-xs font-bold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-900 border border-transparent'
+              }`}
+            >
+              <Share01 className="w-3.5 h-3.5" />
+              <span>Share</span>
+            </button>
+          )}
         </div>
 
         {/* Tab 1: Image Export */}
@@ -1064,51 +1442,112 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
             )}
 
-            <div className="pt-2 space-y-2.5">
-              {supportCountdown > 0 ? (
-                <a
-                  href="https://saweria.co/bayukurniawan30"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse"
-                >
-                  <Heart className="w-4 h-4 text-white fill-white" />
-                  <span>Support Me ({supportCountdown}s)</span>
-                </a>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 px-3.5 py-3">
+              {session.isPending || accountPending ? (
+                <div className="flex items-center justify-center gap-2 py-1 text-xs text-slate-400">
+                  <Loading01 className="h-3.5 w-3.5 animate-spin text-pastel-pink" />
+                  Checking your credits…
+                </div>
+              ) : !sessionUser ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-white">Sign in to export</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">
+                      New accounts receive 100 welcome credits.
+                    </p>
+                  </div>
+                  <AuthButton variant="studio" />
+                </div>
               ) : (
-                <button
-                  disabled={isExporting}
-                  onClick={() => handleExport(state.exportFormat, false)}
-                  className={`w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm ${
-                    isExporting
-                      ? 'opacity-60 cursor-not-allowed'
-                      : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
-                  }`}
-                  style={{
-                    backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
-                  }}
-                >
-                  {exportingType === 'image' ? (
-                    <>
-                      <Loading01 className="w-4 h-4 text-slate-950 animate-spin" />
-                      <span>Generating Image...</span>
-                    </>
-                  ) : (
-                    `Download ${state.exportFormat.toUpperCase()} (${state.exportScale}x)`
-                  )}
-                </button>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Your balance
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-white">
+                      {verifiedAccount
+                        ? verifiedAccount.credits.unlimited
+                          ? '∞ Unlimited'
+                          : `${verifiedAccount.credits.balance.toLocaleString()} credits`
+                        : 'Balance unavailable'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Export cost
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-pastel-pink">
+                      {hasUnlimitedExports ? 'Included' : `${imageDownloadCost} credits`}
+                    </p>
+                  </div>
+                </div>
               )}
+            </div>
+
+            {imageExportError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-[11px] leading-5 text-rose-200"
+              >
+                {imageExportError}
+              </div>
+            )}
+            {imageExportNotice && (
+              <div
+                role="status"
+                className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-3 text-[11px] leading-5 text-emerald-200"
+              >
+                {imageExportNotice}
+              </div>
+            )}
+
+            <div className="pt-2 space-y-2.5">
+              <button
+                disabled={imageActionsDisabled}
+                onClick={() =>
+                  imageDownloadInsufficient
+                    ? setCreditDialogOpen(true)
+                    : handleExport(state.exportFormat, false)
+                }
+                className={`w-full py-3 text-slate-950 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm ${
+                  imageActionsDisabled
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'hover:brightness-110 active:scale-[0.99] cursor-pointer'
+                }`}
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
+                }}
+              >
+                {exportingType === 'image' ? (
+                  <>
+                    <Loading01 className="w-4 h-4 text-slate-950 animate-spin" />
+                    <span>Generating Image...</span>
+                  </>
+                ) : hasUnlimitedExports ? (
+                  `Download ${state.exportFormat.toUpperCase()} (${state.exportScale}x) · Included`
+                ) : imageDownloadInsufficient ? (
+                  `Buy credits to export (${imageDownloadCost} needed)`
+                ) : (
+                  `Download ${state.exportFormat.toUpperCase()} (${state.exportScale}x) · ${imageDownloadCost} credits`
+                )}
+              </button>
 
               <button
-                disabled={isExporting}
-                onClick={() => handleExport('png', true)}
+                disabled={imageActionsDisabled}
+                onClick={() =>
+                  imageCopyInsufficient ? setCreditDialogOpen(true) : handleExport('png', true)
+                }
                 className={`w-full py-2.5 bg-neutral-800 text-slate-200 font-semibold text-xs rounded-xl border border-neutral-700 transition-all flex items-center justify-center gap-2 ${
-                  isExporting
+                  imageActionsDisabled
                     ? 'opacity-50 cursor-not-allowed'
                     : 'hover:bg-neutral-750 hover:border-neutral-600 hover:text-white cursor-pointer'
                 }`}
               >
-                Copy PNG to Clipboard
+                {hasUnlimitedExports
+                  ? 'Copy PNG to Clipboard · Included'
+                  : imageCopyInsufficient
+                    ? `Buy credits to copy (${imageCopyCost} needed)`
+                    : `Copy PNG to Clipboard · ${imageCopyCost} credits`}
               </button>
             </div>
           </>
@@ -1225,6 +1664,74 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
             )}
 
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 px-3.5 py-3">
+              {session.isPending || accountPending ? (
+                <div className="flex items-center justify-center gap-2 py-1 text-xs text-slate-400">
+                  <Loading01 className="h-3.5 w-3.5 animate-spin text-pastel-pink" />
+                  Checking your credits…
+                </div>
+              ) : !sessionUser ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-white">Sign in to export</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">
+                      New accounts receive 100 welcome credits.
+                    </p>
+                  </div>
+                  <AuthButton variant="studio" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Your balance
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-white">
+                      {verifiedAccount
+                        ? verifiedAccount.credits.unlimited
+                          ? '∞ Unlimited'
+                          : `${verifiedAccount.credits.balance.toLocaleString()} credits`
+                        : 'Balance unavailable'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      {videoDurationSeconds}s video
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-pastel-pink">
+                      {hasUnlimitedExports ? 'Included' : `${videoExportCost} credits`}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {videoDurationInvalid && (
+              <div
+                role="alert"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-5 text-amber-200"
+              >
+                Paid video exports must be between 1 and 30 seconds. Shorten the animation or export
+                fewer stages.
+              </div>
+            )}
+            {videoExportError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-[11px] leading-5 text-rose-200"
+              >
+                {videoExportError}
+              </div>
+            )}
+            {videoExportNotice && (
+              <div
+                role="status"
+                className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-3 text-[11px] leading-5 text-emerald-200"
+              >
+                {videoExportNotice}
+              </div>
+            )}
+
             <div className="pt-2 w-full">
               {isExporting && exportingType === 'video' ? (
                 /* Active Video Export Progress & 100% Clickable Stop Button */
@@ -1269,12 +1776,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               ) : (
                 /* Idle or Success Action Button */
                 <button
-                  disabled={isExporting}
-                  onClick={handleExportVideo}
-                  className={`w-full h-11 rounded-xl transition-all flex items-center justify-center gap-2 font-extrabold text-xs shadow-lg cursor-pointer ${
+                  disabled={videoActionsDisabled}
+                  onClick={() =>
+                    videoExportInsufficient ? setCreditDialogOpen(true) : handleExportVideo()
+                  }
+                  className={`w-full h-11 rounded-xl transition-all flex items-center justify-center gap-2 font-extrabold text-xs shadow-lg ${
                     isSuccess
                       ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30 font-black'
-                      : 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 hover:brightness-110'
+                      : videoActionsDisabled
+                        ? 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 opacity-60 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 hover:brightness-110 cursor-pointer'
                   }`}
                 >
                   {isSuccess ? (
@@ -1286,33 +1797,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                     <>
                       <Film01 className="w-4 h-4 text-slate-950" />
                       <span>
-                        {exportScope === 'all' && (state.stages?.length || 1) > 1
-                          ? `Record All Stages (${state.stages?.length}) into 1 ${videoFormat.toUpperCase()}`
-                          : `Record & Export ${videoFormat.toUpperCase()} Video`}
+                        {hasUnlimitedExports
+                          ? exportScope === 'all' && (state.stages?.length || 1) > 1
+                            ? `Record All Stages (${state.stages?.length}) · Included`
+                            : `Record & Export ${videoFormat.toUpperCase()} · Included`
+                          : videoExportInsufficient
+                            ? `Buy credits to export (${videoExportCost} needed)`
+                            : exportScope === 'all' && (state.stages?.length || 1) > 1
+                              ? `Record All Stages (${state.stages?.length}) · ${videoExportCost} credits`
+                              : `Record & Export ${videoFormat.toUpperCase()} · ${videoExportCost} credits`}
                       </span>
                     </>
                   )}
                 </button>
               )}
             </div>
-
-              {/* Support Me Link displayed while Video Export is running */}
-              {isExporting && exportingType === 'video' && (
-                <a
-                  href="https://saweria.co/bayukurniawan30"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 w-full py-2.5 bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse"
-                >
-                  <Heart className="w-4 h-4 text-white fill-white" />
-                  <span>Support Me</span>
-                </a>
-              )}
           </>
         )}
 
         {/* Tab 3: Share */}
-        {activeTab === 'share' && (
+        {sessionUser && activeTab === 'share' && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -1344,12 +1848,42 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Visibility
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['private', 'public'] as const).map((visibility) => (
+                  <button
+                    key={visibility}
+                    type="button"
+                    disabled={isSharing}
+                    onClick={() => setShareVisibility(visibility)}
+                    className={`rounded-xl border px-3 py-3 text-left transition-all ${
+                      shareVisibility === visibility
+                        ? 'border-[#a2d2ff]/50 bg-[#a2d2ff]/15 text-white'
+                        : 'border-neutral-800 bg-neutral-950/70 text-slate-400 hover:border-neutral-700 hover:text-slate-200'
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    <span className="block text-xs font-bold capitalize">{visibility}</span>
+                    <span className="mt-1 block text-[10px] leading-4 text-slate-500">
+                      {visibility === 'private'
+                        ? 'Only you can open this design.'
+                        : 'Submit it for review before Explore.'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {shareUrl ? (
               <div className="pt-1 space-y-2.5">
                 <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/40 rounded-xl px-3 py-2">
                   <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span className="text-xs text-emerald-300 font-semibold">
-                    Design shared successfully!
+                    {shareVisibility === 'public'
+                      ? 'Design submitted for review!'
+                      : 'Private design saved successfully!'}
                   </span>
                 </div>
 
@@ -1422,8 +1956,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   )}
                 </button>
                 <p className="text-[10px] text-slate-500 text-center leading-snug">
-                  Sharing will publish your design to the community gallery. Your Name and Publisher
-                  appear on the shared design.
+                  {shareVisibility === 'public'
+                    ? 'Public designs are reviewed before they can appear in Explore. Your design name and publisher will be visible.'
+                    : 'Private designs stay out of Explore and can only be opened while signed in to this account.'}
                 </p>
               </div>
             )}
@@ -1464,6 +1999,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           </div>
         )}
       </div>
+      {creditDialogOpen && !hasUnlimitedExports && (
+        <CreditPackDialog variant="studio" onClose={() => setCreditDialogOpen(false)} />
+      )}
     </div>
   );
 };

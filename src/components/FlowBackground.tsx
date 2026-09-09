@@ -502,6 +502,7 @@ export const FlowBackground: React.FC<FlowBackgroundProps> = ({
 
   return (
     <div
+      data-video-export-dynamic-background="flow"
       className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${className}`}
       style={{
         backgroundColor: c[1],
@@ -511,6 +512,7 @@ export const FlowBackground: React.FC<FlowBackgroundProps> = ({
     >
       <canvas
         ref={canvasRef}
+        data-video-export-flow-canvas="true"
         className="absolute inset-0 w-full h-full block pointer-events-none"
         style={{
           width: '100%',

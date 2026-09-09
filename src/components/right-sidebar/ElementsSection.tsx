@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { Copy01, Trash01, ChevronDown } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Coolshape } from 'coolshapes-react';
@@ -12,6 +12,7 @@ import {
   parseColorAndAlpha,
   formatColorWithAlpha,
 } from '../../utils/gradientPresets';
+import { canBooleanOperateOnShape } from '../../utils/shapeBoolean';
 
 const COOLSHAPE_CATEGORIES: { id: CoolshapeCategory; label: string; count: number }[] = [
   { id: 'star', label: 'Star', count: 13 },
@@ -27,7 +28,7 @@ const COOLSHAPE_CATEGORIES: { id: CoolshapeCategory; label: string; count: numbe
 ];
 
 export const ElementsSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const [shapeTab, setShapeTab] = useState<'basic' | 'coolshapes'>('coolshapes');
   const [activeCoolshapeCat, setActiveCoolshapeCat] = useState<CoolshapeCategory>('star');
   const [customEmojiInput, setCustomEmojiInput] = useState('');
@@ -44,24 +45,6 @@ export const ElementsSection: React.FC = () => {
 
   const createSvgDataUri = (svg: string): string => {
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  };
-
-  const isCustomShape = (s?: import('../../types/studio').ShapeLayer | null): boolean => {
-    if (!s) return false;
-    if (s.shapeType === 'custom-path' || Boolean(s.pathData) || Boolean(s.unitPathData))
-      return true;
-    if (s.shapeType === 'coolshape' || s.shapeType === 'quote') return true;
-    const name = (s.name || '').toLowerCase();
-    if (
-      name.includes('custom') ||
-      name.includes('pen') ||
-      name.includes('vector') ||
-      name.includes('path')
-    )
-      return true;
-    const basicTypes = ['rectangle', 'square', 'circle', 'triangle', 'hexagon'];
-    if (!basicTypes.includes(s.shapeType)) return true;
-    return false;
   };
 
   const arrowItems = Array.from({ length: 10 }).map((_, i) => ({
@@ -787,8 +770,7 @@ export const ElementsSection: React.FC = () => {
         const selectedShapes = (state.shapeLayers || []).filter((s) => allSelectedIds.has(s.id));
         if (selectedShapes.length < 2) return null;
 
-        // Hide if any selected shape is a custom shape or pen-drawn shape
-        if (selectedShapes.some(isCustomShape) || isCustomShape(selectedShape)) return null;
+        if (selectedShapes.some((shape) => !canBooleanOperateOnShape(shape))) return null;
 
         return (
           <div className="p-3.5 rounded-xl bg-gradient-to-r from-pastel-pink/15 via-purple-500/10 to-pastel-blue/15 border border-pastel-pink/30 space-y-3 animate-in fade-in duration-200">

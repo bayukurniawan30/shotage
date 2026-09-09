@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ChevronDown } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
 import { getAspectRatioCategory, getAspectRatioLabel, getRecommendedZoomForAspect } from './utils';
 
 export const AspectSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   const [isAspectDropdownOpen, setIsAspectDropdownOpen] = useState(false);

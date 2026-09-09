@@ -22,6 +22,7 @@ import { LINEAR_SWATCH_PRESETS } from '../utils/linearSwatchPresets';
 import { GRADIENT_PRESETS } from '../utils/gradientPresets';
 import { PROJECTS } from '../components/ProjectSpotlight';
 import { Footer } from '../components/Footer';
+import { AuthButton } from '../components/auth/AuthButton';
 import type { FrameType } from '../types/studio';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -292,7 +293,7 @@ export const Home: React.FC = () => {
           }`}
         >
           <div
-            className={`flex items-center justify-between transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            className={`relative flex items-center justify-between transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
               isScrolled ? 'gap-3 sm:gap-6' : 'w-full'
             }`}
           >
@@ -312,10 +313,10 @@ export const Home: React.FC = () => {
 
             {/* Desktop Navigation Links (Smoothly collapse/expand with fluid morph) */}
             <div
-              className={`hidden md:flex items-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
+              className={`hidden lg:absolute lg:left-1/2 lg:flex lg:-translate-x-1/2 items-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
                 isScrolled
                   ? 'max-w-0 opacity-0 pointer-events-none -translate-y-1 scale-95 gap-0'
-                  : 'max-w-md opacity-100 translate-y-0 scale-100 gap-8'
+                  : 'max-w-xl opacity-100 translate-y-0 scale-100 gap-7'
               }`}
             >
               <a
@@ -348,10 +349,17 @@ export const Home: React.FC = () => {
               >
                 FAQ
               </a>
+              <a
+                href="/pricing"
+                className="hover:text-white transition-colors whitespace-nowrap text-xs font-semibold text-slate-300"
+              >
+                Pricing
+              </a>
             </div>
 
             {/* CTA Button */}
             <div className="flex items-center gap-2 shrink-0">
+              <AuthButton compact={isScrolled} />
               <a
                 href="/studio"
                 onClick={handleHeaderAction}
@@ -1380,17 +1388,17 @@ export const Home: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bento 3: 100% Client-Side Privacy */}
+              {/* Bento 3: Local-First Privacy */}
               <div className="p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-4 flex flex-col justify-between">
                 <div className="space-y-4">
                   <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 font-bold text-[10px] uppercase">
-                    Zero Server Storage
+                    Local by Default
                   </span>
-                  <h3 className="text-xl font-bold text-white">100% Private & Local</h3>
+                  <h3 className="text-xl font-bold text-white">Private & Local by Default</h3>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    All canvas rendering, 3D transforms, and video encoding run strictly client-side
-                    on your local device. Your original raw images and media are never uploaded or
-                    stored on our servers.
+                    Canvas rendering, 3D transforms, and video encoding run client-side on your
+                    device. Your media is not uploaded while editing or exporting—it is only
+                    uploaded when you explicitly use Share Design with your selected visibility.
                   </p>
                 </div>
                 <div className="pt-2">

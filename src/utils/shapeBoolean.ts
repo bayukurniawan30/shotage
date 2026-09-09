@@ -3,6 +3,26 @@ import { ShapeLayer } from '../types/studio';
 
 export type BooleanOperation = 'union' | 'subtract' | 'intersect' | 'exclude';
 
+const BASIC_BOOLEAN_SHAPES = new Set<ShapeLayer['shapeType']>([
+  'rectangle',
+  'square',
+  'circle',
+  'triangle',
+  'hexagon',
+  'quote',
+]);
+
+/**
+ * Boolean operations can use primitives and SVG paths produced by the pen tool.
+ * Coolshapes do not expose their source path, so treating them as a primitive
+ * would incorrectly turn them into rectangles.
+ */
+export function canBooleanOperateOnShape(shape?: ShapeLayer | null): boolean {
+  if (!shape) return false;
+  if (shape.shapeType === 'custom-path') return Boolean(shape.pathData?.trim());
+  return BASIC_BOOLEAN_SHAPES.has(shape.shapeType);
+}
+
 /**
  * Parses standard SVG path string into closed polygon rings with sampled Bezier curves.
  */
@@ -369,8 +389,7 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
     }
 
     case 'rectangle':
-    case 'square':
-    default: {
+    case 'square': {
       const radius = Math.min(shape.borderRadius ?? 0, hw, hh);
       if (radius > 1) {
         // Approximated rounded corners with 4 segments per quadrant
@@ -397,6 +416,11 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
       }
       break;
     }
+
+    default:
+      // Never silently approximate an unsupported vector (for example a
+      // Coolshape) as a rectangle.
+      return [[]];
   }
 
   // Transform local points to world coordinates by rotation and center position (shape.x, shape.y)
@@ -431,7 +455,7 @@ export function booleanOperationOnShapes(
   operation: BooleanOperation = 'union'
 ): ShapeLayer | null {
   if (!shapes || shapes.length < 2) return null;
-  if (shapes.some((s) => s.shapeType === 'custom-path')) return null;
+  if (shapes.some((shape) => !canBooleanOperateOnShape(shape))) return null;
 
   // For subtract: shapes[0] is subject (base layer), shapes[1..N] are cutters.
   // For other operations: shapes[0] is the primary styling layer.

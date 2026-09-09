@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStudioStore } from '../store/useStudioStore';
+import { useStudioEditorStore } from '../store/useStudioStore';
 import {
   ImageUploadSection,
   AspectSection,
@@ -16,7 +16,7 @@ interface LeftSidebarProps {
 }
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onImageUpload, mobileSection }) => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
 
   const isDeviceFrame = [
     'iphone',

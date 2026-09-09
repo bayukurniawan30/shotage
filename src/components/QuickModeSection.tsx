@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as PhosphorIcons from '@phosphor-icons/react';
-import { useStudioStore } from '../store/useStudioStore';
+import { useStudioEditorStore } from '../store/useStudioStore';
 import { GRADIENT_PRESETS, GradientPreset } from '../utils/gradientPresets';
 import { LINEAR_SWATCH_PRESETS, LinearSwatchPreset } from '../utils/linearSwatchPresets';
 import { MESH_PRESETS, MeshPreset } from '../utils/meshPresets';
@@ -439,7 +439,7 @@ function pickRandom4<T>(items: T[]): T[] {
 }
 
 export const QuickModeSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   // Track active background category index for cycling

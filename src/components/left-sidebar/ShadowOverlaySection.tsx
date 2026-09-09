@@ -1,10 +1,10 @@
 import React from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { MiniCanvasBackground } from './MiniCanvasBackground';
 import { StepperSlider } from '../StepperSlider';
 
 export const ShadowOverlaySection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   const overlays = [

@@ -15,9 +15,14 @@ const getInitialPage = () => {
   const currentPath = window.location.pathname;
   let componentName = 'Home';
   if (currentPath === '/studio') componentName = 'Studio';
+  if (currentPath === '/pricing') componentName = 'Pricing';
   if (currentPath === '/terms') componentName = 'Terms';
+  if (currentPath === '/privacy') componentName = 'Privacy';
+  if (currentPath === '/refund-policy') componentName = 'RefundPolicy';
   if (currentPath === '/faq') componentName = 'Faq';
   if (currentPath === '/explore') componentName = 'Explore';
+  if (currentPath === '/purchases') componentName = 'Purchases';
+  if (currentPath === '/designs') componentName = 'Designs';
 
   return {
     component: componentName,
@@ -28,15 +33,16 @@ const getInitialPage = () => {
 };
 
 const initialPage = getInitialPage();
+const pages = import.meta.glob<any>('./pages/**/*.tsx');
 
 createInertiaApp({
   page: initialPage,
-  resolve: (name) => {
-    const pages = import.meta.glob<any>('./pages/**/*.tsx', { eager: true });
-    const module = pages[`./pages/${name}.tsx`];
-    if (!module) {
+  resolve: async (name) => {
+    const loadPage = pages[`./pages/${name}.tsx`];
+    if (!loadPage) {
       throw new Error(`Page ${name} not found`);
     }
+    const module = await loadPage();
     return module.default || module;
   },
   setup({ el, App, props }) {

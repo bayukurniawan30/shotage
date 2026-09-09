@@ -1,11 +1,11 @@
 import React from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ShinePreset } from '../../types/studio';
 import { MiniCanvasBackground } from './MiniCanvasBackground';
 import { StepperSlider } from '../StepperSlider';
 
 export const ShineSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
   const onChange = state.updateState;
 
   const activePreset: ShinePreset = state.shinePreset || (state.enableShine ? 'diagonal-glass' : 'none');

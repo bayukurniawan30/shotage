@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { useStudioStore } from '../../store/useStudioStore';
+import { useStudioEditorStore } from '../../store/useStudioStore';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Copy01, Trash01 } from '@untitledui/icons';
 import { Toggle } from '../Toggle';
 import { StepperSlider } from '../StepperSlider';
 import { PhosphorWeight, PhosphorBadgeStyle } from '../../types/studio';
+import { getPhosphorIcon } from '../phosphorIconRegistry';
 
 export const PhosphorIconsSection: React.FC = () => {
-  const state = useStudioStore();
+  const state = useStudioEditorStore();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -346,7 +347,7 @@ export const PhosphorIconsSection: React.FC = () => {
         {/* Icon Grid Picker */}
         <div className="grid grid-cols-5 gap-1.5 max-h-40 overflow-y-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800 no-scrollbar">
           {filteredItems.map((item) => {
-            const IconComp = (PhosphorIcons as any)[item.id] || PhosphorIcons.SparkleIcon;
+            const IconComp = getPhosphorIcon(item.id);
             return (
               <button
                 key={`${item.category}-${item.id}`}
@@ -378,7 +379,7 @@ export const PhosphorIconsSection: React.FC = () => {
           <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
             {iconLayers.map((layer, index) => {
               const isSelected = layer.id === state.selectedPhosphorIconLayerId;
-              const IconComp = (PhosphorIcons as any)[layer.iconId] || PhosphorIcons.SparkleIcon;
+              const IconComp = getPhosphorIcon(layer.iconId);
               return (
                 <div
                   key={layer.id}
