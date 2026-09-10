@@ -107,6 +107,14 @@ const CenterPointIndicator: React.FC<CenterPointIndicatorProps> = ({
 export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUpload }) => {
   const state = useStudioStore();
 
+  // Recalculate legacy or restored groups once selected so the outline always
+  // reflects the complete outer bounds of every member.
+  useEffect(() => {
+    if (state.selectedLayerGroupId) {
+      state.refreshLayerGroupBounds(state.selectedLayerGroupId);
+    }
+  }, [state.selectedLayerGroupId, state.refreshLayerGroupBounds]);
+
   // Pen Tool Drawing State & Action References
   const [penNodeCount, setPenNodeCount] = useState(0);
   const [penLastHasHandle, setPenLastHasHandle] = useState(false);
@@ -355,7 +363,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               ? (state.canvasElements || []).find((l) => l.id === e.id)
               : (state.shapeLayers || []).find((l) => l.id === e.id);
       if (!layer) return false;
-      return ((layer as any).position || 'above') === position;
+      const parentGroup = (state.layerGroups || []).find((group) =>
+        group.members.some((member) => member.type === e.type && member.id === e.id)
+      );
+      return (parentGroup?.position || (layer as any).position || 'above') === position;
     });
 
     const idx = groupOrder.findIndex((e) => e.type === type && e.id === id);
@@ -368,6 +379,54 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       if (idx === -1 || groupOrder.length === 0) return 30;
       return 30 + (groupOrder.length - idx);
     }
+  };
+
+  const getLayerGroup = (type: import('../types/studio').LayerType, id: string) =>
+    (state.layerGroups || []).find((group) =>
+      group.members.some((member) => member.type === type && member.id === id)
+    );
+
+  const applyLayerGroupTransform = (
+    type: import('../types/studio').LayerType,
+    id: string,
+    x: number,
+    y: number,
+    rotation: number,
+    scaleX: number,
+    scaleY: number,
+    opacity: number,
+    visible: boolean,
+    blur = 0
+  ) => {
+    const group = getLayerGroup(type, id);
+    if (!group) {
+      return { x, y, rotation, scaleX, scaleY, opacity, visible, blur, group: null };
+    }
+
+    const keyframe = evaluateLayerKeyframes(group, state.currentTimeSec, state.animationEasing);
+    const motion = evaluateLayerMotion(group.motions, undefined, 0, state.currentTimeSec);
+    const groupX = (keyframe.x ?? group.x) + motion.dx;
+    const groupY = (keyframe.y ?? group.y) + motion.dy;
+    const groupScale = Math.max(0.05, (keyframe.scale ?? group.scale ?? 1) * motion.scale);
+    const groupRotation = (keyframe.rotation ?? group.rotation ?? 0) + motion.rotate;
+    const radians = (groupRotation * Math.PI) / 180;
+    // Layer x/y values are offsets from the canvas centre, so they also represent
+    // the visual centre used by the flex-positioned absolute layer elements.
+    const dx = x - group.originX;
+    const dy = y - group.originY;
+
+    return {
+      x: groupX + (dx * Math.cos(radians) - dy * Math.sin(radians)) * groupScale,
+      y: groupY + (dx * Math.sin(radians) + dy * Math.cos(radians)) * groupScale,
+      rotation: rotation + groupRotation,
+      scaleX: scaleX * groupScale,
+      scaleY: scaleY * groupScale,
+      opacity:
+        opacity * ((keyframe.opacity ?? group.opacity ?? 100) / 100) * motion.opacity,
+      visible: visible && group.visible !== false && motion.isVisible,
+      blur: blur + (motion.blur ?? 0),
+      group,
+    };
   };
 
   const getElementLoopTransform = (
@@ -410,7 +469,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const renderTextLayers = (positionFilter: 'above' | 'underneath') => {
     return state.textLayers
-      .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
+      .filter(
+        (layer) =>
+          (getLayerGroup('text', layer.id)?.position || layer.position || 'above') ===
+            positionFilter && layer.visible !== false
+      )
       .map((layer) => {
         const isSelected = (state.selectedTextLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
@@ -433,6 +496,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const posFontSize = kfValues.fontSize ?? layer.fontSize;
         const sx = kfValues.scaleX ?? layer.scaleX ?? 1;
         const sy = kfValues.scaleY ?? layer.scaleY ?? 1;
+        const grouped = applyLayerGroupTransform(
+          'text',
+          layer.id,
+          posX + motion.dx,
+          posY + motion.dy,
+          posRot,
+          sx * motion.scale,
+          sy * motion.scale,
+          (posOpacity / 100) * motion.opacity,
+          motion.isVisible,
+          motion.blur ?? 0
+        );
 
         const textFillStyle: React.CSSProperties = layer.bgImage
           ? {
@@ -536,18 +611,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           <div
             key={layer.id}
             data-layer-id={layer.id}
+            data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
+              if (grouped.group) {
+                state.selectLayerGroup(grouped.group.id);
+                return;
+              }
               if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleTextLayer(layer.id);
               } else {
                 state.selectTextLayer(layer.id);
               }
             }}
-            className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
+            className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`,
+              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${grouped.rotation}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${posFontSize}px`,
@@ -555,8 +635,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
               textAlign: layer.textAlign,
-              opacity: motion.isVisible ? (posOpacity / 100) * motion.opacity : 0,
-              filter: (motion.blur ?? 0) > 0 ? `blur(${motion.blur}px)` : undefined,
+              opacity: grouped.visible ? grouped.opacity : 0,
+              filter: grouped.blur > 0 ? `blur(${grouped.blur}px)` : undefined,
               textShadow:
                 layer.bgImage || layer.gradient
                   ? 'none'
@@ -633,7 +713,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderPhosphorIconLayers = (positionFilter: 'above' | 'underneath') => {
     const layers = state.phosphorIconLayers || [];
     return layers
-      .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
+      .filter(
+        (layer) =>
+          (getLayerGroup('phosphor', layer.id)?.position || layer.position || 'above') ===
+            positionFilter && layer.visible !== false
+      )
       .map((layer) => {
         const isSelected = (state.selectedPhosphorIconLayerIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
@@ -680,26 +764,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const iconYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
         const iconOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const iconScale = kfValues.scale ?? 1;
+        const grouped = applyLayerGroupTransform(
+          'phosphor',
+          layer.id,
+          posX + motion.dx,
+          posY + motion.dy,
+          iconRot,
+          iconScale * motion.scale,
+          iconScale * motion.scale,
+          (iconOpacity / 100) * motion.opacity,
+          motion.isVisible,
+          motion.blur ?? 0
+        );
 
         return (
           <div
             key={layer.id}
             data-layer-id={layer.id}
+            data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
+              if (grouped.group) {
+                state.selectLayerGroup(grouped.group.id);
+                return;
+              }
               if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleSelectPhosphorIconLayer(layer.id);
               } else {
                 state.selectPhosphorIconLayer(layer.id);
               }
             }}
-            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
+            className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
-              transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) scale(${iconScale * motion.scale})`,
-              opacity: motion.isVisible ? (iconOpacity / 100) * motion.opacity : 0,
+              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${grouped.rotation}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
+                `${grouped.blur > 0 ? `blur(${grouped.blur}px) ` : ''}${layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
                 'none',
             }}
           >
@@ -718,7 +819,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderCanvasElements = (positionFilter: 'above' | 'underneath') => {
     const elements = state.canvasElements || [];
     return elements
-      .filter((el) => (el.position || 'above') === positionFilter && el.visible !== false)
+      .filter(
+        (el) =>
+          (getLayerGroup('element', el.id)?.position || el.position || 'above') === positionFilter &&
+          el.visible !== false
+      )
       .map((el) => {
         const isSelected = (state.selectedElementIds || []).includes(el.id);
         const layerLocked = el.locked === true;
@@ -741,26 +846,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const elScaleY = (kfValues.scaleY ?? 1) * (el.flipY ? -1 : 1);
 
         const combinedBlur = (el.blur ?? 0) + (motion.blur ?? 0);
+        const grouped = applyLayerGroupTransform(
+          'element',
+          el.id,
+          posX + motion.dx,
+          posY + motion.dy,
+          elRot,
+          elScaleX * motion.scale,
+          elScaleY * motion.scale,
+          (elOpacity / 100) * motion.opacity,
+          motion.isVisible,
+          combinedBlur
+        );
 
         return (
           <div
             key={el.id}
             data-layer-id={el.id}
+            data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
+              if (grouped.group) {
+                state.selectLayerGroup(grouped.group.id);
+                return;
+              }
               if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleSelectCanvasElement(el.id);
               } else {
                 state.selectCanvasElement(el.id);
               }
             }}
-            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
+            className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
-              transform: `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`,
-              opacity: motion.isVisible ? (elOpacity / 100) * motion.opacity : 0,
+              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${grouped.rotation}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                `${combinedBlur > 0 ? `blur(${combinedBlur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
+                `${grouped.blur > 0 ? `blur(${grouped.blur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
                 'none',
               width: `${elWidth}px`,
               height: `${elHeight}px`,
@@ -798,7 +920,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const renderShapeLayers = (positionFilter: 'above' | 'underneath') => {
     const layers = state.shapeLayers || [];
     return layers
-      .filter((layer) => (layer.position || 'above') === positionFilter && layer.visible !== false)
+      .filter(
+        (layer) =>
+          (getLayerGroup('shape', layer.id)?.position || layer.position || 'above') ===
+            positionFilter && layer.visible !== false
+      )
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
         const layerLocked = layer.locked === true;
@@ -849,6 +975,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         };
 
         const isGlass = !!layer.glassmorphism && layer.shapeType !== 'coolshape';
+        const borderWidth = Math.max(0, layer.borderWidth ?? 2);
+        const borderColor = layer.borderColor || '#ffffff';
+        const hasBorder =
+          layer.borderEnabled === true && borderWidth > 0 && layer.shapeType !== 'coolshape';
         const blurAmount = layer.glassmorphismBlur ?? 16;
         const isPolygonOrMask =
           layer.shapeType === 'hexagon' ||
@@ -928,12 +1058,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const shapeScaleY = kfValues.scaleY ?? 1;
         const shapeOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
+        const grouped = applyLayerGroupTransform(
+          'shape',
+          layer.id,
+          posX + motion.dx,
+          posY + motion.dy,
+          shapeRot,
+          shapeScaleX * motion.scale,
+          shapeScaleY * motion.scale,
+          isGlass ? motion.opacity : (shapeOpacity / 100) * motion.opacity,
+          motion.isVisible,
+          motion.blur ?? 0
+        );
 
         const has3D = shapePitch !== 0 || shapeYaw !== 0;
         const shouldDropShadow = layer.shadow && (!isGlass || isPolygonOrMask);
         const transformStr = has3D
-          ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
-          : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`;
+          ? `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${grouped.rotation}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`
+          : `translate(${grouped.x}px, ${grouped.y}px) rotate(${grouped.rotation}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`;
 
         const customUnitPath =
           layer.unitPathData ||
@@ -954,26 +1096,27 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           <div
             key={layer.id}
             data-layer-id={layer.id}
+            data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
+              if (grouped.group) {
+                state.selectLayerGroup(grouped.group.id);
+                return;
+              }
               if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
                 state.toggleSelectShapeLayer(layer.id);
               } else {
                 state.selectShapeLayer(layer.id);
               }
             }}
-            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked || !motion.isVisible ? 'pointer-events-none' : ''}`}
+            className={`shape-layer-item absolute cursor-pointer select-none ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
               transformStyle: has3D ? 'preserve-3d' : undefined,
-              opacity: motion.isVisible
-                ? isGlass
-                  ? motion.opacity
-                  : (shapeOpacity / 100) * motion.opacity
-                : 0,
+              opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                `${(motion.blur ?? 0) > 0 ? `blur(${motion.blur}px) ` : ''}${shouldDropShadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.55))' : ''}`.trim() ||
+                `${grouped.blur > 0 ? `blur(${grouped.blur}px) ` : ''}${shouldDropShadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.55))' : ''}`.trim() ||
                 'none',
               width: `${shapeWidth}px`,
               height: `${shapeHeight}px`,
@@ -1017,11 +1160,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                       backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
                       WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
                       border:
-                        !isPolygonOrMask && layer.glassmorphismBorder !== false
+                        !isPolygonOrMask && layer.glassmorphismBorder !== false && !hasBorder
                           ? '1px solid rgba(255, 255, 255, 0.4)'
                           : 'none',
                       boxShadow:
-                        !isPolygonOrMask && layer.glassmorphismBorder !== false
+                        !isPolygonOrMask && layer.glassmorphismBorder !== false && !hasBorder
                           ? layer.shadow
                             ? 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1), 0 12px 36px 0 rgba(0, 0, 0, 0.45)'
                             : 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1), 0 8px 32px 0 rgba(0, 0, 0, 0.25)'
@@ -1138,13 +1281,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                       ) : null}
 
                       {/* Outer Stroke (Glassmorphic border outline) */}
-                      {isGlass && layer.glassmorphismBorder !== false && (
+                      {isGlass && (hasBorder || layer.glassmorphismBorder !== false) && (
                         <path
                           d={layer.pathData}
                           fill="none"
-                          stroke="rgba(255, 255, 255, 0.45)"
-                          strokeWidth={1.5}
+                          stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
+                          strokeWidth={hasBorder ? borderWidth : 1.5}
                           vectorEffect="non-scaling-stroke"
+                          fillRule="evenodd"
+                        />
+                      )}
+
+                      {!isGlass && hasBorder && (
+                        <path
+                          d={layer.pathData}
+                          fill="none"
+                          stroke={borderColor}
+                          strokeWidth={borderWidth}
+                          vectorEffect="non-scaling-stroke"
+                          strokeLinejoin="round"
                           fillRule="evenodd"
                         />
                       )}
@@ -1153,7 +1308,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 })()}
 
               {/* Hexagon glassmorphic frosted border outline */}
-              {isGlass && layer.shapeType === 'hexagon' && layer.glassmorphismBorder !== false && (
+              {(hasBorder ||
+                (isGlass &&
+                  layer.shapeType === 'hexagon' &&
+                  layer.glassmorphismBorder !== false)) &&
+                layer.shapeType === 'hexagon' && (
                 <svg
                   className="absolute inset-0 w-full h-full pointer-events-none"
                   viewBox="0 0 100 100"
@@ -1162,15 +1321,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   <polygon
                     points="25,0.75 75,0.75 99.25,50 75,99.25 25,99.25 0.75,50"
                     fill="none"
-                    stroke="rgba(255, 255, 255, 0.45)"
-                    strokeWidth="1.5"
+                    stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
+                    strokeWidth={hasBorder ? borderWidth * 2 : 1.5}
                     vectorEffect="non-scaling-stroke"
+                    strokeLinejoin="round"
                   />
                 </svg>
               )}
 
               {/* Triangle glassmorphic frosted border outline */}
-              {isGlass && layer.shapeType === 'triangle' && layer.glassmorphismBorder !== false && (
+              {(hasBorder ||
+                (isGlass &&
+                  layer.shapeType === 'triangle' &&
+                  layer.glassmorphismBorder !== false)) &&
+                layer.shapeType === 'triangle' && (
                 <svg
                   className="absolute inset-0 w-full h-full pointer-events-none"
                   viewBox="0 0 100 100"
@@ -1179,9 +1343,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   <polygon
                     points="50,1 99,99 1,99"
                     fill="none"
-                    stroke="rgba(255, 255, 255, 0.45)"
-                    strokeWidth="1.5"
+                    stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
+                    strokeWidth={hasBorder ? borderWidth * 2 : 1.5}
                     vectorEffect="non-scaling-stroke"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+
+              {hasBorder &&
+                (layer.shapeType === 'square' ||
+                  layer.shapeType === 'rectangle' ||
+                  layer.shapeType === 'circle') && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      borderRadius:
+                        layer.shapeType === 'circle'
+                          ? '9999px'
+                          : `${layer.borderRadius ?? 8}px`,
+                      boxShadow: `inset 0 0 0 ${borderWidth}px ${borderColor}`,
+                    }}
+                  />
+                )}
+
+              {hasBorder && layer.shapeType === 'quote' && (
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 24 24"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"
+                    fill="none"
+                    stroke={borderColor}
+                    strokeWidth={borderWidth * 2}
+                    vectorEffect="non-scaling-stroke"
+                    strokeLinejoin="round"
                   />
                 </svg>
               )}
@@ -2023,6 +2221,29 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     items: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string; x: number; y: number }[];
   } | null>(null);
 
+  const [layerGroupMove, setLayerGroupMove] = useState<{
+    id: string;
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+    canvasScale: number;
+  } | null>(null);
+  const [layerGroupResize, setLayerGroupResize] = useState<{
+    id: string;
+    centerX: number;
+    centerY: number;
+    startDistance: number;
+    initialScale: number;
+  } | null>(null);
+  const [layerGroupRotate, setLayerGroupRotate] = useState<{
+    id: string;
+    centerX: number;
+    centerY: number;
+    startAngle: number;
+    initialRotation: number;
+  } | null>(null);
+
   // Touch center for 2-finger mobile panning
   const touchCenterRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -2238,6 +2459,63 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       return;
     }
 
+    const layerGroupGizmo = target.closest('.layer-group-gizmo') as HTMLElement | null;
+    const layerGroupId = layerGroupGizmo?.dataset.groupId || '';
+    const layerGroup = (state.layerGroups || []).find((group) => group.id === layerGroupId);
+    if (layerGroupGizmo && layerGroup && !layerGroup.locked) {
+      const groupKeyframe = evaluateLayerKeyframes(
+        layerGroup,
+        state.currentTimeSec,
+        state.animationEasing
+      );
+      const groupAction = target.closest('[data-group-action]') as HTMLElement | null;
+      const rect = layerGroupGizmo.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      if (groupAction?.dataset.groupAction === 'ungroup') {
+        // Let the button's click handler perform the action without beginning a drag.
+        return;
+      } else if (groupAction?.dataset.groupAction === 'resize') {
+        setLayerGroupResize({
+          id: layerGroup.id,
+          centerX,
+          centerY,
+          startDistance: Math.max(1, Math.hypot(e.clientX - centerX, e.clientY - centerY)),
+          initialScale: groupKeyframe.scale ?? layerGroup.scale ?? 1,
+        });
+      } else if (groupAction?.dataset.groupAction === 'rotate') {
+        setLayerGroupRotate({
+          id: layerGroup.id,
+          centerX,
+          centerY,
+          startAngle: Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI),
+          initialRotation: groupKeyframe.rotation ?? layerGroup.rotation ?? 0,
+        });
+      } else if (!groupAction) {
+        let currentScale = 1;
+        const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
+        if (canvasEl) {
+          const canvasRect = canvasEl.getBoundingClientRect();
+          if (canvasRect.width > 0 && canvasEl.offsetWidth > 0) {
+            currentScale = canvasRect.width / canvasEl.offsetWidth;
+          }
+        }
+        setLayerGroupMove({
+          id: layerGroup.id,
+          startX: e.clientX,
+          startY: e.clientY,
+          initialX: groupKeyframe.x ?? layerGroup.x,
+          initialY: groupKeyframe.y ?? layerGroup.y,
+          canvasScale: currentScale,
+        });
+      }
+      state.selectLayerGroup(layerGroup.id);
+      state.updateState({ isPositionDragging: true });
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      return;
+    }
+
     const resizeHandleEl = target.closest('[data-action="resize"]') as HTMLElement | null;
     if (resizeHandleEl) {
       const textLayerEl = target.closest('.text-layer-item') as HTMLElement | null;
@@ -2435,6 +2713,37 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const canvasElementEl = target.closest('.canvas-element-item') as HTMLElement | null;
     const shapeLayerEl = target.closest('.shape-layer-item') as HTMLElement | null;
 
+    const groupedLayerEl = target.closest('[data-group-id]') as HTMLElement | null;
+    const groupedLayerId = groupedLayerEl?.dataset.groupId || '';
+    const groupedLayer = (state.layerGroups || []).find((group) => group.id === groupedLayerId);
+    if (groupedLayer && !groupedLayer.locked) {
+      let currentScale = 1;
+      const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        if (rect.width > 0 && canvasEl.offsetWidth > 0) {
+          currentScale = rect.width / canvasEl.offsetWidth;
+        }
+      }
+      const groupKeyframe = evaluateLayerKeyframes(
+        groupedLayer,
+        state.currentTimeSec,
+        state.animationEasing
+      );
+      setLayerGroupMove({
+        id: groupedLayer.id,
+        startX: e.clientX,
+        startY: e.clientY,
+        initialX: groupKeyframe.x ?? groupedLayer.x,
+        initialY: groupKeyframe.y ?? groupedLayer.y,
+        canvasScale: currentScale,
+      });
+      state.selectLayerGroup(groupedLayer.id);
+      state.updateState({ isPositionDragging: true });
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      return;
+    }
+
     // Modifier+click on a layer: let the native click event handle multi-select
     // toggling instead of starting a drag / pan / single-select here.
     const multiKey = e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode;
@@ -2586,6 +2895,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       }
     } else {
       if (!multiKey) {
+        if (state.selectedLayerGroupId) state.selectLayerGroup(null);
         if ((state.selectedTextLayerIds?.length ?? 0) > 0 && !textLayerEl)
           state.selectTextLayer(null);
         if ((state.selectedPhosphorIconLayerIds?.length ?? 0) > 0 && !phosphorIconLayerEl)
@@ -2604,7 +2914,47 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (rotateDragItem) {
+    if (layerGroupRotate) {
+      const currentAngle =
+        Math.atan2(e.clientY - layerGroupRotate.centerY, e.clientX - layerGroupRotate.centerX) *
+        (180 / Math.PI);
+      let rotation = Math.round(
+        layerGroupRotate.initialRotation + currentAngle - layerGroupRotate.startAngle
+      );
+      rotation = ((((rotation + 180) % 360) + 360) % 360) - 180;
+      for (const target of [-180, -135, -90, -45, 0, 45, 90, 135, 180]) {
+        if (Math.abs(rotation - target) <= 10) {
+          rotation = target;
+          break;
+        }
+      }
+      scheduleDragUpdate(() =>
+        state.updateLayerGroup(layerGroupRotate.id, { rotation })
+      );
+    } else if (layerGroupResize) {
+      const distance = Math.max(
+        1,
+        Math.hypot(e.clientX - layerGroupResize.centerX, e.clientY - layerGroupResize.centerY)
+      );
+      const nextScale = Math.max(
+        0.1,
+        Math.min(10, layerGroupResize.initialScale * (distance / layerGroupResize.startDistance))
+      );
+      scheduleDragUpdate(() =>
+        state.updateLayerGroup(layerGroupResize.id, {
+          scale: Math.round(nextScale * 100) / 100,
+        })
+      );
+    } else if (layerGroupMove) {
+      const scale = layerGroupMove.canvasScale || 1;
+      const x = Math.round(
+        layerGroupMove.initialX + (e.clientX - layerGroupMove.startX) / scale
+      );
+      const y = Math.round(
+        layerGroupMove.initialY + (e.clientY - layerGroupMove.startY) / scale
+      );
+      scheduleDragUpdate(() => state.updateLayerGroup(layerGroupMove.id, { x, y }));
+    } else if (rotateDragItem) {
       const currentAngle =
         Math.atan2(e.clientY - rotateDragItem.centerY, e.clientX - rotateDragItem.centerX) *
         (180 / Math.PI);
@@ -2894,6 +3244,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   const handlePointerUp = (e: React.PointerEvent) => {
     flushDragUpdate();
+    if (layerGroupRotate) {
+      setLayerGroupRotate(null);
+      state.updateState({ isPositionDragging: false });
+    }
+    if (layerGroupResize) {
+      setLayerGroupResize(null);
+      state.updateState({ isPositionDragging: false });
+    }
+    if (layerGroupMove) {
+      setLayerGroupMove(null);
+      state.updateState({ isPositionDragging: false });
+    }
     if (rotateDragItem) {
       setRotateDragItem(null);
       state.updateState({ isPositionDragging: false });
@@ -2919,6 +3281,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length >= 2) {
       flushDragUpdate();
+      if (layerGroupRotate) setLayerGroupRotate(null);
+      if (layerGroupResize) setLayerGroupResize(null);
+      if (layerGroupMove) setLayerGroupMove(null);
       if (rotateDragItem) {
         setRotateDragItem(null);
         state.updateState({ isPositionDragging: false });
@@ -2965,27 +3330,156 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   };
 
   const renderSelectionGizmos = () => {
+    const selectedGroup = (state.layerGroups || []).find(
+      (group) => group.id === state.selectedLayerGroupId
+    );
     const selectedShapes = (state.shapeLayers || []).filter(
       (s) =>
         ((state.selectedShapeIds || []).includes(s.id) || state.selectedShapeId === s.id) &&
-        s.visible !== false
+        s.visible !== false &&
+        !getLayerGroup('shape', s.id)
     );
     const selectedElements = (state.canvasElements || []).filter(
       (el) =>
         ((state.selectedElementIds || []).includes(el.id) || state.selectedElementId === el.id) &&
-        el.visible !== false
+        el.visible !== false &&
+        !getLayerGroup('element', el.id)
     );
     const selectedIcons = (state.phosphorIconLayers || []).filter(
       (l) =>
         ((state.selectedPhosphorIconLayerIds || []).includes(l.id) ||
           state.selectedPhosphorIconLayerId === l.id) &&
-        l.visible !== false
+        l.visible !== false &&
+        !getLayerGroup('phosphor', l.id)
     );
     const selectedTexts = (state.textLayers || []).filter(
       (l) =>
         ((state.selectedTextLayerIds || []).includes(l.id) || state.selectedTextLayerId === l.id) &&
-        l.visible !== false
+        l.visible !== false &&
+        !getLayerGroup('text', l.id)
     );
+
+    if (selectedGroup) {
+      const keyframe = evaluateLayerKeyframes(
+        selectedGroup,
+        state.currentTimeSec,
+        state.animationEasing
+      );
+      const motion = evaluateLayerMotion(
+        selectedGroup.motions,
+        undefined,
+        0,
+        state.currentTimeSec
+      );
+      if (selectedGroup.visible === false || !motion.isVisible) return null;
+      const groupX = (keyframe.x ?? selectedGroup.x) + motion.dx;
+      const groupY = (keyframe.y ?? selectedGroup.y) + motion.dy;
+      const groupScale = Math.max(
+        0.05,
+        (keyframe.scale ?? selectedGroup.scale ?? 1) * motion.scale
+      );
+      const inverseGroupScale = 1 / groupScale;
+      const groupRotation =
+        (keyframe.rotation ?? selectedGroup.rotation ?? 0) + motion.rotate;
+      const locked = selectedGroup.locked === true;
+
+      return (
+        <div
+          className="absolute inset-0 pointer-events-none z-50 selection-gizmo-container flex items-center justify-center"
+          style={{ padding: `${state.padding}px` }}
+        >
+          <div
+            data-group-id={selectedGroup.id}
+            className={`layer-group-gizmo absolute select-none ring-1 ring-pastel-pinkLight shadow-[0_0_5px_rgba(255,175,204,0.45)] pointer-events-auto ${locked ? 'cursor-not-allowed' : 'cursor-move'}`}
+            style={{
+              width: `${selectedGroup.width}px`,
+              height: `${selectedGroup.height}px`,
+              transform: `translate(${groupX}px, ${groupY}px) rotate(${groupRotation}deg) scale(${groupScale})`,
+            }}
+          >
+            {!locked && (
+              <>
+                {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
+                  <div
+                    key={corner}
+                    data-group-action="resize"
+                    data-corner={corner}
+                    title="Resize group proportionally"
+                    className={`absolute h-2.5 w-2.5 border border-pastel-pink bg-white shadow-sm hover:scale-125 transition-transform z-50 pointer-events-auto ${
+                      corner === 'tl'
+                        ? '-left-[5px] -top-[5px] cursor-nw-resize'
+                        : corner === 'tr'
+                          ? '-right-[5px] -top-[5px] cursor-ne-resize'
+                          : corner === 'bl'
+                            ? '-bottom-[5px] -left-[5px] cursor-sw-resize'
+                          : '-bottom-[5px] -right-[5px] cursor-se-resize'
+                    }`}
+                    style={{ transform: `scale(${inverseGroupScale})` }}
+                  />
+                ))}
+
+                <div
+                  className="absolute top-full left-1/2 flex items-center gap-2 z-50 pointer-events-auto"
+                  style={{
+                    marginTop: `${10 * inverseGroupScale}px`,
+                    transform: `translateX(-50%) scale(${inverseGroupScale})`,
+                    transformOrigin: 'top center',
+                  }}
+                >
+                  <div
+                    data-group-action="rotate"
+                    title="Rotate group"
+                    className="h-6 w-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
+                  >
+                    <PhosphorIcons.ArrowClockwiseIcon
+                      className="h-3.5 w-3.5 pointer-events-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    data-group-action="ungroup"
+                    title="Ungroup layers"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      state.ungroupLayerGroup(selectedGroup.id);
+                    }}
+                    className="h-6 w-6 rounded-full bg-neutral-800 text-pastel-blue flex items-center justify-center shadow-md border border-white hover:scale-110 cursor-pointer transition-all"
+                  >
+                    <PhosphorIcons.FolderOpenIcon
+                      className="h-3.5 w-3.5 pointer-events-none"
+                      style={{ transform: `rotate(${-groupRotation}deg)` }}
+                    />
+                  </button>
+                  <div
+                    data-action="delete"
+                    title={
+                      confirmDeleteId === selectedGroup.id
+                        ? 'Click again to confirm deleting the group and its layers'
+                        : 'Delete group and its layers (click twice)'
+                    }
+                    onClick={(event) =>
+                      handleDeleteWithConfirm(event, selectedGroup.id, () =>
+                        state.removeLayerGroup(selectedGroup.id)
+                      )
+                    }
+                    className={`h-6 w-6 rounded-full text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer transition-all ${
+                      confirmDeleteId === selectedGroup.id
+                        ? 'bg-rose-600 scale-125 ring-2 ring-rose-400 animate-pulse'
+                        : 'bg-rose-500 hover:scale-110'
+                    }`}
+                  >
+                    <PhosphorIcons.TrashIcon
+                      className="h-3.5 w-3.5 pointer-events-none"
+                      style={{ transform: `rotate(${-groupRotation}deg)` }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     if (
       selectedShapes.length === 0 &&
@@ -3592,11 +4086,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className={`absolute inset-0 max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
-        rotateDragItem
+        layerGroupRotate || rotateDragItem
           ? 'cursor-grabbing select-none'
-          : resizeDragItem
+          : layerGroupResize
+            ? 'cursor-nw-resize select-none'
+            : resizeDragItem
             ? `${getResizeCursor(resizeDragItem.corner)} select-none`
-            : groupDrag || dragItem
+            : layerGroupMove || groupDrag || dragItem
               ? 'cursor-move select-none'
               : isPanning
                 ? 'cursor-grabbing select-none'
@@ -4233,6 +4729,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 transition-all cursor-pointer"
             >
               <PhosphorIcons.AlignRightIcon className="w-4 h-4" />
+            </button>
+            <div className="mx-0.5 h-4 w-px bg-neutral-700" />
+            <button
+              type="button"
+              onClick={() => state.groupSelectedLayers()}
+              title="Group selected layers"
+              className="p-1.5 rounded-lg text-pastel-blue hover:text-white hover:bg-neutral-800 transition-all cursor-pointer"
+            >
+              <PhosphorIcons.FolderPlusIcon className="w-4 h-4" />
             </button>
           </div>
         )}

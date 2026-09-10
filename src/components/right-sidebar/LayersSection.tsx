@@ -4,12 +4,14 @@ import * as PhosphorIcons from '@phosphor-icons/react';
 import { BooleanIcons } from './shared';
 import { canBooleanOperateOnShape } from '../../utils/shapeBoolean';
 import { getPhosphorIcon } from '../phosphorIconRegistry';
+import { StepperSlider } from '../StepperSlider';
 
 export const LayersSection: React.FC = () => {
   const state = useStudioEditorStore();
   const layerDragSrcKey = useRef<string | null>(null);
   const layerDragOverKey = useRef<string | null>(null);
   const [layerDropIndicator, setLayerDropIndicator] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const buildRow = (
     type: 'text' | 'phosphor' | 'element' | 'shape',
@@ -120,6 +122,15 @@ export const LayersSection: React.FC = () => {
 
   const aboveRows = sortByOrder(allRows.filter((r) => r.position === 'above'));
   const underRows = sortByOrder(allRows.filter((r) => r.position === 'underneath'));
+  const memberToGroup = new Map<string, string>();
+  (state.layerGroups || []).forEach((group) =>
+    group.members.forEach((member) => memberToGroup.set(`${member.type}-${member.id}`, group.id))
+  );
+  const rootAboveRows = aboveRows.filter((row) => !memberToGroup.has(row.key));
+  const rootUnderRows = underRows.filter((row) => !memberToGroup.has(row.key));
+  const selectedGroup = (state.layerGroups || []).find(
+    (group) => group.id === state.selectedLayerGroupId
+  );
 
   const select = (row: (typeof allRows)[0], e?: React.MouseEvent) => {
     const isMulti = e?.shiftKey || e?.metaKey || e?.ctrlKey || state.isMultiSelectMode;
@@ -193,7 +204,7 @@ export const LayersSection: React.FC = () => {
     setLayerDropIndicator(null);
   };
 
-  const renderRow = (row: (typeof allRows)[0]) => (
+  const renderRow = (row: (typeof allRows)[0], nested = false) => (
     <div
       key={row.key}
       draggable
@@ -202,7 +213,7 @@ export const LayersSection: React.FC = () => {
       onDrop={() => handleDrop(row)}
       onDragEnd={handleDragEnd}
       onClick={(e) => select(row, e)}
-      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${
+      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${nested ? 'ml-4 border-l-pastel-pink/20' : ''} ${
         layerDropIndicator === row.key
           ? 'border-pastel-pink/70 bg-pastel-pink/5'
           : row.selected
@@ -223,30 +234,32 @@ export const LayersSection: React.FC = () => {
         className="flex-1 min-w-0 bg-transparent text-xs text-slate-200 focus:outline-none truncate"
         title="Rename layer"
       />
-      {/* Above/Behind toggle */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          update(row, { position: row.position === 'above' ? 'underneath' : 'above' });
-        }}
-        title={
-          row.position === 'above'
-            ? 'Above mockup — click to move behind'
-            : 'Behind mockup — click to move above'
-        }
-        className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
-          row.position === 'above'
-            ? 'text-pastel-pink hover:bg-neutral-800'
-            : 'text-slate-500 hover:bg-neutral-800'
-        }`}
-      >
-        {row.position === 'above' ? (
-          <PhosphorIcons.ArrowLineUpIcon className="w-3.5 h-3.5" />
-        ) : (
-          <PhosphorIcons.ArrowLineDownIcon className="w-3.5 h-3.5" />
-        )}
-      </button>
+      {/* Above/Behind toggle — position is controlled by the parent group for nested rows. */}
+      {!nested && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            update(row, { position: row.position === 'above' ? 'underneath' : 'above' });
+          }}
+          title={
+            row.position === 'above'
+              ? 'Above mockup — click to move behind'
+              : 'Behind mockup — click to move above'
+          }
+          className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${
+            row.position === 'above'
+              ? 'text-pastel-pink hover:bg-neutral-800'
+              : 'text-slate-500 hover:bg-neutral-800'
+          }`}
+        >
+          {row.position === 'above' ? (
+            <PhosphorIcons.ArrowLineUpIcon className="w-3.5 h-3.5" />
+          ) : (
+            <PhosphorIcons.ArrowLineDownIcon className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
       {/* Visibility */}
       <button
         type="button"
@@ -288,7 +301,7 @@ export const LayersSection: React.FC = () => {
         )}
       </button>
       {/* Explode (Text with >1 non-space char) */}
-      {row.type === 'text' && (() => {
+      {!nested && row.type === 'text' && (() => {
         const textLayer = state.textLayers.find((l) => l.id === row.id);
         if (!textLayer || !textLayer.text) return null;
         const nonSpaceCount = Array.from(textLayer.text).filter((c) => c.trim().length > 0).length;
@@ -340,6 +353,166 @@ export const LayersSection: React.FC = () => {
     </div>
   );
 
+  const getOrderIndex = (type: string, id: string) => {
+    const index = layerOrder.findIndex((entry) => entry.type === type && entry.id === id);
+    return index === -1 ? 9999 : index;
+  };
+
+  const renderGroup = (group: import('../../types/studio').LayerGroup) => {
+    const expanded = expandedGroups[group.id] !== false;
+    const childRows = group.members
+      .map((member) => allRows.find((row) => row.type === member.type && row.id === member.id))
+      .filter((row): row is (typeof allRows)[number] => Boolean(row));
+    const selected = state.selectedLayerGroupId === group.id;
+    return (
+      <div key={group.id} className="space-y-1">
+        <div
+          onClick={() => state.selectLayerGroup(group.id)}
+          className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all cursor-pointer ${
+            selected
+              ? 'border-pastel-pink/50 bg-pastel-pink/10'
+              : 'border-neutral-700/80 bg-neutral-900 hover:border-neutral-600'
+          } ${group.visible === false ? 'opacity-45' : ''}`}
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpandedGroups((current) => ({ ...current, [group.id]: !expanded }));
+            }}
+            className="rounded p-0.5 text-slate-500 hover:bg-neutral-800 hover:text-white cursor-pointer"
+            title={expanded ? 'Collapse group' : 'Expand group'}
+          >
+            <PhosphorIcons.CaretRightIcon
+              className={`h-3 w-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            />
+          </button>
+          <PhosphorIcons.FolderIcon
+            weight={selected ? 'fill' : 'regular'}
+            className="h-4 w-4 shrink-0 text-pastel-pink"
+          />
+          <input
+            value={group.name}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => state.updateLayerGroup(group.id, { name: event.target.value })}
+            className="min-w-0 flex-1 truncate bg-transparent text-xs font-semibold text-slate-200 focus:outline-none"
+            title="Rename group"
+          />
+          <span className="text-[9px] font-mono text-slate-500">{childRows.length}</span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              state.updateLayerGroup(group.id, {
+                position: group.position === 'above' ? 'underneath' : 'above',
+              });
+            }}
+            className="rounded-md p-1 text-slate-500 hover:bg-neutral-800 hover:text-white cursor-pointer"
+            title={group.position === 'above' ? 'Move group behind mockup' : 'Move group above mockup'}
+          >
+            {group.position === 'above' ? (
+              <PhosphorIcons.ArrowLineUpIcon className="h-3.5 w-3.5 text-pastel-pink" />
+            ) : (
+              <PhosphorIcons.ArrowLineDownIcon className="h-3.5 w-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              state.updateLayerGroup(group.id, { visible: group.visible === false });
+            }}
+            className="rounded-md p-1 text-slate-500 hover:bg-neutral-800 hover:text-white cursor-pointer"
+            title={group.visible === false ? 'Show group' : 'Hide group'}
+          >
+            {group.visible === false ? (
+              <PhosphorIcons.EyeSlashIcon className="h-3.5 w-3.5" />
+            ) : (
+              <PhosphorIcons.EyeIcon className="h-3.5 w-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              state.updateLayerGroup(group.id, { locked: !group.locked });
+            }}
+            className={`rounded-md p-1 hover:bg-neutral-800 cursor-pointer ${group.locked ? 'text-amber-300' : 'text-slate-500 hover:text-white'}`}
+            title={group.locked ? 'Unlock group' : 'Lock group'}
+          >
+            {group.locked ? (
+              <PhosphorIcons.LockSimpleIcon className="h-3.5 w-3.5" />
+            ) : (
+              <PhosphorIcons.LockSimpleOpenIcon className="h-3.5 w-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              state.duplicateLayerGroup(group.id);
+            }}
+            className="rounded-md p-1 text-slate-500 hover:bg-neutral-800 hover:text-white cursor-pointer"
+            title="Duplicate group"
+          >
+            <PhosphorIcons.CopyIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              state.ungroupLayerGroup(group.id);
+            }}
+            className="rounded-md p-1 text-slate-500 hover:bg-neutral-800 hover:text-pastel-blue cursor-pointer"
+            title="Ungroup layers"
+          >
+            <PhosphorIcons.FolderOpenIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              state.removeLayerGroup(group.id);
+            }}
+            className="rounded-md p-1 text-slate-500 hover:bg-neutral-800 hover:text-rose-400 cursor-pointer"
+            title="Delete group and its layers"
+          >
+            <PhosphorIcons.TrashIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {expanded && <div className="space-y-1">{childRows.map((row) => renderRow(row, true))}</div>}
+      </div>
+    );
+  };
+
+  const renderPositionStack = (
+    position: 'above' | 'underneath',
+    rootRows: typeof allRows
+  ) => {
+    const items: Array<
+      | { kind: 'row'; order: number; row: (typeof allRows)[number] }
+      | { kind: 'group'; order: number; group: import('../../types/studio').LayerGroup }
+    > = rootRows.map((row) => ({
+      kind: 'row',
+      order: getOrderIndex(row.type, row.id),
+      row,
+    }));
+    (state.layerGroups || [])
+      .filter((group) => group.position === position)
+      .forEach((group) => {
+        items.push({
+          kind: 'group',
+          order: Math.min(
+            ...group.members.map((member) => getOrderIndex(member.type, member.id))
+          ),
+          group,
+        });
+      });
+    return items
+      .sort((a, b) => a.order - b.order)
+      .map((item) => (item.kind === 'group' ? renderGroup(item.group) : renderRow(item.row)));
+  };
+
   const allSelectedShapeIds = new Set([
     ...(state.selectedShapeIds || []),
     ...(state.selectedShapeId ? [state.selectedShapeId] : []),
@@ -348,7 +521,15 @@ export const LayersSection: React.FC = () => {
     allSelectedShapeIds.has(s.id)
   );
   const hasUnsupportedShapeSelected =
-    selectedShapes.length < 2 || selectedShapes.some((shape) => !canBooleanOperateOnShape(shape));
+    selectedShapes.length < 2 ||
+    selectedShapes.some(
+      (shape) => !canBooleanOperateOnShape(shape) || memberToGroup.has(`shape-${shape.id}`)
+    );
+  const selectedRows = allRows.filter((row) => row.selected);
+  const groupableSelectedRows = selectedRows.filter((row) => !memberToGroup.has(row.key));
+  const canGroupSelection =
+    groupableSelectedRows.length >= 2 &&
+    groupableSelectedRows.every((row) => row.position === groupableSelectedRows[0].position);
 
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
@@ -359,6 +540,104 @@ export const LayersSection: React.FC = () => {
         </div>
         <span className="text-[10px] font-mono text-slate-500">{allRows.length}</span>
       </div>
+
+      {selectedRows.length >= 2 && (
+        <button
+          type="button"
+          disabled={!canGroupSelection}
+          onClick={() => state.groupSelectedLayers()}
+          className="w-full rounded-lg border border-pastel-blue/40 bg-pastel-blue/10 px-3 py-2 text-[11px] font-bold text-pastel-blue transition-colors hover:border-pastel-blue hover:bg-pastel-blue/15 disabled:cursor-not-allowed disabled:border-neutral-800 disabled:bg-neutral-900 disabled:text-slate-600 cursor-pointer flex items-center justify-center gap-2"
+          title={
+            canGroupSelection
+              ? `Group ${groupableSelectedRows.length} selected layers`
+              : 'Groups cannot mix Above and Behind layers or include an already grouped layer'
+          }
+        >
+          <PhosphorIcons.FolderPlusIcon className="h-4 w-4" />
+          Group {groupableSelectedRows.length} layers
+        </button>
+      )}
+
+      {selectedGroup && (
+        <div className="space-y-3 rounded-xl border border-pastel-pink/30 bg-pastel-pink/5 p-3 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-200">Group transform</span>
+            <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[9px] font-mono text-slate-400">
+              {selectedGroup.members.length} layers
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-[10px] font-semibold text-slate-400">
+              X
+              <input
+                type="number"
+                disabled={selectedGroup.locked}
+                value={Math.round(selectedGroup.x)}
+                onChange={(event) =>
+                  state.updateLayerGroup(selectedGroup.id, { x: Number(event.target.value) || 0 })
+                }
+                className="mt-1 w-full rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 font-mono text-xs text-slate-200 disabled:opacity-50"
+              />
+            </label>
+            <label className="text-[10px] font-semibold text-slate-400">
+              Y
+              <input
+                type="number"
+                disabled={selectedGroup.locked}
+                value={Math.round(selectedGroup.y)}
+                onChange={(event) =>
+                  state.updateLayerGroup(selectedGroup.id, { y: Number(event.target.value) || 0 })
+                }
+                className="mt-1 w-full rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 font-mono text-xs text-slate-200 disabled:opacity-50"
+              />
+            </label>
+          </div>
+          <div className={selectedGroup.locked ? 'pointer-events-none opacity-50' : ''}>
+            <div className="mb-1 flex justify-between text-[10px] text-slate-400">
+              <span>Size</span>
+              <span className="font-mono">{Math.round((selectedGroup.scale || 1) * 100)}%</span>
+            </div>
+            <StepperSlider
+              min={10}
+              max={500}
+              step={1}
+              value={Math.round((selectedGroup.scale || 1) * 100)}
+              onChange={(value) =>
+                state.updateLayerGroup(selectedGroup.id, { scale: value / 100 })
+              }
+              accentColor="#a2d2ff"
+            />
+          </div>
+          <div className={selectedGroup.locked ? 'pointer-events-none opacity-50' : ''}>
+            <div className="mb-1 flex justify-between text-[10px] text-slate-400">
+              <span>Rotation</span>
+              <span className="font-mono">{Math.round(selectedGroup.rotation || 0)}°</span>
+            </div>
+            <StepperSlider
+              min={-180}
+              max={180}
+              step={1}
+              value={selectedGroup.rotation || 0}
+              onChange={(value) => state.updateLayerGroup(selectedGroup.id, { rotation: value })}
+              accentColor="#ffafcc"
+            />
+          </div>
+          <div className={selectedGroup.locked ? 'pointer-events-none opacity-50' : ''}>
+            <div className="mb-1 flex justify-between text-[10px] text-slate-400">
+              <span>Opacity</span>
+              <span className="font-mono">{Math.round(selectedGroup.opacity ?? 100)}%</span>
+            </div>
+            <StepperSlider
+              min={0}
+              max={100}
+              step={1}
+              value={selectedGroup.opacity ?? 100}
+              onChange={(value) => state.updateLayerGroup(selectedGroup.id, { opacity: value })}
+              accentColor="#ffafcc"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Multi-Shape Boolean Action Bar */}
       {allSelectedShapeIds.size >= 2 && !hasUnsupportedShapeSelected && (
@@ -431,7 +710,7 @@ export const LayersSection: React.FC = () => {
                   {aboveRows.length}
                 </span>
               </div>
-              <div className="space-y-1">{aboveRows.map(renderRow)}</div>
+              <div className="space-y-1">{renderPositionStack('above', rootAboveRows)}</div>
             </div>
           )}
 
@@ -458,7 +737,7 @@ export const LayersSection: React.FC = () => {
                   {underRows.length}
                 </span>
               </div>
-              <div className="space-y-1">{underRows.map(renderRow)}</div>
+              <div className="space-y-1">{renderPositionStack('underneath', rootUnderRows)}</div>
             </div>
           )}
         </div>

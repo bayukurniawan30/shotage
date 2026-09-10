@@ -347,6 +347,8 @@ export const Studio: React.FC = () => {
 
   // Global keyboard shortcuts:
   // - Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Cmd/Ctrl+Y: Undo / Redo
+  // - Cmd/Ctrl+Alt/Option+G: Group selected layers
+  // - Cmd/Ctrl+Alt/Option+Shift+G: Ungroup the selected group
   // - Arrow keys (ArrowLeft, ArrowRight, ArrowUp, ArrowDown): Move selected layer(s) by 1px (or 10px with Shift)
   // - Delete / Backspace: Delete selected layer(s)
   // - Escape: Deselect all layers
@@ -376,6 +378,14 @@ export const Studio: React.FC = () => {
         } else if (key === 'y') {
           e.preventDefault();
           temporalStore.getState().redo();
+        } else if (key === 'g' && e.altKey) {
+          e.preventDefault();
+          const editorState = useStudioStore.getState();
+          if (e.shiftKey && editorState.selectedLayerGroupId) {
+            editorState.ungroupLayerGroup(editorState.selectedLayerGroupId);
+          } else if (!e.shiftKey) {
+            editorState.groupSelectedLayers();
+          }
         }
         return;
       }
@@ -403,8 +413,12 @@ export const Studio: React.FC = () => {
           : state.selectedShapeId
             ? [state.selectedShapeId]
             : [];
+        const selectedGroup = state.selectedLayerGroupId
+          ? (state.layerGroups || []).find((group) => group.id === state.selectedLayerGroupId)
+          : null;
 
         const hasSelectedLayers =
+          Boolean(selectedGroup) ||
           textIds.length > 0 ||
           phosphorIds.length > 0 ||
           elementIds.length > 0 ||
@@ -415,6 +429,13 @@ export const Studio: React.FC = () => {
           const step = e.shiftKey ? 10 : 1;
           const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
           const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+
+          if (selectedGroup && !selectedGroup.locked) {
+            state.updateLayerGroup(selectedGroup.id, {
+              x: Math.round(selectedGroup.x + dx),
+              y: Math.round(selectedGroup.y + dy),
+            });
+          }
 
           textIds.forEach((id) => {
             const l = (state.textLayers || []).find((item) => item.id === id);
@@ -462,6 +483,7 @@ export const Studio: React.FC = () => {
       // Handle Delete / Backspace to remove selected layer(s)
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const state = useStudioStore.getState();
+        const selectedGroupId = state.selectedLayerGroupId;
         const textIds = state.selectedTextLayerIds?.length
           ? state.selectedTextLayerIds
           : state.selectedTextLayerId
@@ -484,12 +506,14 @@ export const Studio: React.FC = () => {
             : [];
 
         if (
+          selectedGroupId ||
           textIds.length > 0 ||
           phosphorIds.length > 0 ||
           elementIds.length > 0 ||
           shapeIds.length > 0
         ) {
           e.preventDefault();
+          if (selectedGroupId) state.removeLayerGroup(selectedGroupId);
           textIds.forEach((id) => state.removeTextLayer(id));
           phosphorIds.forEach((id) => state.removePhosphorIconLayer(id));
           elementIds.forEach((id) => state.removeCanvasElement(id));
@@ -505,6 +529,7 @@ export const Studio: React.FC = () => {
         state.selectPhosphorIconLayer(null);
         state.selectCanvasElement(null);
         state.selectShapeLayer(null);
+        state.selectLayerGroup(null);
       }
     };
 

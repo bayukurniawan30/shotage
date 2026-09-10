@@ -26,6 +26,8 @@ import {
   MotionCategory,
 } from '../types/animationTypes';
 
+type TimelineLayerType = 'text' | 'phosphor' | 'element' | 'shape' | 'group';
+
 export const AnimationTimeline: React.FC = () => {
   const state = useStudioStore();
   const onChange = state.updateState;
@@ -86,7 +88,7 @@ export const AnimationTimeline: React.FC = () => {
     'all' | 'entrance' | 'emphasis' | 'exit'
   >('all');
   const [draggingMotionBlock, setDraggingMotionBlock] = useState<{
-    layerType: 'text' | 'phosphor' | 'element' | 'shape';
+    layerType: TimelineLayerType;
     layerId: string;
     blockId: string;
     startX: number;
@@ -95,7 +97,7 @@ export const AnimationTimeline: React.FC = () => {
     initialDur?: number;
   } | null>(null);
   const [draggingLayerKf, setDraggingLayerKf] = useState<{
-    layerType: 'text' | 'phosphor' | 'element' | 'shape';
+    layerType: TimelineLayerType;
     layerId: string;
     keyframeId: string;
     startX: number;
@@ -106,7 +108,7 @@ export const AnimationTimeline: React.FC = () => {
 
   // Selected track state: 'mockup' or a specific layer
   const [selectedTrack, setSelectedTrack] = useState<{
-    type: 'mockup' | 'text' | 'phosphor' | 'element' | 'shape';
+    type: 'mockup' | TimelineLayerType;
     id: string;
     name: string;
   }>({ type: 'mockup', id: 'mockup', name: 'Mockup' });
@@ -114,6 +116,17 @@ export const AnimationTimeline: React.FC = () => {
   // Automatically select the corresponding timeline track when an element is selected on canvas in Animate Mode
   useEffect(() => {
     if (!state.isAnimationMode) return;
+
+    if (state.selectedLayerGroupId) {
+      if (selectedTrack.type === 'group' && selectedTrack.id === state.selectedLayerGroupId) return;
+      const group = (state.layerGroups || []).find((item) => item.id === state.selectedLayerGroupId);
+      if (group) {
+        setSelectedTrack({ type: 'group', id: group.id, name: group.name });
+        const trackEl = leftTracksRef.current?.querySelector(`[data-track-id="${group.id}"]`);
+        trackEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
 
     if (state.selectedTextLayerId) {
       if (selectedTrack.type === 'text' && selectedTrack.id === state.selectedTextLayerId) return;
@@ -176,6 +189,7 @@ export const AnimationTimeline: React.FC = () => {
     }
   }, [
     state.isAnimationMode,
+    state.selectedLayerGroupId,
     state.selectedTextLayerId,
     state.selectedPhosphorIconLayerId,
     state.selectedElementId,
@@ -184,6 +198,7 @@ export const AnimationTimeline: React.FC = () => {
     state.phosphorIconLayers,
     state.canvasElements,
     state.shapeLayers,
+    state.layerGroups,
     selectedTrack.type,
     selectedTrack.id,
   ]);
@@ -427,7 +442,7 @@ export const AnimationTimeline: React.FC = () => {
   };
 
   const getLayerMotions = (
-    type: 'text' | 'phosphor' | 'element' | 'shape',
+    type: TimelineLayerType,
     id: string
   ): LayerMotionBlock[] => {
     let layer: any = null;
@@ -435,6 +450,7 @@ export const AnimationTimeline: React.FC = () => {
     else if (type === 'phosphor') layer = (state.phosphorIconLayers || []).find((l) => l.id === id);
     else if (type === 'element') layer = (state.canvasElements || []).find((l) => l.id === id);
     else if (type === 'shape') layer = (state.shapeLayers || []).find((l) => l.id === id);
+    else if (type === 'group') layer = (state.layerGroups || []).find((l) => l.id === id);
 
     if (!layer) return [];
     if (layer.motions && layer.motions.length > 0) return layer.motions;
@@ -455,7 +471,7 @@ export const AnimationTimeline: React.FC = () => {
 
   const handleMotionBlockPointerDown = (
     e: React.PointerEvent,
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: TimelineLayerType,
     layerId: string,
     block: LayerMotionBlock,
     isResize = false
@@ -471,6 +487,7 @@ export const AnimationTimeline: React.FC = () => {
     else if (layerType === 'phosphor') state.selectPhosphorIconLayer(layerId);
     else if (layerType === 'element') state.selectCanvasElement(layerId);
     else if (layerType === 'shape') state.selectShapeLayer(layerId);
+    else if (layerType === 'group') state.selectLayerGroup(layerId);
     setDraggingMotionBlock({
       layerType,
       layerId,
@@ -553,7 +570,7 @@ export const AnimationTimeline: React.FC = () => {
   };
 
   const getLayerKeyframes = (
-    type: 'text' | 'phosphor' | 'element' | 'shape',
+    type: TimelineLayerType,
     id: string
   ): LayerKeyframe[] => {
     if (type === 'text') {
@@ -568,12 +585,15 @@ export const AnimationTimeline: React.FC = () => {
     if (type === 'shape') {
       return (state.shapeLayers || []).find((l) => l.id === id)?.keyframes || [];
     }
+    if (type === 'group') {
+      return (state.layerGroups || []).find((l) => l.id === id)?.keyframes || [];
+    }
     return [];
   };
 
   const handleLayerKfPointerDown = (
     e: React.PointerEvent,
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: TimelineLayerType,
     layerId: string,
     kf: LayerKeyframe
   ) => {
@@ -618,11 +638,11 @@ export const AnimationTimeline: React.FC = () => {
   // Build Layer Track Rows matching the exact order in RightSidebar Layers panel
   const buildLayerRows = () => {
     const buildRow = (
-      type: 'text' | 'phosphor' | 'element' | 'shape',
+      type: TimelineLayerType,
       id: string,
       name: string,
       indicator: React.ReactNode
-    ) => ({ key: `${type}-${id}`, type, id, name, indicator });
+    ) => ({ key: `${type}-${id}`, type, id, name, indicator, depth: 0, parentGroupId: null as string | null });
 
     const allRows: ReturnType<typeof buildRow>[] = [];
 
@@ -693,15 +713,63 @@ export const AnimationTimeline: React.FC = () => {
       );
     });
 
+    (state.layerGroups || []).forEach((group) =>
+      allRows.push(
+        buildRow(
+          'group',
+          group.id,
+          group.name || 'Group',
+          <PhosphorIcons.FolderIcon className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+        )
+      )
+    );
+
     // Sort by layerOrder (topmost layer on top)
     const layerOrder = state.layerOrder || [];
-    return [...allRows].sort((a, b) => {
-      const idxA = layerOrder.findIndex((item) => item.type === a.type && item.id === a.id);
-      const idxB = layerOrder.findIndex((item) => item.type === b.type && item.id === b.id);
+    const getRowOrder = (row: (typeof allRows)[number]) => {
+      if (row.type === 'group') {
+        const group = (state.layerGroups || []).find((item) => item.id === row.id);
+        if (!group) return 9999;
+        return Math.min(
+          ...group.members.map((member) => {
+            const index = layerOrder.findIndex(
+              (item) => item.type === member.type && item.id === member.id
+            );
+            return index === -1 ? 9999 : index;
+          })
+        );
+      }
+      const index = layerOrder.findIndex((item) => item.type === row.type && item.id === row.id);
+      return index === -1 ? 9999 : index;
+    };
+    const sortedRootRows = allRows
+      .filter((row) => {
+        if (row.type === 'group') return true;
+        return !(state.layerGroups || []).some((group) =>
+          group.members.some((member) => member.type === row.type && member.id === row.id)
+        );
+      })
+      .sort((a, b) => {
+      const idxA = getRowOrder(a);
+      const idxB = getRowOrder(b);
       if (idxA === -1 && idxB === -1) return 0;
       if (idxA === -1) return 1;
       if (idxB === -1) return -1;
       return idxA - idxB;
+    });
+
+    return sortedRootRows.flatMap((row) => {
+      if (row.type !== 'group') return [row];
+      const group = (state.layerGroups || []).find((item) => item.id === row.id);
+      if (!group) return [row];
+      const childRows = group.members
+        .map((member) =>
+          allRows.find((candidate) => candidate.type === member.type && candidate.id === member.id)
+        )
+        .filter((candidate): candidate is (typeof allRows)[number] => Boolean(candidate))
+        .sort((a, b) => getRowOrder(a) - getRowOrder(b))
+        .map((child) => ({ ...child, depth: 1, parentGroupId: group.id }));
+      return [row, ...childRows];
     });
   };
 
@@ -1059,19 +1127,36 @@ export const AnimationTimeline: React.FC = () => {
                       state.selectPhosphorIconLayer(null);
                       state.selectCanvasElement(null);
                       state.selectShapeLayer(row.id);
+                    } else if (row.type === 'group') {
+                      state.selectLayerGroup(row.id);
                     }
                   }}
                   className={`h-8 shrink-0 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer ${
                     isSelected
                       ? 'bg-pastel-blue/15 border-l-2 border-pastel-blue'
-                      : 'hover:bg-neutral-900/50'
+                      : row.type === 'group'
+                        ? 'bg-pastel-pink/[0.04] hover:bg-pastel-pink/[0.08]'
+                        : 'hover:bg-neutral-900/50'
                   }`}
                 >
-                  <div className="flex items-center gap-2 overflow-hidden">
+                  <div
+                    className={`flex items-center overflow-hidden ${row.depth > 0 ? 'gap-1.5 pl-3' : 'gap-2'}`}
+                  >
+                    {row.depth > 0 && (
+                      <span className="w-2 shrink-0 text-center text-[11px] text-slate-600" aria-hidden="true">
+                        –
+                      </span>
+                    )}
                     {row.indicator}
                     <span
                       className={`truncate text-[11px] font-medium leading-tight ${
-                        isSelected ? 'text-pastel-blue font-bold' : 'text-slate-300'
+                        isSelected
+                          ? 'text-pastel-blue font-bold'
+                          : row.type === 'group'
+                            ? 'text-pastel-pink font-bold'
+                            : row.depth > 0
+                              ? 'text-slate-400'
+                              : 'text-slate-300'
                       }`}
                       title={row.name}
                     >
@@ -1106,6 +1191,7 @@ export const AnimationTimeline: React.FC = () => {
                 state.selectPhosphorIconLayer(null);
                 state.selectCanvasElement(null);
                 state.selectShapeLayer(null);
+                state.selectLayerGroup(null);
               }}
               className={`h-9 shrink-0 px-2.5 flex items-center justify-between overflow-hidden transition-colors cursor-pointer bg-neutral-950/90 ${
                 selectedTrack.type === 'mockup'
@@ -1244,8 +1330,15 @@ export const AnimationTimeline: React.FC = () => {
                       else if (row.type === 'phosphor') state.selectPhosphorIconLayer(row.id);
                       else if (row.type === 'element') state.selectCanvasElement(row.id);
                       else if (row.type === 'shape') state.selectShapeLayer(row.id);
+                      else if (row.type === 'group') state.selectLayerGroup(row.id);
                     }}
-                    className="h-8 shrink-0 flex items-center relative group"
+                    className={`h-8 shrink-0 flex items-center relative group ${
+                      row.type === 'group'
+                        ? 'bg-pastel-pink/[0.025]'
+                        : row.depth > 0
+                          ? 'bg-white/[0.01]'
+                          : ''
+                    }`}
                   >
                     <div
                       onClick={handleTimelineSeek}

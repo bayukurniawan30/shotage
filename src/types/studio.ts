@@ -73,6 +73,33 @@ export type PhosphorBadgeStyle =
 
 export type ElementCategory = 'arrow' | 'line' | 'emoji';
 
+export type LayerType = 'text' | 'phosphor' | 'element' | 'shape';
+
+export interface LayerReference {
+  type: LayerType;
+  id: string;
+}
+
+export interface LayerGroup {
+  id: string;
+  name: string;
+  members: LayerReference[];
+  position: 'above' | 'underneath';
+  originX: number;
+  originY: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scale: number;
+  rotation: number;
+  opacity: number;
+  visible?: boolean;
+  locked?: boolean;
+  motions?: import('./animationTypes').LayerMotionBlock[];
+  keyframes?: import('./animationTypes').LayerKeyframe[];
+}
+
 export type CoolshapeCategory =
   | 'star'
   | 'flower'
@@ -114,6 +141,9 @@ export interface ShapeLayer {
   width: number;
   height: number;
   borderRadius?: number;
+  borderEnabled?: boolean;
+  borderColor?: string;
+  borderWidth?: number;
   x: number;
   y: number;
   rotation: number;
@@ -475,6 +505,8 @@ export interface StudioState {
   shapeLayers: ShapeLayer[];
   selectedShapeId: string | null;
   selectedShapeIds: string[];
+  layerGroups: LayerGroup[];
+  selectedLayerGroupId: string | null;
   // Pen Drawing Mode State
   isPenDrawingMode?: boolean;
   isMultiSelectMode?: boolean;
@@ -628,6 +660,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shapeLayers: [],
   selectedShapeId: null,
   selectedShapeIds: [],
+  layerGroups: [],
+  selectedLayerGroupId: null,
   isPenDrawingMode: false,
   isMultiSelectMode: false,
   sidebarMode: 'quick',

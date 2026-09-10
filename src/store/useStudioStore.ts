@@ -85,6 +85,16 @@ interface StudioStore extends StudioState {
   duplicateShapeLayer: (id: string) => void;
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
+  groupSelectedLayers: () => string | null;
+  updateLayerGroup: (
+    id: string,
+    updates: Partial<import('../types/studio').LayerGroup>
+  ) => void;
+  selectLayerGroup: (id: string | null) => void;
+  ungroupLayerGroup: (id: string) => void;
+  removeLayerGroup: (id: string) => void;
+  duplicateLayerGroup: (id: string) => void;
+  refreshLayerGroupBounds: (id: string) => void;
   mergeSelectedShapes: (operation?: BooleanOperation) => boolean;
   booleanOperationOnShapes: (operation?: BooleanOperation) => boolean;
   setPenDrawingMode: (active: boolean) => void;
@@ -99,42 +109,42 @@ interface StudioStore extends StudioState {
   addStage: () => void;
   removeStage: (index: number) => void;
   addLayerMotionBlock: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     presetId: MotionPresetId,
     startTimeSec?: number,
     durationSec?: number
   ) => void;
   updateLayerMotionBlock: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     blockId: string,
     updates: Partial<LayerMotionBlock>
   ) => void;
   removeLayerMotionBlock: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     blockId: string
   ) => void;
   addLayerKeyframe: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     timeSec?: number,
     props?: Partial<LayerKeyframe>
   ) => void;
   updateLayerKeyframe: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     keyframeId: string,
     updates: Partial<LayerKeyframe>
   ) => void;
   removeLayerKeyframe: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     keyframeId: string
   ) => void;
   captureLayerKeyframe: (
-    layerType: 'text' | 'phosphor' | 'element' | 'shape',
+    layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
     timeSec?: number
   ) => void;
@@ -156,6 +166,7 @@ const TRANSIENT_STUDIO_KEYS = [
   'selectedElementIds',
   'selectedShapeId',
   'selectedShapeIds',
+  'selectedLayerGroupId',
 ] as const satisfies readonly (keyof StudioStore)[];
 
 const PLAYBACK_FRAME_KEYS = [
@@ -232,6 +243,187 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
     }
   }
   return updated;
+}
+
+type LayerReference = import('../types/studio').LayerReference;
+type LayerGroup = import('../types/studio').LayerGroup;
+
+function getLayerForReference(state: StudioState, reference: LayerReference) {
+  if (reference.type === 'text') return (state.textLayers || []).find((l) => l.id === reference.id);
+  if (reference.type === 'phosphor') {
+    return (state.phosphorIconLayers || []).find((l) => l.id === reference.id);
+  }
+  if (reference.type === 'element') {
+    return (state.canvasElements || []).find((l) => l.id === reference.id);
+  }
+  return (state.shapeLayers || []).find((l) => l.id === reference.id);
+}
+
+function getLayerLocalSize(layer: any, type: LayerReference['type']) {
+  if (type === 'text') {
+    const fontSize = layer.fontSize || 32;
+    const lines = String(layer.text || '').split('\n');
+    const longestLine = lines.reduce(
+      (longest: string, line: string) => (line.length > longest.length ? line : longest),
+      ''
+    );
+    let measuredWidth = longestLine.length * fontSize * 0.6;
+    if (typeof document !== 'undefined') {
+      const context = document.createElement('canvas').getContext('2d');
+      if (context) {
+        context.font = `${layer.fontStyle === 'italic' ? 'italic ' : ''}${layer.fontWeight || 700} ${fontSize}px ${layer.fontFamily || 'Inter'}`;
+        measuredWidth = Math.max(...lines.map((line: string) => context.measureText(line || ' ').width));
+      }
+    }
+    return {
+      width: Math.max(20, measuredWidth),
+      height: Math.max(10, lines.length * fontSize * 1.2),
+    };
+  }
+  if (type === 'phosphor') {
+    const size = (layer.size || 36) + (layer.badgeStyle === 'plain' ? 8 : 24);
+    return { width: size, height: size };
+  }
+  return {
+    width: layer.width || (type === 'shape' ? 120 : 90),
+    height: layer.height || (type === 'shape' ? 120 : 90),
+  };
+}
+
+function getLayerBaseBounds(state: StudioState, reference: LayerReference) {
+  const layer = getLayerForReference(state, reference) as any;
+  if (!layer) return null;
+
+  const { width: localWidth, height: localHeight } = getLayerLocalSize(layer, reference.type);
+  const scaleX = Math.abs(layer.scaleX ?? layer.scale ?? 1);
+  const scaleY = Math.abs(layer.scaleY ?? layer.scale ?? 1);
+  const halfWidth = localWidth / 2;
+  const halfHeight = localHeight / 2;
+  const skewX = Math.tan(((layer.skewX || 0) * Math.PI) / 180);
+  const skewY = Math.tan(((layer.skewY || 0) * Math.PI) / 180);
+  const radians = ((layer.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const corners = [
+    [-halfWidth, -halfHeight],
+    [halfWidth, -halfHeight],
+    [halfWidth, halfHeight],
+    [-halfWidth, halfHeight],
+  ].map(([cornerX, cornerY]) => {
+    const scaledX = cornerX * scaleX;
+    const scaledY = cornerY * scaleY;
+    // Match CSS transform order: scale, skewY, skewX, then rotate.
+    const skewedY = scaledY + skewY * scaledX;
+    const skewedX = scaledX + skewX * skewedY;
+    return {
+      x: skewedX * cos - skewedY * sin,
+      y: skewedX * sin + skewedY * cos,
+    };
+  });
+  const borderExpansion =
+    reference.type === 'shape' && layer.borderEnabled
+      ? Math.max(0, layer.borderWidth || 0) / 2
+      : 0;
+  const centerX = layer.x || 0;
+  const centerY = layer.y || 0;
+  return {
+    left: centerX + Math.min(...corners.map((corner) => corner.x)) - borderExpansion,
+    right: centerX + Math.max(...corners.map((corner) => corner.x)) + borderExpansion,
+    top: centerY + Math.min(...corners.map((corner) => corner.y)) - borderExpansion,
+    bottom: centerY + Math.max(...corners.map((corner) => corner.y)) + borderExpansion,
+  };
+}
+
+function getGroupBounds(state: StudioState, members: LayerReference[]) {
+  const bounds = members
+    .map((reference) => getLayerBaseBounds(state, reference))
+    .filter((value): value is NonNullable<typeof value> => Boolean(value));
+  if (bounds.length === 0) return null;
+  const left = Math.min(...bounds.map((bound) => bound.left));
+  const right = Math.max(...bounds.map((bound) => bound.right));
+  const top = Math.min(...bounds.map((bound) => bound.top));
+  const bottom = Math.max(...bounds.map((bound) => bound.bottom));
+  return {
+    x: (left + right) / 2,
+    y: (top + bottom) / 2,
+    width: Math.max(20, right - left),
+    height: Math.max(20, bottom - top),
+  };
+}
+
+function refreshLayerGroupBounds(state: StudioState, group: LayerGroup): LayerGroup {
+  const bounds = getGroupBounds(state, group.members);
+  if (!bounds) return group;
+
+  const deltaX = bounds.x - group.originX;
+  const deltaY = bounds.y - group.originY;
+  const transformOriginDelta = (scale: number, rotation: number) => {
+    const radians = (rotation * Math.PI) / 180;
+    return {
+      x: (deltaX * Math.cos(radians) - deltaY * Math.sin(radians)) * scale,
+      y: (deltaX * Math.sin(radians) + deltaY * Math.cos(radians)) * scale,
+    };
+  };
+  const baseDelta = transformOriginDelta(
+    Math.max(0.05, group.scale || 1),
+    group.rotation || 0
+  );
+  const nextKeyframes = group.keyframes?.map((keyframe) => {
+    const keyframeDelta = transformOriginDelta(
+      Math.max(0.05, keyframe.scale ?? group.scale ?? 1),
+      keyframe.rotation ?? group.rotation ?? 0
+    );
+    return {
+      ...keyframe,
+      x: (keyframe.x ?? group.x) + keyframeDelta.x,
+      y: (keyframe.y ?? group.y) + keyframeDelta.y,
+    };
+  });
+
+  const nextGroup: LayerGroup = {
+    ...group,
+    originX: bounds.x,
+    originY: bounds.y,
+    x: group.x + baseDelta.x,
+    y: group.y + baseDelta.y,
+    width: bounds.width,
+    height: bounds.height,
+    keyframes: nextKeyframes,
+  };
+
+  const unchanged =
+    Math.abs(group.originX - nextGroup.originX) < 0.01 &&
+    Math.abs(group.originY - nextGroup.originY) < 0.01 &&
+    Math.abs(group.width - nextGroup.width) < 0.01 &&
+    Math.abs(group.height - nextGroup.height) < 0.01;
+  return unchanged ? group : nextGroup;
+}
+
+function refreshGroupsContainingMember(
+  state: StudioState,
+  reference: LayerReference
+): LayerGroup[] {
+  return (state.layerGroups || []).map((group) =>
+    group.members.some(
+      (member) => member.type === reference.type && member.id === reference.id
+    )
+      ? refreshLayerGroupBounds(state, group)
+      : group
+  );
+}
+
+function removeLayerReferenceFromGroups(
+  groups: LayerGroup[] | undefined,
+  reference: LayerReference
+) {
+  return (groups || [])
+    .map((group) => ({
+      ...group,
+      members: group.members.filter(
+        (member) => !(member.type === reference.type && member.id === reference.id)
+      ),
+    }))
+    .filter((group) => group.members.length >= 2);
 }
 
 const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
@@ -343,6 +535,7 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     phosphorIconLayers,
     canvasElements,
     shapeLayers,
+    layerGroups,
     layerOrder,
     techStackConfig,
     phosphorIconConfig,
@@ -459,6 +652,7 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     phosphorIconLayers: JSON.parse(JSON.stringify(phosphorIconLayers || [])),
     canvasElements: JSON.parse(JSON.stringify(canvasElements || [])),
     shapeLayers: JSON.parse(JSON.stringify(shapeLayers || [])),
+    layerGroups: JSON.parse(JSON.stringify(layerGroups || [])),
     layerOrder: JSON.parse(JSON.stringify(layerOrder || [])),
     techStackConfig: { ...techStackConfig },
     phosphorIconConfig: { ...phosphorIconConfig },
@@ -697,6 +891,7 @@ export const useStudioStore = create<StudioStore>()(
           };
           return {
             textLayers: [...state.textLayers, newLayer],
+            selectedLayerGroupId: null,
             selectedTextLayerId: newLayer.id,
             selectedTextLayerIds: [newLayer.id],
             layerOrder: [{ type: 'text', id: newLayer.id }, ...(state.layerOrder || [])],
@@ -738,20 +933,28 @@ export const useStudioStore = create<StudioStore>()(
           };
           return {
             textLayers: [...state.textLayers, newLayer],
+            selectedLayerGroupId: null,
             selectedTextLayerId: newLayer.id,
             selectedTextLayerIds: [newLayer.id],
             layerOrder: [{ type: 'text', id: newLayer.id }, ...(state.layerOrder || [])],
           };
         }),
       updateTextLayer: (id, updates) =>
-        set((state) => ({
-          textLayers: state.textLayers.map((l) =>
+        set((state) => {
+          const textLayers = state.textLayers.map((l) =>
             l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec) : l
-          ),
-        })),
+          );
+          const nextState = { ...state, textLayers };
+          return {
+            textLayers,
+            layerGroups: refreshGroupsContainingMember(nextState, { type: 'text', id }),
+          };
+        }),
       removeTextLayer: (id) =>
         set((state) => ({
           textLayers: state.textLayers.filter((l) => l.id !== id),
+          layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'text', id }),
+          selectedLayerGroupId: null,
           selectedTextLayerId: state.selectedTextLayerId === id ? null : state.selectedTextLayerId,
           selectedTextLayerIds: (state.selectedTextLayerIds || []).filter((i) => i !== id),
           layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'text' && e.id === id)),
@@ -896,6 +1099,7 @@ export const useStudioStore = create<StudioStore>()(
         }),
       selectTextLayer: (id) =>
         set(() => ({
+          selectedLayerGroupId: null,
           selectedTextLayerId: id,
           selectedTextLayerIds: id ? [id] : [],
         })),
@@ -905,6 +1109,7 @@ export const useStudioStore = create<StudioStore>()(
           const has = ids.includes(id);
           const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
           return {
+            selectedLayerGroupId: null,
             selectedTextLayerIds: nextIds,
             selectedTextLayerId: nextIds.length ? id : null,
           };
@@ -936,20 +1141,28 @@ export const useStudioStore = create<StudioStore>()(
           };
           return {
             phosphorIconLayers: [...(state.phosphorIconLayers || []), newLayer],
+            selectedLayerGroupId: null,
             selectedPhosphorIconLayerId: newLayer.id,
             selectedPhosphorIconLayerIds: [newLayer.id],
             layerOrder: [{ type: 'phosphor', id: newLayer.id }, ...(state.layerOrder || [])],
           };
         }),
       updatePhosphorIconLayer: (id, updates) =>
-        set((state) => ({
-          phosphorIconLayers: (state.phosphorIconLayers || []).map((l) =>
+        set((state) => {
+          const phosphorIconLayers = (state.phosphorIconLayers || []).map((l) =>
             l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec) : l
-          ),
-        })),
+          );
+          const nextState = { ...state, phosphorIconLayers };
+          return {
+            phosphorIconLayers,
+            layerGroups: refreshGroupsContainingMember(nextState, { type: 'phosphor', id }),
+          };
+        }),
       removePhosphorIconLayer: (id) =>
         set((state) => ({
           phosphorIconLayers: (state.phosphorIconLayers || []).filter((l) => l.id !== id),
+          layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'phosphor', id }),
+          selectedLayerGroupId: null,
           selectedPhosphorIconLayerId:
             state.selectedPhosphorIconLayerId === id ? null : state.selectedPhosphorIconLayerId,
           selectedPhosphorIconLayerIds: (state.selectedPhosphorIconLayerIds || []).filter(
@@ -983,6 +1196,7 @@ export const useStudioStore = create<StudioStore>()(
         }),
       selectPhosphorIconLayer: (id) =>
         set(() => ({
+          selectedLayerGroupId: null,
           selectedPhosphorIconLayerId: id,
           selectedPhosphorIconLayerIds: id ? [id] : [],
         })),
@@ -992,6 +1206,7 @@ export const useStudioStore = create<StudioStore>()(
           const has = ids.includes(id);
           const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
           return {
+            selectedLayerGroupId: null,
             selectedPhosphorIconLayerIds: nextIds,
             selectedPhosphorIconLayerId: nextIds.length ? id : null,
           };
@@ -1002,6 +1217,7 @@ export const useStudioStore = create<StudioStore>()(
           const has = ids.includes(id);
           const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
           return {
+            selectedLayerGroupId: null,
             selectedPhosphorIconLayerIds: nextIds,
             selectedPhosphorIconLayerId: nextIds.length ? id : null,
           };
@@ -1029,20 +1245,28 @@ export const useStudioStore = create<StudioStore>()(
           };
           return {
             canvasElements: [...(state.canvasElements || []), newEl],
+            selectedLayerGroupId: null,
             selectedElementId: newEl.id,
             selectedElementIds: [newEl.id],
             layerOrder: [{ type: 'element', id: newEl.id }, ...(state.layerOrder || [])],
           };
         }),
       updateCanvasElement: (id, updates) =>
-        set((state) => ({
-          canvasElements: (state.canvasElements || []).map((el) =>
+        set((state) => {
+          const canvasElements = (state.canvasElements || []).map((el) =>
             el.id === id ? syncKeyframesOnLayerUpdate(el, updates, state.currentTimeSec) : el
-          ),
-        })),
+          );
+          const nextState = { ...state, canvasElements };
+          return {
+            canvasElements,
+            layerGroups: refreshGroupsContainingMember(nextState, { type: 'element', id }),
+          };
+        }),
       removeCanvasElement: (id) =>
         set((state) => ({
           canvasElements: (state.canvasElements || []).filter((el) => el.id !== id),
+          layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'element', id }),
+          selectedLayerGroupId: null,
           selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
           selectedElementIds: (state.selectedElementIds || []).filter((i) => i !== id),
           layerOrder: (state.layerOrder || []).filter(
@@ -1073,6 +1297,7 @@ export const useStudioStore = create<StudioStore>()(
         }),
       selectCanvasElement: (id) =>
         set(() => ({
+          selectedLayerGroupId: null,
           selectedElementId: id,
           selectedElementIds: id ? [id] : [],
         })),
@@ -1082,6 +1307,7 @@ export const useStudioStore = create<StudioStore>()(
           const has = ids.includes(id);
           const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
           return {
+            selectedLayerGroupId: null,
             selectedElementIds: nextIds,
             selectedElementId: nextIds.length ? id : null,
           };
@@ -1108,6 +1334,9 @@ export const useStudioStore = create<StudioStore>()(
             color: '#a2d2ff',
             ...dims[shapeType],
             borderRadius: shapeType === 'square' || shapeType === 'rectangle' ? 8 : 0,
+            borderEnabled: false,
+            borderColor: '#ffffff',
+            borderWidth: 2,
             x: 0,
             y: 0,
             rotation: 0,
@@ -1128,6 +1357,7 @@ export const useStudioStore = create<StudioStore>()(
           };
           return {
             shapeLayers: [...(state.shapeLayers || []), newShape],
+            selectedLayerGroupId: null,
             selectedShapeId: newShape.id,
             selectedShapeIds: [newShape.id],
             layerOrder: [{ type: 'shape', id: newShape.id }, ...(state.layerOrder || [])],
@@ -1147,6 +1377,7 @@ export const useStudioStore = create<StudioStore>()(
         })),
       clearAllSelection: () =>
         set(() => ({
+          selectedLayerGroupId: null,
           selectedTextLayerId: null,
           selectedTextLayerIds: [],
           selectedPhosphorIconLayerId: null,
@@ -1157,14 +1388,21 @@ export const useStudioStore = create<StudioStore>()(
           selectedShapeIds: [],
         })),
       updateShapeLayer: (id, updates) =>
-        set((state) => ({
-          shapeLayers: (state.shapeLayers || []).map((s) =>
+        set((state) => {
+          const shapeLayers = (state.shapeLayers || []).map((s) =>
             s.id === id ? syncKeyframesOnLayerUpdate(s, updates, state.currentTimeSec) : s
-          ),
-        })),
+          );
+          const nextState = { ...state, shapeLayers };
+          return {
+            shapeLayers,
+            layerGroups: refreshGroupsContainingMember(nextState, { type: 'shape', id }),
+          };
+        }),
       removeShapeLayer: (id) =>
         set((state) => ({
           shapeLayers: (state.shapeLayers || []).filter((s) => s.id !== id),
+          layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'shape', id }),
+          selectedLayerGroupId: null,
           selectedShapeId: state.selectedShapeId === id ? null : state.selectedShapeId,
           selectedShapeIds: (state.selectedShapeIds || []).filter((i) => i !== id),
           layerOrder: (state.layerOrder || []).filter((e) => !(e.type === 'shape' && e.id === id)),
@@ -1193,6 +1431,7 @@ export const useStudioStore = create<StudioStore>()(
         }),
       selectShapeLayer: (id) =>
         set(() => ({
+          selectedLayerGroupId: null,
           selectedShapeId: id,
           selectedShapeIds: id ? [id] : [],
         })),
@@ -1202,8 +1441,263 @@ export const useStudioStore = create<StudioStore>()(
           const has = ids.includes(id);
           const nextIds = has ? ids.filter((i) => i !== id) : [...ids, id];
           return {
+            selectedLayerGroupId: null,
             selectedShapeIds: nextIds,
             selectedShapeId: nextIds.length ? id : null,
+          };
+        }),
+      groupSelectedLayers: () => {
+        let createdGroupId: string | null = null;
+        set((state) => {
+          const alreadyGrouped = new Set(
+            (state.layerGroups || []).flatMap((group) =>
+              group.members.map((member) => `${member.type}:${member.id}`)
+            )
+          );
+          const members: LayerReference[] = [
+            ...(state.selectedTextLayerIds || []).map((id) => ({ type: 'text' as const, id })),
+            ...(state.selectedPhosphorIconLayerIds || []).map((id) => ({
+              type: 'phosphor' as const,
+              id,
+            })),
+            ...(state.selectedElementIds || []).map((id) => ({ type: 'element' as const, id })),
+            ...(state.selectedShapeIds || []).map((id) => ({ type: 'shape' as const, id })),
+          ].filter((member) => !alreadyGrouped.has(`${member.type}:${member.id}`));
+
+          if (members.length < 2) return state;
+          const layers = members
+            .map((member) => getLayerForReference(state, member) as any)
+            .filter(Boolean);
+          if (layers.length !== members.length) return state;
+          const position = (layers[0].position || 'above') as 'above' | 'underneath';
+          if (layers.some((layer) => (layer.position || 'above') !== position)) return state;
+          const bounds = getGroupBounds(state, members);
+          if (!bounds) return state;
+
+          const order = state.layerOrder || [];
+          members.sort((a, b) => {
+            const ai = order.findIndex((entry) => entry.type === a.type && entry.id === a.id);
+            const bi = order.findIndex((entry) => entry.type === b.type && entry.id === b.id);
+            return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+          });
+
+          const id = `group-${Date.now()}`;
+          createdGroupId = id;
+          const group: LayerGroup = {
+            id,
+            name: `Group ${(state.layerGroups || []).length + 1}`,
+            members,
+            position,
+            originX: bounds.x,
+            originY: bounds.y,
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+            scale: 1,
+            rotation: 0,
+            opacity: 100,
+            visible: true,
+            locked: false,
+          };
+          return {
+            layerGroups: [...(state.layerGroups || []), group],
+            selectedLayerGroupId: id,
+            selectedTextLayerId: null,
+            selectedTextLayerIds: [],
+            selectedPhosphorIconLayerId: null,
+            selectedPhosphorIconLayerIds: [],
+            selectedElementId: null,
+            selectedElementIds: [],
+            selectedShapeId: null,
+            selectedShapeIds: [],
+          };
+        });
+        return createdGroupId;
+      },
+      updateLayerGroup: (id, updates) =>
+        set((state) => {
+          const current = (state.layerGroups || []).find((group) => group.id === id);
+          if (!current) return state;
+          const nextGroups = (state.layerGroups || []).map((group) =>
+            group.id === id
+              ? syncKeyframesOnLayerUpdate(group, updates, state.currentTimeSec)
+              : group
+          );
+          if (!updates.position || updates.position === current.position) {
+            return { layerGroups: nextGroups };
+          }
+          const memberKeys = new Set(
+            current.members.map((member) => `${member.type}:${member.id}`)
+          );
+          return {
+            layerGroups: nextGroups,
+            textLayers: state.textLayers.map((layer) =>
+              memberKeys.has(`text:${layer.id}`) ? { ...layer, position: updates.position! } : layer
+            ),
+            phosphorIconLayers: state.phosphorIconLayers.map((layer) =>
+              memberKeys.has(`phosphor:${layer.id}`)
+                ? { ...layer, position: updates.position! }
+                : layer
+            ),
+            canvasElements: state.canvasElements.map((layer) =>
+              memberKeys.has(`element:${layer.id}`)
+                ? { ...layer, position: updates.position! }
+                : layer
+            ),
+            shapeLayers: state.shapeLayers.map((layer) =>
+              memberKeys.has(`shape:${layer.id}`) ? { ...layer, position: updates.position! } : layer
+            ),
+          };
+        }),
+      selectLayerGroup: (id) =>
+        set((state) => ({
+          layerGroups: id
+            ? (state.layerGroups || []).map((group) =>
+                group.id === id ? refreshLayerGroupBounds(state, group) : group
+              )
+            : state.layerGroups,
+          selectedLayerGroupId: id,
+          selectedTextLayerId: null,
+          selectedTextLayerIds: [],
+          selectedPhosphorIconLayerId: null,
+          selectedPhosphorIconLayerIds: [],
+          selectedElementId: null,
+          selectedElementIds: [],
+          selectedShapeId: null,
+          selectedShapeIds: [],
+        })),
+      refreshLayerGroupBounds: (id) =>
+        set((state) => {
+          const groups = state.layerGroups || [];
+          const index = groups.findIndex((group) => group.id === id);
+          if (index === -1) return state;
+          const refreshed = refreshLayerGroupBounds(state, groups[index]);
+          if (refreshed === groups[index]) return state;
+          const layerGroups = [...groups];
+          layerGroups[index] = refreshed;
+          return { layerGroups };
+        }),
+      ungroupLayerGroup: (id) =>
+        set((state) => {
+          const group = (state.layerGroups || []).find((item) => item.id === id);
+          if (!group) return state;
+          const memberKeys = new Set(group.members.map((member) => `${member.type}:${member.id}`));
+          const radians = ((group.rotation || 0) * Math.PI) / 180;
+          const cos = Math.cos(radians);
+          const sin = Math.sin(radians);
+          const scale = Math.max(0.05, group.scale || 1);
+          const transformLayer = (layer: any, type: LayerReference['type']) => {
+            if (!memberKeys.has(`${type}:${layer.id}`)) return layer;
+            const dx = (layer.x || 0) - group.originX;
+            const dy = (layer.y || 0) - group.originY;
+            const transformed = {
+              ...layer,
+              x: Math.round((group.x + (dx * cos - dy * sin) * scale) * 100) / 100,
+              y: Math.round((group.y + (dx * sin + dy * cos) * scale) * 100) / 100,
+              rotation: (layer.rotation || 0) + (group.rotation || 0),
+              opacity: Math.max(
+                0,
+                Math.min(100, ((layer.opacity ?? 100) * (group.opacity ?? 100)) / 100)
+              ),
+              visible: layer.visible !== false && group.visible !== false,
+            } as any;
+            if (type === 'text') {
+              transformed.fontSize = Math.max(8, (layer.fontSize || 32) * scale);
+              if (layer.iconSize) transformed.iconSize = layer.iconSize * scale;
+            } else if (type === 'phosphor') {
+              transformed.size = Math.max(8, (layer.size || 36) * scale);
+            } else {
+              transformed.width = Math.max(4, (layer.width || 100) * scale);
+              transformed.height = Math.max(4, (layer.height || 100) * scale);
+              if (type === 'shape' && layer.borderRadius != null) {
+                transformed.borderRadius = layer.borderRadius * scale;
+              }
+              if (type === 'shape' && layer.borderWidth != null) {
+                transformed.borderWidth = layer.borderWidth * scale;
+              }
+            }
+            return transformed;
+          };
+          return {
+            textLayers: state.textLayers.map((layer) => transformLayer(layer, 'text')),
+            phosphorIconLayers: state.phosphorIconLayers.map((layer) =>
+              transformLayer(layer, 'phosphor')
+            ),
+            canvasElements: state.canvasElements.map((layer) => transformLayer(layer, 'element')),
+            shapeLayers: state.shapeLayers.map((layer) => transformLayer(layer, 'shape')),
+            layerGroups: (state.layerGroups || []).filter((item) => item.id !== id),
+            selectedLayerGroupId: state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
+          };
+        }),
+      removeLayerGroup: (id) =>
+        set((state) => {
+          const group = (state.layerGroups || []).find((item) => item.id === id);
+          if (!group) return state;
+          const memberKeys = new Set(group.members.map((member) => `${member.type}:${member.id}`));
+          return {
+            textLayers: state.textLayers.filter((layer) => !memberKeys.has(`text:${layer.id}`)),
+            phosphorIconLayers: state.phosphorIconLayers.filter(
+              (layer) => !memberKeys.has(`phosphor:${layer.id}`)
+            ),
+            canvasElements: state.canvasElements.filter(
+              (layer) => !memberKeys.has(`element:${layer.id}`)
+            ),
+            shapeLayers: state.shapeLayers.filter((layer) => !memberKeys.has(`shape:${layer.id}`)),
+            layerOrder: (state.layerOrder || []).filter(
+              (entry) => !memberKeys.has(`${entry.type}:${entry.id}`)
+            ),
+            layerGroups: (state.layerGroups || []).filter((item) => item.id !== id),
+            selectedLayerGroupId: state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
+          };
+        }),
+      duplicateLayerGroup: (id) =>
+        set((state) => {
+          const group = (state.layerGroups || []).find((item) => item.id === id);
+          if (!group) return state;
+          const now = Date.now();
+          const idMap = new Map<string, string>();
+          group.members.forEach((member, index) => {
+            idMap.set(`${member.type}:${member.id}`, `${member.type}-${now}-${index}`);
+          });
+          const cloneLayers = <T extends { id: string }>(layers: T[], type: LayerReference['type']) => {
+            const clones = layers
+              .filter((layer) => idMap.has(`${type}:${layer.id}`))
+              .map((layer) => ({
+                ...JSON.parse(JSON.stringify(layer)),
+                id: idMap.get(`${type}:${layer.id}`)!,
+              }));
+            return [...layers, ...clones];
+          };
+          const newMembers = group.members.map((member) => ({
+            ...member,
+            id: idMap.get(`${member.type}:${member.id}`)!,
+          }));
+          const newOrder = [...(state.layerOrder || [])];
+          for (const member of newMembers.slice().reverse()) {
+            const source = group.members.find((item) => item.type === member.type && idMap.get(`${item.type}:${item.id}`) === member.id);
+            const sourceIndex = source
+              ? newOrder.findIndex((entry) => entry.type === source.type && entry.id === source.id)
+              : -1;
+            newOrder.splice(sourceIndex < 0 ? 0 : sourceIndex, 0, member);
+          }
+          const newGroupId = `group-${now}`;
+          const duplicate: LayerGroup = {
+            ...JSON.parse(JSON.stringify(group)),
+            id: newGroupId,
+            name: `${group.name} Copy`,
+            members: newMembers,
+            x: group.x + 20,
+            y: group.y + 20,
+          };
+          return {
+            textLayers: cloneLayers(state.textLayers, 'text'),
+            phosphorIconLayers: cloneLayers(state.phosphorIconLayers, 'phosphor'),
+            canvasElements: cloneLayers(state.canvasElements, 'element'),
+            shapeLayers: cloneLayers(state.shapeLayers, 'shape'),
+            layerOrder: newOrder,
+            layerGroups: [...(state.layerGroups || []), duplicate],
+            selectedLayerGroupId: newGroupId,
           };
         }),
       booleanOperationOnShapes: (operation: BooleanOperation = 'union') => {
@@ -1216,6 +1710,15 @@ export const useStudioStore = create<StudioStore>()(
             ])
           );
           if (selectedIds.length < 2) return state;
+
+          const groupedShapeIds = new Set(
+            (state.layerGroups || []).flatMap((group) =>
+              group.members
+                .filter((member) => member.type === 'shape')
+                .map((member) => member.id)
+            )
+          );
+          if (selectedIds.some((id) => groupedShapeIds.has(id))) return state;
 
           const layerOrder = state.layerOrder || [];
           // Sort selected shapes by layerOrder (index 0 = topmost, higher index = bottom-most)
@@ -1383,6 +1886,7 @@ export const useStudioStore = create<StudioStore>()(
             activeStageIndex: index,
             isPlaying: false,
             currentTimeSec: 0,
+            selectedLayerGroupId: null,
             selectedTextLayerId: null,
             selectedTextLayerIds: [],
             selectedPhosphorIconLayerId: null,
@@ -1415,6 +1919,7 @@ export const useStudioStore = create<StudioStore>()(
             ...newSnapshot,
             stages: currentStages,
             activeStageIndex: newIndex,
+            selectedLayerGroupId: null,
             selectedTextLayerId: null,
             selectedTextLayerIds: [],
             selectedPhosphorIconLayerId: null,
@@ -1468,7 +1973,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);
@@ -1546,7 +2053,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);
@@ -1605,7 +2114,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);
@@ -1630,7 +2141,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);
@@ -1688,7 +2201,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);
@@ -1721,7 +2236,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);
@@ -1746,7 +2263,9 @@ export const useStudioStore = create<StudioStore>()(
                 ? 'phosphorIconLayers'
                 : layerType === 'element'
                   ? 'canvasElements'
-                  : 'shapeLayers';
+                  : layerType === 'group'
+                    ? 'layerGroups'
+                    : 'shapeLayers';
 
           const layers = [...(state[layerProp] || [])] as any[];
           const targetIdx = layers.findIndex((l) => l.id === layerId);

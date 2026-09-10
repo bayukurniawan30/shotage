@@ -983,6 +983,105 @@ export const ElementsSection: React.FC = () => {
             </div>
           </div>
 
+          {/* Shape Border */}
+          {selectedShape.shapeType !== 'coolshape' && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-semibold text-slate-300">Border</label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    state.updateShapeLayer(selectedShape.id, {
+                      borderEnabled: !selectedShape.borderEnabled,
+                      borderColor: selectedShape.borderColor || '#ffffff',
+                      borderWidth: selectedShape.borderWidth ?? 2,
+                    })
+                  }
+                  className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                    selectedShape.borderEnabled ? 'bg-pastel-pink' : 'bg-slate-800'
+                  }`}
+                  aria-label={selectedShape.borderEnabled ? 'Disable border' : 'Enable border'}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
+                      selectedShape.borderEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {selectedShape.borderEnabled && (
+                <div className="space-y-3 rounded-xl border border-neutral-800/80 bg-neutral-900/60 p-3 animate-in fade-in duration-150">
+                  <div>
+                    <span className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Color
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {['#ffffff', '#000000', '#ffafcc', '#a2d2ff', '#cdb4db'].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() =>
+                            state.updateShapeLayer(selectedShape.id, { borderColor: color })
+                          }
+                          className={`h-6 w-6 rounded-full border transition-transform cursor-pointer ${
+                            (selectedShape.borderColor || '#ffffff').toLowerCase() ===
+                            color.toLowerCase()
+                              ? 'scale-110 border-white ring-2 ring-pastel-pink/50'
+                              : 'border-slate-700/60 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          aria-label={`Border color ${color}`}
+                        />
+                      ))}
+                      <input
+                        type="color"
+                        value={selectedShape.borderColor || '#ffffff'}
+                        onChange={(event) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            borderColor: event.target.value,
+                          })
+                        }
+                        className="h-6 w-6 cursor-pointer rounded-full border border-slate-700 bg-transparent p-0"
+                        title="Custom border color"
+                      />
+                      <input
+                        type="text"
+                        value={selectedShape.borderColor || '#ffffff'}
+                        onChange={(event) =>
+                          state.updateShapeLayer(selectedShape.id, {
+                            borderColor: event.target.value,
+                          })
+                        }
+                        className="min-w-0 flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1 text-[10px] font-mono text-slate-200"
+                        aria-label="Border color value"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 flex justify-between text-xs">
+                      <span className="font-medium text-slate-300">Thickness</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedShape.borderWidth ?? 2}px
+                      </span>
+                    </div>
+                    <StepperSlider
+                      min={1}
+                      max={20}
+                      step={1}
+                      value={selectedShape.borderWidth ?? 2}
+                      onChange={(value) =>
+                        state.updateShapeLayer(selectedShape.id, { borderWidth: value })
+                      }
+                      accentColor="#ffafcc"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Gradient Shape */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
