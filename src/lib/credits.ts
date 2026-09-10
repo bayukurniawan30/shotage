@@ -5,6 +5,8 @@ export const EXPORT_COSTS = {
   videoLong: 120,
 } as const;
 
+export const MAX_PAID_VIDEO_DURATION_SECONDS = 60;
+
 export function getExportCapacity(balance: number) {
   return {
     standardImages: Math.floor(balance / EXPORT_COSTS.imageStandard),

@@ -2,10 +2,15 @@ import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthUser } from './auth.js';
 import { getDatabase } from './db/index.js';
-import { EXPORT_COSTS, getExportCapacity } from '../lib/credits.js';
+import {
+  EXPORT_COSTS,
+  MAX_PAID_VIDEO_DURATION_SECONDS,
+  getExportCapacity,
+} from '../lib/credits.js';
 
 export {
   EXPORT_COSTS,
+  MAX_PAID_VIDEO_DURATION_SECONDS,
   getExportCapacity,
   getImageExportCost,
   getVideoExportCost,
@@ -44,7 +49,7 @@ export const reservationRequestSchema = z.discriminatedUnion('kind', [
     ...reservationFields,
     kind: z.literal('video'),
     format: z.enum(['mp4', 'webm']),
-    videoDurationSeconds: z.number().positive().max(30),
+    videoDurationSeconds: z.number().min(1).max(MAX_PAID_VIDEO_DURATION_SECONDS),
   }),
 ]);
 

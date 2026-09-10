@@ -78,6 +78,13 @@
       "when": 1788855720000,
       "tag": "0010_unlimited_export_reservations",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789005436000,
+      "tag": "0011_extend-video-export-duration",
+      "breakpoints": true
     }
   ]
 }

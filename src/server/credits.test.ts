@@ -53,7 +53,7 @@ describe('getVideoExportCost', () => {
   it('prices short and long videos by their combined duration', () => {
     expect(getVideoExportCost(10)).toBe(75);
     expect(getVideoExportCost(10.001)).toBe(120);
-    expect(getVideoExportCost(30)).toBe(120);
+    expect(getVideoExportCost(60)).toBe(120);
   });
 });
 
@@ -80,7 +80,7 @@ describe('credit API validation', () => {
         ...common,
         kind: 'video',
         format: 'mp4',
-        videoDurationSeconds: 10,
+        videoDurationSeconds: 60,
       }).success
     ).toBe(true);
   });
@@ -99,7 +99,15 @@ describe('credit API validation', () => {
         ...common,
         kind: 'video',
         format: 'webm',
-        videoDurationSeconds: 31,
+        videoDurationSeconds: 0.5,
+      }).success
+    ).toBe(false);
+    expect(
+      reservationRequestSchema.safeParse({
+        ...common,
+        kind: 'video',
+        format: 'webm',
+        videoDurationSeconds: 61,
       }).success
     ).toBe(false);
     expect(reservationOperationSchema.safeParse({ idempotencyKey: 'reused' }).success).toBe(false);

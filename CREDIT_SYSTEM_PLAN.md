@@ -28,7 +28,7 @@ hypothesis rather than a proven market optimum.
 | Standard image (1x / 2x)   |          15 |     about 133 images ($0.075 each) |
 | 4K image (4x)              |          30 |       about 66 images ($0.15 each) |
 | Short video (5–10 seconds) |          75 |       about 26 videos ($0.38 each) |
-| Long video (15–30 seconds) |         120 |       about 16 videos ($0.62 each) |
+| Long video (11–60 seconds) |         120 |       about 16 videos ($0.62 each) |
 
 Offer these initial packs:
 

@@ -12,7 +12,7 @@ import {
   type VerifiedAccount,
 } from '../lib/auth/client';
 import { CREDIT_PACK_OPTIONS } from '../lib/creditPacks';
-import { EXPORT_COSTS, getExportCapacity } from '../lib/credits';
+import { EXPORT_COSTS, MAX_PAID_VIDEO_DURATION_SECONDS, getExportCapacity } from '../lib/credits';
 
 const exportTypes = [
   {
@@ -41,7 +41,7 @@ const exportTypes = [
   },
   {
     name: 'Long video',
-    detail: '15–30 seconds',
+    detail: `11–${MAX_PAID_VIDEO_DURATION_SECONDS} seconds`,
     credits: EXPORT_COSTS.videoLong,
     icon: PhosphorIcons.FilmStripIcon,
     color: 'text-[#bde0fe]',

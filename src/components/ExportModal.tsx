@@ -38,7 +38,12 @@ import {
   type ExportReservation,
   type VerifiedAccount,
 } from '../lib/auth/client';
-import { getExportCapacity, getImageExportCost, getVideoExportCost } from '../lib/credits';
+import {
+  MAX_PAID_VIDEO_DURATION_SECONDS,
+  getExportCapacity,
+  getImageExportCost,
+  getVideoExportCost,
+} from '../lib/credits';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -251,7 +256,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     ).toFixed(3)
   );
   const videoExportCost = getVideoExportCost(videoDurationSeconds);
-  const videoDurationInvalid = videoDurationSeconds <= 0 || videoDurationSeconds > 30;
+  const videoDurationInvalid =
+    videoDurationSeconds < 1 || videoDurationSeconds > MAX_PAID_VIDEO_DURATION_SECONDS;
   const videoExportInsufficient = Boolean(
     verifiedAccount && !hasUnlimitedExports && verifiedAccount.credits.balance < videoExportCost
   );
@@ -488,7 +494,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       return;
     }
     if (videoDurationInvalid) {
-      setVideoExportError('Paid video exports must be between 1 and 30 seconds.');
+      setVideoExportError(
+        `Paid video exports must be between 1 and ${MAX_PAID_VIDEO_DURATION_SECONDS} seconds.`
+      );
       return;
     }
     if (
@@ -1711,8 +1719,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 role="alert"
                 className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-5 text-amber-200"
               >
-                Paid video exports must be between 1 and 30 seconds. Shorten the animation or export
-                fewer stages.
+                Paid video exports must be between 1 and {MAX_PAID_VIDEO_DURATION_SECONDS} seconds.
+                Shorten the animation or export fewer stages.
               </div>
             )}
             {videoExportError && (
