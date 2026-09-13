@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => {
       devServer({
         entry: 'src/server/index.ts',
         exclude: [
-          // Let Vite handle everything except /api
-          /^\/(?!api).*/,
+          // Let Vite handle pages/assets, while Hono handles API and MCP/OAuth routes.
+          /^\/(?!(?:api|mcp|oauth|\.well-known)(?:\/|$)).*/,
 
           /.*\.css$/,
           /.*\.js$/,

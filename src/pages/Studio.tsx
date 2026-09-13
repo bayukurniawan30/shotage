@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useRef, useEffect, useState } from 'react';
-import { useStudioStore } from '../store/useStudioStore';
+import { getStageSnapshot, useStudioStore } from '../store/useStudioStore';
 import { CanvasStage } from '../components/CanvasStage';
 import { LeftSidebar } from '../components/LeftSidebar';
 import { RightSidebar } from '../components/RightSidebar';
@@ -8,6 +8,7 @@ import { InstallPwaModal } from '../components/InstallPwaModal';
 import { VideoBetaModal } from '../components/VideoBetaModal';
 import { AnimationTimeline } from '../components/AnimationTimeline';
 import { StageManagerToolbar } from '../components/StageManagerToolbar';
+import { StageSequencePreview } from '../components/StageSequencePreview';
 import { ProjectSpotlight } from '../components/ProjectSpotlight';
 import { StepperSlider } from '../components/StepperSlider';
 import {
@@ -24,14 +25,24 @@ import {
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 
-import { saveSession, loadSavedSession, clearSavedSession } from '../utils/sessionStore';
+import {
+  saveSession,
+  loadSavedSession,
+  clearSavedSession,
+  normalizeRestoredSession,
+} from '../utils/sessionStore';
 import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
 import { purgeAllVideoDecoders } from '../components/VideoCanvasScreen';
 import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
 import { decompressGzipString } from '../utils/gzipCompression';
-import { hydrateSharedStudioState } from '../utils/sharedDesign';
+import {
+  classifySharedDesignLoadFailure,
+  hydrateSharedStudioState,
+  type SharedDesignLoadFailure,
+} from '../utils/sharedDesign';
 import { AuthButton } from '../components/auth/AuthButton';
 import { authClient, getOptionalAuthToken } from '../lib/auth/client';
+import type { StudioState } from '../types/studio';
 
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
@@ -65,9 +76,33 @@ export const Studio: React.FC = () => {
   const [isVideoBetaModalOpen, setIsVideoBetaModalOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const zoomFrameRef = useRef<number | null>(null);
+  const pendingZoomRef = useRef(previewCanvasZoom);
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [sequencePreview, setSequencePreview] = useState<{
+    stages: Partial<StudioState>[];
+    boundaryIndex?: number;
+  } | null>(null);
+  const [sharedDesignLoadState, setSharedDesignLoadState] = useState<
+    'idle' | 'loading' | 'loaded' | SharedDesignLoadFailure
+  >(sharedViewKey ? 'loading' : 'idle');
+  const [sharedDesignLoadAttempt, setSharedDesignLoadAttempt] = useState(0);
+
+  const openSequencePreview = (boundaryIndex?: number) => {
+    const store = useStudioStore.getState();
+    store.updateState({ isPlaying: false });
+    const synchronizedStages = (store.stages || []).map((stage) => structuredClone(stage));
+    if (!synchronizedStages.length) return;
+    synchronizedStages[store.activeStageIndex] = getStageSnapshot(store);
+    setSequencePreview({
+      stages: synchronizedStages,
+      ...(boundaryIndex === undefined ? {} : { boundaryIndex }),
+    });
+  };
 
   // Session restore refs
   const savedSessionDataRef = useRef<Record<string, any> | null>(null);
@@ -89,12 +124,13 @@ export const Studio: React.FC = () => {
     if (
       PROJECT_SPOTLIGHT_GATED &&
       sharedViewKey &&
+      sharedDesignLoadState === 'loaded' &&
       !sessionStorage.getItem(SPOTLIGHT_SESSION_KEY)
     ) {
       sessionStorage.setItem(SPOTLIGHT_SESSION_KEY, '1');
       setIsSpotlightOpen(true);
     }
-  }, [sharedViewKey]);
+  }, [sharedDesignLoadState, sharedViewKey]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -277,19 +313,27 @@ export const Studio: React.FC = () => {
   useEffect(() => {
     if (!sharedViewKey || authSession.isPending) return;
     let cancelled = false;
-    getOptionalAuthToken()
-      .then((token) =>
-        fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`, {
+    setSharedDesignLoadState('loading');
+
+    const loadSharedDesign = async () => {
+      try {
+        const token = await getOptionalAuthToken();
+        const response = await fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        })
-      )
-      .then((res) => res.json())
-      .then(async (data) => {
+        });
+        const data = await response.json().catch(() => null);
         if (cancelled) return;
-        if (!data?.json_string) {
-          console.warn('Shared design not found:', sharedViewKey);
+
+        if (!response.ok) {
+          setSharedDesignLoadState(classifySharedDesignLoadFailure(response.status));
           return;
         }
+        if (!data?.json_string) {
+          console.warn('Shared design has no data:', sharedViewKey);
+          setSharedDesignLoadState('unavailable');
+          return;
+        }
+
         try {
           const jsonString = await decompressGzipString(data.json_string);
           const parsed = JSON.parse(jsonString);
@@ -302,22 +346,35 @@ export const Studio: React.FC = () => {
             sharedDesignPublisher: data.publisher || null,
           });
           temporalStore.getState().clear();
+          setSharedDesignLoadState('loaded');
           setTimeout(() => fitCanvasToView(), 60);
         } catch (err) {
           console.error('Failed to parse shared design:', err);
+          setSharedDesignLoadState('service_error');
         }
-      })
-      .catch((err) => console.error('Failed to load shared design:', err));
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Failed to load shared design:', err);
+        setSharedDesignLoadState('service_error');
+      }
+    };
+
+    void loadSharedDesign();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authSession.data?.session?.id, authSession.isPending, sharedViewKey]);
+  }, [
+    authSession.data?.session?.id,
+    authSession.isPending,
+    sharedDesignLoadAttempt,
+    sharedViewKey,
+  ]);
 
   const restoreSession = () => {
     const data = savedSessionDataRef.current;
     if (data) {
-      useStudioStore.getState().updateState(data);
+      useStudioStore.getState().updateState(normalizeRestoredSession(data));
       temporalStore.getState().clear();
       setTimeout(() => fitCanvasToView(), 60);
     }
@@ -699,6 +756,21 @@ export const Studio: React.FC = () => {
     fitCanvasToView();
   };
 
+  const handleCanvasZoomChange = (value: number) => {
+    pendingZoomRef.current = value;
+    if (zoomFrameRef.current !== null) return;
+    zoomFrameRef.current = requestAnimationFrame(() => {
+      zoomFrameRef.current = null;
+      updateState({ previewCanvasZoom: pendingZoomRef.current });
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (zoomFrameRef.current !== null) cancelAnimationFrame(zoomFrameRef.current);
+    };
+  }, []);
+
   // Fit the canvas to the viewport on initial load (re-run once layout settles)
   useEffect(() => {
     const raf = requestAnimationFrame(() => fitCanvasToView());
@@ -709,6 +781,81 @@ export const Studio: React.FC = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (sharedViewKey && sharedDesignLoadState !== 'loaded') {
+    const needsSignIn = sharedDesignLoadState === 'sign_in';
+    const unavailable = sharedDesignLoadState === 'unavailable';
+    const serviceError = sharedDesignLoadState === 'service_error';
+
+    return (
+      <div className="flex h-screen h-[100dvh] w-screen flex-col bg-neutral-950 font-sans text-slate-100">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-800 bg-neutral-900/90 px-4 backdrop-blur-md sm:px-6">
+          <a href="/" className="flex items-center gap-2.5">
+            <img
+              src="/shotage-logo-small.png"
+              alt="Shotage"
+              className="h-8 w-auto object-contain"
+            />
+            <span className="hidden text-base font-bold tracking-tight text-slate-200 sm:inline">
+              Shotage
+            </span>
+          </a>
+          {needsSignIn && <AuthButton compact variant="studio" />}
+        </header>
+
+        <main className="flex flex-1 items-center justify-center p-5">
+          <section className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-center shadow-2xl shadow-black/30 sm:p-8">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-700 bg-neutral-950 text-[#ffafcc]">
+              {sharedDesignLoadState === 'loading' ? (
+                <PhosphorIcons.CircleNotchIcon className="h-6 w-6 animate-spin" />
+              ) : (
+                <PhosphorIcons.LockKeyIcon className="h-6 w-6" />
+              )}
+            </div>
+            <h1 className="mt-5 text-xl font-bold tracking-tight text-white">
+              {needsSignIn
+                ? 'Private design'
+                : unavailable
+                  ? 'Design unavailable'
+                  : serviceError
+                    ? 'Could not load this design'
+                    : 'Opening design…'}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              {needsSignIn
+                ? 'Sign in with the Shotage account that owns this design to open it.'
+                : unavailable
+                  ? 'This link may be private, removed, or owned by another Shotage account.'
+                  : serviceError
+                    ? 'Shotage could not check this shared link right now. Please try again.'
+                    : 'Checking the shared link and your access…'}
+            </p>
+
+            <div className="mt-6 flex items-center justify-center gap-3">
+              {needsSignIn ? (
+                <AuthButton variant="studio" />
+              ) : serviceError ? (
+                <button
+                  type="button"
+                  onClick={() => setSharedDesignLoadAttempt((attempt) => attempt + 1)}
+                  className="rounded-xl bg-[#ffafcc] px-4 py-2.5 text-sm font-bold text-neutral-950 transition hover:bg-[#ffc8dd] cursor-pointer"
+                >
+                  Try again
+                </button>
+              ) : unavailable ? (
+                <a
+                  href="/"
+                  className="rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-700"
+                >
+                  Back to home
+                </a>
+              ) : null}
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen h-[100dvh] w-screen bg-neutral-950 text-slate-100 flex flex-col font-sans overflow-hidden">
@@ -976,7 +1123,11 @@ export const Studio: React.FC = () => {
             </div>
           </div>
 
-          <AuthButton compact variant="studio" />
+          <AuthButton
+            compact
+            variant="studio"
+            signOutRedirectTo={sharedViewKey ? '/studio' : undefined}
+          />
           {/* Support Me is temporarily hidden.
           <a
             href="https://saweria.co/bayukurniawan30"
@@ -1001,19 +1152,44 @@ export const Studio: React.FC = () => {
       </header>
 
       {/* Centered Fixed Stage Manager Toolbar */}
-      <StageManagerToolbar />
+      <StageManagerToolbar
+        onPreviewAll={() => openSequencePreview()}
+        onPreviewTransition={(boundaryIndex) => openSequencePreview(boundaryIndex)}
+      />
 
       {/* 3-Column Studio Workspace */}
       <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden relative">
         {/* Left Sidebar (Desktop Only, Animated Slide Out to Left in Preview Mode) */}
         <div
-          className={`hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
+          className={`relative z-40 hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
             isPreviewMode
               ? '-translate-x-full opacity-0 pointer-events-none w-0 overflow-hidden'
-              : 'translate-x-0 opacity-100 w-80'
+              : `translate-x-0 opacity-100 overflow-visible ${isLeftSidebarCollapsed ? 'w-16' : 'w-80'}`
           }`}
         >
-          <LeftSidebar onImageUpload={handleImageUpload} />
+          <LeftSidebar
+            onImageUpload={handleImageUpload}
+            desktopCollapsed={isLeftSidebarCollapsed}
+          />
+          {!isPreviewMode && (
+            <button
+              type="button"
+              onClick={() => setIsLeftSidebarCollapsed((collapsed) => !collapsed)}
+              className={`absolute top-3 z-50 flex h-9 w-9 items-center justify-center border border-neutral-700 bg-neutral-900/95 text-slate-300 shadow-xl backdrop-blur-md transition-all hover:border-pastel-blue/50 hover:text-white cursor-pointer ${
+                isLeftSidebarCollapsed
+                  ? 'left-1/2 -translate-x-1/2 rounded-xl'
+                  : 'left-full rounded-l-none rounded-r-xl border-l-0'
+              }`}
+              title={isLeftSidebarCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+              aria-label={isLeftSidebarCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+            >
+              {isLeftSidebarCollapsed ? (
+                <PhosphorIcons.CaretRightIcon className="h-4 w-4" weight="bold" />
+              ) : (
+                <PhosphorIcons.CaretLeftIcon className="h-4 w-4" weight="bold" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* Center Stage: Interactive Canvas Workspace */}
@@ -1074,9 +1250,9 @@ export const Studio: React.FC = () => {
               <StepperSlider
                 min={25}
                 max={200}
-                step={5}
+                step={1}
                 value={previewCanvasZoom}
-                onChange={(v) => updateState({ previewCanvasZoom: v })}
+                onChange={handleCanvasZoomChange}
                 accentColor="#ffafcc"
                 className="flex-1 min-w-[90px] sm:min-w-[120px]"
               />
@@ -1125,8 +1301,12 @@ export const Studio: React.FC = () => {
           </div>
 
           {/* Animation Keyframe Timeline Dock */}
-          {useStudioStore((s) => s.isAnimationMode) && (
-            <div className="absolute bottom-[20px] md:bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-4xl z-30 pointer-events-auto">
+          {isAnimationMode && (
+            <div
+              className={`absolute bottom-[20px] md:bottom-6 left-1/2 -translate-x-1/2 w-[94%] z-30 pointer-events-auto transition-[max-width] duration-300 ${
+                isLeftSidebarCollapsed || isRightSidebarCollapsed ? 'max-w-5xl' : 'max-w-4xl'
+              }`}
+            >
               <AnimationTimeline />
             </div>
           )}
@@ -1134,13 +1314,34 @@ export const Studio: React.FC = () => {
 
         {/* Right Sidebar (Desktop Only, Animated Slide Out to Right in Preview Mode) */}
         <div
-          className={`hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
+          className={`relative z-40 hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
             isPreviewMode
               ? 'translate-x-full opacity-0 pointer-events-none w-0 overflow-hidden'
-              : 'translate-x-0 opacity-100 w-80'
+              : `translate-x-0 opacity-100 overflow-visible ${isRightSidebarCollapsed ? 'w-16' : 'w-80'}`
           }`}
         >
-          <RightSidebar />
+          <RightSidebar desktopCollapsed={isRightSidebarCollapsed} />
+          {!isPreviewMode && (
+            <button
+              type="button"
+              onClick={() => setIsRightSidebarCollapsed((collapsed) => !collapsed)}
+              className={`absolute top-3 z-50 flex h-9 w-9 items-center justify-center border border-neutral-700 bg-neutral-900/95 text-slate-300 shadow-xl backdrop-blur-md transition-all hover:border-pastel-pink/50 hover:text-white cursor-pointer ${
+                isRightSidebarCollapsed
+                  ? 'right-1/2 translate-x-1/2 rounded-xl'
+                  : 'right-full rounded-l-xl rounded-r-none border-r-0'
+              }`}
+              title={isRightSidebarCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
+              aria-label={
+                isRightSidebarCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'
+              }
+            >
+              {isRightSidebarCollapsed ? (
+                <PhosphorIcons.CaretLeftIcon className="h-4 w-4" weight="bold" />
+              ) : (
+                <PhosphorIcons.CaretRightIcon className="h-4 w-4" weight="bold" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* Mobile Bottom Scrollable Navbar Drawer (Animated Slide Down in Preview Mode) */}
@@ -1259,6 +1460,14 @@ export const Studio: React.FC = () => {
         <Suspense fallback={null}>
           <ExportModal isOpen onClose={() => setIsExportModalOpen(false)} canvasRef={canvasRef} />
         </Suspense>
+      )}
+
+      {sequencePreview && (
+        <StageSequencePreview
+          stages={sequencePreview.stages}
+          boundaryIndex={sequencePreview.boundaryIndex}
+          onClose={() => setSequencePreview(null)}
+        />
       )}
 
       {/* Video Feature Beta Notice Modal */}

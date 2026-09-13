@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TextLayer } from '../types/studio';
-import { hydrateSharedStudioState } from './sharedDesign';
+import { classifySharedDesignLoadFailure, hydrateSharedStudioState } from './sharedDesign';
 
 const textLayer = (
   scaleX: number,
@@ -27,6 +27,13 @@ const textLayer = (
 });
 
 describe('shared design hydration', () => {
+  it('classifies private-link access failures without treating them as blank designs', () => {
+    expect(classifySharedDesignLoadFailure(401)).toBe('sign_in');
+    expect(classifySharedDesignLoadFailure(403)).toBe('unavailable');
+    expect(classifySharedDesignLoadFailure(404)).toBe('unavailable');
+    expect(classifySharedDesignLoadFailure(503)).toBe('service_error');
+  });
+
   it('keeps current root text stretch over a stale Stage 1 snapshot', () => {
     const hydrated = hydrateSharedStudioState({
       textLayers: [textLayer(2.4, 0.65)],

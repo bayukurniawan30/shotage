@@ -1157,7 +1157,7 @@ export const QuickModeSection: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Background Selector Row */}
-      <div className="border border-neutral-800 rounded-2xl bg-neutral-950/70 p-3.5 space-y-2.5 shadow-sm">
+      <div className="border border-neutral-800 rounded-2xl bg-neutral-950/70 md:bg-neutral-950 p-3.5 space-y-2.5 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <PhosphorIcons.PaletteIcon weight="duotone" className="w-4 h-4 text-pastel-pink" />

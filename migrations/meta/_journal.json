@@ -85,6 +85,13 @@
       "when": 1789005436000,
       "tag": "0011_extend-video-export-duration",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789012800000,
+      "tag": "0012_mcp_oauth",
+      "breakpoints": true
     }
   ]
 }

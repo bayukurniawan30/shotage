@@ -23,6 +23,7 @@ const getInitialPage = () => {
   if (currentPath === '/explore') componentName = 'Explore';
   if (currentPath === '/purchases') componentName = 'Purchases';
   if (currentPath === '/designs') componentName = 'Designs';
+  if (currentPath === '/oauth/authorize') componentName = 'McpAuthorize';
 
   return {
     component: componentName,

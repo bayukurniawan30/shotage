@@ -28,6 +28,7 @@ import { CREDIT_PACK_OPTIONS } from '../../lib/creditPacks';
 type AuthButtonProps = {
   compact?: boolean;
   variant?: 'default' | 'studio';
+  signOutRedirectTo?: string;
 };
 
 type AuthError = { message?: string } | null | undefined;
@@ -415,7 +416,11 @@ export function SignInDialog({
   );
 }
 
-export function AuthButton({ compact = false, variant = 'default' }: AuthButtonProps) {
+export function AuthButton({
+  compact = false,
+  variant = 'default',
+  signOutRedirectTo,
+}: AuthButtonProps) {
   const session = authClient.useSession();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -651,6 +656,7 @@ export function AuthButton({ compact = false, variant = 'default' }: AuthButtonP
             onClick={async () => {
               setMenuOpen(false);
               await authClient.signOut();
+              if (signOutRedirectTo) window.location.replace(signOutRedirectTo);
             }}
             className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-300 transition-colors cursor-pointer ${menuItemClassName}`}
           >

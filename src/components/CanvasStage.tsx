@@ -25,8 +25,13 @@ import { TechStackIcon } from './TechStackIcons';
 import {
   getAnimatedCounterValue,
   calculateEasing,
+  calculateMotionBlurRadius,
   evaluateLayerMotion,
   evaluateLayerKeyframes,
+  evaluateMotionPathSegment,
+  evaluateTextAnimationUnit,
+  getTextAnimationBlockAtTime,
+  segmentTextForAnimation,
 } from '../types/animationTypes';
 import { Coolshape } from 'coolshapes-react';
 import * as PhosphorIcons from '@phosphor-icons/react';
@@ -40,11 +45,90 @@ import {
   Bookmark,
   DotsHorizontal,
 } from '@untitledui/icons';
+import type { StudioState } from '../types/studio';
+import { anchorOrigin } from '../utils/anchorPoint';
+import type { LayerKeyframe, MotionPathConfig } from '../types/animationTypes';
 
 interface CanvasStageProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
   onImageUpload?: (file: File) => void;
+  stateOverride?: Partial<StudioState>;
+  readOnly?: boolean;
+  canvasId?: string;
 }
+
+interface MaskPose {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  skewX: number;
+  skewY: number;
+  anchorX: number;
+  anchorY: number;
+}
+
+interface Point2D { x: number; y: number }
+
+const svgPathPointCache = new Map<string, Point2D[]>();
+
+const sampleSvgPath = (pathData: string, samples = 64): Point2D[] => {
+  const cacheKey = `${samples}:${pathData}`;
+  const cached = svgPathPointCache.get(cacheKey);
+  if (cached) return cached;
+  if (typeof document === 'undefined') return [];
+  try {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathData);
+    const length = path.getTotalLength();
+    const points = Array.from({ length: samples }, (_, index) => {
+      const point = path.getPointAtLength((length * index) / samples);
+      return { x: point.x, y: point.y };
+    });
+    svgPathPointCache.set(cacheKey, points);
+    return points;
+  } catch {
+    return [];
+  }
+};
+
+const applyPoseVector = (point: Point2D, pose: MaskPose): Point2D => {
+  let x = point.x * pose.scaleX;
+  let y = point.y * pose.scaleY;
+  y += Math.tan((pose.skewY * Math.PI) / 180) * x;
+  x += Math.tan((pose.skewX * Math.PI) / 180) * y;
+  const radians = (pose.rotation * Math.PI) / 180;
+  return {
+    x: x * Math.cos(radians) - y * Math.sin(radians),
+    y: x * Math.sin(radians) + y * Math.cos(radians),
+  };
+};
+
+const invertPoseVector = (point: Point2D, pose: MaskPose): Point2D => {
+  const xAxis = applyPoseVector({ x: 1, y: 0 }, pose);
+  const yAxis = applyPoseVector({ x: 0, y: 1 }, pose);
+  const determinant = xAxis.x * yAxis.y - xAxis.y * yAxis.x;
+  if (Math.abs(determinant) < 0.00001) return point;
+  return {
+    x: (yAxis.y * point.x - yAxis.x * point.y) / determinant,
+    y: (-xAxis.y * point.x + xAxis.x * point.y) / determinant,
+  };
+};
+
+const poseVisualCenter = (pose: MaskPose): Point2D => {
+  const anchorOffset = {
+    x: (pose.anchorX - 0.5) * pose.width,
+    y: (pose.anchorY - 0.5) * pose.height,
+  };
+  const transformedOffset = applyPoseVector(anchorOffset, pose);
+  return {
+    x: pose.x + anchorOffset.x - transformedOffset.x,
+    y: pose.y + anchorOffset.y - transformedOffset.y,
+  };
+};
 
 // Generate a data-URI SVG placeholder at the exact dimensions of the missing
 // screenshot, so it occupies the same footprint the real image would.
@@ -99,13 +183,98 @@ const CenterPointIndicator: React.FC<CenterPointIndicatorProps> = ({
         left,
         transform: `translate(-50%, -50%) ${scaleTransform}${flipTransform}${rotTransform}`.trim(),
       }}
-      className="absolute w-2 h-2 rounded-full bg-pastel-pink border-2 border-white shadow-[0_0_10px_rgba(244,114,182,1)] flex items-center justify-center pointer-events-none z-50"
-    />
+      className="absolute w-3 h-3 rounded-full bg-neutral-950 border-2 border-pastel-pink shadow-[0_0_0_1px_rgba(255,255,255,0.9),0_0_8px_rgba(244,114,182,0.9)] flex items-center justify-center pointer-events-none z-[60]"
+    >
+      <span className="h-1 w-1 rounded-full bg-white" />
+    </div>
   );
 };
 
-export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUpload }) => {
-  const state = useStudioStore();
+const MotionPathOverlay: React.FC<{
+  keyframes?: LayerKeyframe[];
+  baseX: number;
+  baseY: number;
+  config?: MotionPathConfig;
+}> = ({ keyframes, baseX, baseY, config }) => {
+  if (!config || !keyframes || keyframes.length < 2) return null;
+  const sorted = [...keyframes].sort((a, b) => a.timeSec - b.timeSec);
+  const pointFor = (keyframe: LayerKeyframe) => ({
+    x: keyframe.x ?? baseX,
+    y: keyframe.y ?? baseY,
+  });
+  const samples: Array<{ x: number; y: number }> = [];
+  sorted.slice(0, -1).forEach((keyframe, index) => {
+    const start = pointFor(keyframe);
+    const end = pointFor(sorted[index + 1]);
+    for (let step = 0; step <= 20; step++) {
+      if (index > 0 && step === 0) continue;
+      samples.push(evaluateMotionPathSegment(start, end, step / 20, config));
+    }
+  });
+  if (samples.length < 2) return null;
+  const d = samples.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+
+  return (
+    <svg
+      width="1"
+      height="1"
+      className="absolute left-1/2 top-1/2 z-40 overflow-visible pointer-events-none"
+      aria-hidden="true"
+    >
+      <path
+        d={d}
+        fill="none"
+        stroke="rgba(162, 210, 255, 0.9)"
+        strokeWidth="1.5"
+        strokeDasharray="5 4"
+        vectorEffect="non-scaling-stroke"
+      />
+      {sorted.map((keyframe, index) => {
+        const point = pointFor(keyframe);
+        return (
+          <g key={keyframe.id} transform={`translate(${point.x} ${point.y})`}>
+            <circle
+              r={index === 0 || index === sorted.length - 1 ? 4 : 3}
+              fill={index === 0 ? '#a2d2ff' : index === sorted.length - 1 ? '#ffafcc' : '#0a0a0a'}
+              stroke="white"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+export const CanvasStage: React.FC<CanvasStageProps> = ({
+  canvasRef,
+  onImageUpload,
+  stateOverride,
+  readOnly = false,
+  canvasId = 'shotage-canvas',
+}) => {
+  const liveState = useStudioStore();
+  const state = stateOverride
+    ? ({
+        ...liveState,
+        ...stateOverride,
+        isPlaying: false,
+        isPositionDragging: false,
+        isPenDrawingMode: false,
+        selectedLayerGroupId: null,
+        selectedTextLayerId: null,
+        selectedTextLayerIds: [],
+        selectedPhosphorIconLayerId: null,
+        selectedPhosphorIconLayerIds: [],
+        selectedElementId: null,
+        selectedElementIds: [],
+        selectedShapeId: null,
+        selectedShapeIds: [],
+      } as typeof liveState)
+    : liveState;
+  const svgResourceId = (kind: string, layerId: string) =>
+    `${canvasId.replace(/[^a-zA-Z0-9_-]/g, '-')}-${kind}-${layerId}`;
 
   // Recalculate legacy or restored groups once selected so the outline always
   // reflects the complete outer bounds of every member.
@@ -229,7 +398,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   };
 
   // Interpolate keyframe parameters during animation playback
-  const getAnimatedTransforms = () => {
+  const getAnimatedTransforms = (timeSec = state.currentTimeSec) => {
     if (!state.isAnimationMode || !state.keyframes || state.keyframes.length === 0) {
       return {
         rotateX: state.rotateX,
@@ -246,28 +415,56 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     }
 
     const keyframes = state.keyframes;
-    const t = state.currentTimeSec;
+    const t = timeSec;
 
-    const formatKf = (kf: (typeof keyframes)[0]) => ({
+    const formatKf = (kf: (typeof keyframes)[0], pathIndex: number) => {
+      const adjacentIndex = pathIndex === keyframes.length - 1 ? pathIndex - 1 : pathIndex + 1;
+      const adjacent = keyframes[Math.max(0, adjacentIndex)];
+      const atEnd = pathIndex === keyframes.length - 1;
+      const slot1Path = evaluateMotionPathSegment(
+        atEnd
+          ? { x: adjacent.offsetX, y: adjacent.offsetY }
+          : { x: kf.offsetX, y: kf.offsetY },
+        atEnd
+          ? { x: kf.offsetX, y: kf.offsetY }
+          : { x: adjacent.offsetX, y: adjacent.offsetY },
+        atEnd ? 1 : 0,
+        state.mockupMotionPath
+      );
+      const slot2Path = evaluateMotionPathSegment(
+        atEnd
+          ? { x: adjacent.slot2OffsetX ?? 0, y: adjacent.slot2OffsetY ?? 0 }
+          : { x: kf.slot2OffsetX ?? 0, y: kf.slot2OffsetY ?? 0 },
+        atEnd
+          ? { x: kf.slot2OffsetX ?? 0, y: kf.slot2OffsetY ?? 0 }
+          : { x: adjacent.slot2OffsetX ?? 0, y: adjacent.slot2OffsetY ?? 0 },
+        atEnd ? 1 : 0,
+        state.slot2MockupMotionPath
+      );
+      return {
       rotateX: kf.rotateX,
       rotateY: kf.rotateY,
       zoom: kf.zoom,
       slot2Zoom: kf.slot2Zoom ?? kf.zoom,
-      offsetX: kf.offsetX,
-      offsetY: kf.offsetY,
-      slot2OffsetX: kf.slot2OffsetX ?? 0,
-      slot2OffsetY: kf.slot2OffsetY ?? 0,
-      slot1Rotate: kf.slot1Rotate ?? 0,
-      slot2Rotate: kf.slot2Rotate ?? 0,
-    });
+      offsetX: slot1Path.x,
+      offsetY: slot1Path.y,
+      slot2OffsetX: slot2Path.x,
+      slot2OffsetY: slot2Path.y,
+      slot1Rotate:
+        (kf.slot1Rotate ?? 0) + (state.mockupMotionPath?.autoOrient ? slot1Path.angle : 0),
+      slot2Rotate:
+        (kf.slot2Rotate ?? 0) +
+        (state.slot2MockupMotionPath?.autoOrient ? slot2Path.angle : 0),
+      };
+    };
 
     // Before first keyframe
     if (t <= keyframes[0].timeSec) {
-      return formatKf(keyframes[0]);
+      return formatKf(keyframes[0], 0);
     }
     // After last keyframe
     if (t >= keyframes[keyframes.length - 1].timeSec) {
-      return formatKf(keyframes[keyframes.length - 1]);
+      return formatKf(keyframes[keyframes.length - 1], keyframes.length - 1);
     }
 
     // Find bounding keyframes
@@ -284,7 +481,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const duration = kf2.timeSec - kf1.timeSec;
     const progress = duration > 0 ? (t - kf1.timeSec) / duration : 0;
 
-    const factor = calculateEasing(progress, state.animationEasing || 'ease-in-out');
+    const factor = calculateEasing(
+      progress,
+      kf1.easing || state.animationEasing || 'ease-in-out'
+    );
 
     const z1_1 = kf1.zoom;
     const z1_2 = kf2.zoom;
@@ -305,22 +505,96 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const r1_2 = kf2.slot1Rotate ?? 0;
     const r2_1 = kf1.slot2Rotate ?? 0;
     const r2_2 = kf2.slot2Rotate ?? 0;
+    const slot1Path = evaluateMotionPathSegment(
+      { x: x1_1, y: y1_1 },
+      { x: x1_2, y: y1_2 },
+      factor,
+      state.mockupMotionPath
+    );
+    const slot2Path = evaluateMotionPathSegment(
+      { x: x2_1, y: y2_1 },
+      { x: x2_2, y: y2_2 },
+      factor,
+      state.slot2MockupMotionPath
+    );
 
     return {
       rotateX: kf1.rotateX + (kf2.rotateX - kf1.rotateX) * factor,
       rotateY: kf1.rotateY + (kf2.rotateY - kf1.rotateY) * factor,
       zoom: z1_1 + (z1_2 - z1_1) * factor,
       slot2Zoom: z2_1 + (z2_2 - z2_1) * factor,
-      offsetX: x1_1 + (x1_2 - x1_1) * factor,
-      offsetY: y1_1 + (y1_2 - y1_1) * factor,
-      slot2OffsetX: x2_1 + (x2_2 - x2_1) * factor,
-      slot2OffsetY: y2_1 + (y2_2 - y2_1) * factor,
-      slot1Rotate: r1_1 + (r1_2 - r1_1) * factor,
-      slot2Rotate: r2_1 + (r2_2 - r2_1) * factor,
+      offsetX: slot1Path.x,
+      offsetY: slot1Path.y,
+      slot2OffsetX: slot2Path.x,
+      slot2OffsetY: slot2Path.y,
+      slot1Rotate:
+        r1_1 +
+        (r1_2 - r1_1) * factor +
+        (state.mockupMotionPath?.autoOrient ? slot1Path.angle : 0),
+      slot2Rotate:
+        r2_1 +
+        (r2_2 - r2_1) * factor +
+        (state.slot2MockupMotionPath?.autoOrient ? slot2Path.angle : 0),
     };
   };
 
   const animTransform = getAnimatedTransforms();
+  const motionBlurActive =
+    state.isAnimationMode &&
+    !!state.motionBlurEnabled &&
+    (state.isPlaying ||
+      !!state.isExporting ||
+      (readOnly && state.exportTimeSec !== null && state.exportTimeSec !== undefined));
+  const motionBlurSampleTime = Math.max(0, state.currentTimeSec - 1 / 60);
+  const motionBlurAdjacentTime =
+    motionBlurSampleTime === state.currentTimeSec
+      ? Math.min(state.durationSec, state.currentTimeSec + 1 / 60)
+      : motionBlurSampleTime;
+  const adjacentAnimTransform = motionBlurActive
+    ? getAnimatedTransforms(motionBlurAdjacentTime)
+    : animTransform;
+  const mockupMotionBlur = motionBlurActive
+    ? calculateMotionBlurRadius(
+        {
+          x: adjacentAnimTransform.offsetX,
+          y: adjacentAnimTransform.offsetY,
+          rotation: adjacentAnimTransform.slot1Rotate,
+          rotationX: adjacentAnimTransform.rotateX,
+          rotationY: adjacentAnimTransform.rotateY,
+          scale: adjacentAnimTransform.zoom / 100,
+        },
+        {
+          x: animTransform.offsetX,
+          y: animTransform.offsetY,
+          rotation: animTransform.slot1Rotate,
+          rotationX: animTransform.rotateX,
+          rotationY: animTransform.rotateY,
+          scale: animTransform.zoom / 100,
+        },
+        state.motionBlurStrength
+      )
+    : 0;
+  const slot2MotionBlur = motionBlurActive
+    ? calculateMotionBlurRadius(
+        {
+          x: adjacentAnimTransform.slot2OffsetX,
+          y: adjacentAnimTransform.slot2OffsetY,
+          rotation: adjacentAnimTransform.slot2Rotate,
+          rotationX: adjacentAnimTransform.rotateX,
+          rotationY: adjacentAnimTransform.rotateY,
+          scale: adjacentAnimTransform.slot2Zoom / 100,
+        },
+        {
+          x: animTransform.slot2OffsetX,
+          y: animTransform.slot2OffsetY,
+          rotation: animTransform.slot2Rotate,
+          rotationX: animTransform.rotateX,
+          rotationY: animTransform.rotateY,
+          scale: animTransform.slot2Zoom / 100,
+        },
+        state.motionBlurStrength
+      )
+    : 0;
 
   // Per-slot tilt values. Slot 1 reuses the shared rotateX/rotateY/skew/perspective.
   // Slot 2 defaults fall back to slot 1's values for old designs that lack the keys.
@@ -386,6 +660,85 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       group.members.some((member) => member.type === type && member.id === id)
     );
 
+  const getLayerMotionBlur = (
+    type: import('../types/studio').LayerType,
+    layer: {
+      id: string;
+      x: number;
+      y: number;
+      rotation: number;
+      pitch?: number;
+      yaw?: number;
+      scale?: number;
+      scaleX?: number;
+      scaleY?: number;
+      loopAnimation?: import('../types/animationTypes').ElementLoopAnimation;
+      animStartTime?: number;
+      motions?: import('../types/animationTypes').LayerMotionBlock[];
+      keyframes?: LayerKeyframe[];
+      motionPath?: MotionPathConfig;
+    },
+    rawText?: string
+  ) => {
+    if (!motionBlurActive) return 0;
+
+    const samplePose = (timeSec: number) => {
+      const keyframe = evaluateLayerKeyframes(layer, timeSec, state.animationEasing);
+      const motion = evaluateLayerMotion(
+        layer.motions,
+        layer.loopAnimation,
+        layer.animStartTime || 0,
+        timeSec,
+        rawText
+      );
+      let x = (keyframe.x ?? layer.x) + motion.dx;
+      let y = (keyframe.y ?? layer.y) + motion.dy;
+      let rotation = (keyframe.rotation ?? layer.rotation ?? 0) + motion.rotate;
+      let rotationX = (keyframe.pitch ?? layer.pitch ?? 0) + motion.rotateX;
+      let rotationY = (keyframe.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+      const scaleX = keyframe.scaleX ?? keyframe.scale ?? layer.scaleX ?? layer.scale ?? 1;
+      const scaleY = keyframe.scaleY ?? keyframe.scale ?? layer.scaleY ?? layer.scale ?? 1;
+      let scale = ((Math.abs(scaleX) + Math.abs(scaleY)) / 2) * motion.scale;
+
+      const group = getLayerGroup(type, layer.id);
+      if (group) {
+        const groupKeyframe = evaluateLayerKeyframes(group, timeSec, state.animationEasing);
+        const groupMotion = evaluateLayerMotion(group.motions, undefined, 0, timeSec);
+        const groupX = (groupKeyframe.x ?? group.x) + groupMotion.dx;
+        const groupY = (groupKeyframe.y ?? group.y) + groupMotion.dy;
+        const groupScale = Math.max(
+          0.05,
+          (groupKeyframe.scale ?? group.scale ?? 1) * groupMotion.scale
+        );
+        const groupRotation =
+          (groupKeyframe.rotation ?? group.rotation ?? 0) + groupMotion.rotate;
+        const radians = (groupRotation * Math.PI) / 180;
+        const anchorOffsetX = ((group.anchorX ?? 0.5) - 0.5) * group.width;
+        const anchorOffsetY = ((group.anchorY ?? 0.5) - 0.5) * group.height;
+        const localX = x - group.originX - anchorOffsetX;
+        const localY = y - group.originY - anchorOffsetY;
+        x =
+          groupX +
+          anchorOffsetX +
+          (localX * Math.cos(radians) - localY * Math.sin(radians)) * groupScale;
+        y =
+          groupY +
+          anchorOffsetY +
+          (localX * Math.sin(radians) + localY * Math.cos(radians)) * groupScale;
+        rotation += groupRotation;
+        scale *= groupScale;
+      }
+
+      return { x, y, rotation, rotationX, rotationY, scale };
+    };
+
+    return calculateMotionBlurRadius(
+      samplePose(motionBlurAdjacentTime),
+      samplePose(state.currentTimeSec),
+      state.motionBlurStrength
+    );
+  };
+
   const applyLayerGroupTransform = (
     type: import('../types/studio').LayerType,
     id: string,
@@ -414,19 +767,110 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     // the visual centre used by the flex-positioned absolute layer elements.
     const dx = x - group.originX;
     const dy = y - group.originY;
+    const anchorOffsetX = ((group.anchorX ?? 0.5) - 0.5) * group.width;
+    const anchorOffsetY = ((group.anchorY ?? 0.5) - 0.5) * group.height;
+    const localX = dx - anchorOffsetX;
+    const localY = dy - anchorOffsetY;
 
     return {
-      x: groupX + (dx * Math.cos(radians) - dy * Math.sin(radians)) * groupScale,
-      y: groupY + (dx * Math.sin(radians) + dy * Math.cos(radians)) * groupScale,
+      x:
+        groupX +
+        anchorOffsetX +
+        (localX * Math.cos(radians) - localY * Math.sin(radians)) * groupScale,
+      y:
+        groupY +
+        anchorOffsetY +
+        (localX * Math.sin(radians) + localY * Math.cos(radians)) * groupScale,
       rotation: rotation + groupRotation,
       scaleX: scaleX * groupScale,
       scaleY: scaleY * groupScale,
       opacity:
         opacity * ((keyframe.opacity ?? group.opacity ?? 100) / 100) * motion.opacity,
       visible: visible && group.visible !== false && motion.isVisible,
-      blur: blur + (motion.blur ?? 0),
+      blur: blur + (keyframe.blur ?? group.blur ?? 0) + (motion.blur ?? 0),
       group,
     };
+  };
+
+  const getMaskClipPath = (
+    targetType: import('../types/studio').LayerType,
+    targetId: string,
+    targetPose: MaskPose
+  ): string | undefined => {
+    const directMask = (state.shapeLayers || []).find(
+      (shape) => shape.maskTarget?.type === targetType && shape.maskTarget.id === targetId
+    );
+    const targetGroupId = getLayerGroup(targetType, targetId)?.id;
+    const mask = directMask || (state.shapeLayers || []).find(
+      (shape) => shape.maskTarget?.type === 'group' && shape.maskTarget.id === targetGroupId
+    );
+    if (!mask) return undefined;
+    const motion = evaluateLayerMotion(mask.motions, mask.loopAnimation, mask.animStartTime || 0, state.currentTimeSec);
+    const keyframe = evaluateLayerKeyframes(mask, state.currentTimeSec, state.animationEasing);
+    const width = Math.max(1, keyframe.width ?? mask.width ?? 120);
+    const height = Math.max(1, keyframe.height ?? mask.height ?? 120);
+    const grouped = applyLayerGroupTransform(
+      'shape', mask.id,
+      (keyframe.x ?? mask.x) + motion.dx,
+      (keyframe.y ?? mask.y) + motion.dy,
+      (keyframe.rotation ?? mask.rotation ?? 0) + motion.rotate,
+      (keyframe.scaleX ?? 1) * motion.scale,
+      (keyframe.scaleY ?? 1) * motion.scale,
+      1, true
+    );
+    const maskPose: MaskPose = {
+      x: grouped.x, y: grouped.y, width, height, rotation: grouped.rotation,
+      scaleX: grouped.scaleX, scaleY: grouped.scaleY,
+      skewX: keyframe.skewX ?? mask.skewX ?? 0,
+      skewY: keyframe.skewY ?? mask.skewY ?? 0,
+      anchorX: mask.anchorX ?? 0.5, anchorY: mask.anchorY ?? 0.5,
+    };
+
+    let nativePoints: Point2D[];
+    if (mask.shapeType === 'circle') {
+      nativePoints = Array.from({ length: 48 }, (_, index) => {
+        const angle = (index / 48) * Math.PI * 2;
+        return { x: width / 2 + Math.cos(angle) * width / 2, y: height / 2 + Math.sin(angle) * height / 2 };
+      });
+    } else if (mask.shapeType === 'triangle') {
+      nativePoints = [{ x: width / 2, y: 0 }, { x: width, y: height }, { x: 0, y: height }];
+    } else if (mask.shapeType === 'hexagon') {
+      nativePoints = [
+        { x: width * 0.25, y: 0 }, { x: width * 0.75, y: 0 }, { x: width, y: height / 2 },
+        { x: width * 0.75, y: height }, { x: width * 0.25, y: height }, { x: 0, y: height / 2 },
+      ];
+    } else if (mask.shapeType === 'custom-path' && mask.pathData) {
+      const parsedViewBox = (mask.viewBox || `${-width / 2} ${-height / 2} ${width} ${height}`)
+        .trim().split(/[\s,]+/).map(Number);
+      const [minX, minY, viewWidth, viewHeight] =
+        parsedViewBox.length === 4 && parsedViewBox.every(Number.isFinite)
+          ? parsedViewBox
+          : [-width / 2, -height / 2, width, height];
+      nativePoints = sampleSvgPath(mask.pathData).map((point) => ({
+        x: ((point.x - minX) / Math.max(1, viewWidth)) * width,
+        y: ((point.y - minY) / Math.max(1, viewHeight)) * height,
+      }));
+    } else if (mask.shapeType === 'quote') {
+      const quotePath = "M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z";
+      nativePoints = sampleSvgPath(quotePath).map((point) => ({ x: point.x / 24 * width, y: point.y / 24 * height }));
+    } else {
+      nativePoints = [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }, { x: 0, y: height }];
+    }
+    if (nativePoints.length < 3) return undefined;
+
+    const maskCenter = poseVisualCenter(maskPose);
+    const targetCenter = poseVisualCenter(targetPose);
+    const cssCoordinate = (value: number) =>
+      `calc(50% ${value < 0 ? '-' : '+'} ${Math.abs(Math.round(value * 100) / 100)}px)`;
+    const points = nativePoints.map((point) => {
+      const maskVector = applyPoseVector({ x: point.x - width / 2, y: point.y - height / 2 }, maskPose);
+      const targetVector = invertPoseVector(
+        { x: maskCenter.x + maskVector.x - targetCenter.x, y: maskCenter.y + maskVector.y - targetCenter.y },
+        targetPose
+      );
+      return `${cssCoordinate(targetVector.x)} ${cssCoordinate(targetVector.y)}`;
+    });
+    return `polygon(${points.join(', ')})`;
   };
 
   const getElementLoopTransform = (
@@ -494,6 +938,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const posYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
         const posOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const posFontSize = kfValues.fontSize ?? layer.fontSize;
+        const posBlur = kfValues.blur ?? layer.blur ?? 0;
+        const posSkewX = kfValues.skewX ?? layer.skewX ?? 0;
+        const posSkewY = kfValues.skewY ?? layer.skewY ?? 0;
+        const posColor = kfValues.color ?? layer.color ?? '#ffffff';
+        const posLetterSpacing = kfValues.letterSpacing ?? layer.letterSpacing ?? 0;
         const sx = kfValues.scaleX ?? layer.scaleX ?? 1;
         const sy = kfValues.scaleY ?? layer.scaleY ?? 1;
         const grouped = applyLayerGroupTransform(
@@ -506,8 +955,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           sy * motion.scale,
           (posOpacity / 100) * motion.opacity,
           motion.isVisible,
-          motion.blur ?? 0
+          posBlur + (motion.blur ?? 0)
         );
+        const velocityBlur = getLayerMotionBlur('text', layer, layer.text);
+        const textLines = layer.text.split('\n');
+        const estimatedTextWidth = Math.max(1, ...textLines.map((line) => line.length)) * (posFontSize * 0.62 + Math.max(0, posLetterSpacing));
+        const estimatedTextHeight = Math.max(1, textLines.length) * posFontSize * 1.2;
+        const maskClipPath = getMaskClipPath('text', layer.id, {
+          x: grouped.x, y: grouped.y, width: estimatedTextWidth, height: estimatedTextHeight,
+          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
+          skewX: posSkewX, skewY: posSkewY,
+          anchorX: layer.anchorX ?? 0.5, anchorY: layer.anchorY ?? 0.5,
+        });
 
         const textFillStyle: React.CSSProperties = layer.bgImage
           ? {
@@ -528,7 +987,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 color: 'transparent',
               }
             : {
-                color: layer.color || '#ffffff',
+                color: posColor,
               };
 
         const textAlign = layer.textAlign || 'center';
@@ -538,8 +997,78 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           hasTypeahead && textAlign !== 'center'
             ? `${motion.animatedText}${motion.untypedText}`
             : currentText;
-
+        const textAnimationBlock = getTextAnimationBlockAtTime(
+          layer.motions,
+          state.currentTimeSec
+        );
         const renderTextContent = () => {
+          if (textAnimationBlock) {
+            const segments = segmentTextForAnimation(
+              layer.text,
+              textAnimationBlock.textUnit ?? 'character'
+            );
+            const animatedUnitCount = segments.reduce(
+              (count, segment) => count + (segment.animationIndex === null ? 0 : 1),
+              0
+            );
+
+            return segments.map((segment, index) => {
+              if (segment.animationIndex === null) {
+                return <React.Fragment key={`space-${index}`}>{segment.text}</React.Fragment>;
+              }
+
+              const unit = evaluateTextAnimationUnit(
+                textAnimationBlock,
+                segment.animationIndex,
+                animatedUnitCount,
+                state.currentTimeSec
+              );
+              const priorUnit = motionBlurActive
+                ? evaluateTextAnimationUnit(
+                    textAnimationBlock,
+                    segment.animationIndex,
+                    animatedUnitCount,
+                    Math.max(0, state.currentTimeSec - 1 / 60)
+                  )
+                : unit;
+              const characterMotionBlur = motionBlurActive
+                ? calculateMotionBlurRadius(
+                    {
+                      x: 0,
+                      y: priorUnit.translateY,
+                      rotation: priorUnit.rotation,
+                      scale: priorUnit.scale,
+                    },
+                    {
+                      x: 0,
+                      y: unit.translateY,
+                      rotation: unit.rotation,
+                      scale: unit.scale,
+                    },
+                    state.motionBlurStrength
+                  )
+                : 0;
+              const unitBlur = unit.blur + characterMotionBlur;
+
+              return (
+                <span
+                  key={`text-unit-${index}`}
+                  aria-hidden="true"
+                  style={{
+                    display: 'inline-block',
+                    opacity: unit.opacity,
+                    transform: `translateY(${unit.translateY}px) rotate(${unit.rotation}deg) scale(${unit.scale})`,
+                    transformOrigin: 'center 70%',
+                    filter: unitBlur > 0 ? `blur(${unitBlur}px)` : undefined,
+                    willChange: motionBlurActive ? 'transform, opacity, filter' : undefined,
+                  }}
+                >
+                  {segment.text}
+                </span>
+              );
+            });
+          }
+
           if (!hasTypeahead) {
             return currentText;
           }
@@ -627,25 +1156,32 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             className={`text-layer-item group/textlayer absolute cursor-pointer select-none rounded-sm ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('text', layer.id, positionFilter),
-              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${grouped.rotation}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${grouped.rotation}deg) skewX(${posSkewX}deg) skewY(${posSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
               transformStyle: 'preserve-3d',
               fontFamily: fontFamilyCss,
               fontSize: `${posFontSize}px`,
+              letterSpacing: `${posLetterSpacing}px`,
               lineHeight: 1.2,
               fontWeight: layer.fontWeight,
               fontStyle: layer.fontStyle,
               textAlign: layer.textAlign,
               opacity: grouped.visible ? grouped.opacity : 0,
-              filter: grouped.blur > 0 ? `blur(${grouped.blur}px)` : undefined,
+              filter:
+                grouped.blur + velocityBlur > 0
+                  ? `blur(${grouped.blur + velocityBlur}px)`
+                  : undefined,
               textShadow:
                 layer.bgImage || layer.gradient
                   ? 'none'
                   : layer.shadow
-                    ? '0 4px 12px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
+                    ? `${kfValues.shadowOffsetX ?? layer.shadowOffsetX ?? 0}px ${kfValues.shadowOffsetY ?? layer.shadowOffsetY ?? 4}px ${kfValues.shadowBlur ?? layer.shadowBlur ?? 12}px rgba(0,0,0,${(kfValues.shadowOpacity ?? layer.shadowOpacity ?? 70) / 100})`
                     : 'none',
               whiteSpace: fullText.includes('\n') ? 'pre-wrap' : 'pre',
               width: 'max-content',
               maxWidth: 'none',
+              clipPath: maskClipPath,
+              WebkitClipPath: maskClipPath,
             }}
           >
             {/* Hover Bounding Box (Constant 1px dashed border) */}
@@ -672,6 +1208,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
             {/* Text Content */}
             <div
+              aria-label={textAnimationBlock ? layer.text : undefined}
               style={{
                 display: 'inline-block',
                 fontFamily: 'inherit',
@@ -695,7 +1232,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   <SocialIcon
                     platform={layer.socialPlatform}
                     size={layer.iconSize || layer.fontSize * 1.1}
-                    color={layer.iconColor || layer.color}
+                    color={layer.iconColor || posColor}
                   />
                   <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>
                     {renderTextContent()}
@@ -764,6 +1301,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const iconYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
         const iconOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const iconScale = kfValues.scale ?? 1;
+        const iconBlur = kfValues.blur ?? layer.blur ?? 0;
+        const iconSkewX = kfValues.skewX ?? layer.skewX ?? 0;
+        const iconSkewY = kfValues.skewY ?? layer.skewY ?? 0;
+        const iconColor = kfValues.color ?? layer.color ?? '#ffffff';
         const grouped = applyLayerGroupTransform(
           'phosphor',
           layer.id,
@@ -774,8 +1315,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           iconScale * motion.scale,
           (iconOpacity / 100) * motion.opacity,
           motion.isVisible,
-          motion.blur ?? 0
+          iconBlur + (motion.blur ?? 0)
         );
+        const velocityBlur = getLayerMotionBlur('phosphor', layer);
+        const iconSize = layer.size || 36;
+        const maskClipPath = getMaskClipPath('phosphor', layer.id, {
+          x: grouped.x, y: grouped.y, width: iconSize, height: iconSize,
+          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
+          skewX: iconSkewX, skewY: iconSkewY,
+          anchorX: layer.anchorX ?? 0.5, anchorY: layer.anchorY ?? 0.5,
+        });
 
         return (
           <div
@@ -797,18 +1346,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             className={`phosphor-icon-layer-item absolute cursor-pointer select-none ${roundedClass} ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('phosphor', layer.id, positionFilter),
-              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${grouped.rotation}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${grouped.rotation}deg) skewX(${iconSkewX}deg) skewY(${iconSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
               opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                `${grouped.blur > 0 ? `blur(${grouped.blur}px) ` : ''}${layer.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
+                `${grouped.blur + velocityBlur > 0 ? `blur(${grouped.blur + velocityBlur}px) ` : ''}${layer.shadow ? `drop-shadow(${kfValues.shadowOffsetX ?? layer.shadowOffsetX ?? 0}px ${kfValues.shadowOffsetY ?? layer.shadowOffsetY ?? 8}px ${kfValues.shadowBlur ?? layer.shadowBlur ?? 16}px rgba(0,0,0,${(kfValues.shadowOpacity ?? layer.shadowOpacity ?? 65) / 100}))` : ''}`.trim() ||
                 'none',
+              clipPath: maskClipPath,
+              WebkitClipPath: maskClipPath,
             }}
           >
             <div className={getBadgeClass(layer.badgeStyle)}>
               <IconComp
                 weight={layer.weight || 'regular'}
                 size={layer.size || 36}
-                color={layer.color || '#ffffff'}
+                color={iconColor}
               />
             </div>
           </div>
@@ -845,7 +1397,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const elScaleX = (kfValues.scaleX ?? 1) * (el.flipX ? -1 : 1);
         const elScaleY = (kfValues.scaleY ?? 1) * (el.flipY ? -1 : 1);
 
-        const combinedBlur = (el.blur ?? 0) + (motion.blur ?? 0);
+        const combinedBlur = (kfValues.blur ?? el.blur ?? 0) + (motion.blur ?? 0);
+        const elSkewX = kfValues.skewX ?? el.skewX ?? 0;
+        const elSkewY = kfValues.skewY ?? el.skewY ?? 0;
+        const elColor = kfValues.color ?? el.color ?? '#a2d2ff';
         const grouped = applyLayerGroupTransform(
           'element',
           el.id,
@@ -858,6 +1413,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           motion.isVisible,
           combinedBlur
         );
+        const velocityBlur = getLayerMotionBlur('element', el);
+        const maskClipPath = getMaskClipPath('element', el.id, {
+          x: grouped.x, y: grouped.y, width: elWidth, height: elHeight,
+          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
+          skewX: elSkewX, skewY: elSkewY,
+          anchorX: el.anchorX ?? 0.5, anchorY: el.anchorY ?? 0.5,
+        });
 
         return (
           <div
@@ -879,13 +1441,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             className={`canvas-element-item absolute cursor-pointer select-none rounded-lg ${layerLocked || grouped.group?.locked || !grouped.visible ? 'pointer-events-none' : ''}`}
             style={{
               zIndex: getLayerZIndex('element', el.id, positionFilter),
-              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${grouped.rotation}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              transform: `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${grouped.rotation}deg) skewX(${elSkewX}deg) skewY(${elSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`,
+              transformOrigin: anchorOrigin(el.anchorX, el.anchorY),
               opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                `${grouped.blur > 0 ? `blur(${grouped.blur}px) ` : ''}${el.shadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.65))' : ''}`.trim() ||
+                `${grouped.blur + velocityBlur > 0 ? `blur(${grouped.blur + velocityBlur}px) ` : ''}${el.shadow ? `drop-shadow(${kfValues.shadowOffsetX ?? el.shadowOffsetX ?? 0}px ${kfValues.shadowOffsetY ?? el.shadowOffsetY ?? 8}px ${kfValues.shadowBlur ?? el.shadowBlur ?? 16}px rgba(0,0,0,${(kfValues.shadowOpacity ?? el.shadowOpacity ?? 65) / 100}))` : ''}`.trim() ||
                 'none',
               width: `${elWidth}px`,
               height: `${elHeight}px`,
+              clipPath: maskClipPath,
+              WebkitClipPath: maskClipPath,
             }}
           >
             {el.category === 'emoji' ? (
@@ -900,7 +1465,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               <div
                 className="w-full h-full"
                 style={{
-                  backgroundColor: el.color || '#a2d2ff',
+                  backgroundColor: elColor,
                   WebkitMaskImage: `url("${el.src}")`,
                   maskImage: `url("${el.src}")`,
                   WebkitMaskSize: 'contain',
@@ -923,7 +1488,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       .filter(
         (layer) =>
           (getLayerGroup('shape', layer.id)?.position || layer.position || 'above') ===
-            positionFilter && layer.visible !== false
+            positionFilter && layer.visible !== false && !layer.maskTarget
       )
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
@@ -934,6 +1499,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           layer.animStartTime || 0,
           state.currentTimeSec
         );
+        const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
+        const shapeColor = kfValues.color ?? layer.color ?? '#a2d2ff';
+        const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
         const getShapeStyle = (): React.CSSProperties => {
           switch (layer.shapeType) {
             case 'circle':
@@ -963,20 +1531,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               return {};
             case 'custom-path':
               return {
-                clipPath: isGlass ? `url(#glass-clip-${layer.id})` : undefined,
-                WebkitClipPath: isGlass ? `url(#glass-clip-${layer.id})` : undefined,
+                clipPath: isGlass
+                  ? `url(#${svgResourceId('glass-clip', layer.id)})`
+                  : undefined,
+                WebkitClipPath: isGlass
+                  ? `url(#${svgResourceId('glass-clip', layer.id)})`
+                  : undefined,
                 borderRadius: 0,
               };
             case 'rectangle':
             case 'square':
             default:
-              return { borderRadius: `${layer.borderRadius ?? 8}px` };
+              return { borderRadius: `${shapeBorderRadius || 8}px` };
           }
         };
 
         const isGlass = !!layer.glassmorphism && layer.shapeType !== 'coolshape';
-        const borderWidth = Math.max(0, layer.borderWidth ?? 2);
-        const borderColor = layer.borderColor || '#ffffff';
+        const borderWidth = Math.max(0, kfValues.borderWidth ?? layer.borderWidth ?? 2);
+        const borderColor = kfValues.borderColor ?? layer.borderColor ?? '#ffffff';
         const hasBorder =
           layer.borderEnabled === true && borderWidth > 0 && layer.shapeType !== 'coolshape';
         const blurAmount = layer.glassmorphismBlur ?? 16;
@@ -1027,7 +1599,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 backgroundColor: 'transparent',
               };
             }
-            const p = parseColorAndAlpha(layer.color || '#ffffff');
+            const p = parseColorAndAlpha(shapeColor);
             const baseAlpha = p.alpha < 100 ? p.alpha : 25;
             const finalAlpha = Math.round(Math.min(70, Math.max(5, baseAlpha * userOpacity)));
             return {
@@ -1042,11 +1614,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           }
 
           return {
-            backgroundColor: layer.color || '#a2d2ff',
+            backgroundColor: shapeColor,
           };
         };
 
-        const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
         const posX = kfValues.x ?? layer.x;
         const posY = kfValues.y ?? layer.y;
         const shapeWidth = kfValues.width ?? layer.width ?? 120;
@@ -1057,7 +1628,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         const shapeScaleX = kfValues.scaleX ?? 1;
         const shapeScaleY = kfValues.scaleY ?? 1;
         const shapeOpacity = kfValues.opacity ?? layer.opacity ?? 100;
-        const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
+        const shapeBlur = kfValues.blur ?? layer.blur ?? 0;
+        const shapeSkewX = kfValues.skewX ?? layer.skewX ?? 0;
+        const shapeSkewY = kfValues.skewY ?? layer.skewY ?? 0;
         const grouped = applyLayerGroupTransform(
           'shape',
           layer.id,
@@ -1068,14 +1641,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           shapeScaleY * motion.scale,
           isGlass ? motion.opacity : (shapeOpacity / 100) * motion.opacity,
           motion.isVisible,
-          motion.blur ?? 0
+          shapeBlur + (motion.blur ?? 0)
         );
+        const velocityBlur = getLayerMotionBlur('shape', layer);
 
         const has3D = shapePitch !== 0 || shapeYaw !== 0;
         const shouldDropShadow = layer.shadow && (!isGlass || isPolygonOrMask);
         const transformStr = has3D
-          ? `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${grouped.rotation}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`
-          : `translate(${grouped.x}px, ${grouped.y}px) rotate(${grouped.rotation}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`;
+          ? `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${grouped.rotation}deg) skewX(${shapeSkewX}deg) skewY(${shapeSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`
+          : `translate(${grouped.x}px, ${grouped.y}px) rotate(${grouped.rotation}deg) skewX(${shapeSkewX}deg) skewY(${shapeSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`;
+        const maskClipPath = getMaskClipPath('shape', layer.id, {
+          x: grouped.x, y: grouped.y, width: shapeWidth, height: shapeHeight,
+          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
+          skewX: shapeSkewX, skewY: shapeSkewY,
+          anchorX: layer.anchorX ?? 0.5, anchorY: layer.anchorY ?? 0.5,
+        });
 
         const customUnitPath =
           layer.unitPathData ||
@@ -1113,16 +1693,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             style={{
               zIndex: getLayerZIndex('shape', layer.id, positionFilter),
               transform: transformStr,
+              transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
               transformStyle: has3D ? 'preserve-3d' : undefined,
               opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                `${grouped.blur > 0 ? `blur(${grouped.blur}px) ` : ''}${shouldDropShadow ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.55))' : ''}`.trim() ||
+                `${grouped.blur + velocityBlur > 0 ? `blur(${grouped.blur + velocityBlur}px) ` : ''}${shouldDropShadow ? `drop-shadow(${kfValues.shadowOffsetX ?? layer.shadowOffsetX ?? 0}px ${kfValues.shadowOffsetY ?? layer.shadowOffsetY ?? 8}px ${kfValues.shadowBlur ?? layer.shadowBlur ?? 16}px rgba(0,0,0,${(kfValues.shadowOpacity ?? layer.shadowOpacity ?? 55) / 100}))` : ''}`.trim() ||
                 'none',
               width: `${shapeWidth}px`,
               height: `${shapeHeight}px`,
               overflow: isSelected
                 ? 'visible'
-                : !isPolygonOrMask && !layer.blur
+                : !isPolygonOrMask && !shapeBlur
                   ? 'hidden'
                   : undefined,
               borderRadius:
@@ -1131,6 +1712,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                   : layer.shapeType === 'circle' && !isSelected
                     ? '9999px'
                     : `${shapeBorderRadius}px`,
+              clipPath: maskClipPath,
+              WebkitClipPath: maskClipPath,
             }}
           >
             {/* SVG Defs for Custom Path Glassmorphic Clip */}
@@ -1141,7 +1724,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 aria-hidden="true"
               >
                 <defs>
-                  <clipPath id={`glass-clip-${layer.id}`} clipPathUnits="objectBoundingBox">
+                  <clipPath
+                    id={svgResourceId('glass-clip', layer.id)}
+                    clipPathUnits="objectBoundingBox"
+                  >
                     <path d={customUnitPath} fillRule="evenodd" />
                   </clipPath>
                 </defs>
@@ -1154,7 +1740,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                 ...getGlassOrSolidBackground(),
                 ...getShapeStyle(),
                 opacity: isGlass ? 1 : (layer.opacity ?? 100) / 100,
-                filter: layer.blur ? `blur(${layer.blur}px)` : 'none',
+                filter: 'none',
                 ...(isGlass
                   ? {
                       backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
@@ -1215,12 +1801,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                       style={{ width: '100%', height: '100%' }}
                     >
                       <defs>
-                        <clipPath id={`shape-clip-${layer.id}`} clipRule="evenodd">
+                        <clipPath id={svgResourceId('shape-clip', layer.id)} clipRule="evenodd">
                           <path d={layer.pathData} fillRule="evenodd" />
                         </clipPath>
                         {layer.gradient && (
                           <linearGradient
-                            id={`shape-grad-${layer.id}`}
+                            id={svgResourceId('shape-grad', layer.id)}
                             x1={`${50 - 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
                             y1={`${50 - 50 * Math.sin(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
                             x2={`${50 + 50 * Math.cos(((layer.gradient.angle || 0) * Math.PI) / 180)}%`}
@@ -1232,7 +1818,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                         )}
                         {layer.bgImage && layer.bgImageRepeat && (
                           <pattern
-                            id={`shape-pattern-${layer.id}`}
+                            id={svgResourceId('shape-pattern', layer.id)}
                             patternUnits="userSpaceOnUse"
                             width={imgW}
                             height={imgH}
@@ -1254,10 +1840,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                           <path
                             d={layer.pathData}
                             fillRule="evenodd"
-                            fill={`url(#shape-pattern-${layer.id})`}
+                            fill={`url(#${svgResourceId('shape-pattern', layer.id)})`}
                           />
                         ) : (
-                          <g clipPath={`url(#shape-clip-${layer.id})`}>
+                          <g clipPath={`url(#${svgResourceId('shape-clip', layer.id)})`}>
                             <image
                               href={layer.bgImage}
                               x={imgX}
@@ -1274,8 +1860,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
                           fillRule="evenodd"
                           fill={
                             layer.gradient
-                              ? `url(#shape-grad-${layer.id})`
-                              : layer.color || '#a2d2ff'
+                              ? `url(#${svgResourceId('shape-grad', layer.id)})`
+                              : shapeColor
                           }
                         />
                       ) : null}
@@ -2048,7 +2634,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         className={state.isAnimationMode && state.isPlaying ? '' : 'transition-all duration-200'}
         style={{
           transform: `perspective(${state.perspective}px) rotateX(${animTransform.rotateX}deg) rotateY(${animTransform.rotateY}deg) skewX(${state.skewX}deg) skewY(${state.skewY}deg) scale(${state.isAnimationMode ? animTransform.zoom / 100 : state.zoom / 100}) translate(${state.isAnimationMode ? animTransform.offsetX : state.offsetX}px, ${state.isAnimationMode ? animTransform.offsetY : state.offsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot1Rotate ?? 0) : state.slot1Rotate || 0}deg)`,
+          transformOrigin: anchorOrigin(state.mockupAnchorX, state.mockupAnchorY),
           transformStyle: 'preserve-3d',
+          filter: mockupMotionBlur > 0 ? `blur(${mockupMotionBlur}px)` : undefined,
         }}
       >
         {firstFrame}
@@ -2061,7 +2649,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         className={state.isAnimationMode && state.isPlaying ? '' : 'transition-all duration-200'}
         style={{
           transform: `perspective(${slot2Perspective}px) rotateX(${slot2RX}deg) rotateY(${slot2RY}deg) skewX(${slot2SkewX}deg) skewY(${slot2SkewY}deg) scale(${state.isAnimationMode ? animTransform.slot2Zoom / 100 : state.slot2Zoom / 100}) translate(${state.isAnimationMode ? animTransform.slot2OffsetX : state.slot2OffsetX}px, ${state.isAnimationMode ? animTransform.slot2OffsetY : state.slot2OffsetY}px) rotate(${state.isAnimationMode ? (animTransform.slot2Rotate ?? 0) : state.slot2Rotate || 0}deg)`,
+          transformOrigin: anchorOrigin(state.slot2MockupAnchorX, state.slot2MockupAnchorY),
           transformStyle: 'preserve-3d',
+          filter: slot2MotionBlur > 0 ? `blur(${slot2MotionBlur}px)` : undefined,
         }}
       >
         {secondFrame}
@@ -2331,6 +2921,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // 2-Finger Trackpad Pan & Pinch-to-Zoom on Mac/Windows
   useEffect(() => {
+    if (readOnly) return;
     const el = viewportRef.current;
     if (!el) return;
 
@@ -2357,7 +2948,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     return () => {
       el.removeEventListener('wheel', handleWheel);
     };
-  }, []);
+  }, [readOnly]);
 
   // Synchronize video elements with timeline playback and current time
   useEffect(() => {
@@ -2380,6 +2971,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
   // Auto-fit canvas zoom when aspect ratio changes
   useEffect(() => {
+    if (readOnly) return;
     // Canvas intrinsic width/height derived from getAspectRatioStyle (mirrors that function's logic)
     const ar = state.aspectRatio;
     const isDual = state.layoutCount === 2;
@@ -2437,7 +3029,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
     const clampedZoom = Math.max(25, Math.min(100, Math.round(fitScale * 100)));
 
     state.updateState({ previewCanvasZoom: clampedZoom });
-  }, [state.aspectRatio, state.layoutCount]);
+  }, [readOnly, state.aspectRatio, state.layoutCount]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (state.isPenDrawingMode) return;
@@ -3388,6 +3980,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           className="absolute inset-0 pointer-events-none z-50 selection-gizmo-container flex items-center justify-center"
           style={{ padding: `${state.padding}px` }}
         >
+          <MotionPathOverlay
+            keyframes={selectedGroup.keyframes}
+            baseX={selectedGroup.x}
+            baseY={selectedGroup.y}
+            config={selectedGroup.motionPath}
+          />
           <div
             data-group-id={selectedGroup.id}
             className={`layer-group-gizmo absolute select-none ring-1 ring-pastel-pinkLight shadow-[0_0_5px_rgba(255,175,204,0.45)] pointer-events-auto ${locked ? 'cursor-not-allowed' : 'cursor-move'}`}
@@ -3395,8 +3993,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               width: `${selectedGroup.width}px`,
               height: `${selectedGroup.height}px`,
               transform: `translate(${groupX}px, ${groupY}px) rotate(${groupRotation}deg) scale(${groupScale})`,
+              transformOrigin: anchorOrigin(selectedGroup.anchorX, selectedGroup.anchorY),
             }}
           >
+            <CenterPointIndicator
+              top={`${(selectedGroup.anchorY ?? 0.5) * 100}%`}
+              left={`${(selectedGroup.anchorX ?? 0.5) * 100}%`}
+              rotation={groupRotation}
+              scaleX={inverseGroupScale}
+              scaleY={inverseGroupScale}
+            />
             {!locked && (
               <>
                 {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
@@ -3497,6 +4103,42 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           padding: `${state.padding}px`,
         }}
       >
+        {selectedShapes.map((layer) => (
+          <MotionPathOverlay
+            key={`path-${layer.id}`}
+            keyframes={layer.keyframes}
+            baseX={layer.x}
+            baseY={layer.y}
+            config={layer.motionPath}
+          />
+        ))}
+        {selectedElements.map((layer) => (
+          <MotionPathOverlay
+            key={`path-${layer.id}`}
+            keyframes={layer.keyframes}
+            baseX={layer.x}
+            baseY={layer.y}
+            config={layer.motionPath}
+          />
+        ))}
+        {selectedIcons.map((layer) => (
+          <MotionPathOverlay
+            key={`path-${layer.id}`}
+            keyframes={layer.keyframes}
+            baseX={layer.x}
+            baseY={layer.y}
+            config={layer.motionPath}
+          />
+        ))}
+        {selectedTexts.map((layer) => (
+          <MotionPathOverlay
+            key={`path-${layer.id}`}
+            keyframes={layer.keyframes}
+            baseX={layer.x}
+            baseY={layer.y}
+            config={layer.motionPath}
+          />
+        ))}
         {/* Selected Shapes Gizmos */}
         {selectedShapes.map((layer) => {
           const motion = evaluateLayerMotion(
@@ -3522,11 +4164,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           const shapeScaleX = kfValues.scaleX ?? 1;
           const shapeScaleY = kfValues.scaleY ?? 1;
           const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
+          const shapeSkewX = kfValues.skewX ?? layer.skewX ?? 0;
+          const shapeSkewY = kfValues.skewY ?? layer.skewY ?? 0;
           const has3D = shapePitch !== 0 || shapeYaw !== 0;
 
           const transformStr = has3D
-            ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
-            : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${shapeRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`;
+            ? `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${shapeRot}deg) skewX(${shapeSkewX}deg) skewY(${shapeSkewY}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`
+            : `translate(${posX + motion.dx}px, ${posY + motion.dy}px) rotate(${shapeRot}deg) skewX(${shapeSkewX}deg) skewY(${shapeSkewY}deg) scale(${shapeScaleX * motion.scale}, ${shapeScaleY * motion.scale})`;
 
           return (
             <div
@@ -3535,11 +4179,32 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="shape-layer-item selection-gizmo-item absolute cursor-move select-none ring-1 ring-white shadow-[0_0_2px_rgba(0,0,0,0.6)] pointer-events-auto"
               style={{
                 transform: transformStr,
+                transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
                 transformStyle: has3D ? 'preserve-3d' : undefined,
                 width: `${shapeWidth}px`,
                 height: `${shapeHeight}px`,
               }}
             >
+              {layer.maskTarget && (
+                <>
+                  <div
+                    className="absolute inset-0 pointer-events-none bg-pastel-pink/20"
+                    style={{
+                      clipPath:
+                        layer.shapeType === 'circle'
+                          ? 'ellipse(50% 50% at 50% 50%)'
+                          : layer.shapeType === 'triangle'
+                            ? 'polygon(50% 0%, 100% 100%, 0% 100%)'
+                            : layer.shapeType === 'hexagon'
+                              ? 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
+                              : undefined,
+                    }}
+                  />
+                  <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-pastel-pink px-1.5 py-0.5 text-[8px] font-black tracking-wider text-slate-950 pointer-events-none">
+                    MASK
+                  </div>
+                </>
+              )}
               {/* 4 Corner Resize Handles - Crisp White Squares */}
               <div
                 data-action="resize"
@@ -3602,10 +4267,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               </div>
 
               <CenterPointIndicator
+                top={`${(layer.anchorY ?? 0.5) * 100}%`}
+                left={`${(layer.anchorX ?? 0.5) * 100}%`}
                 rotation={shapeRot}
-                visible={
-                  dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
-                }
               />
             </div>
           );
@@ -3631,8 +4295,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           const elYaw = (kfValues.yaw ?? el.yaw ?? 0) + motion.rotateY;
           const elScaleX = (kfValues.scaleX ?? 1) * (el.flipX ? -1 : 1);
           const elScaleY = (kfValues.scaleY ?? 1) * (el.flipY ? -1 : 1);
+          const elSkewX = kfValues.skewX ?? el.skewX ?? 0;
+          const elSkewY = kfValues.skewY ?? el.skewY ?? 0;
 
-          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`;
+          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${elPitch}deg) rotateY(${elYaw}deg) rotate(${elRot}deg) skewX(${elSkewX}deg) skewY(${elSkewY}deg) scale(${elScaleX * motion.scale}, ${elScaleY * motion.scale})`;
 
           return (
             <div
@@ -3641,6 +4307,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="canvas-element-item selection-gizmo-item absolute cursor-move select-none rounded-none ring-1 ring-white shadow-[0_0_2px_rgba(0,0,0,0.6)] pointer-events-auto"
               style={{
                 transform: transformStr,
+                transformOrigin: anchorOrigin(el.anchorX, el.anchorY),
                 width: `${elWidth}px`,
                 height: `${elHeight}px`,
               }}
@@ -3716,10 +4383,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               </div>
 
               <CenterPointIndicator
+                top={`${(el.anchorY ?? 0.5) * 100}%`}
+                left={`${(el.anchorX ?? 0.5) * 100}%`}
                 rotation={elRot}
                 flipX={el.flipX}
                 flipY={el.flipY}
-                visible={dragItem?.id === el.id || groupDrag?.items.some((it) => it.id === el.id)}
               />
             </div>
           );
@@ -3747,8 +4415,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           const iconPitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
           const iconYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
           const iconScale = kfValues.scale ?? 1;
+          const iconSkewX = kfValues.skewX ?? layer.skewX ?? 0;
+          const iconSkewY = kfValues.skewY ?? layer.skewY ?? 0;
 
-          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) scale(${iconScale * motion.scale})`;
+          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${iconPitch}deg) rotateY(${iconYaw}deg) rotate(${iconRot}deg) skewX(${iconSkewX}deg) skewY(${iconSkewY}deg) scale(${iconScale * motion.scale})`;
 
           return (
             <div
@@ -3757,6 +4427,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="phosphor-icon-layer-item selection-gizmo-item absolute cursor-move select-none ring-1 ring-white shadow-[0_0_2px_rgba(0,0,0,0.6)] rounded-none pointer-events-auto"
               style={{
                 transform: transformStr,
+                transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
                 width: `${iconSize}px`,
                 height: `${iconSize}px`,
               }}
@@ -3825,10 +4496,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               </div>
 
               <CenterPointIndicator
+                top={`${(layer.anchorY ?? 0.5) * 100}%`}
+                left={`${(layer.anchorX ?? 0.5) * 100}%`}
                 rotation={iconRot}
-                visible={
-                  dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
-                }
               />
             </div>
           );
@@ -3858,10 +4528,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
           const posFontSize = kfValues.fontSize ?? layer.fontSize;
           const sx = kfValues.scaleX ?? layer.scaleX ?? 1;
           const sy = kfValues.scaleY ?? layer.scaleY ?? 1;
+          const textSkewX = kfValues.skewX ?? layer.skewX ?? 0;
+          const textSkewY = kfValues.skewY ?? layer.skewY ?? 0;
+          const textLetterSpacing = kfValues.letterSpacing ?? layer.letterSpacing ?? 0;
           const fontObj = GOOGLE_FONTS.find((f) => f.name === layer.fontFamily);
           const fontFamilyCss = fontObj ? fontObj.family : layer.fontFamily;
 
-          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) skewX(${layer.skewX || 0}deg) skewY(${layer.skewY || 0}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`;
+          const transformStr = `translate(${posX + motion.dx}px, ${posY + motion.dy}px) perspective(1000px) rotateX(${posPitch}deg) rotateY(${posYaw}deg) rotate(${posRot}deg) skewX(${textSkewX}deg) skewY(${textSkewY}deg) scale(${sx * motion.scale}, ${sy * motion.scale})`;
 
           const textAlign = layer.textAlign || 'center';
           const currentText = motion.animatedText ?? layer.text;
@@ -3884,9 +4557,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               className="text-layer-item selection-gizmo-item absolute cursor-move select-none pointer-events-auto"
               style={{
                 transform: transformStr,
+                transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
                 transformStyle: 'preserve-3d',
                 fontFamily: fontFamilyCss,
                 fontSize: `${posFontSize}px`,
+                letterSpacing: `${textLetterSpacing}px`,
                 lineHeight: 1.2,
                 fontWeight: layer.fontWeight,
                 fontStyle: layer.fontStyle,
@@ -4061,12 +4736,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
               </div>
 
               <CenterPointIndicator
+                top={`${(layer.anchorY ?? 0.5) * 100}%`}
+                left={`${(layer.anchorX ?? 0.5) * 100}%`}
                 rotation={posRot}
                 scaleX={invScaleX}
                 scaleY={invScaleY}
-                visible={
-                  dragItem?.id === layer.id || groupDrag?.items.some((it) => it.id === layer.id)
-                }
               />
             </div>
           );
@@ -4078,13 +4752,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
   return (
     <div
       ref={viewportRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onPointerDown={readOnly ? undefined : handlePointerDown}
+      onPointerMove={readOnly ? undefined : handlePointerMove}
+      onPointerUp={readOnly ? undefined : handlePointerUp}
+      onPointerCancel={readOnly ? undefined : handlePointerUp}
+      onTouchStart={readOnly ? undefined : handleTouchStart}
+      onTouchMove={readOnly ? undefined : handleTouchMove}
+      onTouchEnd={readOnly ? undefined : handleTouchEnd}
       className={`absolute inset-0 max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
         layerGroupRotate || rotateDragItem
           ? 'cursor-grabbing select-none'
@@ -4100,7 +4774,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
       }`}
     >
       {/* Floating Pen Tool Toolbar (Fixed minimal vertical icon-only bar on top-left) */}
-      {state.isPenDrawingMode && (
+      {!readOnly && state.isPenDrawingMode && (
         <div className="absolute top-4 left-4 z-40 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md p-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto select-none">
           {/* Active Pen Indicator */}
           <div
@@ -4173,9 +4847,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
 
       {/* Canvas Viewport Scaling & Drag Pan Wrapper */}
       <div
-        className="transition-transform duration-75 flex items-center justify-center touch-none relative"
+        className="flex items-center justify-center touch-none relative"
         style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${state.previewCanvasZoom / 100})`,
+          transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${state.previewCanvasZoom / 100})`,
+          transformOrigin: 'center center',
+          transitionProperty: 'transform',
+          transitionDuration: isPanning ? '0ms' : '120ms',
+          transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
         }}
       >
         {/* Editor-Only Transparency Guide Grid (Not included in export canvasRef) */}
@@ -4194,8 +4874,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
         {/* Exportable Canvas Container */}
         <div
           ref={canvasRef}
-          id="shotage-canvas"
-          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${getAspectRatioStyle()}`}
+          id={canvasId}
+          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${readOnly ? 'exporting-no-transitions' : ''} ${getAspectRatioStyle()}`}
           style={{
             ...getBackgroundStyle(),
             padding: `${state.padding}px`,
@@ -4678,6 +5358,38 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({ canvasRef, onImageUplo
             {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
             <WatermarkOverlay />
           </div>
+
+          {!readOnly && state.isAnimationMode && (state.mockupMotionPath || state.slot2MockupMotionPath) && (
+            <div
+              className="absolute inset-0 pointer-events-none z-40 flex items-center justify-center"
+              style={{ padding: `${state.padding}px` }}
+            >
+              <MotionPathOverlay
+                keyframes={state.keyframes.map((keyframe) => ({
+                  id: keyframe.id,
+                  timeSec: keyframe.timeSec,
+                  x: keyframe.offsetX,
+                  y: keyframe.offsetY,
+                }))}
+                baseX={state.offsetX}
+                baseY={state.offsetY}
+                config={state.mockupMotionPath}
+              />
+              {state.layoutCount === 2 && (
+                <MotionPathOverlay
+                  keyframes={state.keyframes.map((keyframe) => ({
+                    id: `slot2-${keyframe.id}`,
+                    timeSec: keyframe.timeSec,
+                    x: keyframe.slot2OffsetX ?? 0,
+                    y: keyframe.slot2OffsetY ?? 0,
+                  }))}
+                  baseX={state.slot2OffsetX}
+                  baseY={state.slot2OffsetY}
+                  config={state.slot2MockupMotionPath}
+                />
+              )}
+            </div>
+          )}
 
           {/* Unclipped Selection Gizmos Layer (Photoshop-like outer line & corner indicator buttons) */}
           {renderSelectionGizmos()}

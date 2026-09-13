@@ -1,11 +1,73 @@
-import { StudioState } from '../types/studio';
+import type { AnimationEasingType } from '../types/animationTypes';
+import type { StageTransition, StageTransitionType, StudioState } from '../types/studio';
 
 const DB_NAME = 'shotage_session_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'session_store';
 const SESSION_KEY = 'active_session';
 const LOCAL_STORAGE_KEY = 'shotage-session-v1';
-const SESSION_VERSION = '1.1';
+const SESSION_VERSION = '1.2';
+const DEFAULT_TRANSITION: StageTransition = {
+  type: 'none',
+  durationSec: 0.6,
+  easing: 'ease-in-out',
+};
+const TRANSITION_TYPES = new Set<StageTransitionType>([
+  'none',
+  'crossfade',
+  'slide-left',
+  'slide-right',
+  'zoom-fade',
+]);
+const TRANSITION_EASINGS = new Set<AnimationEasingType>([
+  'linear',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+  'spring',
+]);
+
+const normalizeTransition = (value: unknown): StageTransition => {
+  const transition = value as Partial<StageTransition> | null | undefined;
+  return {
+    type:
+      transition?.type && TRANSITION_TYPES.has(transition.type)
+        ? transition.type
+        : DEFAULT_TRANSITION.type,
+    durationSec: Math.max(
+      0.1,
+      Math.min(1.5, Number(transition?.durationSec) || DEFAULT_TRANSITION.durationSec)
+    ),
+    easing:
+      transition?.easing && TRANSITION_EASINGS.has(transition.easing)
+        ? transition.easing
+        : DEFAULT_TRANSITION.easing,
+  };
+};
+
+export const normalizeRestoredSession = (data: Partial<StudioState>): Partial<StudioState> => {
+  if (!Array.isArray(data.stages) || data.stages.length === 0) {
+    return { ...data, transitionOut: normalizeTransition(data.transitionOut) };
+  }
+
+  const activeStageIndex = Math.max(
+    0,
+    Math.min(data.stages.length - 1, Number(data.activeStageIndex) || 0)
+  );
+  const stages = data.stages.map((stage, index) => ({
+    ...stage,
+    transitionOut: normalizeTransition(
+      stage.transitionOut || (index === activeStageIndex ? data.transitionOut : undefined)
+    ),
+  }));
+
+  return {
+    ...data,
+    stages,
+    activeStageIndex,
+    transitionOut: stages[activeStageIndex].transitionOut,
+  };
+};
 
 // Open / initialize IndexedDB
 const openDB = (): Promise<IDBDatabase> => {
@@ -31,18 +93,33 @@ export interface SavedSessionData {
   savedAt: number;
 }
 
+const NON_PERSISTENT_KEYS = new Set([
+  'isPlaying',
+  'isPositionDragging',
+  'isExporting',
+  'exportTimeSec',
+  'isPreviewMode',
+]);
+
+/** Strip Zustand actions and transient runtime flags before IndexedDB structured cloning. */
+export const createSavedSessionData = (
+  state: StudioState,
+  savedAt = Date.now()
+): SavedSessionData => {
+  const data = Object.fromEntries(
+    Object.entries(state).filter(
+      ([key, value]) => typeof value !== 'function' && !NON_PERSISTENT_KEYS.has(key)
+    )
+  ) as Partial<StudioState>;
+  return { data, _version: SESSION_VERSION, savedAt };
+};
+
 /**
  * Save complete studio session to IndexedDB (with full image support) and LocalStorage (metadata).
  */
 export const saveSession = async (state: StudioState): Promise<void> => {
   if (state.isPlaying) return;
-
-  const { isPlaying, isPositionDragging, ...rest } = state;
-  const payload: SavedSessionData = {
-    data: rest,
-    _version: SESSION_VERSION,
-    savedAt: Date.now(),
-  };
+  const payload = createSavedSessionData(state);
 
   // 1. Try IndexedDB (supports large base64 image data)
   try {
@@ -65,7 +142,7 @@ export const saveSession = async (state: StudioState): Promise<void> => {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
     } catch {
       // If quota exceeded, strip images for localStorage fallback
-      const { imageSrc, secondImageSrc, ...withoutImages } = rest;
+      const { imageSrc, secondImageSrc, ...withoutImages } = payload.data;
       localStorage.setItem(
         LOCAL_STORAGE_KEY,
         JSON.stringify({
@@ -96,7 +173,7 @@ export const loadSavedSession = async (): Promise<Partial<StudioState> | null> =
     });
 
     if (result?.data && typeof result.data === 'object') {
-      return result.data;
+      return normalizeRestoredSession(result.data);
     }
   } catch {
     // Fall back to LocalStorage
@@ -108,12 +185,12 @@ export const loadSavedSession = async (): Promise<Partial<StudioState> | null> =
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.data && typeof parsed.data === 'object') {
-        return parsed.data;
+        return normalizeRestoredSession(parsed.data);
       }
       // Legacy format support (where properties were at root)
       if (parsed && typeof parsed === 'object') {
         const { _version, savedAt, ...data } = parsed;
-        return data;
+        return normalizeRestoredSession(data);
       }
     }
   } catch {

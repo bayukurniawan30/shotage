@@ -255,7 +255,7 @@ export const ElementsSection: React.FC = () => {
     (selectedShape.shapeType === 'square' || selectedShape.shapeType === 'rectangle');
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-4 shadow-sm">
       {/* Header */}
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -2020,6 +2020,23 @@ export const ElementsSection: React.FC = () => {
               size="sm"
             />
           </div>
+          {selectedShape.shadow && (
+            <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
+              {([
+                ['Opacity', 'shadowOpacity', 0, 100, '%', 55],
+                ['Blur', 'shadowBlur', 0, 50, 'px', 16],
+                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
+              ] as const).map(([label, key, min, max, unit, fallback]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedShape[key] ?? fallback}{unit}</span></div>
+                  <StepperSlider min={min} max={max} step={1} value={selectedShape[key] ?? fallback}
+                    onChange={(value) => state.updateShapeLayer(selectedShape.id, { [key]: value })}
+                    accentColor="#ffafcc" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Glassmorphic Option */}
           <div className="space-y-2.5 pt-2 border-t border-neutral-800/80">
@@ -2468,6 +2485,19 @@ export const ElementsSection: React.FC = () => {
                       </button>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      ['Skew X', 'skewX'],
+                      ['Skew Y', 'skewY'],
+                    ] as const).map(([label, key]) => (
+                      <div key={key}>
+                        <div className="flex justify-between text-xs mb-1"><span className="font-medium text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedElement[key] ?? 0}°</span></div>
+                        <StepperSlider min={-60} max={60} step={1} value={selectedElement[key] ?? 0}
+                          onChange={(value) => state.updateCanvasElement(selectedElement.id, { [key]: value })}
+                          accentColor="#ffafcc" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -2531,6 +2561,23 @@ export const ElementsSection: React.FC = () => {
               size="sm"
             />
           </div>
+          {selectedElement.shadow && (
+            <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
+              {([
+                ['Opacity', 'shadowOpacity', 0, 100, '%', 65],
+                ['Blur', 'shadowBlur', 0, 50, 'px', 16],
+                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
+              ] as const).map(([label, key, min, max, unit, fallback]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedElement[key] ?? fallback}{unit}</span></div>
+                  <StepperSlider min={min} max={max} step={1} value={selectedElement[key] ?? fallback}
+                    onChange={(value) => state.updateCanvasElement(selectedElement.id, { [key]: value })}
+                    accentColor="#ffafcc" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Layering Depth */}
           <div>

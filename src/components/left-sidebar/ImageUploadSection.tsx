@@ -29,7 +29,7 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
   };
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-4 shadow-sm">
       {/* Big Template Button */}
       <div>
         <button
