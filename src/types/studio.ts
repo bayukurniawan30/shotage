@@ -1,5 +1,5 @@
-import { getRandomGradientPreset } from '../utils/gradientPresets';
-import { ElementLoopAnimation } from './animationTypes';
+import { getRandomGradientPreset } from '../utils/gradientPresets.js';
+import type { ElementLoopAnimation } from './animationTypes.js';
 
 export type SocialPlatform =
   | 'instagram'
@@ -355,12 +355,7 @@ export type BackgroundType =
   | 'transparent'
   | 'image';
 
-export type StageTransitionType =
-  | 'none'
-  | 'crossfade'
-  | 'slide-left'
-  | 'slide-right'
-  | 'zoom-fade';
+export type StageTransitionType = 'none' | 'crossfade' | 'slide-left' | 'slide-right' | 'zoom-fade';
 
 export interface StageTransition {
   type: StageTransitionType;
@@ -369,12 +364,7 @@ export interface StageTransition {
 }
 
 export type ShinePreset =
-  | 'none'
-  | 'diagonal-glass'
-  | 'apple-glare'
-  | 'curved-sheen'
-  | 'top-light'
-  | 'dual-beam';
+  'none' | 'diagonal-glass' | 'apple-glare' | 'curved-sheen' | 'top-light' | 'dual-beam';
 
 export type FrameType =
   | 'frameless'
