@@ -5,6 +5,61 @@ export type AnimationEasingType =
   | 'ease-in'
   | 'spring';
 
+export interface CubicBezierEasing {
+  type: 'cubic-bezier';
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export type AnimationEasing = AnimationEasingType | CubicBezierEasing;
+
+export type MotionPathType = 'linear' | 'arc-up' | 'arc-down' | 's-curve';
+
+export interface MotionPathConfig {
+  type: MotionPathType;
+  curvature: number;
+  autoOrient?: boolean;
+}
+
+export interface MotionBlurSample {
+  x: number;
+  y: number;
+  rotation?: number;
+  rotationX?: number;
+  rotationY?: number;
+  scale?: number;
+}
+
+/**
+ * Approximate a 180-degree camera shutter from the visual change across one
+ * 60fps frame. Translation is the main signal; rotation and scale add a small
+ * amount so spins and punch-ins do not remain unnaturally crisp.
+ */
+export function calculateMotionBlurRadius(
+  from: MotionBlurSample,
+  to: MotionBlurSample,
+  strength = 50
+): number {
+  const normalizedStrength = Math.max(0, Math.min(100, strength)) / 50;
+  if (normalizedStrength === 0) return 0;
+
+  const translation = Math.hypot(to.x - from.x, to.y - from.y);
+  const shortestAngleDelta = (start = 0, end = 0) =>
+    Math.abs((((end - start + 180) % 360) + 360) % 360 - 180);
+  const rotationDelta = Math.hypot(
+    shortestAngleDelta(from.rotation, to.rotation),
+    shortestAngleDelta(from.rotationX, to.rotationX),
+    shortestAngleDelta(from.rotationY, to.rotationY)
+  );
+  const scaleDelta = Math.abs((to.scale ?? 1) - (from.scale ?? 1));
+  const radius =
+    (translation * 0.75 + rotationDelta * 0.65 + scaleDelta * 300) * normalizedStrength;
+
+  return Math.round(Math.min(14, Math.max(0, radius)) * 100) / 100;
+}
+
 export interface EasingPresetOption {
   id: AnimationEasingType;
   name: string;
@@ -19,8 +74,77 @@ export const EASING_PRESET_OPTIONS: EasingPresetOption[] = [
   { id: 'spring', name: 'Spring', description: 'Snappy motion with slight elastic settle' },
 ];
 
-export function calculateEasing(progress: number, type: AnimationEasingType = 'ease-in-out'): number {
+const sampleBezier = (t: number, p1: number, p2: number): number => {
+  const inverse = 1 - t;
+  return 3 * inverse * inverse * t * p1 + 3 * inverse * t * t * p2 + t * t * t;
+};
+
+const sampleBezierDerivative = (t: number, p1: number, p2: number): number => {
+  const inverse = 1 - t;
+  return (
+    3 * inverse * inverse * p1 +
+    6 * inverse * t * (p2 - p1) +
+    3 * t * t * (1 - p2)
+  );
+};
+
+export function isCubicBezierEasing(easing: unknown): easing is CubicBezierEasing {
+  if (!easing || typeof easing !== 'object') return false;
+  const candidate = easing as Partial<CubicBezierEasing>;
+  return (
+    candidate.type === 'cubic-bezier' &&
+    typeof candidate.x1 === 'number' &&
+    Number.isFinite(candidate.x1) &&
+    candidate.x1 >= 0 &&
+    candidate.x1 <= 1 &&
+    typeof candidate.y1 === 'number' &&
+    Number.isFinite(candidate.y1) &&
+    typeof candidate.x2 === 'number' &&
+    Number.isFinite(candidate.x2) &&
+    candidate.x2 >= 0 &&
+    candidate.x2 <= 1 &&
+    typeof candidate.y2 === 'number' &&
+    Number.isFinite(candidate.y2)
+  );
+}
+
+/** Evaluate a CSS-compatible cubic Bezier by solving its time (x) axis first. */
+export function calculateCubicBezier(progress: number, curve: CubicBezierEasing): number {
   const p = Math.max(0, Math.min(1, progress));
+  if (p === 0 || p === 1) return p;
+
+  let t = p;
+  let converged = false;
+  for (let i = 0; i < 8; i++) {
+    const error = sampleBezier(t, curve.x1, curve.x2) - p;
+    const derivative = sampleBezierDerivative(t, curve.x1, curve.x2);
+    if (Math.abs(error) < 1e-7) {
+      converged = true;
+      break;
+    }
+    if (Math.abs(derivative) < 1e-7) break;
+    t = Math.max(0, Math.min(1, t - error / derivative));
+  }
+
+  if (!converged) {
+    // Bisection makes highly asymmetric curves reliable when Newton's method stalls.
+    let low = 0;
+    let high = 1;
+    for (let i = 0; i < 20; i++) {
+      t = (low + high) / 2;
+      const x = sampleBezier(t, curve.x1, curve.x2);
+      if (Math.abs(x - p) < 1e-7) break;
+      if (x < p) low = t;
+      else high = t;
+    }
+  }
+
+  return sampleBezier(t, curve.y1, curve.y2);
+}
+
+export function calculateEasing(progress: number, type: AnimationEasing = 'ease-in-out'): number {
+  const p = Math.max(0, Math.min(1, progress));
+  if (isCubicBezierEasing(type)) return calculateCubicBezier(p, type);
   switch (type) {
     case 'linear':
       return p;
@@ -57,7 +181,18 @@ export interface LayerKeyframe {
   opacity?: number;
   borderRadius?: number;
   fontSize?: number;
-  easing?: AnimationEasingType;
+  blur?: number;
+  skewX?: number;
+  skewY?: number;
+  color?: string;
+  borderWidth?: number;
+  borderColor?: string;
+  letterSpacing?: number;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  easing?: AnimationEasing;
 }
 
 export interface LayerKeyframeResult {
@@ -74,6 +209,138 @@ export interface LayerKeyframeResult {
   opacity?: number;
   borderRadius?: number;
   fontSize?: number;
+  blur?: number;
+  skewX?: number;
+  skewY?: number;
+  color?: string;
+  borderWidth?: number;
+  borderColor?: string;
+  letterSpacing?: number;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+}
+
+interface ParsedColor { r: number; g: number; b: number; a: number }
+
+const parseHexColor = (value: string): ParsedColor | null => {
+  const hex = value.trim().replace(/^#/, '');
+  if (![3, 4, 6, 8].includes(hex.length) || !/^[0-9a-f]+$/i.test(hex)) return null;
+  const expanded = hex.length <= 4 ? [...hex].map((part) => `${part}${part}`).join('') : hex;
+  return {
+    r: parseInt(expanded.slice(0, 2), 16) / 255,
+    g: parseInt(expanded.slice(2, 4), 16) / 255,
+    b: parseInt(expanded.slice(4, 6), 16) / 255,
+    a: expanded.length === 8 ? parseInt(expanded.slice(6, 8), 16) / 255 : 1,
+  };
+};
+
+const srgbToLinear = (channel: number) =>
+  channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+const linearToSrgb = (channel: number) =>
+  channel <= 0.0031308 ? channel * 12.92 : 1.055 * channel ** (1 / 2.4) - 0.055;
+
+/** Interpolate solid hex colors in OKLab to avoid muddy midpoints. */
+export function interpolateColorOklab(from: string, to: string, progress: number): string {
+  const t = Math.max(0, Math.min(1, progress));
+  if (t === 0) return from;
+  if (t === 1) return to;
+  const start = parseHexColor(from);
+  const end = parseHexColor(to);
+  if (!start || !end) return t < 0.5 ? from : to;
+
+  const toOklab = ({ r, g, b }: ParsedColor) => {
+    const lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
+    const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+    const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+    const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+    return {
+      l: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+      a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+      b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    };
+  };
+  const startLab = toOklab(start), endLab = toOklab(end);
+  const l = startLab.l + (endLab.l - startLab.l) * t;
+  const a = startLab.a + (endLab.a - startLab.a) * t;
+  const b = startLab.b + (endLab.b - startLab.b) * t;
+  const lRoot = l + 0.3963377774 * a + 0.2158037573 * b;
+  const mRoot = l - 0.1055613458 * a - 0.0638541728 * b;
+  const sRoot = l - 0.0894841775 * a - 1.291485548 * b;
+  const lr = 4.0767416621 * lRoot ** 3 - 3.3077115913 * mRoot ** 3 + 0.2309699292 * sRoot ** 3;
+  const lg = -1.2684380046 * lRoot ** 3 + 2.6097574011 * mRoot ** 3 - 0.3413193965 * sRoot ** 3;
+  const lb = -0.0041960863 * lRoot ** 3 - 0.7034186147 * mRoot ** 3 + 1.707614701 * sRoot ** 3;
+  const channel = (value: number) => Math.round(Math.max(0, Math.min(1, linearToSrgb(value))) * 255);
+  const alpha = start.a + (end.a - start.a) * t;
+  return `rgba(${channel(lr)}, ${channel(lg)}, ${channel(lb)}, ${Math.round(alpha * 1000) / 1000})`;
+}
+
+interface MotionPathPoint {
+  x: number;
+  y: number;
+  angle: number;
+}
+
+export function evaluateMotionPathSegment(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  progress: number,
+  config?: MotionPathConfig
+): MotionPathPoint {
+  const t = Math.max(0, Math.min(1, progress));
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const distance = Math.hypot(dx, dy);
+  const amount = Math.max(0, Math.min(1, config?.curvature ?? 0.25));
+  const type = config?.type ?? 'linear';
+
+  if (type === 'linear' || distance < 0.001 || amount === 0) {
+    return {
+      x: start.x + dx * t,
+      y: start.y + dy * t,
+      angle: Math.atan2(dy, dx) * (180 / Math.PI),
+    };
+  }
+
+  const bend = distance * amount;
+  let offset1X = 0;
+  let offset1Y = type === 'arc-up' ? -bend : type === 'arc-down' ? bend : 0;
+  let offset2X = offset1X;
+  let offset2Y = offset1Y;
+
+  if (type === 's-curve') {
+    const normalX = -dy / distance;
+    const normalY = dx / distance;
+    offset1X = normalX * bend;
+    offset1Y = normalY * bend;
+    offset2X = -offset1X;
+    offset2Y = -offset1Y;
+  }
+
+  const c1 = { x: start.x + dx / 3 + offset1X, y: start.y + dy / 3 + offset1Y };
+  const c2 = { x: start.x + (dx * 2) / 3 + offset2X, y: start.y + (dy * 2) / 3 + offset2Y };
+  const inverse = 1 - t;
+  const x =
+    inverse ** 3 * start.x +
+    3 * inverse ** 2 * t * c1.x +
+    3 * inverse * t ** 2 * c2.x +
+    t ** 3 * end.x;
+  const y =
+    inverse ** 3 * start.y +
+    3 * inverse ** 2 * t * c1.y +
+    3 * inverse * t ** 2 * c2.y +
+    t ** 3 * end.y;
+  const tangentX =
+    3 * inverse ** 2 * (c1.x - start.x) +
+    6 * inverse * t * (c2.x - c1.x) +
+    3 * t ** 2 * (end.x - c2.x);
+  const tangentY =
+    3 * inverse ** 2 * (c1.y - start.y) +
+    6 * inverse * t * (c2.y - c1.y) +
+    3 * t ** 2 * (end.y - c2.y);
+
+  return { x, y, angle: Math.atan2(tangentY, tangentX) * (180 / Math.PI) };
 }
 
 export function evaluateLayerKeyframes<
@@ -91,6 +358,18 @@ export function evaluateLayerKeyframes<
     opacity?: number;
     borderRadius?: number;
     fontSize?: number;
+    blur?: number;
+    skewX?: number;
+    skewY?: number;
+    color?: string;
+    borderWidth?: number;
+    borderColor?: string;
+    letterSpacing?: number;
+    shadowOpacity?: number;
+    shadowBlur?: number;
+    shadowOffsetX?: number;
+    shadowOffsetY?: number;
+    motionPath?: MotionPathConfig;
     keyframes?: LayerKeyframe[];
   }
 >(
@@ -114,49 +393,93 @@ export function evaluateLayerKeyframes<
       opacity: layer.opacity,
       borderRadius: layer.borderRadius,
       fontSize: layer.fontSize,
+      blur: layer.blur,
+      skewX: layer.skewX,
+      skewY: layer.skewY,
+      color: layer.color,
+      borderWidth: layer.borderWidth,
+      borderColor: layer.borderColor,
+      letterSpacing: layer.letterSpacing,
+      shadowOpacity: layer.shadowOpacity,
+      shadowBlur: layer.shadowBlur,
+      shadowOffsetX: layer.shadowOffsetX,
+      shadowOffsetY: layer.shadowOffsetY,
     };
   }
 
   const sorted = [...kfs].sort((a, b) => a.timeSec - b.timeSec);
   const t = Math.max(0, currentTimeSec);
+  const pointFor = (kf: LayerKeyframe) => ({ x: kf.x ?? layer.x ?? 0, y: kf.y ?? layer.y ?? 0 });
+  const pathAt = (from: LayerKeyframe, to: LayerKeyframe, progress: number) =>
+    evaluateMotionPathSegment(pointFor(from), pointFor(to), progress, layer.motionPath);
 
   // Before or at first keyframe
   if (t <= sorted[0].timeSec) {
     const first = sorted[0];
+    const path = sorted.length > 1 ? pathAt(first, sorted[1], 0) : null;
     return {
-      x: first.x ?? layer.x,
-      y: first.y ?? layer.y,
+      x: path?.x ?? first.x ?? layer.x,
+      y: path?.y ?? first.y ?? layer.y,
       width: first.width ?? layer.width,
       height: first.height ?? layer.height,
       scale: first.scale ?? layer.scale,
       scaleX: first.scaleX ?? layer.scaleX,
       scaleY: first.scaleY ?? layer.scaleY,
-      rotation: first.rotation ?? layer.rotation,
+      rotation:
+        (first.rotation ?? layer.rotation) !== undefined
+          ? (first.rotation ?? layer.rotation ?? 0) + (layer.motionPath?.autoOrient ? path?.angle ?? 0 : 0)
+          : undefined,
       pitch: first.pitch ?? layer.pitch,
       yaw: first.yaw ?? layer.yaw,
       opacity: first.opacity ?? layer.opacity,
       borderRadius: first.borderRadius ?? layer.borderRadius,
       fontSize: first.fontSize ?? layer.fontSize,
+      blur: first.blur ?? layer.blur,
+      skewX: first.skewX ?? layer.skewX,
+      skewY: first.skewY ?? layer.skewY,
+      color: first.color ?? layer.color,
+      borderWidth: first.borderWidth ?? layer.borderWidth,
+      borderColor: first.borderColor ?? layer.borderColor,
+      letterSpacing: first.letterSpacing ?? layer.letterSpacing,
+      shadowOpacity: first.shadowOpacity ?? layer.shadowOpacity,
+      shadowBlur: first.shadowBlur ?? layer.shadowBlur,
+      shadowOffsetX: first.shadowOffsetX ?? layer.shadowOffsetX,
+      shadowOffsetY: first.shadowOffsetY ?? layer.shadowOffsetY,
     };
   }
 
   // After or at last keyframe
   if (t >= sorted[sorted.length - 1].timeSec) {
     const last = sorted[sorted.length - 1];
+    const path = sorted.length > 1 ? pathAt(sorted[sorted.length - 2], last, 1) : null;
     return {
-      x: last.x ?? layer.x,
-      y: last.y ?? layer.y,
+      x: path?.x ?? last.x ?? layer.x,
+      y: path?.y ?? last.y ?? layer.y,
       width: last.width ?? layer.width,
       height: last.height ?? layer.height,
       scale: last.scale ?? layer.scale,
       scaleX: last.scaleX ?? layer.scaleX,
       scaleY: last.scaleY ?? layer.scaleY,
-      rotation: last.rotation ?? layer.rotation,
+      rotation:
+        (last.rotation ?? layer.rotation) !== undefined
+          ? (last.rotation ?? layer.rotation ?? 0) + (layer.motionPath?.autoOrient ? path?.angle ?? 0 : 0)
+          : undefined,
       pitch: last.pitch ?? layer.pitch,
       yaw: last.yaw ?? layer.yaw,
       opacity: last.opacity ?? layer.opacity,
       borderRadius: last.borderRadius ?? layer.borderRadius,
       fontSize: last.fontSize ?? layer.fontSize,
+      blur: last.blur ?? layer.blur,
+      skewX: last.skewX ?? layer.skewX,
+      skewY: last.skewY ?? layer.skewY,
+      color: last.color ?? layer.color,
+      borderWidth: last.borderWidth ?? layer.borderWidth,
+      borderColor: last.borderColor ?? layer.borderColor,
+      letterSpacing: last.letterSpacing ?? layer.letterSpacing,
+      shadowOpacity: last.shadowOpacity ?? layer.shadowOpacity,
+      shadowBlur: last.shadowBlur ?? layer.shadowBlur,
+      shadowOffsetX: last.shadowOffsetX ?? layer.shadowOffsetX,
+      shadowOffsetY: last.shadowOffsetY ?? layer.shadowOffsetY,
     };
   }
 
@@ -175,6 +498,7 @@ export function evaluateLayerKeyframes<
   const progress = dur > 0 ? (t - kf1.timeSec) / dur : 0;
   const easing = kf1.easing || defaultEasing;
   const factor = calculateEasing(progress, easing);
+  const path = pathAt(kf1, kf2, factor);
 
   const lerpNum = (
     v1: number | undefined,
@@ -188,21 +512,47 @@ export function evaluateLayerKeyframes<
     const e = end ?? start ?? 0;
     return s + (e - s) * factor;
   };
+  const lerpColor = (
+    v1: string | undefined,
+    v2: string | undefined,
+    fallback: string | undefined
+  ): string | undefined => {
+    const start = v1 ?? fallback ?? v2;
+    const end = v2 ?? fallback ?? v1;
+    if (start === undefined || end === undefined) return undefined;
+    return interpolateColorOklab(start, end, factor);
+  };
 
   return {
-    x: lerpNum(kf1.x, kf2.x, layer.x),
-    y: lerpNum(kf1.y, kf2.y, layer.y),
+    x: path.x,
+    y: path.y,
     width: lerpNum(kf1.width, kf2.width, layer.width),
     height: lerpNum(kf1.height, kf2.height, layer.height),
     scale: lerpNum(kf1.scale, kf2.scale, layer.scale),
     scaleX: lerpNum(kf1.scaleX, kf2.scaleX, layer.scaleX),
     scaleY: lerpNum(kf1.scaleY, kf2.scaleY, layer.scaleY),
-    rotation: lerpNum(kf1.rotation, kf2.rotation, layer.rotation),
+    rotation: (() => {
+      const rotation = lerpNum(kf1.rotation, kf2.rotation, layer.rotation);
+      return rotation === undefined
+        ? undefined
+        : rotation + (layer.motionPath?.autoOrient ? path.angle : 0);
+    })(),
     pitch: lerpNum(kf1.pitch, kf2.pitch, layer.pitch),
     yaw: lerpNum(kf1.yaw, kf2.yaw, layer.yaw),
     opacity: lerpNum(kf1.opacity, kf2.opacity, layer.opacity),
     borderRadius: lerpNum(kf1.borderRadius, kf2.borderRadius, layer.borderRadius),
     fontSize: lerpNum(kf1.fontSize, kf2.fontSize, layer.fontSize),
+    blur: lerpNum(kf1.blur, kf2.blur, layer.blur),
+    skewX: lerpNum(kf1.skewX, kf2.skewX, layer.skewX),
+    skewY: lerpNum(kf1.skewY, kf2.skewY, layer.skewY),
+    color: lerpColor(kf1.color, kf2.color, layer.color),
+    borderWidth: lerpNum(kf1.borderWidth, kf2.borderWidth, layer.borderWidth),
+    borderColor: lerpColor(kf1.borderColor, kf2.borderColor, layer.borderColor),
+    letterSpacing: lerpNum(kf1.letterSpacing, kf2.letterSpacing, layer.letterSpacing),
+    shadowOpacity: lerpNum(kf1.shadowOpacity, kf2.shadowOpacity, layer.shadowOpacity),
+    shadowBlur: lerpNum(kf1.shadowBlur, kf2.shadowBlur, layer.shadowBlur),
+    shadowOffsetX: lerpNum(kf1.shadowOffsetX, kf2.shadowOffsetX, layer.shadowOffsetX),
+    shadowOffsetY: lerpNum(kf1.shadowOffsetY, kf2.shadowOffsetY, layer.shadowOffsetY),
   };
 }
 
@@ -219,6 +569,7 @@ export interface AnimationKeyframe {
   slot2OffsetY?: number;
   slot1Rotate?: number;
   slot2Rotate?: number;
+  easing?: AnimationEasing;
 }
 
 export interface AnimationPresetTemplate {
@@ -348,6 +699,10 @@ export type ElementLoopAnimation = 'none' | 'pulse' | 'float' | 'spin' | 'blink'
 
 export type MotionCategory = 'entrance' | 'emphasis' | 'exit';
 
+export type TextAnimationUnit = 'character' | 'word';
+export type TextAnimationOrder = 'forward' | 'reverse' | 'center' | 'random';
+export type TextAnimationPresetId = 'text-rise' | 'text-pop' | 'text-blur' | 'text-wave';
+
 export type MotionPresetId =
   // Entrances (In)
   | 'pop-in'
@@ -360,6 +715,7 @@ export type MotionPresetId =
   | 'flip-in'
   | 'blur-in'
   | 'typeahead'
+  | TextAnimationPresetId
   // Emphasis & Loops
   | 'pulse'
   | 'float'
@@ -384,6 +740,9 @@ export interface LayerMotionBlock {
   startTimeSec: number;
   durationSec: number;
   easing?: AnimationEasingType;
+  textUnit?: TextAnimationUnit;
+  textOrder?: TextAnimationOrder;
+  staggerSec?: number;
 }
 
 export interface MotionPresetMeta {
@@ -394,6 +753,7 @@ export interface MotionPresetMeta {
   defaultDurationSec: number;
   badge: string;
   textOnly?: boolean;
+  textAnimation?: boolean;
 }
 
 export const MOTION_PRESETS: MotionPresetMeta[] = [
@@ -479,6 +839,36 @@ export const MOTION_PRESETS: MotionPresetMeta[] = [
     badge: 'Typeahead',
     textOnly: true,
   },
+  {
+    id: 'text-rise',
+    name: 'Characters Rise',
+    category: 'entrance',
+    description: 'Characters rise and settle into place in sequence',
+    defaultDurationSec: 1.2,
+    badge: 'Rise Text',
+    textOnly: true,
+    textAnimation: true,
+  },
+  {
+    id: 'text-pop',
+    name: 'Characters Pop',
+    category: 'entrance',
+    description: 'Characters pop in with a restrained elastic settle',
+    defaultDurationSec: 1.2,
+    badge: 'Pop Text',
+    textOnly: true,
+    textAnimation: true,
+  },
+  {
+    id: 'text-blur',
+    name: 'Blur Reveal Text',
+    category: 'entrance',
+    description: 'Characters progressively resolve from blur',
+    defaultDurationSec: 1.3,
+    badge: 'Blur Text',
+    textOnly: true,
+    textAnimation: true,
+  },
 
   // --- EMPHASIS & LOOPS ---
   {
@@ -545,6 +935,16 @@ export const MOTION_PRESETS: MotionPresetMeta[] = [
     defaultDurationSec: 1.2,
     badge: 'Counter',
     textOnly: true,
+  },
+  {
+    id: 'text-wave',
+    name: 'Character Wave',
+    category: 'emphasis',
+    description: 'A smooth wave travels across the text',
+    defaultDurationSec: 1.5,
+    badge: 'Text Wave',
+    textOnly: true,
+    textAnimation: true,
   },
 
   // --- EXITS ---
@@ -624,6 +1024,180 @@ export const ELEMENT_LOOP_PRESETS: ElementLoopPreset[] = [
   { id: 'wiggle', name: 'Wiggle (Shake)', description: 'Playful oscillating wobble tilt loop', badge: 'Wiggle' },
   { id: 'counter', name: 'Counter (0 → N)', description: 'Fast animated number roll from 0 to target value', badge: 'Counter', textOnly: true },
 ];
+
+const TEXT_ANIMATION_PRESETS = new Set<TextAnimationPresetId>([
+  'text-rise',
+  'text-pop',
+  'text-blur',
+  'text-wave',
+]);
+
+export interface AnimatedTextSegment {
+  text: string;
+  animationIndex: number | null;
+}
+
+export interface TextAnimationUnitResult {
+  translateY: number;
+  scale: number;
+  rotation: number;
+  opacity: number;
+  blur: number;
+}
+
+export function isTextAnimationPreset(value: MotionPresetId): value is TextAnimationPresetId {
+  return TEXT_ANIMATION_PRESETS.has(value as TextAnimationPresetId);
+}
+
+/** Segment text without breaking emoji or combining marks. Whitespace remains in
+ * the output for exact layout, but does not consume a stagger slot. */
+export function segmentTextForAnimation(
+  text: string,
+  unit: TextAnimationUnit = 'character'
+): AnimatedTextSegment[] {
+  let tokens: string[];
+  if (unit === 'word') {
+    tokens = text.split(/(\s+)/u).filter(Boolean);
+  } else {
+    const Segmenter = (
+      Intl as typeof Intl & {
+        Segmenter?: new (
+          locale?: string,
+          options?: { granularity: 'grapheme' }
+        ) => { segment: (value: string) => Iterable<{ segment: string }> };
+      }
+    ).Segmenter;
+    tokens = Segmenter
+      ? Array.from(new Segmenter(undefined, { granularity: 'grapheme' }).segment(text), (part) =>
+          part.segment
+        )
+      : Array.from(text);
+  }
+
+  let animationIndex = 0;
+  return tokens.map((token) => ({
+    text: token,
+    animationIndex: /^\s+$/u.test(token) ? null : animationIndex++,
+  }));
+}
+
+export function getTextAnimationBlockAtTime(
+  motions: LayerMotionBlock[] | undefined,
+  currentTimeSec: number
+): LayerMotionBlock | undefined {
+  const blocks = (motions || [])
+    .filter((block) => isTextAnimationPreset(block.preset))
+    .sort((a, b) => a.startTimeSec - b.startTimeSec);
+  if (blocks.length === 0) return undefined;
+  const active = blocks.find(
+    (block) =>
+      currentTimeSec >= block.startTimeSec &&
+      currentTimeSec < block.startTimeSec + block.durationSec
+  );
+  if (active) return active;
+  return currentTimeSec < blocks[0].startTimeSec ? blocks[0] : undefined;
+}
+
+const getTextAnimationOrderRank = (
+  index: number,
+  count: number,
+  order: TextAnimationOrder,
+  seed: string
+) => {
+  if (order === 'reverse') return count - 1 - index;
+  if (order === 'center') {
+    const ordered = Array.from({ length: count }, (_, itemIndex) => itemIndex).sort(
+      (a, b) => Math.abs(a - (count - 1) / 2) - Math.abs(b - (count - 1) / 2) || a - b
+    );
+    return ordered.indexOf(index);
+  }
+  if (order === 'random') {
+    const score = (itemIndex: number) => {
+      let hash = 2166136261;
+      const value = `${seed}:${itemIndex}`;
+      for (let i = 0; i < value.length; i++) {
+        hash ^= value.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0;
+    };
+    const ordered = Array.from({ length: count }, (_, itemIndex) => itemIndex).sort(
+      (a, b) => score(a) - score(b)
+    );
+    return ordered.indexOf(index);
+  }
+  return index;
+};
+
+export function evaluateTextAnimationUnit(
+  block: LayerMotionBlock,
+  animationIndex: number,
+  animatedUnitCount: number,
+  currentTimeSec: number
+): TextAnimationUnitResult {
+  if (!isTextAnimationPreset(block.preset) || animatedUnitCount <= 0) {
+    return { translateY: 0, scale: 1, rotation: 0, opacity: 1, blur: 0 };
+  }
+
+  const requestedStagger = Math.max(0, Math.min(0.2, block.staggerSec ?? 0.05));
+  const stagger =
+    animatedUnitCount <= 1
+      ? 0
+      : Math.min(requestedStagger, 0.7 / Math.max(1, animatedUnitCount - 1));
+  const rank = getTextAnimationOrderRank(
+    animationIndex,
+    animatedUnitCount,
+    block.textOrder ?? 'forward',
+    block.id
+  );
+  const totalStagger = stagger * Math.max(0, animatedUnitCount - 1);
+  const unitDuration = Math.max(0.12, block.durationSec - totalStagger);
+  const localTime = currentTimeSec - block.startTimeSec - rank * stagger;
+  const progress = Math.max(0, Math.min(1, localTime / unitDuration));
+
+  if (block.preset === 'text-wave') {
+    if (localTime <= 0 || progress >= 1) {
+      return { translateY: 0, scale: 1, rotation: 0, opacity: 1, blur: 0 };
+    }
+    return {
+      translateY: -14 * Math.sin(progress * Math.PI),
+      scale: 1 + 0.06 * Math.sin(progress * Math.PI),
+      rotation: 0,
+      opacity: 1,
+      blur: 0,
+    };
+  }
+
+  const easing = block.easing ?? (block.preset === 'text-pop' ? 'spring' : 'ease-out');
+  const factor = calculateEasing(progress, easing);
+  const opacity = Math.max(0, Math.min(1, progress * 2));
+
+  if (block.preset === 'text-pop') {
+    return {
+      translateY: 0,
+      scale: Math.max(0, 0.35 + 0.65 * factor),
+      rotation: -5 * (1 - factor),
+      opacity,
+      blur: 0,
+    };
+  }
+  if (block.preset === 'text-blur') {
+    return {
+      translateY: 4 * (1 - factor),
+      scale: 1.04 - 0.04 * factor,
+      rotation: 0,
+      opacity,
+      blur: Math.max(0, 14 * (1 - factor)),
+    };
+  }
+  return {
+    translateY: 22 * (1 - factor),
+    scale: 1,
+    rotation: 0,
+    opacity,
+    blur: 0,
+  };
+}
 
 /**
  * Evaluates the compound motion transform for any layer at exact timestamp `currentTimeSec`.
@@ -854,6 +1428,13 @@ export function evaluateLayerMotion(
         isVisible: true,
       };
     }
+    case 'text-rise':
+    case 'text-pop':
+    case 'text-blur':
+    case 'text-wave':
+      // Per-unit transforms are evaluated by the text renderer. The parent
+      // layer remains at its authored pose so line wrapping and alignment stay stable.
+      return defaultResult;
 
     // --- EMPHASIS & LOOPS ---
     case 'pulse': {
@@ -1048,4 +1629,3 @@ export function getAnimatedCounterValue(
     return formattedVal;
   });
 }
-

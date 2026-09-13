@@ -22,7 +22,7 @@ export const FrameSection: React.FC = () => {
   }, []);
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm relative">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-3 shadow-sm relative">
       <div className="border-b border-neutral-800/80 pb-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Frame Mockups</h3>
       </div>

@@ -26,6 +26,9 @@ const EXPORT_FILTER = (node: Node) => {
  */
 export function canUseCachedVideoFrameRenderer(state: StudioState) {
   if (UNSUPPORTED_ANIMATED_BACKGROUNDS.has(state.backgroundType)) return false;
+  // Motion blur depends on each frame's instantaneous velocity and filter, so
+  // the static mockup cache cannot reproduce it faithfully.
+  if (state.motionBlurEnabled) return false;
   if (
     state.backgroundType === 'flow' &&
     ((state.bgBlur ?? 0) > 0 ||

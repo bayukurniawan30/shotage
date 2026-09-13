@@ -297,7 +297,7 @@ export const PhosphorIconsSection: React.FC = () => {
   ];
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-4 shadow-sm">
       {/* Header */}
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -487,6 +487,23 @@ export const PhosphorIconsSection: React.FC = () => {
               size="sm"
             />
           </div>
+          {selectedLayer.shadow && (
+            <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
+              {([
+                ['Opacity', 'shadowOpacity', 0, 100, '%', 65],
+                ['Blur', 'shadowBlur', 0, 50, 'px', 16],
+                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
+              ] as const).map(([label, key, min, max, unit, fallback]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? fallback}{unit}</span></div>
+                  <StepperSlider min={min} max={max} step={1} value={selectedLayer[key] ?? fallback}
+                    onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { [key]: value })}
+                    accentColor="#ffafcc" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Layering Depth (Above vs Behind Mockup) */}
           <div>
@@ -571,6 +588,21 @@ export const PhosphorIconsSection: React.FC = () => {
                 className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              ['Blur', 'blur', 0, 40, 'px'],
+              ['Skew X', 'skewX', -60, 60, '°'],
+              ['Skew Y', 'skewY', -60, 60, '°'],
+            ] as const).map(([label, key, min, max, unit]) => (
+              <div key={key}>
+                <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? 0}{unit}</span></div>
+                <StepperSlider min={min} max={max} step={1} value={selectedLayer[key] ?? 0}
+                  onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { [key]: value })}
+                  accentColor="#ffafcc" />
+              </div>
+            ))}
           </div>
 
           {/* Phosphor Icon Transform & Adjustment Circle Buttons */}

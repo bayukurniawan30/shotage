@@ -80,6 +80,11 @@ export interface LayerReference {
   id: string;
 }
 
+export interface MaskTargetReference {
+  type: LayerType | 'group';
+  id: string;
+}
+
 export interface LayerGroup {
   id: string;
   name: string;
@@ -94,10 +99,14 @@ export interface LayerGroup {
   scale: number;
   rotation: number;
   opacity: number;
+  blur?: number;
+  anchorX?: number;
+  anchorY?: number;
   visible?: boolean;
   locked?: boolean;
   motions?: import('./animationTypes').LayerMotionBlock[];
   keyframes?: import('./animationTypes').LayerKeyframe[];
+  motionPath?: import('./animationTypes').MotionPathConfig;
 }
 
 export type CoolshapeCategory =
@@ -152,8 +161,14 @@ export interface ShapeLayer {
   skewX?: number;
   skewY?: number;
   opacity: number;
+  anchorX?: number;
+  anchorY?: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
   blur?: number;
   glassmorphism?: boolean;
   glassmorphismBlur?: number;
@@ -165,6 +180,9 @@ export interface ShapeLayer {
   animStartTime?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
   keyframes?: import('./animationTypes').LayerKeyframe[];
+  motionPath?: import('./animationTypes').MotionPathConfig;
+  /** When set, this shape is hidden as artwork and clips the referenced target. */
+  maskTarget?: MaskTargetReference;
 }
 
 export interface PenNode {
@@ -186,9 +204,17 @@ export interface CanvasElement {
   y: number;
   rotation: number;
   opacity: number;
+  skewX?: number;
+  skewY?: number;
+  anchorX?: number;
+  anchorY?: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
   blur?: number;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
   flipX?: boolean;
   flipY?: boolean;
   name?: string;
@@ -200,6 +226,7 @@ export interface CanvasElement {
   yaw?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
   keyframes?: import('./animationTypes').LayerKeyframe[];
+  motionPath?: import('./animationTypes').MotionPathConfig;
 }
 
 export interface PhosphorIconLayer {
@@ -213,10 +240,19 @@ export interface PhosphorIconLayer {
   y: number;
   rotation: number;
   opacity: number;
+  anchorX?: number;
+  anchorY?: number;
   pitch?: number;
   yaw?: number;
   position: 'above' | 'underneath';
   shadow?: boolean;
+  blur?: number;
+  skewX?: number;
+  skewY?: number;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
   name?: string;
   visible?: boolean;
   locked?: boolean;
@@ -224,6 +260,7 @@ export interface PhosphorIconLayer {
   animStartTime?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
   keyframes?: import('./animationTypes').LayerKeyframe[];
+  motionPath?: import('./animationTypes').MotionPathConfig;
 }
 
 export interface PhosphorIconConfig {
@@ -265,8 +302,16 @@ export interface TextLayer {
   x: number;
   y: number;
   shadow: boolean;
+  blur?: number;
+  letterSpacing?: number;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
   opacity: number; // 0 to 100
   rotation: number; // -180 to 180 degrees
+  anchorX?: number;
+  anchorY?: number;
   pitch?: number;
   yaw?: number;
   skewX?: number;
@@ -285,6 +330,7 @@ export interface TextLayer {
   animStartTime?: number;
   motions?: import('./animationTypes').LayerMotionBlock[];
   keyframes?: import('./animationTypes').LayerKeyframe[];
+  motionPath?: import('./animationTypes').MotionPathConfig;
 }
 
 export type WatermarkType = 'none' | 'default' | 'dark' | 'glass' | 'badge' | 'dark-badge';
@@ -308,6 +354,19 @@ export type BackgroundType =
   | 'radiant'
   | 'transparent'
   | 'image';
+
+export type StageTransitionType =
+  | 'none'
+  | 'crossfade'
+  | 'slide-left'
+  | 'slide-right'
+  | 'zoom-fade';
+
+export interface StageTransition {
+  type: StageTransitionType;
+  durationSec: number;
+  easing: import('./animationTypes').AnimationEasingType;
+}
 
 export type ShinePreset =
   | 'none'
@@ -466,8 +525,14 @@ export interface StudioState {
   perspective: number; // 500 to 2000
   offsetX: number; // -200 to 200
   offsetY: number; // -200 to 200
+  mockupAnchorX?: number;
+  mockupAnchorY?: number;
+  mockupMotionPath?: import('./animationTypes').MotionPathConfig;
   slot2OffsetX: number; // -200 to 200
   slot2OffsetY: number; // -200 to 200
+  slot2MockupAnchorX?: number;
+  slot2MockupAnchorY?: number;
+  slot2MockupMotionPath?: import('./animationTypes').MotionPathConfig;
   layoutCount: 1 | 2;
   mediaType: 'image' | 'video';
   secondMediaType?: 'image' | 'video';
@@ -487,6 +552,8 @@ export interface StudioState {
   currentTimeSec: number;
   durationSec: number;
   animationEasing?: import('./animationTypes').AnimationEasingType;
+  motionBlurEnabled?: boolean;
+  motionBlurStrength?: number; // 0 to 100; velocity-adaptive blur amount
   keyframes: import('./animationTypes').AnimationKeyframe[];
   activePresetId: string;
   // Text Layers
@@ -518,6 +585,7 @@ export interface StudioState {
   // Stage Manager State
   stages?: Partial<StudioState>[];
   activeStageIndex: number;
+  transitionOut?: StageTransition;
   // Global layer stack order (index 0 = topmost / highest z-index, Photoshop-style)
   layerOrder: { type: 'text' | 'phosphor' | 'element' | 'shape'; id: string }[];
   resetKey: number;
@@ -636,8 +704,12 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   perspective: 1000,
   offsetX: 0,
   offsetY: 0,
+  mockupAnchorX: 0.5,
+  mockupAnchorY: 0.5,
   slot2OffsetX: 0,
   slot2OffsetY: 0,
+  slot2MockupAnchorX: 0.5,
+  slot2MockupAnchorY: 0.5,
   exportFormat: 'png',
   exportScale: 2,
   // Animation System Defaults
@@ -646,6 +718,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   currentTimeSec: 0,
   durationSec: 10,
   animationEasing: 'ease-in-out',
+  motionBlurEnabled: false,
+  motionBlurStrength: 50,
   keyframes: [],
   activePresetId: '',
   textLayers: [],
@@ -690,6 +764,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
     yOffset: 0,
   },
   activeStageIndex: 0,
+  transitionOut: { type: 'none', durationSec: 0.6, easing: 'ease-in-out' },
   stages: [],
   layerOrder: [],
   resetKey: 0,

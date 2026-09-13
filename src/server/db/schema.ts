@@ -191,6 +191,53 @@ export const creditPurchases = pgTable(
   ]
 );
 
+export const oauthClients = pgTable('oauth_clients', {
+  clientId: text('client_id').primaryKey(),
+  clientName: text('client_name').notNull(),
+  redirectUris: jsonb('redirect_uris').$type<string[]>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthAuthorizationCodes = pgTable(
+  'oauth_authorization_codes',
+  {
+    codeHash: text('code_hash').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClients.clientId, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => userProfiles.userId, { onDelete: 'cascade' }),
+    redirectUri: text('redirect_uri').notNull(),
+    scope: text('scope').notNull(),
+    resource: text('resource').notNull(),
+    codeChallenge: text('code_challenge').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('oauth_authorization_codes_expiry_idx').on(table.expiresAt)]
+);
+
+export const oauthRefreshTokens = pgTable(
+  'oauth_refresh_tokens',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClients.clientId, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => userProfiles.userId, { onDelete: 'cascade' }),
+    scope: text('scope').notNull(),
+    resource: text('resource').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('oauth_refresh_tokens_expiry_idx').on(table.expiresAt)]
+);
+
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewUserProfile = typeof userProfiles.$inferInsert;
 export type CreditReservation = typeof creditReservations.$inferSelect;
@@ -201,3 +248,6 @@ export type ProcessedWebhookEvent = typeof processedWebhookEvents.$inferSelect;
 export type NewProcessedWebhookEvent = typeof processedWebhookEvents.$inferInsert;
 export type CreditPurchase = typeof creditPurchases.$inferSelect;
 export type NewCreditPurchase = typeof creditPurchases.$inferInsert;
+export type OauthClient = typeof oauthClients.$inferSelect;
+export type OauthAuthorizationCode = typeof oauthAuthorizationCodes.$inferSelect;
+export type OauthRefreshToken = typeof oauthRefreshTokens.$inferSelect;

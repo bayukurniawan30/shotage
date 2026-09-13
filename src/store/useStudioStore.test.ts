@@ -42,6 +42,31 @@ describe('studio history performance', () => {
   });
 });
 
+describe('shape masks', () => {
+  it('keeps one mask per target and releases it when the target is deleted', () => {
+    useStudioStore.setState({
+      textLayers: [{
+        id: 'mask-target', text: 'Reveal', fontFamily: 'Inter', fontSize: 32,
+        fontWeight: '700', fontStyle: 'normal', color: '#ffffff', textAlign: 'center',
+        x: 0, y: 0, shadow: false, opacity: 100, rotation: 0, position: 'above',
+      }],
+      shapeLayers: [
+        { id: 'mask-a', shapeType: 'circle', color: '#fff', width: 100, height: 100, x: 0, y: 0, rotation: 0, opacity: 100, position: 'above' },
+        { id: 'mask-b', shapeType: 'rectangle', color: '#fff', width: 100, height: 100, x: 0, y: 0, rotation: 0, opacity: 100, position: 'above' },
+      ],
+      phosphorIconLayers: [], canvasElements: [], layerGroups: [],
+    });
+
+    useStudioStore.getState().setShapeMaskTarget('mask-a', { type: 'text', id: 'mask-target' });
+    useStudioStore.getState().setShapeMaskTarget('mask-b', { type: 'text', id: 'mask-target' });
+    expect(useStudioStore.getState().shapeLayers.find((shape) => shape.id === 'mask-a')?.maskTarget).toBeUndefined();
+    expect(useStudioStore.getState().shapeLayers.find((shape) => shape.id === 'mask-b')?.maskTarget).toEqual({ type: 'text', id: 'mask-target' });
+
+    useStudioStore.getState().removeTextLayer('mask-target');
+    expect(useStudioStore.getState().shapeLayers.find((shape) => shape.id === 'mask-b')?.maskTarget).toBeUndefined();
+  });
+});
+
 describe('layer groups', () => {
   it('groups selected mixed layer types and keeps a persistent parent transform', () => {
     useStudioStore.setState({

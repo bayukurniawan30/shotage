@@ -7,7 +7,7 @@ export const ShadowSection: React.FC = () => {
   const onChange = state.updateState;
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-3 shadow-sm">
       <div className="border-b border-neutral-800/80 pb-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
           Shadow Elevation

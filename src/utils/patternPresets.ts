@@ -69,6 +69,14 @@ export const PATTERN_PRESETS: PatternPreset[] = [
         color
       )}' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
   },
+  {
+    id: 'pattern-9',
+    name: 'Square Grid',
+    getSvgUrl: (color: string) =>
+      `url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0.5 0V32M0 0.5H32' fill='none' stroke='${encodeURIComponent(
+        color
+      )}' stroke-width='1'/%3E%3C/svg%3E")`,
+  },
 ];
 
 export const getPatternSvgUrl = (presetId: string, color: string): string => {

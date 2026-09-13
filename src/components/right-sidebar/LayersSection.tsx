@@ -5,6 +5,9 @@ import { BooleanIcons } from './shared';
 import { canBooleanOperateOnShape } from '../../utils/shapeBoolean';
 import { getPhosphorIcon } from '../phosphorIconRegistry';
 import { StepperSlider } from '../StepperSlider';
+import { AnchorPointControl } from '../AnchorPointControl';
+import { getAnchorCompensation } from '../../utils/anchorPoint';
+import { MotionPathControl } from '../MotionPathControl';
 
 export const LayersSection: React.FC = () => {
   const state = useStudioEditorStore();
@@ -104,7 +107,9 @@ export const LayersSection: React.FC = () => {
         s.locked === true,
         s.position || 'above',
         (state.selectedShapeIds || []).includes(s.id),
-        <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
+        s.maskTarget
+          ? <PhosphorIcons.MagicWandIcon className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+          : <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
       )
     );
   });
@@ -126,11 +131,20 @@ export const LayersSection: React.FC = () => {
   (state.layerGroups || []).forEach((group) =>
     group.members.forEach((member) => memberToGroup.set(`${member.type}-${member.id}`, group.id))
   );
-  const rootAboveRows = aboveRows.filter((row) => !memberToGroup.has(row.key));
-  const rootUnderRows = underRows.filter((row) => !memberToGroup.has(row.key));
+  const maskShapeIds = new Set(
+    (state.shapeLayers || []).filter((shape) => shape.maskTarget).map((shape) => shape.id)
+  );
+  const rootAboveRows = aboveRows.filter((row) => !memberToGroup.has(row.key) && !maskShapeIds.has(row.id));
+  const rootUnderRows = underRows.filter((row) => !memberToGroup.has(row.key) && !maskShapeIds.has(row.id));
   const selectedGroup = (state.layerGroups || []).find(
     (group) => group.id === state.selectedLayerGroupId
   );
+  const maskRowForTarget = (type: string, id: string) => {
+    const mask = (state.shapeLayers || []).find(
+      (shape) => shape.maskTarget?.type === type && shape.maskTarget.id === id
+    );
+    return mask ? allRows.find((row) => row.type === 'shape' && row.id === mask.id) : undefined;
+  };
 
   const select = (row: (typeof allRows)[0], e?: React.MouseEvent) => {
     const isMulti = e?.shiftKey || e?.metaKey || e?.ctrlKey || state.isMultiSelectMode;
@@ -227,6 +241,9 @@ export const LayersSection: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
       />
       {row.indicator}
+      {row.type === 'shape' && maskShapeIds.has(row.id) && (
+        <span className="text-[9px] font-bold uppercase tracking-wide text-pastel-pink">Mask:</span>
+      )}
       <input
         value={row.name}
         onClick={(e) => e.stopPropagation()}
@@ -358,12 +375,23 @@ export const LayersSection: React.FC = () => {
     return index === -1 ? 9999 : index;
   };
 
+  const renderRowWithMask = (row: (typeof allRows)[number], nested = false) => {
+    const maskRow = maskRowForTarget(row.type, row.id);
+    return (
+      <div key={`masked-${row.key}`} className="space-y-1">
+        {renderRow(row, nested)}
+        {maskRow && renderRow(maskRow, true)}
+      </div>
+    );
+  };
+
   const renderGroup = (group: import('../../types/studio').LayerGroup) => {
     const expanded = expandedGroups[group.id] !== false;
     const childRows = group.members
       .map((member) => allRows.find((row) => row.type === member.type && row.id === member.id))
       .filter((row): row is (typeof allRows)[number] => Boolean(row));
     const selected = state.selectedLayerGroupId === group.id;
+    const groupMaskRow = maskRowForTarget('group', group.id);
     return (
       <div key={group.id} className="space-y-1">
         <div
@@ -480,7 +508,12 @@ export const LayersSection: React.FC = () => {
             <PhosphorIcons.TrashIcon className="h-3.5 w-3.5" />
           </button>
         </div>
-        {expanded && <div className="space-y-1">{childRows.map((row) => renderRow(row, true))}</div>}
+        {expanded && (
+          <div className="space-y-1">
+            {childRows.filter((row) => !maskShapeIds.has(row.id)).map((row) => renderRowWithMask(row, true))}
+            {groupMaskRow && renderRow(groupMaskRow, true)}
+          </div>
+        )}
       </div>
     );
   };
@@ -510,7 +543,7 @@ export const LayersSection: React.FC = () => {
       });
     return items
       .sort((a, b) => a.order - b.order)
-      .map((item) => (item.kind === 'group' ? renderGroup(item.group) : renderRow(item.row)));
+      .map((item) => (item.kind === 'group' ? renderGroup(item.group) : renderRowWithMask(item.row)));
   };
 
   const allSelectedShapeIds = new Set([
@@ -530,9 +563,66 @@ export const LayersSection: React.FC = () => {
   const canGroupSelection =
     groupableSelectedRows.length >= 2 &&
     groupableSelectedRows.every((row) => row.position === groupableSelectedRows[0].position);
+  const singleSelectedRow = selectedRows.length === 1 ? selectedRows[0] : null;
+  const singleSelectedLayer = singleSelectedRow
+    ? singleSelectedRow.type === 'text'
+      ? state.textLayers.find((layer) => layer.id === singleSelectedRow.id)
+      : singleSelectedRow.type === 'phosphor'
+        ? state.phosphorIconLayers.find((layer) => layer.id === singleSelectedRow.id)
+        : singleSelectedRow.type === 'shape'
+          ? state.shapeLayers.find((layer) => layer.id === singleSelectedRow.id)
+          : state.canvasElements.find((layer) => layer.id === singleSelectedRow.id)
+    : null;
+  const selectedMaskShape = state.selectedShapeId
+    ? state.shapeLayers.find((shape) => shape.id === state.selectedShapeId)
+    : undefined;
+  const maskTargetOptions = [
+    ...allRows
+      .filter((row) => row.id !== selectedMaskShape?.id && !maskShapeIds.has(row.id))
+      .map((row) => ({ value: `${row.type}:${row.id}`, label: row.name })),
+    ...(state.layerGroups || [])
+      .filter((group) => !group.members.some((member) => member.type === 'shape' && member.id === selectedMaskShape?.id))
+      .map((group) => ({ value: `group:${group.id}`, label: group.name })),
+  ];
+
+  const updateSelectedAnchor = (anchorX: number, anchorY: number) => {
+    if (!singleSelectedRow || !singleSelectedLayer) return;
+    const element = document.querySelector<HTMLElement>(
+      `.selection-gizmo-item[data-layer-id="${CSS.escape(singleSelectedLayer.id)}"]`
+    );
+    const compensation = getAnchorCompensation(
+      element,
+      { x: singleSelectedLayer.anchorX ?? 0.5, y: singleSelectedLayer.anchorY ?? 0.5 },
+      { x: anchorX, y: anchorY }
+    );
+    update(singleSelectedRow, {
+      anchorX,
+      anchorY,
+      x: singleSelectedLayer.x + compensation.x,
+      y: singleSelectedLayer.y + compensation.y,
+    });
+  };
+
+  const updateSelectedGroupAnchor = (anchorX: number, anchorY: number) => {
+    if (!selectedGroup) return;
+    const element = document.querySelector<HTMLElement>(
+      `.layer-group-gizmo[data-group-id="${CSS.escape(selectedGroup.id)}"]`
+    );
+    const compensation = getAnchorCompensation(
+      element,
+      { x: selectedGroup.anchorX ?? 0.5, y: selectedGroup.anchorY ?? 0.5 },
+      { x: anchorX, y: anchorY }
+    );
+    state.updateLayerGroup(selectedGroup.id, {
+      anchorX,
+      anchorY,
+      x: selectedGroup.x + compensation.x,
+      y: selectedGroup.y + compensation.y,
+    });
+  };
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-3 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-3 shadow-sm">
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <PhosphorIcons.StackIcon className="w-4 h-4 text-pastel-pink" />
@@ -556,6 +646,37 @@ export const LayersSection: React.FC = () => {
           <PhosphorIcons.FolderPlusIcon className="h-4 w-4" />
           Group {groupableSelectedRows.length} layers
         </button>
+      )}
+
+      {selectedMaskShape && (
+        <div className="space-y-2 rounded-xl border border-pastel-pink/30 bg-pastel-pink/5 p-3">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-200">
+            <PhosphorIcons.MagicWandIcon className="h-4 w-4 text-pastel-pink" />
+            Shape mask
+          </div>
+          {selectedMaskShape.shapeType === 'coolshape' ? (
+            <p className="text-[10px] leading-relaxed text-slate-500">Basic and pen-drawn custom shapes can be masks. Coolshapes are not supported yet.</p>
+          ) : (
+            <select
+              value={selectedMaskShape.maskTarget ? `${selectedMaskShape.maskTarget.type}:${selectedMaskShape.maskTarget.id}` : ''}
+              onChange={(event) => {
+                const [type, id] = event.target.value.split(':');
+                state.setShapeMaskTarget(
+                  selectedMaskShape.id,
+                  event.target.value ? { type: type as import('../../types/studio').MaskTargetReference['type'], id } : null
+                );
+              }}
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2.5 py-2 text-[11px] text-slate-200 outline-none focus:border-pastel-pink"
+              aria-label="Mask target"
+            >
+              <option value="">Not a mask</option>
+              {maskTargetOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          )}
+          {selectedMaskShape.maskTarget && (
+            <p className="text-[10px] leading-relaxed text-slate-500">Only content inside this animated shape is visible. Choose “Not a mask” to release it.</p>
+          )}
+        </div>
       )}
 
       {selectedGroup && (
@@ -634,6 +755,45 @@ export const LayersSection: React.FC = () => {
               value={selectedGroup.opacity ?? 100}
               onChange={(value) => state.updateLayerGroup(selectedGroup.id, { opacity: value })}
               accentColor="#ffafcc"
+            />
+          </div>
+          <AnchorPointControl
+            anchorX={selectedGroup.anchorX}
+            anchorY={selectedGroup.anchorY}
+            disabled={selectedGroup.locked}
+            onChange={updateSelectedGroupAnchor}
+          />
+          <div className="border-t border-pastel-pink/15 pt-3">
+            <MotionPathControl
+              value={selectedGroup.motionPath}
+              disabled={selectedGroup.locked}
+              keyframeCount={(selectedGroup.keyframes || []).filter(
+                (keyframe) => keyframe.x !== undefined || keyframe.y !== undefined
+              ).length}
+              onChange={(motionPath) =>
+                state.updateLayerGroup(selectedGroup.id, { motionPath })
+              }
+            />
+          </div>
+        </div>
+      )}
+
+      {!selectedGroup && singleSelectedLayer && singleSelectedRow && (
+        <div className="rounded-xl border border-pastel-blue/25 bg-pastel-blue/5 p-3 animate-in fade-in duration-150">
+          <AnchorPointControl
+            anchorX={singleSelectedLayer.anchorX}
+            anchorY={singleSelectedLayer.anchorY}
+            disabled={singleSelectedLayer.locked}
+            onChange={updateSelectedAnchor}
+          />
+          <div className="mt-3 border-t border-pastel-blue/15 pt-3">
+            <MotionPathControl
+              value={singleSelectedLayer.motionPath}
+              disabled={singleSelectedLayer.locked}
+              keyframeCount={(singleSelectedLayer.keyframes || []).filter(
+                (keyframe) => keyframe.x !== undefined || keyframe.y !== undefined
+              ).length}
+              onChange={(motionPath) => update(singleSelectedRow, { motionPath })}
             />
           </div>
         </div>

@@ -16,6 +16,7 @@ import {
 import * as WebMMuxer from 'webm-muxer';
 import * as Mp4Muxer from 'mp4-muxer';
 import { activeVideoDecoders } from './VideoCanvasScreen';
+import { CanvasStage } from './CanvasStage';
 import { PROJECTS } from './ProjectSpotlight';
 import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
 import { compressGzipString } from '../utils/gzipCompression';
@@ -44,6 +45,13 @@ import {
   getImageExportCost,
   getVideoExportCost,
 } from '../lib/credits';
+import type { StudioState } from '../types/studio';
+import { calculateEasing } from '../types/animationTypes';
+import {
+  getStageSequenceTiming,
+  getStageTransition,
+  getStageTransitionLayerTransforms,
+} from '../utils/stageTransitions';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -121,6 +129,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const cancelVideoRef = useRef(false);
   const imageExportLockRef = useRef(false);
   const videoExportLockRef = useRef(false);
+  const transitionCanvasRef = useRef<HTMLDivElement>(null);
+  const [transitionStage, setTransitionStage] = useState<Partial<StudioState> | null>(null);
 
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
@@ -249,9 +259,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   );
   const imageActionsDisabled = isExporting || session.isPending || accountPending || !sessionUser;
   const videoStageCount = exportScope === 'all' ? totalImageStages : 1;
+  const durationStages = (state.stages || []).map((stage, index) =>
+    index === state.activeStageIndex
+      ? {
+          ...stage,
+          durationSec: state.durationSec,
+          transitionOut: state.transitionOut,
+        }
+      : stage
+  );
   const videoDurationSeconds = Number(
     (exportScope === 'all' && totalImageStages > 1
-      ? (state.stages || []).reduce((total, stage) => total + (stage.durationSec || 10), 0)
+      ? getStageSequenceTiming(durationStages).totalDurationSec
       : state.durationSec || 10
     ).toFixed(3)
   );
@@ -524,6 +543,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     let videoEncoder: VideoEncoder | null = null;
     let muxer: any = null;
     let cachedFrameRenderer: CachedVideoFrameRenderer | null = null;
+    let transitionOutgoingCanvas: HTMLCanvasElement | null = null;
+    let transitionIncomingCanvas: HTMLCanvasElement | null = null;
     let cachedFontEmbedCSS = '';
     const initialStageIndex = state.activeStageIndex;
     let reservation: ExportReservation | null = null;
@@ -539,7 +560,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       state.selectPhosphorIconLayer(null);
       state.selectCanvasElement(null);
 
-      const projectHash = await createProjectHash(useStudioStore.getState());
+      // Snapshot the live stage before reading the stage sequence. The active
+      // stage is otherwise only persisted when the user switches stages.
+      if ((state.stages?.length || 0) > 1) {
+        state.selectStage(initialStageIndex);
+      }
+      const synchronizedState = useStudioStore.getState();
+      const stageSnapshots = synchronizedState.stages || [];
+
+      const projectHash = await createProjectHash(synchronizedState);
       reservation = await retryReservationMutation(() =>
         reserveVideoExport({
           idempotencyKey: reservationKey,
@@ -562,7 +591,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       onChange({ isExporting: true, exportTimeSec: 0, isPlaying: false, currentTimeSec: 0 });
       canvasRef.current.classList.add('exporting-no-transitions');
 
-      const totalStages = state.stages?.length || 1;
+      const totalStages = stageSnapshots.length || 1;
       const isMultiStage = exportScope === 'all' && totalStages > 1;
       const stagesToRecord = isMultiStage
         ? Array.from({ length: totalStages }, (_, i) => i)
@@ -570,14 +599,33 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
       const fps = videoFps;
 
-      // Calculate total duration across all stages to record
-      let grandTotalFrames = 0;
-      for (const idx of stagesToRecord) {
-        const stageDuration = isMultiStage
-          ? state.stages?.[idx]?.durationSec || 10
-          : state.durationSec || 10;
-        grandTotalFrames += Math.max(1, Math.round(stageDuration * fps));
-      }
+      const stageFrameCounts = stagesToRecord.map((idx) =>
+        Math.max(
+          1,
+          Math.round(
+            (isMultiStage ? stageSnapshots[idx]?.durationSec || 10 : state.durationSec || 10) * fps
+          )
+        )
+      );
+      const overlapFrameCounts = stagesToRecord.map((stageIndex, sequenceIndex) => {
+        const nextStageIndex = stagesToRecord[sequenceIndex + 1];
+        if (!isMultiStage || nextStageIndex === undefined) return 0;
+        const transition = getStageTransition(
+          stageSnapshots[stageIndex],
+          stageSnapshots[nextStageIndex]
+        );
+        if (transition.type === 'none') return 0;
+        return Math.min(
+          Math.max(1, Math.round(transition.durationSec * fps)),
+          stageFrameCounts[sequenceIndex] - 1,
+          stageFrameCounts[sequenceIndex + 1] - 1
+        );
+      });
+      const grandTotalFrames = Math.max(
+        1,
+        stageFrameCounts.reduce((total, frames) => total + frames, 0) -
+          overlapFrameCounts.reduce((total, frames) => total + frames, 0)
+      );
 
       const rawWidth = canvasRef.current.offsetWidth || canvasRef.current.clientWidth || 1200;
       const rawHeight = canvasRef.current.offsetHeight || canvasRef.current.clientHeight || 800;
@@ -769,6 +817,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
       if (!ctx) throw new Error('Could not create canvas 2d context');
 
+      if (overlapFrameCounts.some((frames) => frames > 0)) {
+        transitionOutgoingCanvas = document.createElement('canvas');
+        transitionIncomingCanvas = document.createElement('canvas');
+        transitionOutgoingCanvas.width = transitionIncomingCanvas.width = exportCanvas.width;
+        transitionOutgoingCanvas.height = transitionIncomingCanvas.height = exportCanvas.height;
+      }
+
       if (wantMp4) {
         muxer = new Mp4Muxer.Muxer({
           target: new Mp4Muxer.ArrayBufferTarget(),
@@ -815,7 +870,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         await document.fonts.ready;
       }
 
-      let globalTimeOffsetSec = 0;
+      let globalFrameIndex = 0;
       let completedFramesCount = 0;
       let lastReportedProgress = 0;
 
@@ -839,14 +894,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         }
 
         const durationSec = isMultiStage
-          ? state.stages?.[stageIndex]?.durationSec || 10
+          ? stageSnapshots[stageIndex]?.durationSec || 10
           : state.durationSec || 10;
-        const totalFrames = Math.max(1, Math.round(durationSec * fps));
+        const totalFrames = stageFrameCounts[sIdx];
+        const incomingSkipFrames = sIdx > 0 ? overlapFrameCounts[sIdx - 1] : 0;
+        const transitionFrames = overlapFrameCounts[sIdx];
+        const nextStageIndex = stagesToRecord[sIdx + 1];
+        const transition =
+          transitionFrames > 0 && nextStageIndex !== undefined
+            ? getStageTransition(stageSnapshots[stageIndex], stageSnapshots[nextStageIndex])
+            : null;
         const framePixelRatio =
           exportCanvas.width / (canvasRef.current.offsetWidth || exportCanvas.width);
 
         flushSync(() => {
-          onChange({ currentTimeSec: 0, exportTimeSec: globalTimeOffsetSec });
+          onChange({ currentTimeSec: 0, exportTimeSec: globalFrameIndex / fps });
         });
 
         if (canUseCachedVideoFrameRenderer(useStudioStore.getState())) {
@@ -858,7 +920,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           usedCachedFrameRenderer ||= cachedFrameRenderer !== null;
         }
 
-        for (let frame = 0; frame < totalFrames; frame++) {
+        for (let frame = incomingSkipFrames; frame < totalFrames; frame++) {
           if (cancelVideoRef.current || encoderError) {
             if (encoderError)
               console.error('Video export aborted due to encoder error:', encoderError);
@@ -866,7 +928,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           }
 
           const targetTimeSec = frame / fps;
-          const frameTimeSec = globalTimeOffsetSec + targetTimeSec;
+          const frameTimeSec = globalFrameIndex / fps;
           flushSync(() => {
             onChange({ currentTimeSec: targetTimeSec, exportTimeSec: frameTimeSec });
           });
@@ -904,7 +966,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           }
 
           try {
-            const fastFrameRendered = cachedFrameRenderer?.render(ctx) ?? false;
+            const isTransitionFrame =
+              transition !== null && frame >= totalFrames - transitionFrames;
+            const outgoingContext = isTransitionFrame
+              ? transitionOutgoingCanvas?.getContext('2d', { alpha: isTransparentExport }) || null
+              : ctx;
+            if (!outgoingContext) throw new Error('Could not prepare transition canvas');
+
+            const fastFrameRendered = cachedFrameRenderer?.render(outgoingContext) ?? false;
             if (!fastFrameRendered) {
               const renderedCanvas = await toCanvas(canvasRef.current, {
                 pixelRatio: framePixelRatio,
@@ -927,16 +996,104 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 },
               });
 
-              ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-              ctx.drawImage(renderedCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
+              outgoingContext.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+              outgoingContext.drawImage(
+                renderedCanvas,
+                0,
+                0,
+                exportCanvas.width,
+                exportCanvas.height
+              );
               renderedCanvas.width = 0;
               renderedCanvas.height = 0;
             }
 
+            if (isTransitionFrame && transition && nextStageIndex !== undefined) {
+              const incomingFrame = frame - (totalFrames - transitionFrames);
+              const incomingTimeSec = incomingFrame / fps;
+              flushSync(() => {
+                setTransitionStage({
+                  ...stageSnapshots[nextStageIndex],
+                  currentTimeSec: incomingTimeSec,
+                  exportTimeSec: frameTimeSec,
+                  isAnimationMode: true,
+                  isExporting: true,
+                  isPlaying: false,
+                  previewCanvasZoom: state.previewCanvasZoom,
+                });
+              });
+              await new Promise((resolve) => requestAnimationFrame(resolve));
+
+              const incomingElement = transitionCanvasRef.current;
+              const incomingContext = transitionIncomingCanvas?.getContext('2d', {
+                alpha: isTransparentExport,
+              });
+              if (!incomingElement || !incomingContext || !transitionIncomingCanvas) {
+                throw new Error('Could not render the incoming transition stage');
+              }
+
+              const incomingPixelRatio =
+                exportCanvas.width / (incomingElement.offsetWidth || exportCanvas.width);
+              const incomingRenderedCanvas = await toCanvas(incomingElement, {
+                pixelRatio: incomingPixelRatio,
+                cacheBust: false,
+                fontEmbedCSS: cachedFontEmbedCSS,
+                ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
+                filter: (node) => {
+                  const el = node as HTMLElement;
+                  if (el.tagName === 'VIDEO') return false;
+                  return !(
+                    el.classList?.contains('delete-handle') ||
+                    el.classList?.contains('rotate-handle') ||
+                    el.classList?.contains('resize-handle') ||
+                    el.classList?.contains('selection-gizmo-container') ||
+                    el.classList?.contains('selection-gizmo-item')
+                  );
+                },
+              });
+              incomingContext.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+              incomingContext.drawImage(
+                incomingRenderedCanvas,
+                0,
+                0,
+                exportCanvas.width,
+                exportCanvas.height
+              );
+              incomingRenderedCanvas.width = 0;
+              incomingRenderedCanvas.height = 0;
+
+              const rawProgress =
+                transitionFrames <= 1 ? 1 : incomingFrame / (transitionFrames - 1);
+              const transforms = getStageTransitionLayerTransforms(
+                transition.type,
+                calculateEasing(rawProgress, transition.easing)
+              );
+              ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+              const drawTransitionLayer = (
+                source: HTMLCanvasElement,
+                layer: (typeof transforms)['outgoing']
+              ) => {
+                ctx!.save();
+                ctx!.globalAlpha = layer.opacity;
+                ctx!.translate(exportCanvas!.width / 2, exportCanvas!.height / 2);
+                ctx!.translate((exportCanvas!.width * layer.translateXPercent) / 100, 0);
+                ctx!.scale(layer.scale, layer.scale);
+                ctx!.drawImage(
+                  source,
+                  -exportCanvas!.width / 2,
+                  -exportCanvas!.height / 2,
+                  exportCanvas!.width,
+                  exportCanvas!.height
+                );
+                ctx!.restore();
+              };
+              drawTransitionLayer(transitionOutgoingCanvas!, transforms.outgoing);
+              drawTransitionLayer(transitionIncomingCanvas, transforms.incoming);
+            }
+
             // Compute exact continuous timestamp in microseconds for video output
-            const frameTimeSec = globalTimeOffsetSec + targetTimeSec;
             const timestampMicros = Math.round(frameTimeSec * 1_000_000);
-            const isKeyFrame = frame === 0 || frame % (fps * 2) === 0;
+            const isKeyFrame = globalFrameIndex === 0 || globalFrameIndex % (fps * 2) === 0;
 
             const videoFrame = new VideoFrame(exportCanvas, {
               timestamp: timestampMicros,
@@ -954,6 +1111,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           }
 
           completedFramesCount++;
+          globalFrameIndex++;
           const nextProgress = Math.min(
             99,
             Math.round((completedFramesCount / grandTotalFrames) * 100)
@@ -974,7 +1132,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         cachedFrameRenderer?.dispose();
         cachedFrameRenderer = null;
 
-        globalTimeOffsetSec += durationSec;
+        setTransitionStage(null);
         if (cancelVideoRef.current) break;
       }
 
@@ -1092,6 +1250,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         exportCanvas.height = 0;
         exportCanvas = null;
       }
+      if (transitionOutgoingCanvas) {
+        transitionOutgoingCanvas.width = 0;
+        transitionOutgoingCanvas.height = 0;
+        transitionOutgoingCanvas = null;
+      }
+      if (transitionIncomingCanvas) {
+        transitionIncomingCanvas.width = 0;
+        transitionIncomingCanvas.height = 0;
+        transitionIncomingCanvas = null;
+      }
+      setTransitionStage(null);
       ctx = null;
       if (videoEncoder && videoEncoder.state !== 'closed') {
         try {
@@ -1285,6 +1454,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       onClick={(event) => event.target === event.currentTarget && onClose()}
       className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
     >
+      {transitionStage && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed overflow-hidden"
+          style={{
+            left: '-10000px',
+            top: 0,
+            width: `${Math.max(640, canvasRef.current?.offsetWidth || 1200)}px`,
+            height: `${Math.max(640, canvasRef.current?.offsetHeight || 800)}px`,
+          }}
+        >
+          <CanvasStage
+            canvasRef={transitionCanvasRef}
+            stateOverride={transitionStage}
+            readOnly
+            canvasId="shotage-transition-export-incoming"
+          />
+        </div>
+      )}
       <div
         onClick={(e) => e.stopPropagation()}
         className="max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-5 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"

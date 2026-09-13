@@ -40,6 +40,10 @@ describe('cached video frame renderer eligibility', () => {
     expect(canUseCachedVideoFrameRenderer(makeState({ backgroundType: 'flow' }))).toBe(true);
   });
 
+  it('falls back to DOM rendering when motion blur is enabled', () => {
+    expect(canUseCachedVideoFrameRenderer(makeState({ motionBlurEnabled: true }))).toBe(false);
+  });
+
   it('accepts static above-mockup text with Flow', () => {
     expect(
       canUseCachedVideoFrameRenderer(

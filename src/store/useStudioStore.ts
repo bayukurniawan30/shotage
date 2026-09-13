@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { shallow } from 'zustand/shallow';
 import { useShallow } from 'zustand/react/shallow';
 import { temporal } from 'zundo';
-import { StudioState, DEFAULT_STUDIO_STATE } from '../types/studio';
+import { StudioState, DEFAULT_STUDIO_STATE, StageTransition } from '../types/studio';
 import {
   calculateEasing,
   LayerMotionBlock,
@@ -83,6 +83,10 @@ interface StudioStore extends StudioState {
   updateShapeLayer: (id: string, updates: Partial<import('../types/studio').ShapeLayer>) => void;
   removeShapeLayer: (id: string) => void;
   duplicateShapeLayer: (id: string) => void;
+  setShapeMaskTarget: (
+    id: string,
+    target: import('../types/studio').MaskTargetReference | null
+  ) => void;
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
   groupSelectedLayers: () => string | null;
@@ -108,6 +112,7 @@ interface StudioStore extends StudioState {
   selectStage: (index: number) => void;
   addStage: () => void;
   removeStage: (index: number) => void;
+  updateStageTransition: (index: number, transition: StageTransition) => void;
   addLayerMotionBlock: (
     layerType: 'text' | 'phosphor' | 'element' | 'shape' | 'group',
     layerId: string,
@@ -216,6 +221,17 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
       if (updates.scale !== undefined) newKf.scale = updates.scale as number;
       if (updates.scaleX !== undefined) newKf.scaleX = updates.scaleX as number;
       if (updates.scaleY !== undefined) newKf.scaleY = updates.scaleY as number;
+      if (updates.blur !== undefined) newKf.blur = updates.blur as number;
+      if (updates.skewX !== undefined) newKf.skewX = updates.skewX as number;
+      if (updates.skewY !== undefined) newKf.skewY = updates.skewY as number;
+      if (updates.color !== undefined) newKf.color = updates.color as string;
+      if (updates.borderWidth !== undefined) newKf.borderWidth = updates.borderWidth as number;
+      if (updates.borderColor !== undefined) newKf.borderColor = updates.borderColor as string;
+      if (updates.letterSpacing !== undefined) newKf.letterSpacing = updates.letterSpacing as number;
+      if (updates.shadowOpacity !== undefined) newKf.shadowOpacity = updates.shadowOpacity as number;
+      if (updates.shadowBlur !== undefined) newKf.shadowBlur = updates.shadowBlur as number;
+      if (updates.shadowOffsetX !== undefined) newKf.shadowOffsetX = updates.shadowOffsetX as number;
+      if (updates.shadowOffsetY !== undefined) newKf.shadowOffsetY = updates.shadowOffsetY as number;
       kfs[kfIdx] = newKf;
       updated.keyframes = kfs as any;
     } else {
@@ -236,6 +252,17 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
         opacity: updates.opacity !== undefined ? (updates.opacity as number) : updated.opacity,
         borderRadius: updates.borderRadius !== undefined ? (updates.borderRadius as number) : updated.borderRadius,
         fontSize: updates.fontSize !== undefined ? (updates.fontSize as number) : updated.fontSize,
+        blur: updates.blur !== undefined ? (updates.blur as number) : updated.blur,
+        skewX: updates.skewX !== undefined ? (updates.skewX as number) : updated.skewX,
+        skewY: updates.skewY !== undefined ? (updates.skewY as number) : updated.skewY,
+        color: updates.color !== undefined ? (updates.color as string) : updated.color,
+        borderWidth: updates.borderWidth !== undefined ? (updates.borderWidth as number) : updated.borderWidth,
+        borderColor: updates.borderColor !== undefined ? (updates.borderColor as string) : updated.borderColor,
+        letterSpacing: updates.letterSpacing !== undefined ? (updates.letterSpacing as number) : updated.letterSpacing,
+        shadowOpacity: updates.shadowOpacity !== undefined ? (updates.shadowOpacity as number) : updated.shadowOpacity,
+        shadowBlur: updates.shadowBlur !== undefined ? (updates.shadowBlur as number) : updated.shadowBlur,
+        shadowOffsetX: updates.shadowOffsetX !== undefined ? (updates.shadowOffsetX as number) : updated.shadowOffsetX,
+        shadowOffsetY: updates.shadowOffsetY !== undefined ? (updates.shadowOffsetY as number) : updated.shadowOffsetY,
       };
       kfs.push(newKf);
       kfs.sort((a, b) => a.timeSec - b.timeSec);
@@ -426,7 +453,7 @@ function removeLayerReferenceFromGroups(
     .filter((group) => group.members.length >= 2);
 }
 
-const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
+export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
   const {
     imageSrc,
     imageName,
@@ -529,8 +556,14 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     perspective,
     offsetX,
     offsetY,
+    mockupAnchorX,
+    mockupAnchorY,
+    mockupMotionPath,
     slot2OffsetX,
     slot2OffsetY,
+    slot2MockupAnchorX,
+    slot2MockupAnchorY,
+    slot2MockupMotionPath,
     textLayers,
     phosphorIconLayers,
     canvasElements,
@@ -541,8 +574,11 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     phosphorIconConfig,
     isAnimationMode,
     durationSec,
+    motionBlurEnabled,
+    motionBlurStrength,
     keyframes,
     activePresetId,
+    transitionOut,
   } = state;
 
   return {
@@ -646,8 +682,14 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     perspective,
     offsetX,
     offsetY,
+    mockupAnchorX,
+    mockupAnchorY,
+    mockupMotionPath: mockupMotionPath ? { ...mockupMotionPath } : undefined,
     slot2OffsetX,
     slot2OffsetY,
+    slot2MockupAnchorX,
+    slot2MockupAnchorY,
+    slot2MockupMotionPath: slot2MockupMotionPath ? { ...slot2MockupMotionPath } : undefined,
     textLayers: JSON.parse(JSON.stringify(textLayers || [])),
     phosphorIconLayers: JSON.parse(JSON.stringify(phosphorIconLayers || [])),
     canvasElements: JSON.parse(JSON.stringify(canvasElements || [])),
@@ -658,8 +700,11 @@ const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     phosphorIconConfig: { ...phosphorIconConfig },
     isAnimationMode: isAnimationMode || false,
     durationSec: durationSec || 10,
+    motionBlurEnabled: motionBlurEnabled || false,
+    motionBlurStrength: Math.max(0, Math.min(100, motionBlurStrength ?? 50)),
     keyframes: JSON.parse(JSON.stringify(keyframes || [])),
     activePresetId: activePresetId || '',
+    transitionOut: transitionOut || { type: 'none', durationSec: 0.6, easing: 'ease-in-out' },
   };
 };
 
@@ -783,7 +828,10 @@ export const useStudioStore = create<StudioStore>()(
               const kf2 = keyframes[prevIndex + 1];
               const duration = kf2.timeSec - kf1.timeSec;
               const progress = duration > 0 ? (t - kf1.timeSec) / duration : 0;
-              const factor = calculateEasing(progress, state.animationEasing || 'ease-in-out');
+              const factor = calculateEasing(
+                progress,
+                kf1.easing || state.animationEasing || 'ease-in-out'
+              );
 
               const z2_1 = kf1.slot2Zoom ?? kf1.zoom;
               const z2_2 = kf2.slot2Zoom ?? kf2.zoom;
@@ -850,8 +898,14 @@ export const useStudioStore = create<StudioStore>()(
           perspective: 1000,
           offsetX: 0,
           offsetY: 0,
+          mockupAnchorX: 0.5,
+          mockupAnchorY: 0.5,
+          mockupMotionPath: undefined,
           slot2OffsetX: 0,
           slot2OffsetY: 0,
+          slot2MockupAnchorX: 0.5,
+          slot2MockupAnchorY: 0.5,
+          slot2MockupMotionPath: undefined,
           slabThickness: 0,
           slabColor: '#1e293b',
         }),
@@ -877,6 +931,8 @@ export const useStudioStore = create<StudioStore>()(
             shadow: false,
             opacity: 100,
             rotation: 0,
+            anchorX: 0.5,
+            anchorY: 0.5,
             pitch: 0,
             yaw: 0,
             skewX: 0,
@@ -916,6 +972,8 @@ export const useStudioStore = create<StudioStore>()(
             shadow: false,
             opacity: 100,
             rotation: 0,
+            anchorX: 0.5,
+            anchorY: 0.5,
             pitch: 0,
             yaw: 0,
             skewX: 0,
@@ -953,6 +1011,11 @@ export const useStudioStore = create<StudioStore>()(
       removeTextLayer: (id) =>
         set((state) => ({
           textLayers: state.textLayers.filter((l) => l.id !== id),
+          shapeLayers: state.shapeLayers.map((shape) =>
+            shape.maskTarget?.type === 'text' && shape.maskTarget.id === id
+              ? { ...shape, maskTarget: undefined }
+              : shape
+          ),
           layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'text', id }),
           selectedLayerGroupId: null,
           selectedTextLayerId: state.selectedTextLayerId === id ? null : state.selectedTextLayerId,
@@ -1132,6 +1195,8 @@ export const useStudioStore = create<StudioStore>()(
             y: 0,
             rotation: 0,
             opacity: 100,
+            anchorX: 0.5,
+            anchorY: 0.5,
             position: 'above',
             shadow: false,
             name: iconId || 'Sparkle',
@@ -1161,6 +1226,11 @@ export const useStudioStore = create<StudioStore>()(
       removePhosphorIconLayer: (id) =>
         set((state) => ({
           phosphorIconLayers: (state.phosphorIconLayers || []).filter((l) => l.id !== id),
+          shapeLayers: state.shapeLayers.map((shape) =>
+            shape.maskTarget?.type === 'phosphor' && shape.maskTarget.id === id
+              ? { ...shape, maskTarget: undefined }
+              : shape
+          ),
           layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'phosphor', id }),
           selectedLayerGroupId: null,
           selectedPhosphorIconLayerId:
@@ -1236,6 +1306,8 @@ export const useStudioStore = create<StudioStore>()(
             y: 0,
             rotation: 0,
             opacity: 100,
+            anchorX: 0.5,
+            anchorY: 0.5,
             position: 'above',
             shadow: false,
             name: elementId || 'arrow-1',
@@ -1265,6 +1337,11 @@ export const useStudioStore = create<StudioStore>()(
       removeCanvasElement: (id) =>
         set((state) => ({
           canvasElements: (state.canvasElements || []).filter((el) => el.id !== id),
+          shapeLayers: state.shapeLayers.map((shape) =>
+            shape.maskTarget?.type === 'element' && shape.maskTarget.id === id
+              ? { ...shape, maskTarget: undefined }
+              : shape
+          ),
           layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'element', id }),
           selectedLayerGroupId: null,
           selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
@@ -1345,6 +1422,8 @@ export const useStudioStore = create<StudioStore>()(
             skewX: 0,
             skewY: 0,
             opacity: 100,
+            anchorX: 0.5,
+            anchorY: 0.5,
             position: 'above',
             shadow: false,
             name: customProps?.name || (shapeType === 'coolshape' ? `Coolshape ${customProps?.coolshapeType || 'star'}` : shapeType),
@@ -1400,7 +1479,13 @@ export const useStudioStore = create<StudioStore>()(
         }),
       removeShapeLayer: (id) =>
         set((state) => ({
-          shapeLayers: (state.shapeLayers || []).filter((s) => s.id !== id),
+          shapeLayers: (state.shapeLayers || [])
+            .filter((s) => s.id !== id)
+            .map((s) =>
+              s.maskTarget?.type === 'shape' && s.maskTarget.id === id
+                ? { ...s, maskTarget: undefined }
+                : s
+            ),
           layerGroups: removeLayerReferenceFromGroups(state.layerGroups, { type: 'shape', id }),
           selectedLayerGroupId: null,
           selectedShapeId: state.selectedShapeId === id ? null : state.selectedShapeId,
@@ -1416,6 +1501,7 @@ export const useStudioStore = create<StudioStore>()(
             id: `shape-${Date.now()}`,
             x: shapeToDup.x + 20,
             y: shapeToDup.y + 20,
+            maskTarget: undefined,
           };
           const srcIdx = (state.layerOrder || []).findIndex(
             (e) => e.type === 'shape' && e.id === id
@@ -1427,6 +1513,64 @@ export const useStudioStore = create<StudioStore>()(
             selectedShapeId: dup.id,
             selectedShapeIds: [dup.id],
             layerOrder: newOrder,
+          };
+        }),
+      setShapeMaskTarget: (id, target) =>
+        set((state) => {
+          const mask = (state.shapeLayers || []).find((shape) => shape.id === id);
+          if (!mask) return state;
+          if (mask.shapeType === 'coolshape') return state;
+          if (target?.type === 'shape' && target.id === id) return state;
+          const targetExists = !target
+            ? true
+            : target.type === 'group'
+              ? (state.layerGroups || []).some((group) => group.id === target.id)
+              : Boolean(getLayerForReference(state, { type: target.type, id: target.id }));
+          if (!targetExists) return state;
+          if (
+            target?.type === 'shape' &&
+            (state.shapeLayers || []).some(
+              (shape) => shape.id === target.id && shape.maskTarget
+            )
+          ) return state;
+          if (
+            target?.type === 'group' &&
+            (state.layerGroups || []).some(
+              (group) => group.id === target.id && group.members.some((member) => member.type === 'shape' && member.id === id)
+            )
+          ) return state;
+          if (
+            target &&
+            (state.shapeLayers || []).some(
+              (shape) => shape.id !== id && shape.maskTarget?.type === 'shape' && shape.maskTarget.id === id
+            )
+          ) return state;
+
+          const shapeLayers = (state.shapeLayers || []).map((shape) => {
+            if (shape.id === id) return { ...shape, maskTarget: target || undefined };
+            if (
+              target &&
+              shape.maskTarget?.type === target.type &&
+              shape.maskTarget.id === target.id
+            ) {
+              return { ...shape, maskTarget: undefined };
+            }
+            return shape;
+          });
+          return {
+            shapeLayers,
+            layerGroups: target
+              ? removeLayerReferenceFromGroups(state.layerGroups, { type: 'shape', id })
+              : state.layerGroups,
+            selectedLayerGroupId: null,
+            selectedTextLayerId: null,
+            selectedTextLayerIds: [],
+            selectedPhosphorIconLayerId: null,
+            selectedPhosphorIconLayerIds: [],
+            selectedElementId: null,
+            selectedElementIds: [],
+            selectedShapeId: id,
+            selectedShapeIds: [id],
           };
         }),
       selectShapeLayer: (id) =>
@@ -1497,6 +1641,8 @@ export const useStudioStore = create<StudioStore>()(
             scale: 1,
             rotation: 0,
             opacity: 100,
+            anchorX: 0.5,
+            anchorY: 0.5,
             visible: true,
             locked: false,
           };
@@ -1625,7 +1771,12 @@ export const useStudioStore = create<StudioStore>()(
               transformLayer(layer, 'phosphor')
             ),
             canvasElements: state.canvasElements.map((layer) => transformLayer(layer, 'element')),
-            shapeLayers: state.shapeLayers.map((layer) => transformLayer(layer, 'shape')),
+            shapeLayers: state.shapeLayers.map((layer) => {
+              const transformed = transformLayer(layer, 'shape');
+              return transformed.maskTarget?.type === 'group' && transformed.maskTarget.id === id
+                ? { ...transformed, maskTarget: undefined }
+                : transformed;
+            }),
             layerGroups: (state.layerGroups || []).filter((item) => item.id !== id),
             selectedLayerGroupId: state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
           };
@@ -1643,7 +1794,14 @@ export const useStudioStore = create<StudioStore>()(
             canvasElements: state.canvasElements.filter(
               (layer) => !memberKeys.has(`element:${layer.id}`)
             ),
-            shapeLayers: state.shapeLayers.filter((layer) => !memberKeys.has(`shape:${layer.id}`)),
+            shapeLayers: state.shapeLayers
+              .filter((layer) => !memberKeys.has(`shape:${layer.id}`))
+              .map((layer) =>
+                (layer.maskTarget?.type === 'group' && layer.maskTarget.id === id) ||
+                (layer.maskTarget && memberKeys.has(`${layer.maskTarget.type}:${layer.maskTarget.id}`))
+                  ? { ...layer, maskTarget: undefined }
+                  : layer
+              ),
             layerOrder: (state.layerOrder || []).filter(
               (entry) => !memberKeys.has(`${entry.type}:${entry.id}`)
             ),
@@ -1911,6 +2069,11 @@ export const useStudioStore = create<StudioStore>()(
           if (currentStages.length >= 5) return state;
 
           const newSnapshot = JSON.parse(JSON.stringify(snapshot));
+          newSnapshot.transitionOut = {
+            type: 'none',
+            durationSec: 0.6,
+            easing: 'ease-in-out',
+          };
           const newIndex = currentStages.length;
           currentStages.push(newSnapshot);
 
@@ -1958,6 +2121,31 @@ export const useStudioStore = create<StudioStore>()(
             ...activeSnapshot,
             stages: currentStages,
             activeStageIndex: nextActiveIndex,
+          };
+        }),
+
+      updateStageTransition: (index, transition) =>
+        set((state) => {
+          const snapshot = getStageSnapshot(state);
+          const currentStages = [...(state.stages || [])];
+          if (currentStages.length === 0) currentStages.push(snapshot);
+          else currentStages[state.activeStageIndex] = snapshot;
+
+          if (index < 0 || index >= currentStages.length - 1) return state;
+
+          currentStages[index] = {
+            ...currentStages[index],
+            transitionOut: {
+              ...transition,
+              durationSec: Math.max(0.1, Math.min(1.5, transition.durationSec)),
+            },
+          };
+
+          return {
+            stages: currentStages,
+            ...(index === state.activeStageIndex
+              ? { transitionOut: currentStages[index].transitionOut }
+              : {}),
           };
         }),
 
@@ -2029,6 +2217,14 @@ export const useStudioStore = create<StudioStore>()(
             preset: presetId,
             startTimeSec: Math.max(0, Math.round(startT * 10) / 10),
             durationSec: Math.max(0.2, Math.round(finalDur * 10) / 10),
+            ...(meta?.textAnimation
+              ? {
+                  textUnit: 'character',
+                  textOrder: 'forward',
+                  staggerSec: 0.05,
+                  easing: presetId === 'text-pop' ? 'spring' : 'ease-out',
+                }
+              : {}),
           };
 
           currentMotions.push(newBlock);
@@ -2177,6 +2373,17 @@ export const useStudioStore = create<StudioStore>()(
             opacity: targetLayer.opacity,
             borderRadius: targetLayer.borderRadius,
             fontSize: targetLayer.fontSize,
+            blur: targetLayer.blur,
+            skewX: targetLayer.skewX,
+            skewY: targetLayer.skewY,
+            color: targetLayer.color,
+            borderWidth: targetLayer.borderWidth,
+            borderColor: targetLayer.borderColor,
+            letterSpacing: targetLayer.letterSpacing,
+            shadowOpacity: targetLayer.shadowOpacity,
+            shadowBlur: targetLayer.shadowBlur,
+            shadowOffsetX: targetLayer.shadowOffsetX,
+            shadowOffsetY: targetLayer.shadowOffsetY,
             ...props,
           };
 
@@ -2298,6 +2505,17 @@ export const useStudioStore = create<StudioStore>()(
             opacity: targetLayer.opacity,
             borderRadius: targetLayer.borderRadius,
             fontSize: targetLayer.fontSize,
+            blur: targetLayer.blur,
+            skewX: targetLayer.skewX,
+            skewY: targetLayer.skewY,
+            color: targetLayer.color,
+            borderWidth: targetLayer.borderWidth,
+            borderColor: targetLayer.borderColor,
+            letterSpacing: targetLayer.letterSpacing,
+            shadowOpacity: targetLayer.shadowOpacity,
+            shadowBlur: targetLayer.shadowBlur,
+            shadowOffsetX: targetLayer.shadowOffsetX,
+            shadowOffsetY: targetLayer.shadowOffsetY,
           };
 
           if (existingIdx !== -1) {

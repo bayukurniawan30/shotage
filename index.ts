@@ -35,6 +35,19 @@ import {
   isPrivateShare,
   isShareVisibility,
 } from './src/server/share.js';
+import { handleMcpRequest } from './src/server/mcp.js';
+import {
+  authenticateMcpRequest,
+  exchangeAuthorizationCode,
+  exchangeRefreshToken,
+  getMcpIssuer,
+  getMcpResource,
+  issueAuthorizationCode,
+  MCP_SCOPES,
+  OAuthError,
+  registerOAuthClient,
+  validateAuthorizationRequest,
+} from './src/server/mcpAuth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,6 +93,9 @@ app.get('/*', async (c, next) => {
     reqPath === '/explore' ||
     reqPath === '/purchases' ||
     reqPath === '/designs' ||
+    reqPath === '/mcp' ||
+    reqPath.startsWith('/oauth/') ||
+    reqPath.startsWith('/.well-known/') ||
     reqPath.startsWith('/api/')
   ) {
     return await next();
@@ -151,6 +167,7 @@ const renderInertiaPage = (componentName: string, props = {}, search = '') => {
       Terms: '/terms',
       Privacy: '/privacy',
       RefundPolicy: '/refund-policy',
+      McpAuthorize: '/oauth/authorize',
     }[componentName] || '/';
   const pageData = JSON.stringify({
     component: componentName,
@@ -201,6 +218,105 @@ const renderInertiaPage = (componentName: string, props = {}, search = '') => {
   </body>
 </html>`;
 };
+
+const oauthError = (c: Context, error: unknown) => {
+  const known = error instanceof OAuthError;
+  return c.json(
+    {
+      error: known ? error.code : 'server_error',
+      error_description: error instanceof Error ? error.message : 'OAuth request failed.',
+    },
+    known ? (error.status as 400) : 500
+  );
+};
+
+app.get('/.well-known/oauth-protected-resource', (c) =>
+  c.json({
+    resource: getMcpResource(c.req.url),
+    authorization_servers: [getMcpIssuer(c.req.url)],
+    scopes_supported: MCP_SCOPES,
+    bearer_methods_supported: ['header'],
+  })
+);
+app.get('/.well-known/oauth-protected-resource/mcp', (c) =>
+  c.json({
+    resource: getMcpResource(c.req.url),
+    authorization_servers: [getMcpIssuer(c.req.url)],
+    scopes_supported: MCP_SCOPES,
+    bearer_methods_supported: ['header'],
+  })
+);
+app.get('/.well-known/oauth-authorization-server', (c) => {
+  const issuer = getMcpIssuer(c.req.url);
+  return c.json({
+    issuer,
+    authorization_endpoint: `${issuer}/oauth/authorize`,
+    token_endpoint: `${issuer}/oauth/token`,
+    registration_endpoint: `${issuer}/oauth/register`,
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    token_endpoint_auth_methods_supported: ['none'],
+    code_challenge_methods_supported: ['S256'],
+    scopes_supported: MCP_SCOPES,
+  });
+});
+app.post('/oauth/register', async (c) => {
+  try {
+    return c.json(await registerOAuthClient(await c.req.json().catch(() => null)), 201);
+  } catch (error) {
+    return oauthError(c, error);
+  }
+});
+app.get('/oauth/authorize', async (c) => {
+  try {
+    await validateAuthorizationRequest(new URL(c.req.url).searchParams, c.req.url);
+    return c.html(renderInertiaPage('McpAuthorize', {}, new URL(c.req.url).search));
+  } catch (error) {
+    return c.text(error instanceof Error ? error.message : 'Invalid OAuth request.', 400);
+  }
+});
+app.post('/api/oauth/authorize', async (c) => {
+  try {
+    const user = await authenticateRequest(c.req.raw);
+    if (!user)
+      return c.json({ error: 'unauthorized', error_description: 'Sign in to Shotage first.' }, 401);
+    await ensureUserOnboarded(user);
+    const request = await validateAuthorizationRequest(new URL(c.req.url).searchParams, c.req.url);
+    return c.json({ redirect: await issueAuthorizationCode(user, request) });
+  } catch (error) {
+    return oauthError(c, error);
+  }
+});
+app.post('/oauth/token', async (c) => {
+  try {
+    const form = new URLSearchParams(await c.req.text());
+    const grant = form.get('grant_type');
+    const result =
+      grant === 'authorization_code'
+        ? await exchangeAuthorizationCode(form, c.req.url)
+        : grant === 'refresh_token'
+          ? await exchangeRefreshToken(form, c.req.url)
+          : (() => {
+              throw new OAuthError('unsupported_grant_type', 'Unsupported grant type.');
+            })();
+    c.header('Cache-Control', 'no-store');
+    return c.json(result);
+  } catch (error) {
+    return oauthError(c, error);
+  }
+});
+app.all('/mcp', async (c) => {
+  const principal = await authenticateMcpRequest(c.req.raw);
+  if (!principal) {
+    const metadata = `${getMcpIssuer(c.req.url)}/.well-known/oauth-protected-resource/mcp`;
+    c.header('WWW-Authenticate', `Bearer resource_metadata="${metadata}"`);
+    return c.json(
+      { jsonrpc: '2.0', error: { code: -32001, message: 'Authentication required' }, id: null },
+      401
+    );
+  }
+  return handleMcpRequest(c.req.raw, principal);
+});
 
 // Image Proxying Route to bypass CORS tainting
 app.get('/api/proxy-image', async (c) => {
@@ -973,7 +1089,8 @@ app.get('/api/user/designs', async (c) => {
           thumbnailUrl:
             thumbnail?.secureUrl ||
             thumbnail?.secure_url ||
-            (typeof thumbnail === 'string' ? thumbnail : null),
+            (typeof thumbnail === 'string' ? thumbnail : null) ||
+            '/mcp-design-placeholder.svg',
           createdAt: entry?.createdAt || entry?.created_at || null,
           updatedAt: entry?.updatedAt || entry?.updated_at || null,
         };

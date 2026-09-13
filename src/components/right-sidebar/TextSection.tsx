@@ -42,7 +42,7 @@ export const TextSection: React.FC = () => {
   ];
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-4 shadow-sm">
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Type01 className="w-4 h-4 text-pastel-blue" />
@@ -799,6 +799,8 @@ export const TextSection: React.FC = () => {
                   ? 'Size & Stretch'
                   : activeOption === 'rotation'
                     ? 'Rotation & 3D'
+                  : activeOption === 'opacity'
+                    ? 'Opacity & Blur'
                     : activeOption}
               </span>
             </div>
@@ -949,6 +951,15 @@ export const TextSection: React.FC = () => {
                         accentColor="#ffafcc"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Letter Spacing</span>
+                      <span className="font-mono text-slate-400">{selectedLayer.letterSpacing ?? 0}px</span>
+                    </div>
+                    <StepperSlider min={-10} max={40} step={0.5} value={selectedLayer.letterSpacing ?? 0}
+                      onChange={(letterSpacing) => state.updateTextLayer(selectedLayer.id, { letterSpacing })}
+                      accentColor="#ffafcc" />
                   </div>
                 </div>
               )}
@@ -1111,7 +1122,7 @@ export const TextSection: React.FC = () => {
 
               {/* Option: Opacity */}
               {activeOption === 'opacity' && (
-                <div>
+                <div className="space-y-3">
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-medium text-slate-300">Opacity</span>
                     <span className="font-mono text-slate-400">
@@ -1128,6 +1139,15 @@ export const TextSection: React.FC = () => {
                     }
                     accentColor="#ffafcc"
                   />
+                  <div>
+                    <div className="flex justify-between text-xs mb-1 mt-3">
+                      <span className="font-medium text-slate-300">Blur</span>
+                      <span className="font-mono text-slate-400">{selectedLayer.blur ?? 0}px</span>
+                    </div>
+                    <StepperSlider min={0} max={40} step={1} value={selectedLayer.blur ?? 0}
+                      onChange={(blur) => state.updateTextLayer(selectedLayer.id, { blur })}
+                      accentColor="#ffafcc" />
+                  </div>
                 </div>
               )}
             </div>
@@ -1195,6 +1215,23 @@ export const TextSection: React.FC = () => {
               />
             </button>
           </div>
+          {selectedLayer.shadow && !selectedLayer.bgImage && (
+            <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
+              {([
+                ['Opacity', 'shadowOpacity', 0, 100, '%', 70],
+                ['Blur', 'shadowBlur', 0, 50, 'px', 12],
+                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 4],
+              ] as const).map(([label, key, min, max, unit, fallback]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? fallback}{unit}</span></div>
+                  <StepperSlider min={min} max={max} step={1} value={selectedLayer[key] ?? fallback}
+                    onChange={(value) => state.updateTextLayer(selectedLayer.id, { [key]: value })}
+                    accentColor="#ffafcc" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

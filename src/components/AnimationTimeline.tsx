@@ -18,6 +18,7 @@ import {
   ELEMENT_LOOP_PRESETS,
   ElementLoopAnimation,
   EASING_PRESET_OPTIONS,
+  AnimationEasing,
   AnimationEasingType,
   MOTION_PRESETS,
   LayerMotionBlock,
@@ -25,8 +26,60 @@ import {
   MotionPresetId,
   MotionCategory,
 } from '../types/animationTypes';
+import { EasingCurveEditor } from './EasingCurveEditor';
+import { Toggle } from './Toggle';
 
 type TimelineLayerType = 'text' | 'phosphor' | 'element' | 'shape' | 'group';
+
+type TimelineSelectionItem =
+  | { kind: 'mockup-keyframe'; keyframeId: string }
+  | {
+      kind: 'layer-keyframe';
+      layerType: TimelineLayerType;
+      layerId: string;
+      keyframeId: string;
+    }
+  | {
+      kind: 'motion';
+      layerType: TimelineLayerType;
+      layerId: string;
+      blockId: string;
+    };
+
+type TimelineClipboardItem =
+  | {
+      selection: Extract<TimelineSelectionItem, { kind: 'mockup-keyframe' }>;
+      timeSec: number;
+      keyframe: AnimationKeyframe;
+    }
+  | {
+      selection: Extract<TimelineSelectionItem, { kind: 'layer-keyframe' }>;
+      timeSec: number;
+      keyframe: LayerKeyframe;
+    }
+  | {
+      selection: Extract<TimelineSelectionItem, { kind: 'motion' }>;
+      timeSec: number;
+      motion: LayerMotionBlock;
+    };
+
+interface TimelineDragItem {
+  selection: TimelineSelectionItem;
+  initialTimeSec: number;
+  durationSec?: number;
+}
+
+const timelineSelectionKey = (item: TimelineSelectionItem) => {
+  if (item.kind === 'mockup-keyframe') return `mockup:${item.keyframeId}`;
+  if (item.kind === 'layer-keyframe') {
+    return `keyframe:${item.layerType}:${item.layerId}:${item.keyframeId}`;
+  }
+  return `motion:${item.layerType}:${item.layerId}:${item.blockId}`;
+};
+
+const MIN_TIMELINE_PX_PER_SECOND = 72;
+const MAX_TIMELINE_PX_PER_SECOND = 240;
+const TIMELINE_SCALE_STEP = 12;
 
 export const AnimationTimeline: React.FC = () => {
   const state = useStudioStore();
@@ -37,7 +90,12 @@ export const AnimationTimeline: React.FC = () => {
   const trackContainerRef = useRef<HTMLDivElement>(null);
   const mockupTrackRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const timelineRootRef = useRef<HTMLDivElement>(null);
   const isSyncingScrollRef = useRef(false);
+  const timelineClipboardRef = useRef<TimelineClipboardItem[]>([]);
+  const timelineDragItemsRef = useRef<TimelineDragItem[]>([]);
+  const mockupDragStartXRef = useRef(0);
+  const [timelinePxPerSecond, setTimelinePxPerSecond] = useState(MIN_TIMELINE_PX_PER_SECOND);
 
   const handleLeftTracksScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (isSyncingScrollRef.current) return;
@@ -61,9 +119,36 @@ export const AnimationTimeline: React.FC = () => {
     });
   };
 
-  const PX_PER_SECOND = 72;
   const PAD_PX = 20;
-  const totalTrackWidth = Math.max(state.durationSec * PX_PER_SECOND + PAD_PX * 2, 400);
+  const totalTrackWidth = Math.max(
+    state.durationSec * timelinePxPerSecond + PAD_PX * 2,
+    400
+  );
+
+  const updateTimelineScale = (requestedScale: number) => {
+    const nextScale = Math.max(
+      MIN_TIMELINE_PX_PER_SECOND,
+      Math.min(MAX_TIMELINE_PX_PER_SECOND, requestedScale)
+    );
+    if (nextScale === timelinePxPerSecond) return;
+
+    const container = scrollContainerRef.current;
+    const centerTime = container
+      ? Math.max(
+          0,
+          (container.scrollLeft + container.clientWidth / 2 - PAD_PX) / timelinePxPerSecond
+        )
+      : state.currentTimeSec;
+
+    setTimelinePxPerSecond(nextScale);
+    requestAnimationFrame(() => {
+      if (!container) return;
+      container.scrollLeft = Math.max(
+        0,
+        PAD_PX + centerTime * nextScale - container.clientWidth / 2
+      );
+    });
+  };
 
   const videoDur =
     state.videoDuration && state.videoDuration > 0 ? Math.round(state.videoDuration) : null;
@@ -84,6 +169,8 @@ export const AnimationTimeline: React.FC = () => {
   const [draggingKfId, setDraggingKfId] = useState<string | null>(null);
   const [selectedKfId, setSelectedKfId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [selectedTimelineItems, setSelectedTimelineItems] = useState<TimelineSelectionItem[]>([]);
+  const [snapGuideTime, setSnapGuideTime] = useState<number | null>(null);
   const [motionCategoryFilter, setMotionCategoryFilter] = useState<
     'all' | 'entrance' | 'emphasis' | 'exit'
   >('all');
@@ -104,7 +191,27 @@ export const AnimationTimeline: React.FC = () => {
     initialT: number;
   } | null>(null);
   const [hoveredKfId, setHoveredKfId] = useState<string | null>(null);
+  const [easingEditorTarget, setEasingEditorTarget] = useState<{
+    layerType: TimelineLayerType;
+    layerId: string;
+    keyframeId: string;
+    layerName: string;
+  } | null>(null);
+  const [mockupEasingEditorKeyframeId, setMockupEasingEditorKeyframeId] = useState<string | null>(
+    null
+  );
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const clearTimelineSelectionOutside = (event: PointerEvent) => {
+      if (timelineRootRef.current?.contains(event.target as Node)) return;
+      setSelectedTimelineItems([]);
+      setSelectedKfId(null);
+      setSelectedBlockId(null);
+    };
+    document.addEventListener('pointerdown', clearTimelineSelectionOutside, true);
+    return () => document.removeEventListener('pointerdown', clearTimelineSelectionOutside, true);
+  }, []);
 
   // Selected track state: 'mockup' or a specific layer
   const [selectedTrack, setSelectedTrack] = useState<{
@@ -180,7 +287,9 @@ export const AnimationTimeline: React.FC = () => {
         setSelectedTrack({
           type: 'shape',
           id: shape.id,
-          name: shape.name || shape.shapeType || 'Shape',
+          name: shape.maskTarget
+            ? `Mask: ${shape.name || shape.shapeType || 'Shape'}`
+            : shape.name || shape.shapeType || 'Shape',
         });
         const trackEl = leftTracksRef.current?.querySelector(`[data-track-id="${shape.id}"]`);
         trackEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -206,7 +315,7 @@ export const AnimationTimeline: React.FC = () => {
   // Auto-scroll when playing if playhead reaches edge of scroll container
   useEffect(() => {
     if (state.isPlaying && scrollContainerRef.current) {
-      const playheadX = PAD_PX + state.currentTimeSec * PX_PER_SECOND;
+      const playheadX = PAD_PX + state.currentTimeSec * timelinePxPerSecond;
       const container = scrollContainerRef.current;
       const scrollLeft = container.scrollLeft;
       const visibleWidth = container.clientWidth;
@@ -217,7 +326,7 @@ export const AnimationTimeline: React.FC = () => {
         container.scrollLeft = Math.max(0, playheadX - 40);
       }
     }
-  }, [state.currentTimeSec, state.isPlaying]);
+  }, [state.currentTimeSec, state.isPlaying, timelinePxPerSecond]);
 
   // Initialize default keyframes with Start (0s) and End (10s) keyframes capturing current canvas pose
   useEffect(() => {
@@ -290,6 +399,74 @@ export const AnimationTimeline: React.FC = () => {
     };
   }, [state.isPlaying, onChange]);
 
+  const isTimelineItemSelected = (item: TimelineSelectionItem) => {
+    const key = timelineSelectionKey(item);
+    return selectedTimelineItems.some((selected) => timelineSelectionKey(selected) === key);
+  };
+
+  const selectTimelineItem = (
+    item: TimelineSelectionItem,
+    event: Pick<React.PointerEvent, 'shiftKey' | 'metaKey' | 'ctrlKey'>
+  ) => {
+    const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+    const key = timelineSelectionKey(item);
+    const alreadySelected = selectedTimelineItems.some(
+      (selected) => timelineSelectionKey(selected) === key
+    );
+    const nextSelection = !additive
+      ? alreadySelected && selectedTimelineItems.length > 1
+        ? selectedTimelineItems
+        : [item]
+      : alreadySelected
+        ? selectedTimelineItems.filter((selected) => timelineSelectionKey(selected) !== key)
+        : [...selectedTimelineItems, item];
+    setSelectedTimelineItems(nextSelection);
+    return nextSelection;
+  };
+
+  const getSnapCandidates = () => {
+    const candidates = new Set<number>([0, state.durationSec, state.currentTimeSec]);
+    state.keyframes.forEach((keyframe) => candidates.add(keyframe.timeSec));
+    const layers = [
+      ...(state.textLayers || []),
+      ...(state.phosphorIconLayers || []),
+      ...(state.canvasElements || []),
+      ...(state.shapeLayers || []),
+      ...(state.layerGroups || []),
+    ];
+    layers.forEach((layer) => {
+      layer.keyframes?.forEach((keyframe) => candidates.add(keyframe.timeSec));
+      layer.motions?.forEach((motion) => {
+        candidates.add(motion.startTimeSec);
+        candidates.add(motion.startTimeSec + motion.durationSec);
+      });
+    });
+    return Array.from(candidates);
+  };
+
+  const snapTimelineTime = (rawTime: number, bypassSnap = false) => {
+    const clamped = Math.max(0, Math.min(state.durationSec, rawTime));
+    if (bypassSnap) {
+      setSnapGuideTime(null);
+      return Math.round(clamped * 100) / 100;
+    }
+
+    const gridTime = Math.round(clamped * 10) / 10;
+    const thresholdSec = 8 / timelinePxPerSecond;
+    let snappedTime = gridTime;
+    let closestDistance = thresholdSec;
+    getSnapCandidates().forEach((candidate) => {
+      const distance = Math.abs(candidate - clamped);
+      if (distance <= closestDistance) {
+        snappedTime = candidate;
+        closestDistance = distance;
+      }
+    });
+    const rounded = Math.round(snappedTime * 100) / 100;
+    setSnapGuideTime(closestDistance < thresholdSec ? rounded : null);
+    return rounded;
+  };
+
   // Global Keyboard Shortcut: Spacebar toggles Play/Pause in Animation Mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -353,7 +530,10 @@ export const AnimationTimeline: React.FC = () => {
 
     let updatedKf = [...state.keyframes];
     if (existingIndex >= 0) {
-      updatedKf[existingIndex] = newKf;
+      updatedKf[existingIndex] = {
+        ...newKf,
+        easing: updatedKf[existingIndex].easing,
+      };
     } else {
       updatedKf.push(newKf);
       updatedKf.sort((a, b) => a.timeSec - b.timeSec);
@@ -372,33 +552,49 @@ export const AnimationTimeline: React.FC = () => {
   const getTimeFromX = (clientX: number, targetEl: HTMLElement) => {
     const rect = targetEl.getBoundingClientRect();
     const relativeX = clientX - rect.left;
-    const time = (relativeX - PAD_PX) / PX_PER_SECOND;
+    const time = (relativeX - PAD_PX) / timelinePxPerSecond;
     return Math.max(0, Math.min(state.durationSec, time));
   };
 
   // Keyframe Dragging Pointer Handlers
   const handleMarkerPointerDown = (e: React.PointerEvent, kf: AnimationKeyframe) => {
     e.stopPropagation();
+    const nextSelection = selectTimelineItem(
+      { kind: 'mockup-keyframe', keyframeId: kf.id },
+      e
+    );
+    if (!nextSelection.some((item) => timelineSelectionKey(item) === `mockup:${kf.id}`)) {
+      setSelectedKfId(null);
+      return;
+    }
+    captureTimelineDragItems(nextSelection, 'keyframe');
+    mockupDragStartXRef.current = e.clientX;
     setDraggingKfId(kf.id);
     setSelectedKfId(kf.id);
+    setSelectedBlockId(null);
     onChange({ currentTimeSec: kf.timeSec, isPlaying: false });
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handleMarkerPointerMove = (e: React.PointerEvent, kfId: string) => {
     if (draggingKfId !== kfId || !mockupTrackRef.current) return;
-    const newTime = Math.round(getTimeFromX(e.clientX, mockupTrackRef.current) * 10) / 10;
-
-    const updatedKeyframes = state.keyframes
-      .map((kf) => (kf.id === kfId ? { ...kf, timeSec: newTime } : kf))
-      .sort((a, b) => a.timeSec - b.timeSec);
-
-    onChange({ keyframes: updatedKeyframes, currentTimeSec: newTime });
+    const activeDragItem = timelineDragItemsRef.current.find(
+      (item) =>
+        item.selection.kind === 'mockup-keyframe' && item.selection.keyframeId === kfId
+    );
+    if (!activeDragItem) return;
+    moveSelectedTimelineItems(
+      (e.clientX - mockupDragStartXRef.current) / timelinePxPerSecond,
+      activeDragItem.initialTimeSec,
+      'keyframe',
+      e.altKey
+    );
   };
 
   const handleMarkerPointerUp = (e: React.PointerEvent) => {
     if (draggingKfId) {
       setDraggingKfId(null);
+      setSnapGuideTime(null);
       (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     }
   };
@@ -467,8 +663,6 @@ export const AnimationTimeline: React.FC = () => {
     return [];
   };
 
-  const hasDraggedMotionRef = useRef(false);
-
   const handleMotionBlockPointerDown = (
     e: React.PointerEvent,
     layerType: TimelineLayerType,
@@ -477,7 +671,20 @@ export const AnimationTimeline: React.FC = () => {
     isResize = false
   ) => {
     e.stopPropagation();
-    hasDraggedMotionRef.current = false;
+    if (!isResize) {
+      const nextSelection = selectTimelineItem(
+        { kind: 'motion', layerType, layerId, blockId: block.id },
+        e
+      );
+      const selectionKey = `motion:${layerType}:${layerId}:${block.id}`;
+      if (!nextSelection.some((item) => timelineSelectionKey(item) === selectionKey)) {
+        setSelectedBlockId(null);
+        return;
+      }
+      captureTimelineDragItems(nextSelection, 'motion');
+      setSelectedBlockId(block.id);
+      setSelectedKfId(null);
+    }
     setSelectedTrack({
       type: layerType,
       id: layerId,
@@ -503,10 +710,7 @@ export const AnimationTimeline: React.FC = () => {
   const handleMotionBlockPointerMove = (e: React.PointerEvent) => {
     if (!draggingMotionBlock) return;
     const deltaX = e.clientX - draggingMotionBlock.startX;
-    if (Math.abs(deltaX) > 2) {
-      hasDraggedMotionRef.current = true;
-    }
-    const deltaTime = deltaX / PX_PER_SECOND;
+    const deltaTime = deltaX / timelinePxPerSecond;
 
     const motions = getLayerMotions(draggingMotionBlock.layerType, draggingMotionBlock.layerId);
     const otherBlocks = motions
@@ -533,7 +737,11 @@ export const AnimationTimeline: React.FC = () => {
         minDur,
         Math.min(maxDur, (draggingMotionBlock.initialDur || 1.5) + deltaTime)
       );
-      const snappedDur = Math.round(rawDur * 10) / 10;
+      const snappedEnd = snapTimelineTime(
+        draggingMotionBlock.initialStartT + rawDur,
+        e.altKey
+      );
+      const snappedDur = Math.max(minDur, snappedEnd - draggingMotionBlock.initialStartT);
       state.updateLayerMotionBlock(
         draggingMotionBlock.layerType,
         draggingMotionBlock.layerId,
@@ -543,28 +751,19 @@ export const AnimationTimeline: React.FC = () => {
         }
       );
     } else {
-      const dur = draggingMotionBlock.initialDur || 1.5;
-      const maxStart = Math.max(minAllowedStart, maxBoundary - dur);
-      const rawStart = Math.max(
-        minAllowedStart,
-        Math.min(maxStart, draggingMotionBlock.initialStartT + deltaTime)
+      moveSelectedTimelineItems(
+        deltaTime,
+        draggingMotionBlock.initialStartT,
+        'motion',
+        e.altKey
       );
-      const snappedStart = Math.round(rawStart * 10) / 10;
-      state.updateLayerMotionBlock(
-        draggingMotionBlock.layerType,
-        draggingMotionBlock.layerId,
-        draggingMotionBlock.blockId,
-        {
-          startTimeSec: snappedStart,
-        }
-      );
-      onChange({ currentTimeSec: snappedStart });
     }
   };
 
   const handleMotionBlockPointerUp = (e: React.PointerEvent) => {
     if (draggingMotionBlock) {
       setDraggingMotionBlock(null);
+      setSnapGuideTime(null);
       (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     }
   };
@@ -591,6 +790,362 @@ export const AnimationTimeline: React.FC = () => {
     return [];
   };
 
+  const captureTimelineDragItems = (
+    selection: TimelineSelectionItem[],
+    family: 'keyframe' | 'motion'
+  ) => {
+    const items: TimelineDragItem[] = [];
+    selection.forEach((item) => {
+      if (family === 'keyframe' && item.kind === 'mockup-keyframe') {
+        const keyframe = state.keyframes.find((candidate) => candidate.id === item.keyframeId);
+        if (keyframe) items.push({ selection: item, initialTimeSec: keyframe.timeSec });
+      } else if (family === 'keyframe' && item.kind === 'layer-keyframe') {
+        const keyframe = getLayerKeyframes(item.layerType, item.layerId).find(
+          (candidate) => candidate.id === item.keyframeId
+        );
+        if (keyframe) items.push({ selection: item, initialTimeSec: keyframe.timeSec });
+      } else if (family === 'motion' && item.kind === 'motion') {
+        const motion = getLayerMotions(item.layerType, item.layerId).find(
+          (candidate) => candidate.id === item.blockId
+        );
+        if (motion) {
+          items.push({
+            selection: item,
+            initialTimeSec: motion.startTimeSec,
+            durationSec: motion.durationSec,
+          });
+        }
+      }
+    });
+    timelineDragItemsRef.current = items;
+  };
+
+  const moveSelectedTimelineItems = (
+    rawDelta: number,
+    activeInitialTime: number,
+    family: 'keyframe' | 'motion',
+    bypassSnap: boolean
+  ) => {
+    const items = timelineDragItemsRef.current.filter((item) =>
+      family === 'keyframe' ? item.selection.kind !== 'motion' : item.selection.kind === 'motion'
+    );
+    if (items.length === 0) return activeInitialTime;
+
+    let minimumDelta = -Math.min(...items.map((item) => item.initialTimeSec));
+    let maximumDelta = Math.min(
+      ...items.map(
+        (item) => state.durationSec - item.initialTimeSec - (item.durationSec || 0)
+      )
+    );
+
+    if (family === 'motion') {
+      const selectedKeys = new Set(items.map((item) => timelineSelectionKey(item.selection)));
+      items.forEach((item) => {
+        if (item.selection.kind !== 'motion') return;
+        const selection = item.selection;
+        const unselected = getLayerMotions(selection.layerType, selection.layerId).filter(
+          (motion) =>
+            !selectedKeys.has(
+              timelineSelectionKey({
+                kind: 'motion',
+                layerType: selection.layerType,
+                layerId: selection.layerId,
+                blockId: motion.id,
+              })
+            )
+        );
+        const initialEnd = item.initialTimeSec + (item.durationSec || 0);
+        unselected.forEach((motion) => {
+          const motionEnd = motion.startTimeSec + motion.durationSec;
+          if (motionEnd <= item.initialTimeSec + 0.05) {
+            minimumDelta = Math.max(minimumDelta, motionEnd - item.initialTimeSec);
+          } else if (motion.startTimeSec >= initialEnd - 0.05) {
+            maximumDelta = Math.min(maximumDelta, motion.startTimeSec - initialEnd);
+          }
+        });
+      });
+    }
+
+    const rawActiveTime = activeInitialTime + rawDelta;
+    const snappedActiveTime = snapTimelineTime(rawActiveTime, bypassSnap);
+    const delta = Math.max(
+      minimumDelta,
+      Math.min(maximumDelta, snappedActiveTime - activeInitialTime)
+    );
+    const targetTimes = new Map(
+      items.map((item) => [
+        timelineSelectionKey(item.selection),
+        Math.round((item.initialTimeSec + delta) * 100) / 100,
+      ])
+    );
+
+    useStudioStore.setState((current) => {
+      const partial: Record<string, unknown> = {};
+      if (family === 'keyframe') {
+        partial.keyframes = current.keyframes
+          .map((keyframe) => {
+            const timeSec = targetTimes.get(`mockup:${keyframe.id}`);
+            return timeSec === undefined ? keyframe : { ...keyframe, timeSec };
+          })
+          .sort((a, b) => a.timeSec - b.timeSec);
+      }
+
+      const layerCollections = [
+        ['textLayers', current.textLayers],
+        ['phosphorIconLayers', current.phosphorIconLayers],
+        ['canvasElements', current.canvasElements],
+        ['shapeLayers', current.shapeLayers],
+        ['layerGroups', current.layerGroups],
+      ] as const;
+      layerCollections.forEach(([property, layers]) => {
+        let collectionChanged = false;
+        const updatedLayers = layers.map((layer) => {
+          let layerChanged = false;
+          const layerType =
+            property === 'textLayers'
+              ? 'text'
+              : property === 'phosphorIconLayers'
+                ? 'phosphor'
+                : property === 'canvasElements'
+                  ? 'element'
+                  : property === 'layerGroups'
+                    ? 'group'
+                    : 'shape';
+          if (family === 'keyframe' && layer.keyframes) {
+            const keyframes = layer.keyframes.map((keyframe) => {
+              const timeSec = targetTimes.get(
+                `keyframe:${layerType}:${layer.id}:${keyframe.id}`
+              );
+              if (timeSec === undefined) return keyframe;
+              layerChanged = true;
+              collectionChanged = true;
+              return { ...keyframe, timeSec };
+            });
+            return layerChanged
+              ? { ...layer, keyframes: keyframes.sort((a, b) => a.timeSec - b.timeSec) }
+              : layer;
+          }
+          if (family === 'motion' && layer.motions) {
+            const motions = layer.motions.map((motion) => {
+              const startTimeSec = targetTimes.get(
+                `motion:${layerType}:${layer.id}:${motion.id}`
+              );
+              if (startTimeSec === undefined) return motion;
+              layerChanged = true;
+              collectionChanged = true;
+              return { ...motion, startTimeSec };
+            });
+            return layerChanged
+              ? { ...layer, motions: motions.sort((a, b) => a.startTimeSec - b.startTimeSec) }
+              : layer;
+          }
+          return layer;
+        });
+        if (collectionChanged) partial[property] = updatedLayers;
+      });
+      return partial as any;
+    });
+
+    const activeTime = Math.round((activeInitialTime + delta) * 100) / 100;
+    onChange({ currentTimeSec: activeTime });
+    return activeTime;
+  };
+
+  const copySelectedTimelineItems = () => {
+    const copied: TimelineClipboardItem[] = [];
+    selectedTimelineItems.forEach((selection) => {
+      if (selection.kind === 'mockup-keyframe') {
+        const keyframe = state.keyframes.find((item) => item.id === selection.keyframeId);
+        if (keyframe) copied.push({ selection, timeSec: keyframe.timeSec, keyframe: { ...keyframe } });
+        return;
+      }
+      if (selection.kind === 'layer-keyframe') {
+        const keyframe = getLayerKeyframes(selection.layerType, selection.layerId).find(
+          (item) => item.id === selection.keyframeId
+        );
+        if (keyframe) copied.push({ selection, timeSec: keyframe.timeSec, keyframe: { ...keyframe } });
+        return;
+      }
+      const motion = getLayerMotions(selection.layerType, selection.layerId).find(
+        (item) => item.id === selection.blockId
+      );
+      if (motion) copied.push({ selection, timeSec: motion.startTimeSec, motion: { ...motion } });
+    });
+    if (copied.length > 0) timelineClipboardRef.current = copied;
+  };
+
+  const pasteTimelineItems = () => {
+    const clipboard = timelineClipboardRef.current;
+    if (clipboard.length === 0) return;
+
+    const earliestTime = Math.min(...clipboard.map((item) => item.timeSec));
+    const latestEnd = Math.max(
+      ...clipboard.map((item) =>
+        'motion' in item ? item.timeSec + item.motion.durationSec : item.timeSec
+      )
+    );
+    const copiedSpan = latestEnd - earliestTime;
+    const pasteOrigin = Math.min(state.currentTimeSec, Math.max(0, state.durationSec - copiedSpan));
+    const timestamp = Date.now();
+    const nextSelection: TimelineSelectionItem[] = [];
+    const mockupKeyframes = [...state.keyframes];
+
+    const avoidOccupiedTime = (requested: number, occupied: number[]) => {
+      let candidate = Math.max(0, Math.min(state.durationSec, requested));
+      while (
+        occupied.some((time) => Math.abs(time - candidate) < 0.08) &&
+        candidate < state.durationSec
+      ) {
+        candidate = Math.min(state.durationSec, Math.round((candidate + 0.1) * 100) / 100);
+      }
+      return candidate;
+    };
+
+    clipboard.forEach((item, index) => {
+      const requestedTime = pasteOrigin + (item.timeSec - earliestTime);
+      if (item.selection.kind === 'mockup-keyframe' && 'keyframe' in item) {
+        const sourceKeyframe = item.keyframe as AnimationKeyframe;
+        const timeSec = avoidOccupiedTime(
+          requestedTime,
+          mockupKeyframes.map((keyframe) => keyframe.timeSec)
+        );
+        const id = `kf-paste-${timestamp}-${index}`;
+        mockupKeyframes.push({ ...sourceKeyframe, id, timeSec });
+        nextSelection.push({ kind: 'mockup-keyframe', keyframeId: id });
+        return;
+      }
+
+      if (item.selection.kind === 'layer-keyframe' && 'keyframe' in item) {
+        const sourceKeyframe = item.keyframe as LayerKeyframe;
+        const existingKeyframes = getLayerKeyframes(
+          item.selection.layerType,
+          item.selection.layerId
+        );
+        const timeSec = avoidOccupiedTime(
+          requestedTime,
+          existingKeyframes.map((keyframe) => keyframe.timeSec)
+        );
+        const id = `kf-layer-paste-${timestamp}-${index}`;
+        const { id: _sourceId, timeSec: _sourceTime, ...properties } = sourceKeyframe;
+        state.addLayerKeyframe(item.selection.layerType, item.selection.layerId, timeSec, {
+          ...properties,
+          id,
+        });
+        nextSelection.push({
+          kind: 'layer-keyframe',
+          layerType: item.selection.layerType,
+          layerId: item.selection.layerId,
+          keyframeId: id,
+        });
+        return;
+      }
+
+      if (item.selection.kind === 'motion' && 'motion' in item) {
+        const selection = item.selection;
+        const beforeIds = new Set(
+          getLayerMotions(selection.layerType, selection.layerId).map(
+            (motion) => motion.id
+          )
+        );
+        state.addLayerMotionBlock(
+          selection.layerType,
+          selection.layerId,
+          item.motion.preset,
+          requestedTime,
+          item.motion.durationSec
+        );
+        const freshState = useStudioStore.getState() as any;
+        const layerProp =
+          selection.layerType === 'text'
+            ? 'textLayers'
+            : selection.layerType === 'phosphor'
+              ? 'phosphorIconLayers'
+              : selection.layerType === 'element'
+                ? 'canvasElements'
+                : selection.layerType === 'group'
+                  ? 'layerGroups'
+                  : 'shapeLayers';
+        const freshLayer = freshState[layerProp]?.find(
+          (layer: { id: string }) => layer.id === selection.layerId
+        );
+        const created = freshLayer?.motions?.find(
+          (motion: LayerMotionBlock) => !beforeIds.has(motion.id)
+        );
+        if (created) {
+          nextSelection.push({
+            kind: 'motion',
+            layerType: selection.layerType,
+            layerId: selection.layerId,
+            blockId: created.id,
+          });
+        }
+      }
+    });
+
+    if (mockupKeyframes.length !== state.keyframes.length) {
+      mockupKeyframes.sort((a, b) => a.timeSec - b.timeSec);
+      onChange({ keyframes: mockupKeyframes });
+    }
+    setSelectedTimelineItems(nextSelection);
+    setSelectedKfId(null);
+    setSelectedBlockId(null);
+  };
+
+  const deleteSelectedTimelineItems = () => {
+    const mockupIds = new Set(
+      selectedTimelineItems
+        .filter((item): item is Extract<TimelineSelectionItem, { kind: 'mockup-keyframe' }> =>
+          item.kind === 'mockup-keyframe'
+        )
+        .map((item) => item.keyframeId)
+    );
+    if (mockupIds.size > 0) {
+      const remaining = state.keyframes.filter((keyframe) => !mockupIds.has(keyframe.id));
+      if (remaining.length > 0) onChange({ keyframes: remaining });
+    }
+    selectedTimelineItems.forEach((item) => {
+      if (item.kind === 'layer-keyframe') {
+        state.removeLayerKeyframe(item.layerType, item.layerId, item.keyframeId);
+      } else if (item.kind === 'motion') {
+        state.removeLayerMotionBlock(item.layerType, item.layerId, item.blockId);
+      }
+    });
+    setSelectedTimelineItems([]);
+    setSelectedKfId(null);
+    setSelectedBlockId(null);
+  };
+
+  useEffect(() => {
+    const handleTimelineClipboard = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const commandKey = event.metaKey || event.ctrlKey;
+      if (commandKey && event.key.toLowerCase() === 'c' && selectedTimelineItems.length > 0) {
+        event.preventDefault();
+        copySelectedTimelineItems();
+      } else if (commandKey && event.key.toLowerCase() === 'v' && timelineClipboardRef.current.length > 0) {
+        event.preventDefault();
+        pasteTimelineItems();
+      } else if (
+        (event.key === 'Delete' || event.key === 'Backspace') &&
+        selectedTimelineItems.length > 0
+      ) {
+        event.preventDefault();
+        deleteSelectedTimelineItems();
+      }
+    };
+    window.addEventListener('keydown', handleTimelineClipboard);
+    return () => window.removeEventListener('keydown', handleTimelineClipboard);
+  });
+
   const handleLayerKfPointerDown = (
     e: React.PointerEvent,
     layerType: TimelineLayerType,
@@ -599,6 +1154,16 @@ export const AnimationTimeline: React.FC = () => {
   ) => {
     e.stopPropagation();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const nextSelection = selectTimelineItem(
+      { kind: 'layer-keyframe', layerType, layerId, keyframeId: kf.id },
+      e
+    );
+    const selectionKey = `keyframe:${layerType}:${layerId}:${kf.id}`;
+    if (!nextSelection.some((item) => timelineSelectionKey(item) === selectionKey)) {
+      setSelectedKfId(null);
+      return;
+    }
+    captureTimelineDragItems(nextSelection, 'keyframe');
     setDraggingLayerKf({
       layerType,
       layerId,
@@ -607,24 +1172,20 @@ export const AnimationTimeline: React.FC = () => {
       initialT: kf.timeSec,
     });
     setSelectedKfId(kf.id);
+    setSelectedBlockId(null);
   };
 
   const handleLayerKfPointerMove = (e: React.PointerEvent) => {
     if (!draggingLayerKf) return;
     e.stopPropagation();
     const dx = e.clientX - draggingLayerKf.startX;
-    const dt = dx / PX_PER_SECOND;
-    const newTime = Math.max(
-      0,
-      Math.min(state.durationSec || 10, Math.round((draggingLayerKf.initialT + dt) * 10) / 10)
+    const dt = dx / timelinePxPerSecond;
+    moveSelectedTimelineItems(
+      dt,
+      draggingLayerKf.initialT,
+      'keyframe',
+      e.altKey
     );
-    state.updateLayerKeyframe(
-      draggingLayerKf.layerType,
-      draggingLayerKf.layerId,
-      draggingLayerKf.keyframeId,
-      { timeSec: newTime }
-    );
-    onChange({ currentTimeSec: newTime });
   };
 
   const handleLayerKfPointerUp = (e: React.PointerEvent) => {
@@ -633,6 +1194,7 @@ export const AnimationTimeline: React.FC = () => {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
     setDraggingLayerKf(null);
+    setSnapGuideTime(null);
   };
 
   // Build Layer Track Rows matching the exact order in RightSidebar Layers panel
@@ -707,8 +1269,10 @@ export const AnimationTimeline: React.FC = () => {
         buildRow(
           'shape',
           s.id,
-          s.name || s.shapeType || 'Shape',
-          <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
+          s.maskTarget ? `Mask: ${s.name || s.shapeType || 'Shape'}` : s.name || s.shapeType || 'Shape',
+          s.maskTarget
+            ? <PhosphorIcons.MagicWandIcon className="w-3.5 h-3.5 text-pastel-pink shrink-0" />
+            : <ShapeCatIcon className="w-3.5 h-3.5 text-pastel-green shrink-0" />
         )
       );
     });
@@ -775,6 +1339,30 @@ export const AnimationTimeline: React.FC = () => {
 
   const layerTracks = buildLayerRows();
   const totalTracksHeight = Math.max(8 + layerTracks.length * 32 + 36, 96);
+  const easingEditorKeyframes = easingEditorTarget
+    ? [...getLayerKeyframes(easingEditorTarget.layerType, easingEditorTarget.layerId)].sort(
+        (a, b) => a.timeSec - b.timeSec
+      )
+    : [];
+  const easingEditorIndex = easingEditorTarget
+    ? easingEditorKeyframes.findIndex((keyframe) => keyframe.id === easingEditorTarget.keyframeId)
+    : -1;
+  const easingEditorKeyframe =
+    easingEditorIndex >= 0 ? easingEditorKeyframes[easingEditorIndex] : null;
+  const easingEditorNextKeyframe =
+    easingEditorIndex >= 0 ? easingEditorKeyframes[easingEditorIndex + 1] : null;
+  const sortedMockupKeyframes = [...state.keyframes].sort((a, b) => a.timeSec - b.timeSec);
+  const mockupEasingEditorIndex = mockupEasingEditorKeyframeId
+    ? sortedMockupKeyframes.findIndex(
+        (keyframe) => keyframe.id === mockupEasingEditorKeyframeId
+      )
+    : -1;
+  const mockupEasingEditorKeyframe =
+    mockupEasingEditorIndex >= 0 ? sortedMockupKeyframes[mockupEasingEditorIndex] : null;
+  const mockupEasingEditorNextKeyframe =
+    mockupEasingEditorIndex >= 0
+      ? sortedMockupKeyframes[mockupEasingEditorIndex + 1]
+      : null;
 
   // Find currently active loop animation for selected layer
   const getSelectedLayerActiveLoop = (): ElementLoopAnimation => {
@@ -807,6 +1395,7 @@ export const AnimationTimeline: React.FC = () => {
     onChange({ currentTimeSec: newTime });
     setSelectedBlockId(null);
     setSelectedKfId(null);
+    setSelectedTimelineItems([]);
   };
 
   if (isCollapsed) {
@@ -852,11 +1441,17 @@ export const AnimationTimeline: React.FC = () => {
   const playheadPercent = (state.currentTimeSec / state.durationSec) * 100;
 
   return (
-    <div className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-2.5">
+    <>
+    <div
+      ref={timelineRootRef}
+      data-timeline-selection-count={selectedTimelineItems.length}
+      className="w-full bg-neutral-950/95 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 z-50 text-white shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-2.5"
+    >
       {/* Top Header Row: Play Controls, Duration, Minimize */}
-      <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2 gap-2">
+      <div className="flex items-center border-b border-neutral-800/80 pb-2 gap-1.5">
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 overflow-x-auto overscroll-x-contain no-scrollbar sm:overflow-x-visible">
         {/* Left: Play/Pause, Time, Reset */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => onChange({ isPlaying: !state.isPlaying })}
             className="p-1.5 hover:bg-neutral-800 bg-neutral-900 border border-neutral-800 text-pastel-pink rounded-lg transition-all cursor-pointer shrink-0"
@@ -882,10 +1477,52 @@ export const AnimationTimeline: React.FC = () => {
           >
             <RefreshCw01 className="w-3.5 h-3.5" />
           </button>
+          {selectedTimelineItems.length > 0 && (
+            <span
+              className="shrink-0 rounded-md border border-pastel-blue/40 bg-pastel-blue/15 px-2 py-1 text-[10px] font-bold text-pastel-blue"
+              title="Shift/Cmd/Ctrl-click placed keyframes or motion blocks to select multiple"
+            >
+              {selectedTimelineItems.length} selected
+            </span>
+          )}
         </div>
 
         {/* Right: Length Selector, Add Keyframe (for Mockup), Collapse */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div
+            className="flex items-center gap-0.5 bg-neutral-900 border border-neutral-800 rounded-lg px-0.5 py-1 text-xs text-slate-300 shrink-0"
+            title={`Timeline zoom: ${Math.round((timelinePxPerSecond / MIN_TIMELINE_PX_PER_SECOND) * 100)}%`}
+          >
+            <button
+              type="button"
+              onClick={() => updateTimelineScale(timelinePxPerSecond - TIMELINE_SCALE_STEP)}
+              disabled={timelinePxPerSecond <= MIN_TIMELINE_PX_PER_SECOND}
+              className="w-4 h-5 rounded text-sm font-bold text-slate-400 hover:bg-neutral-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              aria-label="Zoom timeline out"
+            >
+              −
+            </button>
+            <input
+              type="range"
+              min={MIN_TIMELINE_PX_PER_SECOND}
+              max={MAX_TIMELINE_PX_PER_SECOND}
+              step={TIMELINE_SCALE_STEP}
+              value={timelinePxPerSecond}
+              onChange={(event) => updateTimelineScale(Number(event.target.value))}
+              className="hidden md:block w-12 lg:w-16 accent-pastel-pink cursor-ew-resize"
+              aria-label="Timeline zoom"
+            />
+            <button
+              type="button"
+              onClick={() => updateTimelineScale(timelinePxPerSecond + TIMELINE_SCALE_STEP)}
+              disabled={timelinePxPerSecond >= MAX_TIMELINE_PX_PER_SECOND}
+              className="w-4 h-5 rounded text-sm font-bold text-slate-400 hover:bg-neutral-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              aria-label="Zoom timeline in"
+            >
+              +
+            </button>
+          </div>
+
           <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 sm:px-2 py-1 text-xs text-slate-300 shrink-0">
             <span className="text-[10px] text-slate-400 font-semibold uppercase hidden sm:inline">
               Duration:
@@ -945,18 +1582,61 @@ export const AnimationTimeline: React.FC = () => {
             </button>
           )}
 
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="p-1.5 hover:bg-neutral-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer"
-            title="Minimize Timeline"
-          >
-            <ChevronDown className="w-4 h-4 text-slate-400 hover:text-pastel-pink" />
-          </button>
         </div>
+        </div>
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 text-slate-400 transition-all hover:border-neutral-700 hover:bg-neutral-800 hover:text-pastel-pink cursor-pointer"
+          title="Minimize Timeline"
+          aria-label="Minimize Timeline"
+        >
+          <ChevronDown className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Row 2: Context-Aware Presets Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar bg-neutral-900/50 p-1.5 rounded-xl border border-neutral-800/80">
+        <div
+          className={`flex h-7 shrink-0 items-center gap-2 rounded-lg border px-2 transition-colors ${
+            state.motionBlurEnabled
+              ? 'border-pastel-blue/50 bg-pastel-blue/10'
+              : 'border-neutral-800 bg-neutral-950/80'
+          }`}
+          title="Add velocity-based blur to moving layers and mockups"
+        >
+          <PhosphorIcons.WindIcon
+            className={`h-3.5 w-3.5 ${state.motionBlurEnabled ? 'text-pastel-blue' : 'text-slate-500'}`}
+          />
+          <span className="whitespace-nowrap text-[10px] font-bold text-slate-300">
+            Motion blur
+          </span>
+          <Toggle
+            aria-label="Enable motion blur"
+            slim
+            isSelected={!!state.motionBlurEnabled}
+            onChange={(motionBlurEnabled) => onChange({ motionBlurEnabled })}
+          />
+          {state.motionBlurEnabled && (
+            <>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                step={5}
+                value={state.motionBlurStrength ?? 50}
+                onChange={(event) => onChange({ motionBlurStrength: Number(event.target.value) })}
+                className="w-14 accent-pastel-blue cursor-ew-resize"
+                aria-label="Motion blur strength"
+              />
+              <span className="w-7 text-right font-mono text-[9px] text-pastel-blue">
+                {state.motionBlurStrength ?? 50}%
+              </span>
+            </>
+          )}
+        </div>
+
+        <div className="mx-0.5 h-4 w-px shrink-0 bg-neutral-800" />
+
         {selectedTrack.type === 'mockup' ? (
           <>
             <span className="text-[10px] uppercase font-bold text-pastel-pink mr-1 shrink-0 flex items-center gap-1">
@@ -1234,7 +1914,7 @@ export const AnimationTimeline: React.FC = () => {
               >
                 {/* Fixed 1-Second Grid Intervals & Half-Second Subticks */}
                 {Array.from({ length: Math.floor(state.durationSec) + 1 }).map((_, i) => {
-                  const tickX = PAD_PX + i * PX_PER_SECOND;
+                  const tickX = PAD_PX + i * timelinePxPerSecond;
                   return (
                     <React.Fragment key={i}>
                       {/* Major 1s Tick */}
@@ -1251,7 +1931,7 @@ export const AnimationTimeline: React.FC = () => {
                       {/* Half-second Sub-tick */}
                       {i < state.durationSec && (
                         <div
-                          style={{ left: `${tickX + PX_PER_SECOND / 2}px` }}
+                          style={{ left: `${tickX + timelinePxPerSecond / 2}px` }}
                           className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center pointer-events-none"
                         >
                           <div className="h-1 w-px bg-neutral-800" />
@@ -1263,7 +1943,7 @@ export const AnimationTimeline: React.FC = () => {
 
                 {/* Top Scrubber Playhead Handle (Downward-pointing triangle) */}
                 <div
-                  style={{ left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px` }}
+                  style={{ left: `${PAD_PX + state.currentTimeSec * timelinePxPerSecond}px` }}
                   className="absolute -translate-x-1/2 top-0 z-30 pointer-events-none flex flex-col items-center"
                 >
                   <svg
@@ -1299,12 +1979,21 @@ export const AnimationTimeline: React.FC = () => {
                 {/* Global Vertical Playhead Needle (extends through all tracks from top to bottom) */}
                 <div
                   style={{
-                    left: `${PAD_PX + state.currentTimeSec * PX_PER_SECOND}px`,
+                    left: `${PAD_PX + state.currentTimeSec * timelinePxPerSecond}px`,
                     height: `${totalTracksHeight}px`,
                     minHeight: '100%',
                   }}
                   className="absolute top-0 bottom-0 w-px bg-pastel-pink pointer-events-none z-20 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
                 />
+                {snapGuideTime !== null && (
+                  <div
+                    style={{
+                      left: `${PAD_PX + snapGuideTime * timelinePxPerSecond}px`,
+                      height: `${totalTracksHeight}px`,
+                    }}
+                    className="absolute top-0 bottom-0 z-[120] w-px bg-pastel-blue pointer-events-none shadow-[0_0_7px_rgba(147,197,253,0.9)]"
+                  />
+                )}
 
               {/* Top Empty Track Spacer */}
               <div className="h-2 shrink-0 pointer-events-none" />
@@ -1332,7 +2021,7 @@ export const AnimationTimeline: React.FC = () => {
                       else if (row.type === 'shape') state.selectShapeLayer(row.id);
                       else if (row.type === 'group') state.selectLayerGroup(row.id);
                     }}
-                    className={`h-8 shrink-0 flex items-center relative group ${
+                    className={`h-8 shrink-0 flex items-center relative group hover:z-[80] focus-within:z-[80] ${
                       row.type === 'group'
                         ? 'bg-pastel-pink/[0.025]'
                         : row.depth > 0
@@ -1348,8 +2037,8 @@ export const AnimationTimeline: React.FC = () => {
                       {layerKfs.length >= 2 && (
                         <div
                           style={{
-                            left: `${PAD_PX + layerKfs[0].timeSec * PX_PER_SECOND}px`,
-                            width: `${(layerKfs[layerKfs.length - 1].timeSec - layerKfs[0].timeSec) * PX_PER_SECOND}px`,
+                            left: `${PAD_PX + layerKfs[0].timeSec * timelinePxPerSecond}px`,
+                            width: `${(layerKfs[layerKfs.length - 1].timeSec - layerKfs[0].timeSec) * timelinePxPerSecond}px`,
                           }}
                           className="absolute h-0.5 rounded-full bg-pastel-pink/40 pointer-events-none z-10"
                         />
@@ -1360,14 +2049,29 @@ export const AnimationTimeline: React.FC = () => {
                         const meta = MOTION_PRESETS.find((p) => p.id === motion.preset);
                         const isEntrance = meta?.category === 'entrance';
                         const isExit = meta?.category === 'exit';
-                        const blockLeft = PAD_PX + motion.startTimeSec * PX_PER_SECOND;
-                        const blockWidth = Math.max(motion.durationSec * PX_PER_SECOND, 38);
+                        const blockLeft = PAD_PX + motion.startTimeSec * timelinePxPerSecond;
+                        const blockWidth = Math.max(motion.durationSec * timelinePxPerSecond, 38);
                         const isDraggingThis = draggingMotionBlock?.blockId === motion.id;
                         const isSelectedBlock = selectedBlockId === motion.id;
+                        const isMultiSelected = isTimelineItemSelected({
+                          kind: 'motion',
+                          layerType: row.type,
+                          layerId: row.id,
+                          blockId: motion.id,
+                        });
+                        const motionEndTime = motion.startTimeSec + motion.durationSec;
+                        let motionTooltipAlignClass = 'left-1/2 -translate-x-1/2';
+                        if (motion.startTimeSec <= 2) {
+                          motionTooltipAlignClass = 'left-0 translate-x-0';
+                        } else if (motionEndTime >= state.durationSec - 2) {
+                          motionTooltipAlignClass = 'right-0 left-auto translate-x-0';
+                        }
 
                         return (
                           <div
                             key={motion.id}
+                            data-timeline-item="motion"
+                            data-timeline-item-id={motion.id}
                             style={{
                               left: `${blockLeft}px`,
                               width: `${blockWidth}px`,
@@ -1380,22 +2084,19 @@ export const AnimationTimeline: React.FC = () => {
                             onPointerCancel={handleMotionBlockPointerUp}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!hasDraggedMotionRef.current) {
-                                setSelectedBlockId((prev) =>
-                                  prev === motion.id ? null : motion.id
-                                );
-                              }
                             }}
-                            className={`absolute h-5 rounded-md flex items-center justify-between px-1.5 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 transition-colors group/motionblock ${
-                              isDraggingThis ? 'ring-2 ring-white scale-[1.02] z-30' : ''
-                            } ${isSelectedBlock ? 'ring-1.5 ring-white' : ''} ${
+                            className={`absolute h-5 rounded-md flex items-center justify-between px-1.5 text-[10px] font-semibold shadow-xs select-none cursor-grab active:cursor-grabbing pointer-events-auto z-10 hover:z-[100] focus-within:z-[100] transition-colors group/motionblock ${
+                              isDraggingThis ? 'ring-2 ring-white scale-[1.02] z-[100]' : ''
+                            } ${isSelectedBlock ? 'ring-1.5 ring-white z-[100]' : ''} ${
+                              isMultiSelected ? 'outline outline-2 outline-pastel-blue outline-offset-1' : ''
+                            } ${
                               isEntrance
                                 ? 'bg-gradient-to-r from-cyan-500/35 via-sky-500/25 to-cyan-500/35 border border-cyan-400 text-cyan-200 hover:border-white'
                                 : isExit
                                   ? 'bg-gradient-to-r from-rose-500/35 via-amber-500/25 to-rose-500/35 border border-rose-400 text-rose-200 hover:border-white'
                                   : 'bg-gradient-to-r from-pastel-pink/35 via-purple-500/25 to-pastel-pink/35 border border-pastel-pink text-pastel-pink hover:border-white'
                             }`}
-                            title="Drag to move. Drag right edge to trim duration."
+                            title="Placed motion block — Shift/Cmd/Ctrl-click to multi-select. Drag to move; drag the right edge to trim."
                           >
                             <span className="flex items-center gap-1 truncate mr-1 pointer-events-none">
                               <span className="text-[9px] shrink-0">
@@ -1428,7 +2129,11 @@ export const AnimationTimeline: React.FC = () => {
                             <div
                               className={`absolute ${
                                 isTopTrack ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
-                              } left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-50 transition-opacity ${
+                              } ${motionTooltipAlignClass} flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 shadow-2xl whitespace-nowrap z-[110] transition-opacity before:content-[''] before:absolute ${
+                                isTopTrack
+                                  ? 'before:-top-2 before:h-3'
+                                  : 'before:-bottom-2 before:h-3'
+                              } before:left-0 before:right-0 before:pointer-events-auto ${
                                 isSelectedBlock || isDraggingThis
                                   ? 'opacity-100 pointer-events-auto'
                                   : 'opacity-0 group-hover/motionblock:opacity-100 pointer-events-none group-hover/motionblock:pointer-events-auto'
@@ -1441,6 +2146,129 @@ export const AnimationTimeline: React.FC = () => {
                                 {motion.startTimeSec.toFixed(1)}s -{' '}
                                 {(motion.startTimeSec + motion.durationSec).toFixed(1)}s
                               </span>
+                              {meta?.textAnimation && (
+                                <div className="flex items-center gap-1.5 border-l border-neutral-700 pl-1.5">
+                                  <select
+                                    value={motion.textUnit ?? 'character'}
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => event.stopPropagation()}
+                                    onChange={(event) =>
+                                      state.updateLayerMotionBlock(
+                                        row.type,
+                                        row.id,
+                                        motion.id,
+                                        {
+                                          textUnit: event.target.value as
+                                            | 'character'
+                                            | 'word',
+                                        }
+                                      )
+                                    }
+                                    className="rounded border border-neutral-700 bg-neutral-950 px-1.5 py-0.5 text-[9px] text-slate-200 outline-none focus:border-pastel-blue"
+                                    title="Animate by character or word"
+                                  >
+                                    <option value="character">Characters</option>
+                                    <option value="word">Words</option>
+                                  </select>
+                                  <select
+                                    value={motion.textOrder ?? 'forward'}
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => event.stopPropagation()}
+                                    onChange={(event) =>
+                                      state.updateLayerMotionBlock(
+                                        row.type,
+                                        row.id,
+                                        motion.id,
+                                        {
+                                          textOrder: event.target.value as
+                                            | 'forward'
+                                            | 'reverse'
+                                            | 'center'
+                                            | 'random',
+                                        }
+                                      )
+                                    }
+                                    className="rounded border border-neutral-700 bg-neutral-950 px-1.5 py-0.5 text-[9px] text-slate-200 outline-none focus:border-pastel-blue"
+                                    title="Animation order"
+                                  >
+                                    <option value="forward">First → last</option>
+                                    <option value="reverse">Last → first</option>
+                                    <option value="center">From center</option>
+                                    <option value="random">Random</option>
+                                  </select>
+                                  <label className="flex items-center gap-1 text-[9px] text-slate-500">
+                                    Stagger
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={200}
+                                      step={10}
+                                      value={Math.round((motion.staggerSec ?? 0.05) * 1000)}
+                                      onPointerDown={(event) => event.stopPropagation()}
+                                      onClick={(event) => event.stopPropagation()}
+                                      onChange={(event) =>
+                                        state.updateLayerMotionBlock(
+                                          row.type,
+                                          row.id,
+                                          motion.id,
+                                          {
+                                            staggerSec: Math.max(
+                                              0,
+                                              Math.min(0.2, Number(event.target.value) / 1000)
+                                            ),
+                                          }
+                                        )
+                                      }
+                                      className="w-12 rounded border border-neutral-700 bg-neutral-950 px-1 py-0.5 font-mono text-[9px] text-pastel-blue outline-none focus:border-pastel-blue"
+                                      title="Delay between animated units in milliseconds"
+                                    />
+                                    ms
+                                  </label>
+                                  <label className="flex items-center gap-1 text-[9px] text-slate-500">
+                                    Duration
+                                    <input
+                                      type="number"
+                                      min={0.2}
+                                      max={state.durationSec}
+                                      step={0.1}
+                                      value={motion.durationSec}
+                                      onPointerDown={(event) => event.stopPropagation()}
+                                      onClick={(event) => event.stopPropagation()}
+                                      onChange={(event) =>
+                                        state.updateLayerMotionBlock(
+                                          row.type,
+                                          row.id,
+                                          motion.id,
+                                          { durationSec: Number(event.target.value) }
+                                        )
+                                      }
+                                      className="w-11 rounded border border-neutral-700 bg-neutral-950 px-1 py-0.5 font-mono text-[9px] text-pastel-pink outline-none focus:border-pastel-pink"
+                                    />
+                                    s
+                                  </label>
+                                  <select
+                                    value={motion.easing ?? (motion.preset === 'text-pop' ? 'spring' : 'ease-out')}
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => event.stopPropagation()}
+                                    onChange={(event) =>
+                                      state.updateLayerMotionBlock(
+                                        row.type,
+                                        row.id,
+                                        motion.id,
+                                        { easing: event.target.value as AnimationEasingType }
+                                      )
+                                    }
+                                    className="rounded border border-neutral-700 bg-neutral-950 px-1.5 py-0.5 text-[9px] text-slate-200 outline-none focus:border-pastel-pink"
+                                    title="Per-unit easing"
+                                  >
+                                    {EASING_PRESET_OPTIONS.map((option) => (
+                                      <option key={option.id} value={option.id}>
+                                        {option.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
                               <button
                                 type="button"
                                 onPointerDown={(e) => e.stopPropagation()}
@@ -1461,21 +2289,34 @@ export const AnimationTimeline: React.FC = () => {
 
                       {/* Layer Custom Keyframe Nodes */}
                       {layerKfs.map((kf) => {
-                        const nodeX = PAD_PX + kf.timeSec * PX_PER_SECOND;
+                        const nodeX = PAD_PX + kf.timeSec * timelinePxPerSecond;
                         const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
                         const isSelected = selectedKfId === kf.id;
                         const isDragging = draggingLayerKf?.keyframeId === kf.id;
+                        const isMultiSelected = isTimelineItemSelected({
+                          kind: 'layer-keyframe',
+                          layerType: row.type,
+                          layerId: row.id,
+                          keyframeId: kf.id,
+                        });
+                        const sortedLayerKfs = [...layerKfs].sort((a, b) => a.timeSec - b.timeSec);
+                        const keyframeIndex = sortedLayerKfs.findIndex(
+                          (keyframe) => keyframe.id === kf.id
+                        );
+                        const nextKeyframe = sortedLayerKfs[keyframeIndex + 1];
 
                         let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
-                        if (nodeX < PAD_PX + 40) {
+                        if (kf.timeSec <= 2) {
                           tooltipAlignClass = 'left-0 translate-x-0';
-                        } else if (nodeX > totalTrackWidth - 60) {
+                        } else if (kf.timeSec >= state.durationSec - 2) {
                           tooltipAlignClass = 'right-0 left-auto translate-x-0';
                         }
 
                         return (
                           <div
                             key={kf.id}
+                            data-timeline-item="layer-keyframe"
+                            data-timeline-item-id={kf.id}
                             style={{ left: `${nodeX}px` }}
                             onPointerDown={(e) => handleLayerKfPointerDown(e, row.type, row.id, kf)}
                             onPointerMove={handleLayerKfPointerMove}
@@ -1486,20 +2327,23 @@ export const AnimationTimeline: React.FC = () => {
                             }
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
                             }}
                             className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
-                              isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
-                                ? 'z-50'
+                              isDragging ||
+                              isMultiSelected ||
+                              hoveredKfId === kf.id ||
+                              selectedKfId === kf.id
+                                ? 'z-[100]'
                                 : 'z-20'
                             }`}
-                            title={`Keyframe at ${kf.timeSec.toFixed(1)}s (Click to pin details / Drag to move)`}
+                            title={`Keyframe at ${kf.timeSec.toFixed(1)}s — Shift/Cmd/Ctrl-click to multi-select; drag to move`}
                           >
                             <div
                               className={`w-2.5 h-2.5 rotate-45 border transition-all ${
                                 isActive ||
                                 isSelected ||
                                 isDragging ||
+                                isMultiSelected ||
                                 hoveredKfId === kf.id ||
                                 selectedKfId === kf.id
                                   ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
@@ -1529,25 +2373,56 @@ export const AnimationTimeline: React.FC = () => {
                                   {Math.round(kf.width)}w × {Math.round(kf.height || 0)}h
                                 </span>
                               )}
-                              <select
-                                value={kf.easing || state.animationEasing || 'ease-in-out'}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  state.updateLayerKeyframe(row.type, row.id, kf.id, {
-                                    easing: e.target.value as AnimationEasingType,
-                                  });
-                                }}
-                                className="bg-neutral-950 border border-neutral-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-pastel-pink cursor-pointer"
-                                title="Transition Easing for this Keyframe"
-                              >
-                                {EASING_PRESET_OPTIONS.map((opt) => (
-                                  <option key={opt.id} value={opt.id}>
-                                    {opt.name}
-                                  </option>
-                                ))}
-                              </select>
+                              {nextKeyframe ? (
+                                <>
+                                  <span className="text-[9px] text-slate-500">to next</span>
+                                  <select
+                                    value={
+                                      typeof kf.easing === 'object'
+                                        ? 'custom'
+                                        : kf.easing || state.animationEasing || 'ease-in-out'
+                                    }
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      state.updateLayerKeyframe(row.type, row.id, kf.id, {
+                                        easing: e.target.value as AnimationEasingType,
+                                      });
+                                    }}
+                                    className="bg-neutral-950 border border-neutral-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-pastel-pink cursor-pointer"
+                                    title="Easing from this keyframe to the next"
+                                  >
+                                    {typeof kf.easing === 'object' && (
+                                      <option value="custom">Custom curve</option>
+                                    )}
+                                    {EASING_PRESET_OPTIONS.map((opt) => (
+                                      <option key={opt.id} value={opt.id}>
+                                        {opt.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEasingEditorTarget({
+                                        layerType: row.type,
+                                        layerId: row.id,
+                                        keyframeId: kf.id,
+                                        layerName: row.name,
+                                      });
+                                    }}
+                                    className="rounded border border-pastel-pink/30 bg-pastel-pink/10 px-1.5 py-0.5 text-[10px] font-semibold text-pastel-pink transition-colors hover:bg-pastel-pink/20"
+                                    title="Open custom easing curve editor"
+                                  >
+                                    Curve
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-[9px] text-slate-500">Final keyframe</span>
+                              )}
                               <button
                                 type="button"
                                 onPointerDown={(e) => e.stopPropagation()}
@@ -1570,7 +2445,7 @@ export const AnimationTimeline: React.FC = () => {
                         <div
                           style={{
                             left: `${PAD_PX}px`,
-                            width: `${state.durationSec * PX_PER_SECOND}px`,
+                            width: `${state.durationSec * timelinePxPerSecond}px`,
                           }}
                           className="absolute h-4 rounded-md border border-dashed border-neutral-800 bg-neutral-950/40 flex items-center px-2 text-[9px] text-slate-500 font-mono pointer-events-none"
                         >
@@ -1592,7 +2467,7 @@ export const AnimationTimeline: React.FC = () => {
                     name: 'Mockup',
                   });
                 }}
-                className="h-9 shrink-0 flex items-center relative bg-neutral-950/90"
+                className="h-9 shrink-0 flex items-center relative bg-neutral-950/90 hover:z-[80] focus-within:z-[80]"
               >
                 <div
                   ref={mockupTrackRef}
@@ -1601,27 +2476,40 @@ export const AnimationTimeline: React.FC = () => {
                 >
                   {/* Horizontal connecting track line */}
                   <div
-                    style={{ left: `${PAD_PX}px`, width: `${state.durationSec * PX_PER_SECOND}px` }}
+                    style={{ left: `${PAD_PX}px`, width: `${state.durationSec * timelinePxPerSecond}px` }}
                     className="absolute h-1.5 rounded-full bg-neutral-900 border border-neutral-800"
                   />
 
                   {/* Keyframe Nodes */}
                   {state.keyframes.map((kf) => {
-                    const nodeX = PAD_PX + kf.timeSec * PX_PER_SECOND;
+                    const nodeX = PAD_PX + kf.timeSec * timelinePxPerSecond;
                     const isActive = Math.abs(state.currentTimeSec - kf.timeSec) < 0.2;
                     const isSelected = selectedKfId === kf.id;
                     const isDragging = draggingKfId === kf.id;
+                    const isMultiSelected = isTimelineItemSelected({
+                      kind: 'mockup-keyframe',
+                      keyframeId: kf.id,
+                    });
+                    const sortedKeyframes = [...state.keyframes].sort(
+                      (a, b) => a.timeSec - b.timeSec
+                    );
+                    const keyframeIndex = sortedKeyframes.findIndex(
+                      (keyframe) => keyframe.id === kf.id
+                    );
+                    const nextKeyframe = sortedKeyframes[keyframeIndex + 1];
 
                     let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
-                    if (nodeX < PAD_PX + 40) {
+                    if (kf.timeSec <= 2) {
                       tooltipAlignClass = 'left-0 translate-x-0';
-                    } else if (nodeX > totalTrackWidth - 60) {
+                    } else if (kf.timeSec >= state.durationSec - 2) {
                       tooltipAlignClass = 'right-0 left-auto translate-x-0';
                     }
 
                     return (
                       <div
                         key={kf.id}
+                        data-timeline-item="mockup-keyframe"
+                        data-timeline-item-id={kf.id}
                         style={{ left: `${nodeX}px` }}
                         onPointerDown={(e) => handleMarkerPointerDown(e, kf)}
                         onPointerMove={(e) => handleMarkerPointerMove(e, kf.id)}
@@ -1630,19 +2518,23 @@ export const AnimationTimeline: React.FC = () => {
                         onMouseLeave={() => setHoveredKfId((cur) => (cur === kf.id ? null : cur))}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedKfId((prev) => (prev === kf.id ? null : kf.id));
                         }}
                         className={`absolute -translate-x-1/2 group cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2 pt-2 -mt-2 ${
-                          isDragging || hoveredKfId === kf.id || selectedKfId === kf.id
-                            ? 'z-50'
+                          isDragging ||
+                          isMultiSelected ||
+                          hoveredKfId === kf.id ||
+                          selectedKfId === kf.id
+                            ? 'z-[100]'
                             : 'z-20'
                         }`}
+                        title={`Mockup keyframe at ${kf.timeSec.toFixed(1)}s — Shift/Cmd/Ctrl-click to multi-select; drag to move`}
                       >
                         <div
                           className={`w-2.5 h-2.5 rotate-45 border transition-all ${
                             isActive ||
                             isSelected ||
                             isDragging ||
+                            isMultiSelected ||
                             hoveredKfId === kf.id ||
                             selectedKfId === kf.id
                               ? 'bg-pastel-pink border-white scale-125 shadow-md shadow-pastel-pink/60'
@@ -1661,6 +2553,58 @@ export const AnimationTimeline: React.FC = () => {
                           <span className="font-mono text-pastel-pink font-semibold">
                             {kf.timeSec.toFixed(1)}s
                           </span>
+                          {nextKeyframe ? (
+                            <>
+                              <span className="text-[9px] text-slate-500">to next</span>
+                              <select
+                                value={
+                                  typeof kf.easing === 'object'
+                                    ? 'custom'
+                                    : kf.easing || state.animationEasing || 'ease-in-out'
+                                }
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  onChange({
+                                    keyframes: state.keyframes.map((keyframe) =>
+                                      keyframe.id === kf.id
+                                        ? {
+                                            ...keyframe,
+                                            easing: e.target.value as AnimationEasingType,
+                                          }
+                                        : keyframe
+                                    ),
+                                  });
+                                }}
+                                className="bg-neutral-950 border border-neutral-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-pastel-pink cursor-pointer"
+                                title="Easing from this keyframe to the next"
+                              >
+                                {typeof kf.easing === 'object' && (
+                                  <option value="custom">Custom curve</option>
+                                )}
+                                {EASING_PRESET_OPTIONS.map((opt) => (
+                                  <option key={opt.id} value={opt.id}>
+                                    {opt.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMockupEasingEditorKeyframeId(kf.id);
+                                }}
+                                className="rounded border border-pastel-pink/30 bg-pastel-pink/10 px-1.5 py-0.5 text-[10px] font-semibold text-pastel-pink transition-colors hover:bg-pastel-pink/20"
+                                title="Open custom easing curve editor"
+                              >
+                                Curve
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[9px] text-slate-500">Final keyframe</span>
+                          )}
                           <button
                             type="button"
                             onPointerDown={(e) => e.stopPropagation()}
@@ -1685,5 +2629,47 @@ export const AnimationTimeline: React.FC = () => {
         </div>
       </div>
     </div>
+    {easingEditorTarget && easingEditorKeyframe && easingEditorNextKeyframe && (
+      <EasingCurveEditor
+        easing={
+          (easingEditorKeyframe.easing || state.animationEasing || 'ease-in-out') as AnimationEasing
+        }
+        layerName={easingEditorTarget.layerName}
+        startTimeSec={easingEditorKeyframe.timeSec}
+        endTimeSec={easingEditorNextKeyframe.timeSec}
+        onApply={(easing) =>
+          state.updateLayerKeyframe(
+            easingEditorTarget.layerType,
+            easingEditorTarget.layerId,
+            easingEditorTarget.keyframeId,
+            { easing }
+          )
+        }
+        onClose={() => setEasingEditorTarget(null)}
+      />
+    )}
+    {mockupEasingEditorKeyframe && mockupEasingEditorNextKeyframe && (
+      <EasingCurveEditor
+        easing={
+          (mockupEasingEditorKeyframe.easing ||
+            state.animationEasing ||
+            'ease-in-out') as AnimationEasing
+        }
+        layerName="Mockup camera"
+        startTimeSec={mockupEasingEditorKeyframe.timeSec}
+        endTimeSec={mockupEasingEditorNextKeyframe.timeSec}
+        onApply={(easing) =>
+          onChange({
+            keyframes: state.keyframes.map((keyframe) =>
+              keyframe.id === mockupEasingEditorKeyframe.id
+                ? { ...keyframe, easing }
+                : keyframe
+            ),
+          })
+        }
+        onClose={() => setMockupEasingEditorKeyframeId(null)}
+      />
+    )}
+    </>
   );
 };

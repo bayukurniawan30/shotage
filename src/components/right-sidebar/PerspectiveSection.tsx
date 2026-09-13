@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useStudioEditorStore } from '../../store/useStudioStore';
 import { TiltSliderGroup, PositionSliderGroup } from './shared';
 import { StepperSlider } from '../StepperSlider';
+import { AnchorPointControl } from '../AnchorPointControl';
+import { getAnchorCompensation } from '../../utils/anchorPoint';
+import { MotionPathControl } from '../MotionPathControl';
 
 export const PerspectiveSection: React.FC = () => {
   const state = useStudioEditorStore();
@@ -10,8 +13,35 @@ export const PerspectiveSection: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
 
+  const updateMockupAnchor = (slot: 1 | 2, anchorX: number, anchorY: number) => {
+    const element = document.querySelector<HTMLElement>(
+      `[data-video-export-mockup="${slot}"]`
+    );
+    const previous =
+      slot === 1
+        ? { x: state.mockupAnchorX ?? 0.5, y: state.mockupAnchorY ?? 0.5 }
+        : { x: state.slot2MockupAnchorX ?? 0.5, y: state.slot2MockupAnchorY ?? 0.5 };
+    const compensation = getAnchorCompensation(element, previous, { x: anchorX, y: anchorY });
+
+    if (slot === 1) {
+      onChange({
+        mockupAnchorX: anchorX,
+        mockupAnchorY: anchorY,
+        offsetX: state.offsetX + compensation.x,
+        offsetY: state.offsetY + compensation.y,
+      });
+    } else {
+      onChange({
+        slot2MockupAnchorX: anchorX,
+        slot2MockupAnchorY: anchorY,
+        slot2OffsetX: state.slot2OffsetX + compensation.x,
+        slot2OffsetY: state.slot2OffsetY + compensation.y,
+      });
+    }
+  };
+
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4 space-y-4 shadow-sm">
+    <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-4 shadow-sm">
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
           3D Perspective & Canvas
@@ -74,6 +104,40 @@ export const PerspectiveSection: React.FC = () => {
                 onChange={(v) => onChange({ slot2Zoom: v })}
                 accentColor="#ffafcc"
               />
+            </div>
+          )}
+
+          <div className="border-t border-neutral-800/80 pt-3">
+            <AnchorPointControl
+              label={state.layoutCount === 2 ? 'Anchor point (Slot 1)' : 'Anchor point'}
+              anchorX={state.mockupAnchorX}
+              anchorY={state.mockupAnchorY}
+              onChange={(x, y) => updateMockupAnchor(1, x, y)}
+            />
+            <div className="mt-3 border-t border-neutral-800/80 pt-3">
+              <MotionPathControl
+                value={state.mockupMotionPath}
+                keyframeCount={state.keyframes.length}
+                onChange={(mockupMotionPath) => onChange({ mockupMotionPath })}
+              />
+            </div>
+          </div>
+
+          {state.layoutCount === 2 && (
+            <div className="border-t border-neutral-800/80 pt-3">
+              <AnchorPointControl
+                label="Anchor point (Slot 2)"
+                anchorX={state.slot2MockupAnchorX}
+                anchorY={state.slot2MockupAnchorY}
+                onChange={(x, y) => updateMockupAnchor(2, x, y)}
+              />
+              <div className="mt-3 border-t border-neutral-800/80 pt-3">
+                <MotionPathControl
+                  value={state.slot2MockupMotionPath}
+                  keyframeCount={state.keyframes.length}
+                  onChange={(slot2MockupMotionPath) => onChange({ slot2MockupMotionPath })}
+                />
+              </div>
             </div>
           )}
 
