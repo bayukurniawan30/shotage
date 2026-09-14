@@ -988,26 +988,18 @@ export const ElementsSection: React.FC = () => {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="block text-[11px] font-semibold text-slate-300">Border</label>
-                <button
-                  type="button"
-                  onClick={() =>
+                <Toggle
+                  isSelected={!!selectedShape.borderEnabled}
+                  onChange={() =>
                     state.updateShapeLayer(selectedShape.id, {
                       borderEnabled: !selectedShape.borderEnabled,
                       borderColor: selectedShape.borderColor || '#ffffff',
                       borderWidth: selectedShape.borderWidth ?? 2,
                     })
                   }
-                  className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                    selectedShape.borderEnabled ? 'bg-pastel-pink' : 'bg-slate-800'
-                  }`}
                   aria-label={selectedShape.borderEnabled ? 'Disable border' : 'Enable border'}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-                      selectedShape.borderEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+                  size="sm"
+                />
               </div>
 
               {selectedShape.borderEnabled && (
@@ -1093,24 +1085,20 @@ export const ElementsSection: React.FC = () => {
                   Disabled (Built-in gradient)
                 </span>
               ) : (
-                <button
-                  onClick={() =>
+                <Toggle
+                  isSelected={!!selectedShape.gradient}
+                  onChange={() =>
                     state.updateShapeLayer(selectedShape.id, {
                       gradient: selectedShape.gradient
                         ? null
                         : { color1: '#ffafcc', color2: '#a2d2ff', angle: 135 },
                     })
                   }
-                  className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                    selectedShape.gradient ? 'bg-pastel-pink' : 'bg-slate-800'
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-                      selectedShape.gradient ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+                  aria-label={
+                    selectedShape.gradient ? 'Disable gradient fill' : 'Enable gradient fill'
+                  }
+                  size="sm"
+                />
               )}
             </div>
 
@@ -2022,17 +2010,30 @@ export const ElementsSection: React.FC = () => {
           </div>
           {selectedShape.shadow && (
             <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
-              {([
-                ['Opacity', 'shadowOpacity', 0, 100, '%', 55],
-                ['Blur', 'shadowBlur', 0, 50, 'px', 16],
-                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
-                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
-              ] as const).map(([label, key, min, max, unit, fallback]) => (
+              {(
+                [
+                  ['Opacity', 'shadowOpacity', 0, 100, '%', 55],
+                  ['Blur', 'shadowBlur', 0, 50, 'px', 16],
+                  ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                  ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
+                ] as const
+              ).map(([label, key, min, max, unit, fallback]) => (
                 <div key={key}>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedShape[key] ?? fallback}{unit}</span></div>
-                  <StepperSlider min={min} max={max} step={1} value={selectedShape[key] ?? fallback}
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-slate-300">{label}</span>
+                    <span className="font-mono text-slate-400">
+                      {selectedShape[key] ?? fallback}
+                      {unit}
+                    </span>
+                  </div>
+                  <StepperSlider
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={selectedShape[key] ?? fallback}
                     onChange={(value) => state.updateShapeLayer(selectedShape.id, { [key]: value })}
-                    accentColor="#ffafcc" />
+                    accentColor="#ffafcc"
+                  />
                 </div>
               ))}
             </div>
@@ -2486,15 +2487,29 @@ export const ElementsSection: React.FC = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {([
-                      ['Skew X', 'skewX'],
-                      ['Skew Y', 'skewY'],
-                    ] as const).map(([label, key]) => (
+                    {(
+                      [
+                        ['Skew X', 'skewX'],
+                        ['Skew Y', 'skewY'],
+                      ] as const
+                    ).map(([label, key]) => (
                       <div key={key}>
-                        <div className="flex justify-between text-xs mb-1"><span className="font-medium text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedElement[key] ?? 0}°</span></div>
-                        <StepperSlider min={-60} max={60} step={1} value={selectedElement[key] ?? 0}
-                          onChange={(value) => state.updateCanvasElement(selectedElement.id, { [key]: value })}
-                          accentColor="#ffafcc" />
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-medium text-slate-300">{label}</span>
+                          <span className="font-mono text-slate-400">
+                            {selectedElement[key] ?? 0}°
+                          </span>
+                        </div>
+                        <StepperSlider
+                          min={-60}
+                          max={60}
+                          step={1}
+                          value={selectedElement[key] ?? 0}
+                          onChange={(value) =>
+                            state.updateCanvasElement(selectedElement.id, { [key]: value })
+                          }
+                          accentColor="#ffafcc"
+                        />
                       </div>
                     ))}
                   </div>
@@ -2563,17 +2578,32 @@ export const ElementsSection: React.FC = () => {
           </div>
           {selectedElement.shadow && (
             <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
-              {([
-                ['Opacity', 'shadowOpacity', 0, 100, '%', 65],
-                ['Blur', 'shadowBlur', 0, 50, 'px', 16],
-                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
-                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
-              ] as const).map(([label, key, min, max, unit, fallback]) => (
+              {(
+                [
+                  ['Opacity', 'shadowOpacity', 0, 100, '%', 65],
+                  ['Blur', 'shadowBlur', 0, 50, 'px', 16],
+                  ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                  ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
+                ] as const
+              ).map(([label, key, min, max, unit, fallback]) => (
                 <div key={key}>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedElement[key] ?? fallback}{unit}</span></div>
-                  <StepperSlider min={min} max={max} step={1} value={selectedElement[key] ?? fallback}
-                    onChange={(value) => state.updateCanvasElement(selectedElement.id, { [key]: value })}
-                    accentColor="#ffafcc" />
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-slate-300">{label}</span>
+                    <span className="font-mono text-slate-400">
+                      {selectedElement[key] ?? fallback}
+                      {unit}
+                    </span>
+                  </div>
+                  <StepperSlider
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={selectedElement[key] ?? fallback}
+                    onChange={(value) =>
+                      state.updateCanvasElement(selectedElement.id, { [key]: value })
+                    }
+                    accentColor="#ffafcc"
+                  />
                 </div>
               ))}
             </div>

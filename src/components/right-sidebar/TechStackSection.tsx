@@ -3,6 +3,7 @@ import { useStudioEditorStore } from '../../store/useStudioStore';
 import { TechStackIcon, TECH_STACK_ITEMS, TechStackId } from '../TechStackIcons';
 import { TechStackConfig, TechStackPosition } from '../../types/studio';
 import { StepperSlider } from '../StepperSlider';
+import { Toggle } from '../Toggle';
 
 export const TechStackSection: React.FC = () => {
   const state = useStudioEditorStore();
@@ -66,24 +67,15 @@ export const TechStackSection: React.FC = () => {
             <TechStackIcon id="react" size={16} />
             <TechStackIcon id="typescript" size={16} />
           </div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Tech Stack
-          </h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Tech Stack</h3>
         </div>
         {/* Toggle Switch */}
-        <button
-          type="button"
-          onClick={() => updateConfig({ enabled: !config.enabled })}
-          className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-            config.enabled ? 'bg-pastel-blue' : 'bg-slate-800'
-          }`}
-        >
-          <div
-            className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-              config.enabled ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </button>
+        <Toggle
+          isSelected={config.enabled}
+          onChange={(checked) => updateConfig({ enabled: checked })}
+          aria-label={config.enabled ? 'Disable tech stack' : 'Enable tech stack'}
+          size="sm"
+        />
       </div>
 
       {config.enabled && (
@@ -204,13 +196,41 @@ export const TechStackSection: React.FC = () => {
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
               {[
                 { id: 'plain', label: 'Default', dot: 'border border-dashed border-neutral-600' },
-                { id: 'glass-crystal', label: 'Crystal Clear', dot: 'bg-white/10 border border-white/50 shadow-xs' },
-                { id: 'glass-frosted', label: 'Frosted White', dot: 'bg-white/70 border border-white/90 shadow-xs' },
-                { id: 'glass-smoky', label: 'Smoky Dark', dot: 'bg-neutral-900/80 border border-neutral-600 shadow-xs' },
-                { id: 'glass-light', label: 'Light Glass', dot: 'bg-white/30 border border-white/50' },
-                { id: 'glass-dark', label: 'Dark Glass', dot: 'bg-neutral-950/40 border border-white/20' },
-                { id: 'badge-light', label: 'Light Badge', dot: 'bg-white border border-slate-300' },
-                { id: 'badge-dark', label: 'Dark Badge', dot: 'bg-neutral-900 border border-neutral-700' },
+                {
+                  id: 'glass-crystal',
+                  label: 'Crystal Clear',
+                  dot: 'bg-white/10 border border-white/50 shadow-xs',
+                },
+                {
+                  id: 'glass-frosted',
+                  label: 'Frosted White',
+                  dot: 'bg-white/70 border border-white/90 shadow-xs',
+                },
+                {
+                  id: 'glass-smoky',
+                  label: 'Smoky Dark',
+                  dot: 'bg-neutral-900/80 border border-neutral-600 shadow-xs',
+                },
+                {
+                  id: 'glass-light',
+                  label: 'Light Glass',
+                  dot: 'bg-white/30 border border-white/50',
+                },
+                {
+                  id: 'glass-dark',
+                  label: 'Dark Glass',
+                  dot: 'bg-neutral-950/40 border border-white/20',
+                },
+                {
+                  id: 'badge-light',
+                  label: 'Light Badge',
+                  dot: 'bg-white border border-slate-300',
+                },
+                {
+                  id: 'badge-dark',
+                  label: 'Dark Badge',
+                  dot: 'bg-neutral-900 border border-neutral-700',
+                },
               ].map((bg) => (
                 <button
                   key={bg.id}

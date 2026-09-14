@@ -2188,28 +2188,53 @@ export const useStudioStore = create<StudioStore>()(
             });
           }
 
-          // Calculate start time: if not provided or collides with existing blocks, find non-overlapping slot
-          let startT = startTimeSec ?? state.currentTimeSec;
-          let finalDur = dur;
+          // Find a playable, non-overlapping gap. In particular, never place an
+          // entrance at durationSec: it would remain at 0% opacity for the whole stage.
+          const timelineEnd = Math.max(0.2, state.durationSec || 10);
+          const requestedStart = Math.max(
+            0,
+            Math.min(timelineEnd, startTimeSec ?? state.currentTimeSec)
+          );
+          let finalDur = Math.min(Math.max(0.2, dur), timelineEnd);
+          const occupied = currentMotions
+            .map((block) => ({
+              start: Math.max(0, block.startTimeSec),
+              end: Math.min(timelineEnd, block.startTimeSec + block.durationSec),
+            }))
+            .filter((block) => block.end > block.start)
+            .sort((a, b) => a.start - b.start);
+          const gaps: Array<{ start: number; end: number }> = [];
+          let cursor = 0;
 
-          // If startT falls inside an existing block, push it to the end of that block
-          currentMotions.forEach((b) => {
-            if (startT >= b.startTimeSec && startT < b.startTimeSec + b.durationSec) {
-              startT = b.startTimeSec + b.durationSec;
-            }
+          occupied.forEach((block) => {
+            if (block.start > cursor) gaps.push({ start: cursor, end: block.start });
+            cursor = Math.max(cursor, block.end);
           });
+          if (cursor < timelineEnd) gaps.push({ start: cursor, end: timelineEnd });
 
-          // Check if [startT, startT + finalDur] overlaps with a subsequent block
-          const nextBlock = currentMotions.find((b) => b.startTimeSec >= startT);
-          if (nextBlock && startT + finalDur > nextBlock.startTimeSec) {
-            const availableGap = nextBlock.startTimeSec - startT;
-            if (availableGap >= 0.4) {
-              finalDur = availableGap;
-            } else {
-              // Place after the last block
-              const lastBlock = currentMotions[currentMotions.length - 1];
-              startT = lastBlock ? lastBlock.startTimeSec + lastBlock.durationSec : 0;
-            }
+          const viableGaps = gaps.filter((gap) => gap.end - gap.start >= 0.2);
+          const forwardGap =
+            viableGaps.find(
+              (gap) =>
+                requestedStart >= gap.start &&
+                requestedStart < gap.end &&
+                gap.end - requestedStart >= 0.2
+            ) || viableGaps.find((gap) => gap.start >= requestedStart);
+          const fallbackGap =
+            viableGaps.find(
+              (gap) => requestedStart >= gap.start && requestedStart <= gap.end
+            ) || [...viableGaps].reverse().find((gap) => gap.end <= requestedStart);
+          const targetGap = forwardGap || fallbackGap;
+          if (!targetGap) return state;
+
+          let startT =
+            forwardGap === targetGap
+              ? Math.max(targetGap.start, requestedStart)
+              : Math.max(targetGap.start, targetGap.end - finalDur);
+          finalDur = Math.min(finalDur, targetGap.end - startT);
+          if (finalDur < 0.2) {
+            startT = Math.max(targetGap.start, targetGap.end - 0.2);
+            finalDur = targetGap.end - startT;
           }
 
           const newBlock: LayerMotionBlock = {

@@ -74,6 +74,82 @@ interface MaskPose {
 interface Point2D { x: number; y: number }
 
 const svgPathPointCache = new Map<string, Point2D[]>();
+let textMeasurementContext: CanvasRenderingContext2D | null | undefined;
+
+interface AnimatedTextFillSlice {
+  left: number;
+  top: number;
+  width: number;
+}
+
+const getTextMeasurementContext = () => {
+  if (textMeasurementContext !== undefined) return textMeasurementContext;
+  if (typeof document === 'undefined') {
+    textMeasurementContext = null;
+    return textMeasurementContext;
+  }
+  textMeasurementContext = document.createElement('canvas').getContext('2d');
+  return textMeasurementContext;
+};
+
+const getAnimatedTextFillLayout = (
+  text: string,
+  segments: Array<{ text: string; animationIndex: number | null }>,
+  fontFamily: string,
+  fontSize: number,
+  fontWeight: string,
+  fontStyle: string,
+  letterSpacing: number,
+  textAlign: 'left' | 'center' | 'right'
+) => {
+  const context = getTextMeasurementContext();
+  if (context) {
+    const escapedFamily = fontFamily.replace(/"/g, '\\"');
+    context.font = `${fontStyle} ${fontWeight} ${fontSize}px "${escapedFamily}"`;
+  }
+
+  const measure = (value: string) => {
+    const measured = context?.measureText(value).width ?? value.length * fontSize * 0.62;
+    return measured + Math.max(0, Array.from(value).length - 1) * letterSpacing;
+  };
+  const lines = text.split('\n');
+  const lineWidths = lines.map((line) => measure(line));
+  const width = Math.max(1, ...lineWidths);
+  const lineHeight = fontSize * 1.2;
+  const lineStart = (lineIndex: number) => {
+    const remaining = width - (lineWidths[lineIndex] ?? 0);
+    if (textAlign === 'right') return remaining;
+    if (textAlign === 'center') return remaining / 2;
+    return 0;
+  };
+  const slices: AnimatedTextFillSlice[] = [];
+  let lineIndex = 0;
+  let cursorX = lineStart(lineIndex);
+
+  segments.forEach((segment, segmentIndex) => {
+    slices[segmentIndex] = {
+      left: cursorX,
+      top: lineIndex * lineHeight,
+      width: measure(segment.text),
+    };
+
+    const parts = segment.text.split('\n');
+    parts.forEach((part, partIndex) => {
+      if (partIndex > 0) {
+        lineIndex += 1;
+        cursorX = lineStart(lineIndex);
+      }
+      cursorX += measure(part);
+    });
+  });
+
+  return {
+    width,
+    height: Math.max(lineHeight, lines.length * lineHeight),
+    lineHeight,
+    slices,
+  };
+};
 
 const sampleSvgPath = (pathData: string, samples = 64): Point2D[] => {
   const cacheKey = `${samples}:${pathData}`;
@@ -933,9 +1009,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
         const posX = kfValues.x ?? layer.x;
         const posY = kfValues.y ?? layer.y;
-        const posRot = (kfValues.rotation ?? layer.rotation ?? 0) + motion.rotate;
-        const posPitch = (kfValues.pitch ?? layer.pitch ?? 0) + motion.rotateX;
-        const posYaw = (kfValues.yaw ?? layer.yaw ?? 0) + motion.rotateY;
+        const hasClippedTextFill = !!(layer.bgImage || layer.gradient);
+        const posRot =
+          (kfValues.rotation ?? layer.rotation ?? 0) +
+          (hasClippedTextFill ? 0 : motion.rotate);
+        const posPitch =
+          (kfValues.pitch ?? layer.pitch ?? 0) +
+          (hasClippedTextFill ? 0 : motion.rotateX);
+        const posYaw =
+          (kfValues.yaw ?? layer.yaw ?? 0) +
+          (hasClippedTextFill ? 0 : motion.rotateY);
         const posOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const posFontSize = kfValues.fontSize ?? layer.fontSize;
         const posBlur = kfValues.blur ?? layer.blur ?? 0;
@@ -948,14 +1031,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         const grouped = applyLayerGroupTransform(
           'text',
           layer.id,
-          posX + motion.dx,
-          posY + motion.dy,
+          posX + (hasClippedTextFill ? 0 : motion.dx),
+          posY + (hasClippedTextFill ? 0 : motion.dy),
           posRot,
-          sx * motion.scale,
-          sy * motion.scale,
-          (posOpacity / 100) * motion.opacity,
+          sx * (hasClippedTextFill ? 1 : motion.scale),
+          sy * (hasClippedTextFill ? 1 : motion.scale),
+          (posOpacity / 100) * (hasClippedTextFill ? 1 : motion.opacity),
           motion.isVisible,
-          posBlur + (motion.blur ?? 0)
+          posBlur + (hasClippedTextFill ? 0 : (motion.blur ?? 0))
         );
         const velocityBlur = getLayerMotionBlur('text', layer, layer.text);
         const textLines = layer.text.split('\n');
@@ -1007,6 +1090,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               layer.text,
               textAnimationBlock.textUnit ?? 'character'
             );
+            const fillLayout = hasClippedTextFill
+              ? getAnimatedTextFillLayout(
+                  layer.text,
+                  segments,
+                  fontFamilyCss,
+                  posFontSize,
+                  layer.fontWeight,
+                  layer.fontStyle,
+                  posLetterSpacing,
+                  textAlign
+                )
+              : null;
             const animatedUnitCount = segments.reduce(
               (count, segment) => count + (segment.animationIndex === null ? 0 : 1),
               0
@@ -1049,6 +1144,41 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   )
                 : 0;
               const unitBlur = unit.blur + characterMotionBlur;
+              const fillSlice = fillLayout?.slices[index];
+              const animatedFillStyle: React.CSSProperties =
+                fillLayout && fillSlice && layer.bgImage
+                  ? {
+                      backgroundImage: `url(${layer.bgImage})`,
+                      backgroundSize: `${(fillLayout.width * (layer.bgImageZoom ?? 100)) / 100}px auto`,
+                      backgroundPosition: `calc(50% + ${
+                        fillLayout.width / 2 +
+                        (layer.bgImageOffsetX || 0) -
+                        fillSlice.left -
+                        fillSlice.width / 2
+                      }px) calc(50% + ${
+                        fillLayout.height / 2 +
+                        (layer.bgImageOffsetY || 0) -
+                        fillSlice.top -
+                        fillLayout.lineHeight / 2
+                      }px)`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      color: 'transparent',
+                    }
+                  : fillLayout && fillSlice && layer.gradient
+                    ? {
+                        backgroundImage: `linear-gradient(${layer.gradient.angle}deg, ${layer.gradient.color1}, ${layer.gradient.color2})`,
+                        backgroundSize: `${fillLayout.width}px ${fillLayout.height}px`,
+                        backgroundPosition: `${-fillSlice.left}px ${-fillSlice.top}px`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        color: 'transparent',
+                      }
+                    : {};
 
               return (
                 <span
@@ -1061,6 +1191,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     transformOrigin: 'center 70%',
                     filter: unitBlur > 0 ? `blur(${unitBlur}px)` : undefined,
                     willChange: motionBlurActive ? 'transform, opacity, filter' : undefined,
+                    ...animatedFillStyle,
                   }}
                 >
                   {segment.text}
@@ -1168,8 +1299,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               textAlign: layer.textAlign,
               opacity: grouped.visible ? grouped.opacity : 0,
               filter:
-                grouped.blur + velocityBlur > 0
-                  ? `blur(${grouped.blur + velocityBlur}px)`
+                grouped.blur + (hasClippedTextFill ? 0 : velocityBlur) > 0
+                  ? `blur(${grouped.blur + (hasClippedTextFill ? 0 : velocityBlur)}px)`
                   : undefined,
               textShadow:
                 layer.bgImage || layer.gradient
@@ -1212,7 +1343,26 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               style={{
                 display: 'inline-block',
                 fontFamily: 'inherit',
-                ...textFillStyle,
+                ...(hasClippedTextFill
+                  ? {
+                      transform: `translate(${motion.dx}px, ${motion.dy}px) perspective(1000px) rotateX(${motion.rotateX}deg) rotateY(${motion.rotateY}deg) rotate(${motion.rotate}deg) scale(${motion.scale})`,
+                      transformOrigin: anchorOrigin(layer.anchorX, layer.anchorY),
+                      transformStyle: 'preserve-3d',
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      opacity: motion.opacity,
+                      filter:
+                        (motion.blur ?? 0) + velocityBlur > 0
+                          ? `blur(${(motion.blur ?? 0) + velocityBlur}px)`
+                          : undefined,
+                      willChange: layer.motions?.length
+                        ? 'transform, opacity, filter'
+                        : undefined,
+                    }
+                  : {}),
+                ...(textAnimationBlock && hasClippedTextFill
+                  ? { color: 'transparent', WebkitTextFillColor: 'transparent' }
+                  : textFillStyle),
               }}
             >
               {layer.socialPlatform ? (
@@ -1234,7 +1384,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     size={layer.iconSize || layer.fontSize * 1.1}
                     color={layer.iconColor || posColor}
                   />
-                  <span style={{ fontFamily: fontFamilyCss, ...textFillStyle }}>
+                  <span
+                    style={{
+                      fontFamily: fontFamilyCss,
+                      ...(textAnimationBlock && hasClippedTextFill
+                        ? { color: 'transparent', WebkitTextFillColor: 'transparent' }
+                        : textFillStyle),
+                    }}
+                  >
                     {renderTextContent()}
                   </span>
                 </div>
@@ -1542,7 +1699,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             case 'rectangle':
             case 'square':
             default:
-              return { borderRadius: `${shapeBorderRadius || 8}px` };
+              return { borderRadius: `${shapeBorderRadius}px` };
           }
         };
 

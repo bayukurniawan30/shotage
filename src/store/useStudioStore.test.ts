@@ -42,6 +42,42 @@ describe('studio history performance', () => {
   });
 });
 
+describe('layer motion placement', () => {
+  it('keeps a new entrance playable when the playhead is at the stage end', () => {
+    useStudioStore.setState({
+      currentTimeSec: 10,
+      durationSec: 10,
+      textLayers: [
+        {
+          id: 'motion-text',
+          text: 'Animate me',
+          fontFamily: 'Inter',
+          fontSize: 32,
+          fontWeight: '700',
+          fontStyle: 'normal',
+          color: '#ffffff',
+          textAlign: 'center',
+          x: 0,
+          y: 0,
+          shadow: false,
+          opacity: 100,
+          rotation: 0,
+          position: 'above',
+        },
+      ],
+    });
+
+    useStudioStore
+      .getState()
+      .addLayerMotionBlock('text', 'motion-text', 'blur-in');
+
+    const motion = useStudioStore.getState().textLayers[0].motions?.[0];
+    expect(motion).toBeDefined();
+    expect(motion!.startTimeSec).toBeLessThan(10);
+    expect(motion!.startTimeSec + motion!.durationSec).toBeLessThanOrEqual(10);
+  });
+});
+
 describe('shape masks', () => {
   it('keeps one mask per target and releases it when the target is deleted', () => {
     useStudioStore.setState({

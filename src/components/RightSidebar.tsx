@@ -67,14 +67,23 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       const selectedShape = Boolean(next.shape && next.shape !== previous.shape);
 
       if (selectedText) {
-        setActiveDesktopSection('text');
+        const selectedTextLayer = state.textLayers.find((layer) => layer.id === next.text);
+        setActiveDesktopSection(
+          selectedTextLayer?.socialPlatform !== undefined ? 'social' : 'text'
+        );
       } else if (selectedElement || selectedShape) {
         setActiveDesktopSection('elements');
       }
     }
 
     previousSelectionRef.current = next;
-  }, [desktopCollapsed, state.selectedElementId, state.selectedShapeId, state.selectedTextLayerId]);
+  }, [
+    desktopCollapsed,
+    state.selectedElementId,
+    state.selectedShapeId,
+    state.selectedTextLayerId,
+    state.textLayers,
+  ]);
 
   if (mobileSection) {
     if (mobileSection === 'quick') return <QuickModeSection />;

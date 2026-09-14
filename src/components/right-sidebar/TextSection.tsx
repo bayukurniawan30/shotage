@@ -13,6 +13,7 @@ import {
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { FontSelect } from './shared';
 import { StepperSlider } from '../StepperSlider';
+import { Toggle } from '../Toggle';
 import {
   GRADIENT_PRESETS,
   parseColorAndAlpha,
@@ -22,7 +23,9 @@ import {
 export const TextSection: React.FC = () => {
   const state = useStudioEditorStore();
   const [showAllGradients, setShowAllGradients] = useState(false);
-  const [activeOption, setActiveOption] = useState<'size' | 'position' | 'rotation' | 'skew' | 'opacity'>('size');
+  const [activeOption, setActiveOption] = useState<
+    'size' | 'position' | 'rotation' | 'skew' | 'opacity'
+  >('size');
 
   const plainTextLayers = state.textLayers.filter((l) => l.socialPlatform === undefined);
   const selectedLayer = state.textLayers.find(
@@ -46,9 +49,7 @@ export const TextSection: React.FC = () => {
       <div className="border-b border-neutral-800/80 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Type01 className="w-4 h-4 text-pastel-blue" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Text Layers
-          </h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Text Layers</h3>
         </div>
         <button
           onClick={() => state.addTextLayer()}
@@ -89,10 +90,7 @@ export const TextSection: React.FC = () => {
                     <span className="font-mono text-[10px] text-slate-500 font-semibold shrink-0">
                       #{index + 1}
                     </span>
-                    <span
-                      className="truncate font-medium"
-                      style={{ fontFamily: layer.fontFamily }}
-                    >
+                    <span className="truncate font-medium" style={{ fontFamily: layer.fontFamily }}>
                       {layer.text || 'Empty Text'}
                     </span>
                   </div>
@@ -150,9 +148,7 @@ export const TextSection: React.FC = () => {
           {/* Text Content Input with Explode Action */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-[11px] font-semibold text-slate-300">
-                Text Content
-              </label>
+              <label className="block text-[11px] font-semibold text-slate-300">Text Content</label>
               {(() => {
                 const selectedNonSpaceCount = selectedLayer.text
                   ? Array.from(selectedLayer.text).filter((c) => c.trim().length > 0).length
@@ -247,9 +243,7 @@ export const TextSection: React.FC = () => {
 
           {/* Alignment */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-              Alignment
-            </label>
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1">Alignment</label>
             <div className="grid grid-cols-3 gap-1 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
               {(
                 [
@@ -264,9 +258,7 @@ export const TextSection: React.FC = () => {
                   <button
                     key={align.id}
                     type="button"
-                    onClick={() =>
-                      state.updateTextLayer(selectedLayer.id, { textAlign: align.id })
-                    }
+                    onClick={() => state.updateTextLayer(selectedLayer.id, { textAlign: align.id })}
                     className={`py-1 flex items-center justify-center rounded transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-pastel-blue/20 text-pastel-blue'
@@ -301,9 +293,7 @@ export const TextSection: React.FC = () => {
               <input
                 type="color"
                 value={selectedLayer.color}
-                onChange={(e) =>
-                  state.updateTextLayer(selectedLayer.id, { color: e.target.value })
-                }
+                onChange={(e) => state.updateTextLayer(selectedLayer.id, { color: e.target.value })}
                 className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
                 title="Custom Color"
               />
@@ -316,24 +306,20 @@ export const TextSection: React.FC = () => {
               <label className="block text-[11px] font-semibold text-slate-300">
                 Gradient Text
               </label>
-              <button
-                onClick={() =>
+              <Toggle
+                isSelected={!!selectedLayer.gradient}
+                onChange={() =>
                   state.updateTextLayer(selectedLayer.id, {
                     gradient: selectedLayer.gradient
                       ? null
                       : { color1: '#ffafcc', color2: '#a2d2ff', angle: 135 },
                   })
                 }
-                className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                  selectedLayer.gradient ? 'bg-pastel-blue' : 'bg-slate-800'
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-                    selectedLayer.gradient ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+                aria-label={
+                  selectedLayer.gradient ? 'Disable gradient text' : 'Enable gradient text'
+                }
+                size="sm"
+              />
             </div>
 
             {selectedLayer.gradient && (
@@ -799,9 +785,9 @@ export const TextSection: React.FC = () => {
                   ? 'Size & Stretch'
                   : activeOption === 'rotation'
                     ? 'Rotation & 3D'
-                  : activeOption === 'opacity'
-                    ? 'Opacity & Blur'
-                    : activeOption}
+                    : activeOption === 'opacity'
+                      ? 'Opacity & Blur'
+                      : activeOption}
               </span>
             </div>
 
@@ -955,11 +941,20 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Letter Spacing</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.letterSpacing ?? 0}px</span>
+                      <span className="font-mono text-slate-400">
+                        {selectedLayer.letterSpacing ?? 0}px
+                      </span>
                     </div>
-                    <StepperSlider min={-10} max={40} step={0.5} value={selectedLayer.letterSpacing ?? 0}
-                      onChange={(letterSpacing) => state.updateTextLayer(selectedLayer.id, { letterSpacing })}
-                      accentColor="#ffafcc" />
+                    <StepperSlider
+                      min={-10}
+                      max={40}
+                      step={0.5}
+                      value={selectedLayer.letterSpacing ?? 0}
+                      onChange={(letterSpacing) =>
+                        state.updateTextLayer(selectedLayer.id, { letterSpacing })
+                      }
+                      accentColor="#ffafcc"
+                    />
                   </div>
                 </div>
               )}
@@ -977,9 +972,7 @@ export const TextSection: React.FC = () => {
                       max={300}
                       step={1}
                       value={selectedLayer.x}
-                      onChange={(val) =>
-                        state.updateTextLayer(selectedLayer.id, { x: val })
-                      }
+                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { x: val })}
                       accentColor="#ffafcc"
                     />
                   </div>
@@ -994,9 +987,7 @@ export const TextSection: React.FC = () => {
                       max={300}
                       step={1}
                       value={selectedLayer.y}
-                      onChange={(val) =>
-                        state.updateTextLayer(selectedLayer.id, { y: val })
-                      }
+                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { y: val })}
                       accentColor="#ffafcc"
                     />
                   </div>
@@ -1052,9 +1043,7 @@ export const TextSection: React.FC = () => {
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-                        <span className="font-mono text-slate-400">
-                          {selectedLayer.yaw ?? 0}°
-                        </span>
+                        <span className="font-mono text-slate-400">{selectedLayer.yaw ?? 0}°</span>
                       </div>
                       <StepperSlider
                         min={-30}
@@ -1079,9 +1068,7 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew X</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedLayer.skewX ?? 0}°
-                      </span>
+                      <span className="font-mono text-slate-400">{selectedLayer.skewX ?? 0}°</span>
                     </div>
                     <StepperSlider
                       min={-60}
@@ -1100,9 +1087,7 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew Y</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedLayer.skewY ?? 0}°
-                      </span>
+                      <span className="font-mono text-slate-400">{selectedLayer.skewY ?? 0}°</span>
                     </div>
                     <StepperSlider
                       min={-60}
@@ -1134,9 +1119,7 @@ export const TextSection: React.FC = () => {
                     max={100}
                     step={1}
                     value={selectedLayer.opacity ?? 100}
-                    onChange={(val) =>
-                      state.updateTextLayer(selectedLayer.id, { opacity: val })
-                    }
+                    onChange={(val) => state.updateTextLayer(selectedLayer.id, { opacity: val })}
                     accentColor="#ffafcc"
                   />
                   <div>
@@ -1144,9 +1127,14 @@ export const TextSection: React.FC = () => {
                       <span className="font-medium text-slate-300">Blur</span>
                       <span className="font-mono text-slate-400">{selectedLayer.blur ?? 0}px</span>
                     </div>
-                    <StepperSlider min={0} max={40} step={1} value={selectedLayer.blur ?? 0}
+                    <StepperSlider
+                      min={0}
+                      max={40}
+                      step={1}
+                      value={selectedLayer.blur ?? 0}
                       onChange={(blur) => state.updateTextLayer(selectedLayer.id, { blur })}
-                      accentColor="#ffafcc" />
+                      accentColor="#ffafcc"
+                    />
                   </div>
                 </div>
               )}
@@ -1172,9 +1160,7 @@ export const TextSection: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  state.updateTextLayer(selectedLayer.id, { position: 'underneath' })
-                }
+                onClick={() => state.updateTextLayer(selectedLayer.id, { position: 'underneath' })}
                 className={`py-1.5 px-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                   selectedLayer.position === 'underneath'
                     ? 'bg-pastel-blue/20 border-pastel-blue text-pastel-blue'
@@ -1195,39 +1181,40 @@ export const TextSection: React.FC = () => {
             >
               Drop Shadow
             </span>
-            <button
-              disabled={!!selectedLayer.bgImage}
-              onClick={() =>
-                state.updateTextLayer(selectedLayer.id, { shadow: !selectedLayer.shadow })
-              }
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                selectedLayer.bgImage
-                  ? 'bg-slate-800/50 cursor-not-allowed'
-                  : selectedLayer.shadow
-                    ? 'bg-pastel-blue'
-                    : 'bg-slate-800'
-              }`}
-            >
-              <div
-                className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-                  selectedLayer.shadow ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
+            <Toggle
+              isDisabled={!!selectedLayer.bgImage}
+              isSelected={!!selectedLayer.shadow}
+              onChange={(checked) => state.updateTextLayer(selectedLayer.id, { shadow: checked })}
+              aria-label={selectedLayer.shadow ? 'Disable drop shadow' : 'Enable drop shadow'}
+              size="sm"
+            />
           </div>
           {selectedLayer.shadow && !selectedLayer.bgImage && (
             <div className="grid grid-cols-2 gap-3 pl-2.5 border-l-2 border-pastel-pink/40">
-              {([
-                ['Opacity', 'shadowOpacity', 0, 100, '%', 70],
-                ['Blur', 'shadowBlur', 0, 50, 'px', 12],
-                ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
-                ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 4],
-              ] as const).map(([label, key, min, max, unit, fallback]) => (
+              {(
+                [
+                  ['Opacity', 'shadowOpacity', 0, 100, '%', 70],
+                  ['Blur', 'shadowBlur', 0, 50, 'px', 12],
+                  ['Offset X', 'shadowOffsetX', -50, 50, 'px', 0],
+                  ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 4],
+                ] as const
+              ).map(([label, key, min, max, unit, fallback]) => (
                 <div key={key}>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? fallback}{unit}</span></div>
-                  <StepperSlider min={min} max={max} step={1} value={selectedLayer[key] ?? fallback}
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-slate-300">{label}</span>
+                    <span className="font-mono text-slate-400">
+                      {selectedLayer[key] ?? fallback}
+                      {unit}
+                    </span>
+                  </div>
+                  <StepperSlider
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={selectedLayer[key] ?? fallback}
                     onChange={(value) => state.updateTextLayer(selectedLayer.id, { [key]: value })}
-                    accentColor="#ffafcc" />
+                    accentColor="#ffafcc"
+                  />
                 </div>
               ))}
             </div>
