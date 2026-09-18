@@ -1254,6 +1254,7 @@ export const Studio: React.FC = () => {
                 value={previewCanvasZoom}
                 onChange={handleCanvasZoomChange}
                 accentColor="#ffafcc"
+                iconVariant="zoom"
                 className="flex-1 min-w-[90px] sm:min-w-[120px]"
               />
               <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">

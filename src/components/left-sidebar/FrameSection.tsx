@@ -4,7 +4,7 @@ import { ChevronDown, Check } from '@untitledui/icons';
 import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
 
-export const FrameSection: React.FC = () => {
+export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({ alwaysExpanded = false }) => {
   const state = useStudioEditorStore();
   const onChange = state.updateState;
 
@@ -27,8 +27,8 @@ export const FrameSection: React.FC = () => {
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Frame Mockups</h3>
       </div>
 
-      <div className="relative" ref={frameDropdownRef}>
-        <button
+      <div className={alwaysExpanded ? '' : 'relative'} ref={frameDropdownRef}>
+        {!alwaysExpanded && <button
           onClick={() => setIsFrameDropdownOpen(!isFrameDropdownOpen)}
           className="w-full flex items-center justify-between px-3 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
         >
@@ -53,10 +53,10 @@ export const FrameSection: React.FC = () => {
               isFrameDropdownOpen ? 'rotate-180 text-pastel-pink' : ''
             }`}
           />
-        </button>
+        </button>}
 
-        {isFrameDropdownOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-900 border border-neutral-800 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[320px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+        {(alwaysExpanded || isFrameDropdownOpen) && (
+          <div className={alwaysExpanded ? 'space-y-3' : 'absolute top-full left-0 right-0 mt-2 z-50 max-h-[320px] space-y-3 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150'}>
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
                 Frameless

@@ -6,6 +6,7 @@ import { Toggle } from '../Toggle';
 import { StepperSlider } from '../StepperSlider';
 import { PhosphorWeight, PhosphorBadgeStyle } from '../../types/studio';
 import { getPhosphorIcon } from '../phosphorIconRegistry';
+import { LayerColorControl } from './shared';
 
 export const PhosphorIconsSection: React.FC = () => {
   const state = useStudioEditorStore();
@@ -345,7 +346,7 @@ export const PhosphorIconsSection: React.FC = () => {
         />
 
         {/* Icon Grid Picker */}
-        <div className="grid grid-cols-5 gap-1.5 max-h-40 overflow-y-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800 no-scrollbar">
+        <div className="grid max-h-64 grid-cols-5 gap-1.5 overflow-y-auto rounded-xl border border-neutral-800 bg-neutral-950 p-2 no-scrollbar">
           {filteredItems.map((item) => {
             const IconComp = getPhosphorIcon(item.id);
             return (
@@ -570,27 +571,13 @@ export const PhosphorIconsSection: React.FC = () => {
             <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
               Icon Color
             </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={selectedLayer.color || '#ffffff'}
-                onChange={(e) =>
-                  state.updatePhosphorIconLayer(selectedLayer.id, { color: e.target.value })
-                }
-                className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 cursor-pointer p-0.5"
-              />
-              <input
-                type="text"
-                value={selectedLayer.color || '#ffffff'}
-                onChange={(e) =>
-                  state.updatePhosphorIconLayer(selectedLayer.id, { color: e.target.value })
-                }
-                className="flex-1 bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
-              />
-            </div>
+            <LayerColorControl
+              value={selectedLayer.color || '#ffffff'}
+              onChange={(color) => state.updatePhosphorIconLayer(selectedLayer.id, { color })}
+            />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {([
               ['Blur', 'blur', 0, 40, 'px'],
               ['Skew X', 'skewX', -60, 60, '°'],

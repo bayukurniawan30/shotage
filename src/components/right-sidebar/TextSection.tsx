@@ -11,7 +11,7 @@ import {
   ChevronDown,
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
-import { FontSelect } from './shared';
+import { FontSelect, LayerColorControl } from './shared';
 import { StepperSlider } from '../StepperSlider';
 import { Toggle } from '../Toggle';
 import {
@@ -277,27 +277,11 @@ export const TextSection: React.FC = () => {
             <label className="block text-[11px] font-semibold text-slate-300 mb-1">
               Text Color
             </label>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {presetColors.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => state.updateTextLayer(selectedLayer.id, { color: c })}
-                  style={{ backgroundColor: c }}
-                  className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
-                    selectedLayer.color === c
-                      ? 'border-white scale-110 shadow-md ring-2 ring-pastel-blue/50'
-                      : 'border-slate-700/60 hover:scale-105'
-                  }`}
-                />
-              ))}
-              <input
-                type="color"
-                value={selectedLayer.color}
-                onChange={(e) => state.updateTextLayer(selectedLayer.id, { color: e.target.value })}
-                className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
-                title="Custom Color"
-              />
-            </div>
+            <LayerColorControl
+              value={selectedLayer.color}
+              swatches={presetColors.slice(0, 7)}
+              onChange={(color) => state.updateTextLayer(selectedLayer.id, { color })}
+            />
           </div>
 
           {/* Gradient Text */}

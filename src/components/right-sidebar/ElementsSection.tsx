@@ -4,7 +4,7 @@ import { Copy01, Trash01, ChevronDown } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Coolshape } from 'coolshapes-react';
 import { Toggle } from '../Toggle';
-import { ShapePreview, BooleanIcons } from './shared';
+import { ShapePreview, BooleanIcons, LayerColorControl } from './shared';
 import { StepperSlider } from '../StepperSlider';
 import { ShapeType, CoolshapeCategory } from '../../types/studio';
 import {
@@ -921,66 +921,14 @@ export const ElementsSection: React.FC = () => {
                 </span>
               )}
             </div>
-            <div
-              className={
-                selectedShape.shapeType === 'coolshape'
-                  ? 'opacity-40 pointer-events-none select-none filter grayscale'
-                  : ''
+            <LayerColorControl
+              value={selectedShape.color || '#a2d2ff'}
+              disabled={selectedShape.shapeType === 'coolshape'}
+              swatches={['#FFFFFF', '#000000', '#FFAFCC', '#A2D2FF', '#CDB4DB', '#FEF08A', '#4ADE80']}
+              onChange={(color) =>
+                state.updateShapeLayer(selectedShape.id, { color, gradient: null })
               }
-            >
-              <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                {[
-                  '#ffffff',
-                  '#000000',
-                  '#ffafcc',
-                  '#a2d2ff',
-                  '#cdb4db',
-                  '#fef08a',
-                  '#4ade80',
-                  '#f87171',
-                  '#38bdf8',
-                ].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() =>
-                      state.updateShapeLayer(selectedShape.id, { color: c, gradient: null })
-                    }
-                    style={{ backgroundColor: c }}
-                    className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
-                      !selectedShape.gradient && selectedShape.color === c
-                        ? 'border-white scale-110 shadow-md ring-2 ring-pastel-pink/50'
-                        : 'border-slate-700/60 hover:scale-105'
-                    }`}
-                  />
-                ))}
-                <input
-                  type="color"
-                  value={selectedShape.color || '#a2d2ff'}
-                  onChange={(e) =>
-                    state.updateShapeLayer(selectedShape.id, {
-                      color: e.target.value,
-                      gradient: null,
-                    })
-                  }
-                  className="w-6 h-6 rounded-full border border-slate-700 bg-transparent cursor-pointer p-0"
-                  title="Custom Color"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={selectedShape.color || '#a2d2ff'}
-                  onChange={(e) =>
-                    state.updateShapeLayer(selectedShape.id, {
-                      color: e.target.value,
-                      gradient: null,
-                    })
-                  }
-                  placeholder="#a2d2ff"
-                  className="w-full bg-neutral-900 border border-neutral-800 text-xs font-mono rounded-lg px-2.5 py-1 text-slate-200"
-                />
-              </div>
-            </div>
+            />
           </div>
 
           {/* Shape Border */}

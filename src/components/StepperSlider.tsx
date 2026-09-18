@@ -12,6 +12,7 @@ export interface StepperSliderProps {
   onPointerDown?: (e: React.PointerEvent) => void;
   onPointerUp?: (e: React.PointerEvent) => void;
   onPointerCancel?: (e: React.PointerEvent) => void;
+  iconVariant?: 'default' | 'zoom';
 }
 
 export const StepperSlider: React.FC<StepperSliderProps> = ({
@@ -26,6 +27,7 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  iconVariant = 'default',
 }) => {
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -112,17 +114,15 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
         title={`Decrease by ${step}`}
         aria-label="Decrease value"
       >
-        <svg
-          className="w-3.5 h-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
+        {iconVariant === 'zoom' ? (
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="10.5" cy="10.5" r="5.5" />
+            <path d="m15 15 4 4" />
+            <path d="M8 10.5h5" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        )}
       </button>
 
       {/* Slider Track and Thumb */}
@@ -175,18 +175,16 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
         title={`Increase by ${step}`}
         aria-label="Increase value"
       >
-        <svg
-          className="w-3.5 h-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
+        {iconVariant === 'zoom' ? (
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="10.5" cy="10.5" r="5.5" />
+            <path d="m15 15 4 4" />
+            <path d="M10.5 8v5" />
+            <path d="M8 10.5h5" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        )}
       </button>
     </div>
   );

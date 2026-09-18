@@ -4,7 +4,7 @@ import { ChevronDown } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
 import { getAspectRatioCategory, getAspectRatioLabel, getRecommendedZoomForAspect } from './utils';
 
-export const AspectSection: React.FC = () => {
+export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({ alwaysExpanded = false }) => {
   const state = useStudioEditorStore();
   const onChange = state.updateState;
 
@@ -34,8 +34,8 @@ export const AspectSection: React.FC = () => {
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Aspect Ratio</h3>
       </div>
 
-      <div className="relative" ref={aspectDropdownRef}>
-        <button
+      <div className={alwaysExpanded ? '' : 'relative'} ref={aspectDropdownRef}>
+        {!alwaysExpanded && <button
           onClick={() => setIsAspectDropdownOpen(!isAspectDropdownOpen)}
           className="w-full flex items-center justify-between px-3 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
         >
@@ -52,10 +52,10 @@ export const AspectSection: React.FC = () => {
               isAspectDropdownOpen ? 'rotate-180 text-pastel-pink' : ''
             }`}
           />
-        </button>
+        </button>}
 
-        {isAspectDropdownOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-900 border border-neutral-800 rounded-2xl p-3 shadow-2xl space-y-3 max-h-[360px] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+        {(alwaysExpanded || isAspectDropdownOpen) && (
+          <div className={alwaysExpanded ? 'space-y-3' : 'absolute top-full left-0 right-0 mt-2 z-50 max-h-[360px] space-y-3 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150'}>
             {/* Custom Pixel Dimensions Input */}
             <div className="pb-2 border-b border-neutral-800/80 space-y-2">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">

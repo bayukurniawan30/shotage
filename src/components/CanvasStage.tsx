@@ -1274,11 +1274,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group) {
+              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
-              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
+              if (e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode) {
                 state.toggleTextLayer(layer.id);
               } else {
                 state.selectTextLayer(layer.id);
@@ -1490,11 +1490,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group) {
+              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
-              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
+              if (e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode) {
                 state.toggleSelectPhosphorIconLayer(layer.id);
               } else {
                 state.selectPhosphorIconLayer(layer.id);
@@ -1585,11 +1585,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group) {
+              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
-              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
+              if (e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode) {
                 state.toggleSelectCanvasElement(el.id);
               } else {
                 state.selectCanvasElement(el.id);
@@ -1836,11 +1836,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group) {
+              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
-              if (e.shiftKey || e.metaKey || state.isMultiSelectMode) {
+              if (e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode) {
                 state.toggleSelectShapeLayer(layer.id);
               } else {
                 state.selectShapeLayer(layer.id);
@@ -3465,7 +3465,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const groupedLayerEl = target.closest('[data-group-id]') as HTMLElement | null;
     const groupedLayerId = groupedLayerEl?.dataset.groupId || '';
     const groupedLayer = (state.layerGroups || []).find((group) => group.id === groupedLayerId);
-    if (groupedLayer && !groupedLayer.locked) {
+    const isModifierSelection = e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode;
+    // Modifier-click targets a member layer for cross-layer multi-selection.
+    // A normal click continues to select and manipulate the parent group.
+    if (groupedLayer && !groupedLayer.locked && !isModifierSelection) {
       let currentScale = 1;
       const canvasEl = canvasRef.current || document.getElementById('shotage-canvas');
       if (canvasEl) {
@@ -4085,27 +4088,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const selectedShapes = (state.shapeLayers || []).filter(
       (s) =>
         ((state.selectedShapeIds || []).includes(s.id) || state.selectedShapeId === s.id) &&
-        s.visible !== false &&
-        !getLayerGroup('shape', s.id)
+        s.visible !== false
     );
     const selectedElements = (state.canvasElements || []).filter(
       (el) =>
         ((state.selectedElementIds || []).includes(el.id) || state.selectedElementId === el.id) &&
-        el.visible !== false &&
-        !getLayerGroup('element', el.id)
+        el.visible !== false
     );
     const selectedIcons = (state.phosphorIconLayers || []).filter(
       (l) =>
         ((state.selectedPhosphorIconLayerIds || []).includes(l.id) ||
           state.selectedPhosphorIconLayerId === l.id) &&
-        l.visible !== false &&
-        !getLayerGroup('phosphor', l.id)
+        l.visible !== false
     );
     const selectedTexts = (state.textLayers || []).filter(
       (l) =>
         ((state.selectedTextLayerIds || []).includes(l.id) || state.selectedTextLayerId === l.id) &&
-        l.visible !== false &&
-        !getLayerGroup('text', l.id)
+        l.visible !== false
     );
 
     if (selectedGroup) {

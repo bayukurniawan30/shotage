@@ -6,6 +6,66 @@ import { BackgroundType, ShapeType } from '../../types/studio';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from '../SocialIcons';
 import { StepperSlider } from '../StepperSlider';
 
+/** Shared colour control used by editable Studio layer sections. */
+export const LayerColorControl: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  swatches?: string[];
+  disabled?: boolean;
+}> = ({
+  value,
+  onChange,
+  swatches = ['#FFFFFF', '#000000', '#FFAFCC', '#A2D2FF', '#CDB4DB', '#FEF08A', '#4ADE80'],
+  disabled = false,
+}) => {
+  const normalizedValue = value || '#FFFFFF';
+  return (
+    <div className={disabled ? 'pointer-events-none select-none opacity-40 grayscale' : ''}>
+      <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900 p-1.5 shadow-inner transition-colors hover:border-neutral-700">
+        <label
+          className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-neutral-700 shadow-sm"
+          style={{ backgroundColor: normalizedValue }}
+          title="Choose color"
+        >
+          <input
+            type="color"
+            value={normalizedValue}
+            onChange={(event) => onChange(event.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+        <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1 text-xs font-mono">
+          <span className="text-neutral-500">#</span>
+          <input
+            type="text"
+            value={normalizedValue.replace('#', '')}
+            onChange={(event) => onChange(`#${event.target.value.trim()}`)}
+            className="w-full bg-transparent font-mono uppercase text-slate-200 focus:outline-none"
+            maxLength={6}
+            aria-label="Hex color"
+          />
+        </div>
+      </div>
+      <div className="mt-2 grid grid-cols-7 gap-1.5">
+        {swatches.map((color) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => onChange(color)}
+            className={`h-6 cursor-pointer rounded-md border transition-all ${
+              normalizedValue.toLowerCase() === color.toLowerCase()
+                ? 'scale-105 border-pastel-pink ring-2 ring-pastel-pink/30'
+                : 'border-neutral-700 hover:border-neutral-500'
+            }`}
+            style={{ backgroundColor: color }}
+            title={color}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const GOOGLE_FONTS = [
   { name: 'Inter', family: 'Inter, sans-serif' },
   { name: 'Roboto', family: 'Roboto, sans-serif' },

@@ -1984,9 +1984,9 @@ export const BackgroundSection: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-700/80 rounded-xl shadow-inner group hover:border-slate-600 transition-colors">
+                <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900 p-1.5 shadow-inner transition-colors hover:border-neutral-700">
                   <label
-                    className="w-7 h-7 rounded-lg cursor-pointer border border-slate-700 shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative"
+                    className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-neutral-700 shadow-sm"
                     style={{ backgroundColor: state.bgPatternColor || '#9C92AC' }}
                     title="Choose pattern color"
                   >
@@ -1997,8 +1997,8 @@ export const BackgroundSection: React.FC = () => {
                       className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                     />
                   </label>
-                  <div className="flex-1 flex items-center gap-1.5 px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono">
-                    <span className="text-slate-500">#</span>
+                  <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1 text-xs font-mono">
+                    <span className="text-neutral-500">#</span>
                     <input
                       type="text"
                       value={(state.bgPatternColor || '#9C92AC').replace('#', '')}
@@ -2030,7 +2030,7 @@ export const BackgroundSection: React.FC = () => {
                       className={`h-6 rounded-md border transition-all cursor-pointer ${
                         (state.bgPatternColor || '#9C92AC').toLowerCase() === color.toLowerCase()
                           ? 'border-pastel-pink ring-2 ring-pastel-pink/30 scale-105'
-                          : 'border-slate-700 hover:border-slate-500'
+                          : 'border-neutral-700 hover:border-neutral-500'
                       }`}
                       style={{ backgroundColor: color }}
                       title={color}

@@ -83,8 +83,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   const renderSection = (section: LeftSection) => {
     if (section === 'image') return <ImageUploadSection onImageUpload={onImageUpload} />;
-    if (section === 'aspect') return <AspectSection />;
-    if (section === 'frame') return <FrameSection />;
+    if (section === 'aspect') return <AspectSection alwaysExpanded={desktopCollapsed} />;
+    if (section === 'frame') return <FrameSection alwaysExpanded={desktopCollapsed} />;
     if (section === 'style')
       return (
         <>
