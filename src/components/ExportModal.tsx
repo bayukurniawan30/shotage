@@ -249,6 +249,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const imageStageCount = exportScope === 'all' ? totalImageStages : 1;
   const imageDownloadCost = getImageExportCost(state.exportScale, imageStageCount);
   const imageCopyCost = getImageExportCost(state.exportScale);
+  const customImageBaseSize =
+    state.aspectRatio === 'custom'
+      ? {
+          width: Math.max(160, state.customWidth || 1280),
+          height: Math.max(160, state.customHeight || 720),
+        }
+      : null;
+  const customImageOutputSize = customImageBaseSize && {
+    width: customImageBaseSize.width * state.exportScale,
+    height: customImageBaseSize.height * state.exportScale,
+  };
   const sessionUser = session.data?.user;
   const hasUnlimitedExports = verifiedAccount?.credits.unlimited === true;
   const imageDownloadInsufficient = Boolean(
@@ -389,6 +400,45 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         ...(state.backgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
       };
 
+      // The editor deliberately displays custom canvases at 45% of their entered
+      // pixel dimensions. html-to-image normally exports that displayed size,
+      // so render it at the compensating ratio and normalize the final bitmap to
+      // the exact custom size (then multiply it for 2×/3×).
+      const renderCustomSizedCanvas = async () => {
+        if (!customImageOutputSize || !canvasRef.current) return null;
+        // CanvasStage renders custom artboards at a fixed 45% display scale.
+        // Do not read getBoundingClientRect(): it includes the editor's zoom.
+        const capturePixelRatio = state.exportScale / 0.45;
+        const capturedCanvas = await toCanvas(canvasRef.current, {
+          ...options,
+          pixelRatio: capturePixelRatio,
+        });
+        if (
+          capturedCanvas.width === customImageOutputSize.width &&
+          capturedCanvas.height === customImageOutputSize.height
+        ) {
+          return capturedCanvas;
+        }
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = customImageOutputSize.width;
+        outputCanvas.height = customImageOutputSize.height;
+        const outputContext = outputCanvas.getContext('2d');
+        if (!outputContext) throw new Error('Could not create the export canvas.');
+        outputContext.drawImage(
+          capturedCanvas,
+          0,
+          0,
+          customImageOutputSize.width,
+          customImageOutputSize.height
+        );
+        capturedCanvas.width = 0;
+        capturedCanvas.height = 0;
+        return outputCanvas;
+      };
+
+      const customCanvasToBlob = (canvas: HTMLCanvasElement, type = 'image/png') =>
+        new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.95));
+
       if (stageScope === 'all' && totalImageStages > 1 && !isCopy) {
         const stagedDownloads: Array<{ href: string; filename: string }> = [];
 
@@ -404,7 +454,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           if ('fonts' in document) await document.fonts.ready;
 
           let dataUrl: string;
-          if (format === 'webp') {
+          if (customImageOutputSize) {
+            const customCanvas = await renderCustomSizedCanvas();
+            if (!customCanvas) throw new Error('Failed to generate the custom-size image.');
+            dataUrl = customCanvas.toDataURL(
+              format === 'jpeg' ? 'image/jpeg' : `image/${format}`,
+              0.95
+            );
+            customCanvas.width = 0;
+            customCanvas.height = 0;
+          } else if (format === 'webp') {
             const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
             if (!blob) throw new Error('Failed to generate WebP blob');
             dataUrl = URL.createObjectURL(blob);
@@ -431,13 +490,29 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         }
       } else {
         if (isCopy) {
-          const blob = await toBlob(canvasRef.current, options);
+          const customCanvas = customImageOutputSize ? await renderCustomSizedCanvas() : null;
+          const blob = customCanvas
+            ? await customCanvasToBlob(customCanvas)
+            : await toBlob(canvasRef.current, options);
+          if (customCanvas) {
+            customCanvas.width = 0;
+            customCanvas.height = 0;
+          }
           if (!blob) throw new Error('Failed to generate image for the clipboard');
           await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
           alert('Copied high-res image to clipboard!');
         } else {
           let dataUrl: string;
-          if (format === 'webp') {
+          if (customImageOutputSize) {
+            const customCanvas = await renderCustomSizedCanvas();
+            if (!customCanvas) throw new Error('Failed to generate the custom-size image.');
+            dataUrl = customCanvas.toDataURL(
+              format === 'jpeg' ? 'image/jpeg' : `image/${format}`,
+              0.95
+            );
+            customCanvas.width = 0;
+            customCanvas.height = 0;
+          } else if (format === 'webp') {
             const blob = await toBlob(canvasRef.current, { ...options, type: 'image/webp' });
             if (!blob) throw new Error('Failed to generate WebP blob');
             dataUrl = URL.createObjectURL(blob);
@@ -1585,6 +1660,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 ))}
               </div>
             </div>
+
+            {customImageOutputSize && (
+              <div className="rounded-xl border border-pastel-blue/25 bg-pastel-blue/8 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Image output
+                </p>
+                <p className="mt-0.5 font-mono text-sm font-bold text-pastel-blue">
+                  {customImageOutputSize.width.toLocaleString()} ×{' '}
+                  {customImageOutputSize.height.toLocaleString()} px
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                  {state.exportScale}× of your {customImageBaseSize!.width.toLocaleString()} ×{' '}
+                  {customImageBaseSize!.height.toLocaleString()} custom canvas.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
