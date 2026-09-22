@@ -98,7 +98,8 @@ input[type='range'] {
 }
 
 @keyframes animatedMeshMorph {
-  0%, 100% {
+  0%,
+  100% {
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   }
   50% {
@@ -113,7 +114,8 @@ input[type='range'] {
 
 /* Floating Elements Keyframe Animations */
 @keyframes float-slow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -122,7 +124,8 @@ input[type='range'] {
 }
 
 @keyframes float-reverse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -158,4 +161,26 @@ input[type='range'] {
   display: none !important;
 }
 
+/* Shiki output inside the Source Code mockup. Keep these rules deterministic for DOM export. */
+.shotage-code-surface .shiki {
+  min-height: 100%;
+  margin: 0;
+  overflow: visible;
+  background: transparent !important;
+  font: inherit;
+  line-height: inherit;
+}
 
+.shotage-code-surface .shiki code {
+  display: block;
+  min-width: max-content;
+  font: inherit;
+  line-height: inherit;
+  white-space: pre;
+}
+
+.shotage-code-frame[data-word-wrap='true'] .shotage-code-surface .shiki code {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

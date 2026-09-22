@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStudioEditorStore, useStudioStore } from '../../store/useStudioStore';
-import {
-  UploadCloud01,
-  XClose,
-  Columns01,
-  Copy02,
-  Copy03,
-  Divider,
-} from '@untitledui/icons';
+import { UploadCloud01, XClose, Columns01, Copy02, Copy03, Divider } from '@untitledui/icons';
 import { DocumentsIllustration } from '../shared-assets/illustrations';
 import { TEMPLATE_PRESETS } from '../../utils/templatePresets';
 import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../../utils/videoUpload';
@@ -288,10 +281,13 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
         <div className="grid grid-cols-2 gap-2">
           {[1, 2].map((count) => {
             const isSelected = state.layoutCount === count;
+            const isDisabled = state.frameType === 'code-window' && count === 2;
             return (
               <button
                 key={count}
+                disabled={isDisabled}
                 onClick={() => {
+                  if (isDisabled) return;
                   const isPortraitRatio = [
                     '9:16',
                     '3:4',
@@ -306,10 +302,17 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
                     ...(count === 2 && state.mediaType === 'video' ? { mediaType: 'image' } : {}),
                   });
                 }}
-                className={`py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                title={isDisabled ? 'Source Code frames currently use a single mockup' : undefined}
+                className={`py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                  isDisabled
+                    ? 'cursor-not-allowed border-neutral-900 bg-neutral-950/50 text-slate-600 opacity-60'
+                    : 'cursor-pointer'
+                } ${
                   isSelected
                     ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
-                    : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
+                    : isDisabled
+                      ? ''
+                      : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800/80 hover:text-white'
                 }`}
               >
                 {count === 1 ? 'Single Image/Video' : '2 Images'}
@@ -462,9 +465,7 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
                     validateAndLoadVideo(
                       file,
                       ({ src, name, width, height, duration }) => {
-                        useStudioStore
-                          .getState()
-                          .setSecondImage(src, name, width, height, 'video');
+                        useStudioStore.getState().setSecondImage(src, name, width, height, 'video');
                         onChange({ videoDuration: duration });
                       },
                       (errorMsg) => {

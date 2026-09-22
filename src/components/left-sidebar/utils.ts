@@ -4,6 +4,7 @@ import { LINEAR_SWATCH_PRESETS } from '../../utils/linearSwatchPresets';
 
 export const FRAME_LABELS: Record<string, string> = {
   frameless: 'No Frame',
+  'code-window': 'Source Code',
   'safari-light': 'Safari Light',
   'safari-dark': 'Safari Dark',
   'chrome-dark': 'Chrome Dark',

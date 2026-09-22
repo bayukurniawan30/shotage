@@ -184,7 +184,7 @@ export const TextSection: React.FC = () => {
             />
           </div>
 
-          {/* Font Family Selector (10 Google Fonts) */}
+          {/* On-demand Google Font selector */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-300 mb-1">
               Font Family (Google Fonts)

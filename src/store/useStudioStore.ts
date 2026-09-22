@@ -10,7 +10,7 @@ import {
   MotionPresetId,
   MOTION_PRESETS,
 } from '../types/animationTypes';
-import { GOOGLE_FONTS } from '../components/right-sidebar/shared';
+import { GOOGLE_FONTS } from '../utils/fontLoader';
 import {
   mergeShapeLayers,
   booleanOperationOnShapes,
@@ -40,7 +40,9 @@ interface StudioStore extends StudioState {
   reset3DPerspective: () => void;
   resetAll: () => void;
   togglePreviewMode: () => void;
-  addTextLayer: (initialTextOrProps?: string | Partial<import('../types/studio').TextLayer>) => string;
+  addTextLayer: (
+    initialTextOrProps?: string | Partial<import('../types/studio').TextLayer>
+  ) => string;
   addSocialLayer: (platform?: import('../types/studio').SocialPlatform, handle?: string) => void;
   updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
   removeTextLayer: (id: string) => void;
@@ -90,10 +92,7 @@ interface StudioStore extends StudioState {
   selectShapeLayer: (id: string | null) => void;
   toggleSelectShapeLayer: (id: string) => void;
   groupSelectedLayers: () => string | null;
-  updateLayerGroup: (
-    id: string,
-    updates: Partial<import('../types/studio').LayerGroup>
-  ) => void;
+  updateLayerGroup: (id: string, updates: Partial<import('../types/studio').LayerGroup>) => void;
   selectLayerGroup: (id: string | null) => void;
   ungroupLayerGroup: (id: string) => void;
   removeLayerGroup: (id: string) => void;
@@ -227,11 +226,15 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
       if (updates.color !== undefined) newKf.color = updates.color as string;
       if (updates.borderWidth !== undefined) newKf.borderWidth = updates.borderWidth as number;
       if (updates.borderColor !== undefined) newKf.borderColor = updates.borderColor as string;
-      if (updates.letterSpacing !== undefined) newKf.letterSpacing = updates.letterSpacing as number;
-      if (updates.shadowOpacity !== undefined) newKf.shadowOpacity = updates.shadowOpacity as number;
+      if (updates.letterSpacing !== undefined)
+        newKf.letterSpacing = updates.letterSpacing as number;
+      if (updates.shadowOpacity !== undefined)
+        newKf.shadowOpacity = updates.shadowOpacity as number;
       if (updates.shadowBlur !== undefined) newKf.shadowBlur = updates.shadowBlur as number;
-      if (updates.shadowOffsetX !== undefined) newKf.shadowOffsetX = updates.shadowOffsetX as number;
-      if (updates.shadowOffsetY !== undefined) newKf.shadowOffsetY = updates.shadowOffsetY as number;
+      if (updates.shadowOffsetX !== undefined)
+        newKf.shadowOffsetX = updates.shadowOffsetX as number;
+      if (updates.shadowOffsetY !== undefined)
+        newKf.shadowOffsetY = updates.shadowOffsetY as number;
       kfs[kfIdx] = newKf;
       updated.keyframes = kfs as any;
     } else {
@@ -250,19 +253,37 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
         pitch: updates.pitch !== undefined ? (updates.pitch as number) : updated.pitch,
         yaw: updates.yaw !== undefined ? (updates.yaw as number) : updated.yaw,
         opacity: updates.opacity !== undefined ? (updates.opacity as number) : updated.opacity,
-        borderRadius: updates.borderRadius !== undefined ? (updates.borderRadius as number) : updated.borderRadius,
+        borderRadius:
+          updates.borderRadius !== undefined
+            ? (updates.borderRadius as number)
+            : updated.borderRadius,
         fontSize: updates.fontSize !== undefined ? (updates.fontSize as number) : updated.fontSize,
         blur: updates.blur !== undefined ? (updates.blur as number) : updated.blur,
         skewX: updates.skewX !== undefined ? (updates.skewX as number) : updated.skewX,
         skewY: updates.skewY !== undefined ? (updates.skewY as number) : updated.skewY,
         color: updates.color !== undefined ? (updates.color as string) : updated.color,
-        borderWidth: updates.borderWidth !== undefined ? (updates.borderWidth as number) : updated.borderWidth,
-        borderColor: updates.borderColor !== undefined ? (updates.borderColor as string) : updated.borderColor,
-        letterSpacing: updates.letterSpacing !== undefined ? (updates.letterSpacing as number) : updated.letterSpacing,
-        shadowOpacity: updates.shadowOpacity !== undefined ? (updates.shadowOpacity as number) : updated.shadowOpacity,
-        shadowBlur: updates.shadowBlur !== undefined ? (updates.shadowBlur as number) : updated.shadowBlur,
-        shadowOffsetX: updates.shadowOffsetX !== undefined ? (updates.shadowOffsetX as number) : updated.shadowOffsetX,
-        shadowOffsetY: updates.shadowOffsetY !== undefined ? (updates.shadowOffsetY as number) : updated.shadowOffsetY,
+        borderWidth:
+          updates.borderWidth !== undefined ? (updates.borderWidth as number) : updated.borderWidth,
+        borderColor:
+          updates.borderColor !== undefined ? (updates.borderColor as string) : updated.borderColor,
+        letterSpacing:
+          updates.letterSpacing !== undefined
+            ? (updates.letterSpacing as number)
+            : updated.letterSpacing,
+        shadowOpacity:
+          updates.shadowOpacity !== undefined
+            ? (updates.shadowOpacity as number)
+            : updated.shadowOpacity,
+        shadowBlur:
+          updates.shadowBlur !== undefined ? (updates.shadowBlur as number) : updated.shadowBlur,
+        shadowOffsetX:
+          updates.shadowOffsetX !== undefined
+            ? (updates.shadowOffsetX as number)
+            : updated.shadowOffsetX,
+        shadowOffsetY:
+          updates.shadowOffsetY !== undefined
+            ? (updates.shadowOffsetY as number)
+            : updated.shadowOffsetY,
       };
       kfs.push(newKf);
       kfs.sort((a, b) => a.timeSec - b.timeSec);
@@ -299,7 +320,9 @@ function getLayerLocalSize(layer: any, type: LayerReference['type']) {
       const context = document.createElement('canvas').getContext('2d');
       if (context) {
         context.font = `${layer.fontStyle === 'italic' ? 'italic ' : ''}${layer.fontWeight || 700} ${fontSize}px ${layer.fontFamily || 'Inter'}`;
-        measuredWidth = Math.max(...lines.map((line: string) => context.measureText(line || ' ').width));
+        measuredWidth = Math.max(
+          ...lines.map((line: string) => context.measureText(line || ' ').width)
+        );
       }
     }
     return {
@@ -348,9 +371,7 @@ function getLayerBaseBounds(state: StudioState, reference: LayerReference) {
     };
   });
   const borderExpansion =
-    reference.type === 'shape' && layer.borderEnabled
-      ? Math.max(0, layer.borderWidth || 0) / 2
-      : 0;
+    reference.type === 'shape' && layer.borderEnabled ? Math.max(0, layer.borderWidth || 0) / 2 : 0;
   const centerX = layer.x || 0;
   const centerY = layer.y || 0;
   return {
@@ -391,10 +412,7 @@ function refreshLayerGroupBounds(state: StudioState, group: LayerGroup): LayerGr
       y: (deltaX * Math.sin(radians) + deltaY * Math.cos(radians)) * scale,
     };
   };
-  const baseDelta = transformOriginDelta(
-    Math.max(0.05, group.scale || 1),
-    group.rotation || 0
-  );
+  const baseDelta = transformOriginDelta(Math.max(0.05, group.scale || 1), group.rotation || 0);
   const nextKeyframes = group.keyframes?.map((keyframe) => {
     const keyframeDelta = transformOriginDelta(
       Math.max(0.05, keyframe.scale ?? group.scale ?? 1),
@@ -431,9 +449,7 @@ function refreshGroupsContainingMember(
   reference: LayerReference
 ): LayerGroup[] {
   return (state.layerGroups || []).map((group) =>
-    group.members.some(
-      (member) => member.type === reference.type && member.id === reference.id
-    )
+    group.members.some((member) => member.type === reference.type && member.id === reference.id)
       ? refreshLayerGroupBounds(state, group)
       : group
   );
@@ -486,6 +502,16 @@ export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     shadowOverlayOpacity,
     shadowOverlayPosition,
     frameType,
+    codeSource,
+    codeLanguage,
+    codeTheme,
+    codeWindowStyle,
+    codeFilename,
+    codeWindowWidth,
+    codeWindowHeight,
+    codeFontSize,
+    codeLineNumbers,
+    codeWordWrap,
     samsungStatusBar,
     iphoneStatusBar,
     urlText,
@@ -612,6 +638,16 @@ export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     shadowOverlayOpacity,
     shadowOverlayPosition,
     frameType,
+    codeSource,
+    codeLanguage,
+    codeTheme,
+    codeWindowStyle,
+    codeFilename,
+    codeWindowWidth,
+    codeWindowHeight,
+    codeFontSize,
+    codeLineNumbers,
+    codeWordWrap,
     samsungStatusBar,
     iphoneStatusBar,
     urlText,
@@ -1426,10 +1462,15 @@ export const useStudioStore = create<StudioStore>()(
             anchorY: 0.5,
             position: 'above',
             shadow: false,
-            name: customProps?.name || (shapeType === 'coolshape' ? `Coolshape ${customProps?.coolshapeType || 'star'}` : shapeType),
+            name:
+              customProps?.name ||
+              (shapeType === 'coolshape'
+                ? `Coolshape ${customProps?.coolshapeType || 'star'}`
+                : shapeType),
             visible: true,
             locked: false,
-            coolshapeType: customProps?.coolshapeType || (shapeType === 'coolshape' ? 'star' : undefined),
+            coolshapeType:
+              customProps?.coolshapeType || (shapeType === 'coolshape' ? 'star' : undefined),
             coolshapeIndex: customProps?.coolshapeIndex ?? 0,
             coolshapeNoise: customProps?.coolshapeNoise ?? true,
             ...customProps,
@@ -1529,22 +1570,26 @@ export const useStudioStore = create<StudioStore>()(
           if (!targetExists) return state;
           if (
             target?.type === 'shape' &&
-            (state.shapeLayers || []).some(
-              (shape) => shape.id === target.id && shape.maskTarget
-            )
-          ) return state;
+            (state.shapeLayers || []).some((shape) => shape.id === target.id && shape.maskTarget)
+          )
+            return state;
           if (
             target?.type === 'group' &&
             (state.layerGroups || []).some(
-              (group) => group.id === target.id && group.members.some((member) => member.type === 'shape' && member.id === id)
+              (group) =>
+                group.id === target.id &&
+                group.members.some((member) => member.type === 'shape' && member.id === id)
             )
-          ) return state;
+          )
+            return state;
           if (
             target &&
             (state.shapeLayers || []).some(
-              (shape) => shape.id !== id && shape.maskTarget?.type === 'shape' && shape.maskTarget.id === id
+              (shape) =>
+                shape.id !== id && shape.maskTarget?.type === 'shape' && shape.maskTarget.id === id
             )
-          ) return state;
+          )
+            return state;
 
           const shapeLayers = (state.shapeLayers || []).map((shape) => {
             if (shape.id === id) return { ...shape, maskTarget: target || undefined };
@@ -1692,7 +1737,9 @@ export const useStudioStore = create<StudioStore>()(
                 : layer
             ),
             shapeLayers: state.shapeLayers.map((layer) =>
-              memberKeys.has(`shape:${layer.id}`) ? { ...layer, position: updates.position! } : layer
+              memberKeys.has(`shape:${layer.id}`)
+                ? { ...layer, position: updates.position! }
+                : layer
             ),
           };
         }),
@@ -1778,7 +1825,8 @@ export const useStudioStore = create<StudioStore>()(
                 : transformed;
             }),
             layerGroups: (state.layerGroups || []).filter((item) => item.id !== id),
-            selectedLayerGroupId: state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
+            selectedLayerGroupId:
+              state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
           };
         }),
       removeLayerGroup: (id) =>
@@ -1798,7 +1846,8 @@ export const useStudioStore = create<StudioStore>()(
               .filter((layer) => !memberKeys.has(`shape:${layer.id}`))
               .map((layer) =>
                 (layer.maskTarget?.type === 'group' && layer.maskTarget.id === id) ||
-                (layer.maskTarget && memberKeys.has(`${layer.maskTarget.type}:${layer.maskTarget.id}`))
+                (layer.maskTarget &&
+                  memberKeys.has(`${layer.maskTarget.type}:${layer.maskTarget.id}`))
                   ? { ...layer, maskTarget: undefined }
                   : layer
               ),
@@ -1806,7 +1855,8 @@ export const useStudioStore = create<StudioStore>()(
               (entry) => !memberKeys.has(`${entry.type}:${entry.id}`)
             ),
             layerGroups: (state.layerGroups || []).filter((item) => item.id !== id),
-            selectedLayerGroupId: state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
+            selectedLayerGroupId:
+              state.selectedLayerGroupId === id ? null : state.selectedLayerGroupId,
           };
         }),
       duplicateLayerGroup: (id) =>
@@ -1818,7 +1868,10 @@ export const useStudioStore = create<StudioStore>()(
           group.members.forEach((member, index) => {
             idMap.set(`${member.type}:${member.id}`, `${member.type}-${now}-${index}`);
           });
-          const cloneLayers = <T extends { id: string }>(layers: T[], type: LayerReference['type']) => {
+          const cloneLayers = <T extends { id: string }>(
+            layers: T[],
+            type: LayerReference['type']
+          ) => {
             const clones = layers
               .filter((layer) => idMap.has(`${type}:${layer.id}`))
               .map((layer) => ({
@@ -1833,7 +1886,10 @@ export const useStudioStore = create<StudioStore>()(
           }));
           const newOrder = [...(state.layerOrder || [])];
           for (const member of newMembers.slice().reverse()) {
-            const source = group.members.find((item) => item.type === member.type && idMap.get(`${item.type}:${item.id}`) === member.id);
+            const source = group.members.find(
+              (item) =>
+                item.type === member.type && idMap.get(`${item.type}:${item.id}`) === member.id
+            );
             const sourceIndex = source
               ? newOrder.findIndex((entry) => entry.type === source.type && entry.id === source.id)
               : -1;
@@ -1871,9 +1927,7 @@ export const useStudioStore = create<StudioStore>()(
 
           const groupedShapeIds = new Set(
             (state.layerGroups || []).flatMap((group) =>
-              group.members
-                .filter((member) => member.type === 'shape')
-                .map((member) => member.id)
+              group.members.filter((member) => member.type === 'shape').map((member) => member.id)
             )
           );
           if (selectedIds.some((id) => groupedShapeIds.has(id))) return state;
@@ -1896,13 +1950,18 @@ export const useStudioStore = create<StudioStore>()(
           // is the base subject, and the layers on top of it are the cutters.
           const shapesToProcess =
             operation === 'subtract'
-              ? [sortedShapes[sortedShapes.length - 1], ...sortedShapes.slice(0, sortedShapes.length - 1)]
+              ? [
+                  sortedShapes[sortedShapes.length - 1],
+                  ...sortedShapes.slice(0, sortedShapes.length - 1),
+                ]
               : sortedShapes;
 
           const merged = booleanOperationOnShapes(shapesToProcess, operation);
           if (!merged) return state;
 
-          const remainingShapes = (state.shapeLayers || []).filter((s) => !selectedIds.includes(s.id));
+          const remainingShapes = (state.shapeLayers || []).filter(
+            (s) => !selectedIds.includes(s.id)
+          );
           const firstIdx = layerOrder.findIndex(
             (e) => e.type === 'shape' && selectedIds.includes(e.id)
           );
@@ -2221,9 +2280,8 @@ export const useStudioStore = create<StudioStore>()(
                 gap.end - requestedStart >= 0.2
             ) || viableGaps.find((gap) => gap.start >= requestedStart);
           const fallbackGap =
-            viableGaps.find(
-              (gap) => requestedStart >= gap.start && requestedStart <= gap.end
-            ) || [...viableGaps].reverse().find((gap) => gap.end <= requestedStart);
+            viableGaps.find((gap) => requestedStart >= gap.start && requestedStart <= gap.end) ||
+            [...viableGaps].reverse().find((gap) => gap.end <= requestedStart);
           const targetGap = forwardGap || fallbackGap;
           if (!targetGap) return state;
 
@@ -2371,7 +2429,9 @@ export const useStudioStore = create<StudioStore>()(
           if (targetIdx === -1) return state;
 
           const targetLayer = { ...layers[targetIdx] };
-          const currentKfs: LayerKeyframe[] = targetLayer.keyframes ? [...targetLayer.keyframes] : [];
+          const currentKfs: LayerKeyframe[] = targetLayer.keyframes
+            ? [...targetLayer.keyframes]
+            : [];
           const t =
             timeSec !== undefined
               ? Math.max(0, Math.min(state.durationSec || 10, timeSec))
@@ -2504,7 +2564,9 @@ export const useStudioStore = create<StudioStore>()(
           if (targetIdx === -1) return state;
 
           const targetLayer = { ...layers[targetIdx] };
-          const currentKfs: LayerKeyframe[] = targetLayer.keyframes ? [...targetLayer.keyframes] : [];
+          const currentKfs: LayerKeyframe[] = targetLayer.keyframes
+            ? [...targetLayer.keyframes]
+            : [];
           const t =
             timeSec !== undefined
               ? Math.max(0, Math.min(state.durationSec || 10, timeSec))
@@ -2567,5 +2629,4 @@ export const useStudioStore = create<StudioStore>()(
  * Use in editor controls that do not render the live animation clock. This
  * prevents every timeline frame from rerendering all sidebars and pickers.
  */
-export const useStudioEditorStore = () =>
-  useStudioStore(useShallow(withoutPlaybackFrameState));
+export const useStudioEditorStore = () => useStudioStore(useShallow(withoutPlaybackFrameState));

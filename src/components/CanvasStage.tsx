@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { BrowserFrame } from './frames/BrowserFrame';
+import { CodeFrame } from './frames/CodeFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
 import { VideoCanvasScreen } from './VideoCanvasScreen';
 import { isVideoFile, isValidMediaFile, validateAndLoadVideo } from '../utils/videoUpload';
@@ -19,7 +20,7 @@ import { getPatternSvgUrl } from '../utils/patternPresets';
 import { getGrainSvgUrl, getGrainTileSize } from '../utils/grain';
 import { PenDrawingOverlay } from './PenDrawingOverlay';
 import { WatermarkOverlay } from './WatermarkOverlay';
-import { GOOGLE_FONTS } from './RightSidebar';
+import { GOOGLE_FONTS, ensureStudioFontsLoaded } from '../utils/fontLoader';
 import { SocialIcon } from './SocialIcons';
 import { TechStackIcon } from './TechStackIcons';
 import {
@@ -46,7 +47,11 @@ import {
   DotsHorizontal,
 } from '@untitledui/icons';
 import type { StudioState } from '../types/studio';
-import { anchorOrigin } from '../utils/anchorPoint';
+import {
+  anchorOrigin,
+  getAnchoredResizeCenterShift,
+  getAnchoredResizeDelta,
+} from '../utils/anchorPoint';
 import type { LayerKeyframe, MotionPathConfig } from '../types/animationTypes';
 
 interface CanvasStageProps {
@@ -71,7 +76,10 @@ interface MaskPose {
   anchorY: number;
 }
 
-interface Point2D { x: number; y: number }
+interface Point2D {
+  x: number;
+  y: number;
+}
 
 const svgPathPointCache = new Map<string, Point2D[]>();
 let textMeasurementContext: CanvasRenderingContext2D | null | undefined;
@@ -288,7 +296,9 @@ const MotionPathOverlay: React.FC<{
     }
   });
   if (samples.length < 2) return null;
-  const d = samples.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const d = samples
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
 
   return (
     <svg
@@ -351,6 +361,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     : liveState;
   const svgResourceId = (kind: string, layerId: string) =>
     `${canvasId.replace(/[^a-zA-Z0-9_-]/g, '-')}-${kind}-${layerId}`;
+
+  const usedFontKey = Array.from(
+    new Set((state.textLayers || []).map((layer) => layer.fontFamily).filter(Boolean))
+  )
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    if (!usedFontKey) return;
+    void ensureStudioFontsLoaded(usedFontKey.split('|'));
+  }, [usedFontKey]);
 
   // Recalculate legacy or restored groups once selected so the outline always
   // reflects the complete outer bounds of every member.
@@ -498,12 +519,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       const adjacent = keyframes[Math.max(0, adjacentIndex)];
       const atEnd = pathIndex === keyframes.length - 1;
       const slot1Path = evaluateMotionPathSegment(
-        atEnd
-          ? { x: adjacent.offsetX, y: adjacent.offsetY }
-          : { x: kf.offsetX, y: kf.offsetY },
-        atEnd
-          ? { x: kf.offsetX, y: kf.offsetY }
-          : { x: adjacent.offsetX, y: adjacent.offsetY },
+        atEnd ? { x: adjacent.offsetX, y: adjacent.offsetY } : { x: kf.offsetX, y: kf.offsetY },
+        atEnd ? { x: kf.offsetX, y: kf.offsetY } : { x: adjacent.offsetX, y: adjacent.offsetY },
         atEnd ? 1 : 0,
         state.mockupMotionPath
       );
@@ -518,19 +535,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         state.slot2MockupMotionPath
       );
       return {
-      rotateX: kf.rotateX,
-      rotateY: kf.rotateY,
-      zoom: kf.zoom,
-      slot2Zoom: kf.slot2Zoom ?? kf.zoom,
-      offsetX: slot1Path.x,
-      offsetY: slot1Path.y,
-      slot2OffsetX: slot2Path.x,
-      slot2OffsetY: slot2Path.y,
-      slot1Rotate:
-        (kf.slot1Rotate ?? 0) + (state.mockupMotionPath?.autoOrient ? slot1Path.angle : 0),
-      slot2Rotate:
-        (kf.slot2Rotate ?? 0) +
-        (state.slot2MockupMotionPath?.autoOrient ? slot2Path.angle : 0),
+        rotateX: kf.rotateX,
+        rotateY: kf.rotateY,
+        zoom: kf.zoom,
+        slot2Zoom: kf.slot2Zoom ?? kf.zoom,
+        offsetX: slot1Path.x,
+        offsetY: slot1Path.y,
+        slot2OffsetX: slot2Path.x,
+        slot2OffsetY: slot2Path.y,
+        slot1Rotate:
+          (kf.slot1Rotate ?? 0) + (state.mockupMotionPath?.autoOrient ? slot1Path.angle : 0),
+        slot2Rotate:
+          (kf.slot2Rotate ?? 0) + (state.slot2MockupMotionPath?.autoOrient ? slot2Path.angle : 0),
       };
     };
 
@@ -557,10 +573,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const duration = kf2.timeSec - kf1.timeSec;
     const progress = duration > 0 ? (t - kf1.timeSec) / duration : 0;
 
-    const factor = calculateEasing(
-      progress,
-      kf1.easing || state.animationEasing || 'ease-in-out'
-    );
+    const factor = calculateEasing(progress, kf1.easing || state.animationEasing || 'ease-in-out');
 
     const z1_1 = kf1.zoom;
     const z1_2 = kf2.zoom;
@@ -604,9 +617,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       slot2OffsetX: slot2Path.x,
       slot2OffsetY: slot2Path.y,
       slot1Rotate:
-        r1_1 +
-        (r1_2 - r1_1) * factor +
-        (state.mockupMotionPath?.autoOrient ? slot1Path.angle : 0),
+        r1_1 + (r1_2 - r1_1) * factor + (state.mockupMotionPath?.autoOrient ? slot1Path.angle : 0),
       slot2Rotate:
         r2_1 +
         (r2_2 - r2_1) * factor +
@@ -786,8 +797,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           0.05,
           (groupKeyframe.scale ?? group.scale ?? 1) * groupMotion.scale
         );
-        const groupRotation =
-          (groupKeyframe.rotation ?? group.rotation ?? 0) + groupMotion.rotate;
+        const groupRotation = (groupKeyframe.rotation ?? group.rotation ?? 0) + groupMotion.rotate;
         const radians = (groupRotation * Math.PI) / 180;
         const anchorOffsetX = ((group.anchorX ?? 0.5) - 0.5) * group.width;
         const anchorOffsetY = ((group.anchorY ?? 0.5) - 0.5) * group.height;
@@ -860,8 +870,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       rotation: rotation + groupRotation,
       scaleX: scaleX * groupScale,
       scaleY: scaleY * groupScale,
-      opacity:
-        opacity * ((keyframe.opacity ?? group.opacity ?? 100) / 100) * motion.opacity,
+      opacity: opacity * ((keyframe.opacity ?? group.opacity ?? 100) / 100) * motion.opacity,
       visible: visible && group.visible !== false && motion.isVisible,
       blur: blur + (keyframe.blur ?? group.blur ?? 0) + (motion.blur ?? 0),
       group,
@@ -877,47 +886,75 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       (shape) => shape.maskTarget?.type === targetType && shape.maskTarget.id === targetId
     );
     const targetGroupId = getLayerGroup(targetType, targetId)?.id;
-    const mask = directMask || (state.shapeLayers || []).find(
-      (shape) => shape.maskTarget?.type === 'group' && shape.maskTarget.id === targetGroupId
-    );
+    const mask =
+      directMask ||
+      (state.shapeLayers || []).find(
+        (shape) => shape.maskTarget?.type === 'group' && shape.maskTarget.id === targetGroupId
+      );
     if (!mask) return undefined;
-    const motion = evaluateLayerMotion(mask.motions, mask.loopAnimation, mask.animStartTime || 0, state.currentTimeSec);
+    const motion = evaluateLayerMotion(
+      mask.motions,
+      mask.loopAnimation,
+      mask.animStartTime || 0,
+      state.currentTimeSec
+    );
     const keyframe = evaluateLayerKeyframes(mask, state.currentTimeSec, state.animationEasing);
     const width = Math.max(1, keyframe.width ?? mask.width ?? 120);
     const height = Math.max(1, keyframe.height ?? mask.height ?? 120);
     const grouped = applyLayerGroupTransform(
-      'shape', mask.id,
+      'shape',
+      mask.id,
       (keyframe.x ?? mask.x) + motion.dx,
       (keyframe.y ?? mask.y) + motion.dy,
       (keyframe.rotation ?? mask.rotation ?? 0) + motion.rotate,
       (keyframe.scaleX ?? 1) * motion.scale,
       (keyframe.scaleY ?? 1) * motion.scale,
-      1, true
+      1,
+      true
     );
     const maskPose: MaskPose = {
-      x: grouped.x, y: grouped.y, width, height, rotation: grouped.rotation,
-      scaleX: grouped.scaleX, scaleY: grouped.scaleY,
+      x: grouped.x,
+      y: grouped.y,
+      width,
+      height,
+      rotation: grouped.rotation,
+      scaleX: grouped.scaleX,
+      scaleY: grouped.scaleY,
       skewX: keyframe.skewX ?? mask.skewX ?? 0,
       skewY: keyframe.skewY ?? mask.skewY ?? 0,
-      anchorX: mask.anchorX ?? 0.5, anchorY: mask.anchorY ?? 0.5,
+      anchorX: mask.anchorX ?? 0.5,
+      anchorY: mask.anchorY ?? 0.5,
     };
 
     let nativePoints: Point2D[];
     if (mask.shapeType === 'circle') {
       nativePoints = Array.from({ length: 48 }, (_, index) => {
         const angle = (index / 48) * Math.PI * 2;
-        return { x: width / 2 + Math.cos(angle) * width / 2, y: height / 2 + Math.sin(angle) * height / 2 };
+        return {
+          x: width / 2 + (Math.cos(angle) * width) / 2,
+          y: height / 2 + (Math.sin(angle) * height) / 2,
+        };
       });
     } else if (mask.shapeType === 'triangle') {
-      nativePoints = [{ x: width / 2, y: 0 }, { x: width, y: height }, { x: 0, y: height }];
+      nativePoints = [
+        { x: width / 2, y: 0 },
+        { x: width, y: height },
+        { x: 0, y: height },
+      ];
     } else if (mask.shapeType === 'hexagon') {
       nativePoints = [
-        { x: width * 0.25, y: 0 }, { x: width * 0.75, y: 0 }, { x: width, y: height / 2 },
-        { x: width * 0.75, y: height }, { x: width * 0.25, y: height }, { x: 0, y: height / 2 },
+        { x: width * 0.25, y: 0 },
+        { x: width * 0.75, y: 0 },
+        { x: width, y: height / 2 },
+        { x: width * 0.75, y: height },
+        { x: width * 0.25, y: height },
+        { x: 0, y: height / 2 },
       ];
     } else if (mask.shapeType === 'custom-path' && mask.pathData) {
       const parsedViewBox = (mask.viewBox || `${-width / 2} ${-height / 2} ${width} ${height}`)
-        .trim().split(/[\s,]+/).map(Number);
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
       const [minX, minY, viewWidth, viewHeight] =
         parsedViewBox.length === 4 && parsedViewBox.every(Number.isFinite)
           ? parsedViewBox
@@ -927,10 +964,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         y: ((point.y - minY) / Math.max(1, viewHeight)) * height,
       }));
     } else if (mask.shapeType === 'quote') {
-      const quotePath = "M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z";
-      nativePoints = sampleSvgPath(quotePath).map((point) => ({ x: point.x / 24 * width, y: point.y / 24 * height }));
+      const quotePath =
+        'M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z';
+      nativePoints = sampleSvgPath(quotePath).map((point) => ({
+        x: (point.x / 24) * width,
+        y: (point.y / 24) * height,
+      }));
     } else {
-      nativePoints = [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }, { x: 0, y: height }];
+      nativePoints = [
+        { x: 0, y: 0 },
+        { x: width, y: 0 },
+        { x: width, y: height },
+        { x: 0, y: height },
+      ];
     }
     if (nativePoints.length < 3) return undefined;
 
@@ -939,9 +985,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const cssCoordinate = (value: number) =>
       `calc(50% ${value < 0 ? '-' : '+'} ${Math.abs(Math.round(value * 100) / 100)}px)`;
     const points = nativePoints.map((point) => {
-      const maskVector = applyPoseVector({ x: point.x - width / 2, y: point.y - height / 2 }, maskPose);
+      const maskVector = applyPoseVector(
+        { x: point.x - width / 2, y: point.y - height / 2 },
+        maskPose
+      );
       const targetVector = invertPoseVector(
-        { x: maskCenter.x + maskVector.x - targetCenter.x, y: maskCenter.y + maskVector.y - targetCenter.y },
+        {
+          x: maskCenter.x + maskVector.x - targetCenter.x,
+          y: maskCenter.y + maskVector.y - targetCenter.y,
+        },
         targetPose
       );
       return `${cssCoordinate(targetVector.x)} ${cssCoordinate(targetVector.y)}`;
@@ -1011,14 +1063,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         const posY = kfValues.y ?? layer.y;
         const hasClippedTextFill = !!(layer.bgImage || layer.gradient);
         const posRot =
-          (kfValues.rotation ?? layer.rotation ?? 0) +
-          (hasClippedTextFill ? 0 : motion.rotate);
+          (kfValues.rotation ?? layer.rotation ?? 0) + (hasClippedTextFill ? 0 : motion.rotate);
         const posPitch =
-          (kfValues.pitch ?? layer.pitch ?? 0) +
-          (hasClippedTextFill ? 0 : motion.rotateX);
-        const posYaw =
-          (kfValues.yaw ?? layer.yaw ?? 0) +
-          (hasClippedTextFill ? 0 : motion.rotateY);
+          (kfValues.pitch ?? layer.pitch ?? 0) + (hasClippedTextFill ? 0 : motion.rotateX);
+        const posYaw = (kfValues.yaw ?? layer.yaw ?? 0) + (hasClippedTextFill ? 0 : motion.rotateY);
         const posOpacity = kfValues.opacity ?? layer.opacity ?? 100;
         const posFontSize = kfValues.fontSize ?? layer.fontSize;
         const posBlur = kfValues.blur ?? layer.blur ?? 0;
@@ -1042,13 +1090,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         );
         const velocityBlur = getLayerMotionBlur('text', layer, layer.text);
         const textLines = layer.text.split('\n');
-        const estimatedTextWidth = Math.max(1, ...textLines.map((line) => line.length)) * (posFontSize * 0.62 + Math.max(0, posLetterSpacing));
+        const estimatedTextWidth =
+          Math.max(1, ...textLines.map((line) => line.length)) *
+          (posFontSize * 0.62 + Math.max(0, posLetterSpacing));
         const estimatedTextHeight = Math.max(1, textLines.length) * posFontSize * 1.2;
         const maskClipPath = getMaskClipPath('text', layer.id, {
-          x: grouped.x, y: grouped.y, width: estimatedTextWidth, height: estimatedTextHeight,
-          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
-          skewX: posSkewX, skewY: posSkewY,
-          anchorX: layer.anchorX ?? 0.5, anchorY: layer.anchorY ?? 0.5,
+          x: grouped.x,
+          y: grouped.y,
+          width: estimatedTextWidth,
+          height: estimatedTextHeight,
+          rotation: grouped.rotation,
+          scaleX: grouped.scaleX,
+          scaleY: grouped.scaleY,
+          skewX: posSkewX,
+          skewY: posSkewY,
+          anchorX: layer.anchorX ?? 0.5,
+          anchorY: layer.anchorY ?? 0.5,
         });
 
         const textFillStyle: React.CSSProperties = layer.bgImage
@@ -1080,10 +1137,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           hasTypeahead && textAlign !== 'center'
             ? `${motion.animatedText}${motion.untypedText}`
             : currentText;
-        const textAnimationBlock = getTextAnimationBlockAtTime(
-          layer.motions,
-          state.currentTimeSec
-        );
+        const textAnimationBlock = getTextAnimationBlockAtTime(layer.motions, state.currentTimeSec);
         const renderTextContent = () => {
           if (textAnimationBlock) {
             const segments = segmentTextForAnimation(
@@ -1274,7 +1328,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
+              if (
+                grouped.group &&
+                !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)
+              ) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
@@ -1355,9 +1412,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         (motion.blur ?? 0) + velocityBlur > 0
                           ? `blur(${(motion.blur ?? 0) + velocityBlur}px)`
                           : undefined,
-                      willChange: layer.motions?.length
-                        ? 'transform, opacity, filter'
-                        : undefined,
+                      willChange: layer.motions?.length ? 'transform, opacity, filter' : undefined,
                     }
                   : {}),
                 ...(textAnimationBlock && hasClippedTextFill
@@ -1477,10 +1532,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         const velocityBlur = getLayerMotionBlur('phosphor', layer);
         const iconSize = layer.size || 36;
         const maskClipPath = getMaskClipPath('phosphor', layer.id, {
-          x: grouped.x, y: grouped.y, width: iconSize, height: iconSize,
-          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
-          skewX: iconSkewX, skewY: iconSkewY,
-          anchorX: layer.anchorX ?? 0.5, anchorY: layer.anchorY ?? 0.5,
+          x: grouped.x,
+          y: grouped.y,
+          width: iconSize,
+          height: iconSize,
+          rotation: grouped.rotation,
+          scaleX: grouped.scaleX,
+          scaleY: grouped.scaleY,
+          skewX: iconSkewX,
+          skewY: iconSkewY,
+          anchorX: layer.anchorX ?? 0.5,
+          anchorY: layer.anchorY ?? 0.5,
         });
 
         return (
@@ -1490,7 +1552,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
+              if (
+                grouped.group &&
+                !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)
+              ) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
@@ -1530,8 +1595,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     return elements
       .filter(
         (el) =>
-          (getLayerGroup('element', el.id)?.position || el.position || 'above') === positionFilter &&
-          el.visible !== false
+          (getLayerGroup('element', el.id)?.position || el.position || 'above') ===
+            positionFilter && el.visible !== false
       )
       .map((el) => {
         const isSelected = (state.selectedElementIds || []).includes(el.id);
@@ -1572,10 +1637,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         );
         const velocityBlur = getLayerMotionBlur('element', el);
         const maskClipPath = getMaskClipPath('element', el.id, {
-          x: grouped.x, y: grouped.y, width: elWidth, height: elHeight,
-          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
-          skewX: elSkewX, skewY: elSkewY,
-          anchorX: el.anchorX ?? 0.5, anchorY: el.anchorY ?? 0.5,
+          x: grouped.x,
+          y: grouped.y,
+          width: elWidth,
+          height: elHeight,
+          rotation: grouped.rotation,
+          scaleX: grouped.scaleX,
+          scaleY: grouped.scaleY,
+          skewX: elSkewX,
+          skewY: elSkewY,
+          anchorX: el.anchorX ?? 0.5,
+          anchorY: el.anchorY ?? 0.5,
         });
 
         return (
@@ -1585,7 +1657,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
+              if (
+                grouped.group &&
+                !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)
+              ) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
@@ -1645,7 +1720,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       .filter(
         (layer) =>
           (getLayerGroup('shape', layer.id)?.position || layer.position || 'above') ===
-            positionFilter && layer.visible !== false && !layer.maskTarget
+            positionFilter &&
+          layer.visible !== false &&
+          !layer.maskTarget
       )
       .map((layer) => {
         const isSelected = (state.selectedShapeIds || []).includes(layer.id);
@@ -1688,9 +1765,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               return {};
             case 'custom-path':
               return {
-                clipPath: isGlass
-                  ? `url(#${svgResourceId('glass-clip', layer.id)})`
-                  : undefined,
+                clipPath: isGlass ? `url(#${svgResourceId('glass-clip', layer.id)})` : undefined,
                 WebkitClipPath: isGlass
                   ? `url(#${svgResourceId('glass-clip', layer.id)})`
                   : undefined,
@@ -1808,10 +1883,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           ? `translate(${grouped.x}px, ${grouped.y}px) perspective(1000px) rotateX(${shapePitch}deg) rotateY(${shapeYaw}deg) rotate(${grouped.rotation}deg) skewX(${shapeSkewX}deg) skewY(${shapeSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`
           : `translate(${grouped.x}px, ${grouped.y}px) rotate(${grouped.rotation}deg) skewX(${shapeSkewX}deg) skewY(${shapeSkewY}deg) scale(${grouped.scaleX}, ${grouped.scaleY})`;
         const maskClipPath = getMaskClipPath('shape', layer.id, {
-          x: grouped.x, y: grouped.y, width: shapeWidth, height: shapeHeight,
-          rotation: grouped.rotation, scaleX: grouped.scaleX, scaleY: grouped.scaleY,
-          skewX: shapeSkewX, skewY: shapeSkewY,
-          anchorX: layer.anchorX ?? 0.5, anchorY: layer.anchorY ?? 0.5,
+          x: grouped.x,
+          y: grouped.y,
+          width: shapeWidth,
+          height: shapeHeight,
+          rotation: grouped.rotation,
+          scaleX: grouped.scaleX,
+          scaleY: grouped.scaleY,
+          skewX: shapeSkewX,
+          skewY: shapeSkewY,
+          anchorX: layer.anchorX ?? 0.5,
+          anchorY: layer.anchorY ?? 0.5,
         });
 
         const customUnitPath =
@@ -1836,7 +1918,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             data-group-id={grouped.group?.id}
             onClick={(e) => {
               e.stopPropagation();
-              if (grouped.group && !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)) {
+              if (
+                grouped.group &&
+                !(e.shiftKey || e.metaKey || e.ctrlKey || state.isMultiSelectMode)
+              ) {
                 state.selectLayerGroup(grouped.group.id);
                 return;
               }
@@ -2056,21 +2141,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   layer.shapeType === 'hexagon' &&
                   layer.glassmorphismBorder !== false)) &&
                 layer.shapeType === 'hexagon' && (
-                <svg
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                >
-                  <polygon
-                    points="25,0.75 75,0.75 99.25,50 75,99.25 25,99.25 0.75,50"
-                    fill="none"
-                    stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
-                    strokeWidth={hasBorder ? borderWidth * 2 : 1.5}
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
+                  <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                  >
+                    <polygon
+                      points="25,0.75 75,0.75 99.25,50 75,99.25 25,99.25 0.75,50"
+                      fill="none"
+                      stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
+                      strokeWidth={hasBorder ? borderWidth * 2 : 1.5}
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
 
               {/* Triangle glassmorphic frosted border outline */}
               {(hasBorder ||
@@ -2078,21 +2163,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   layer.shapeType === 'triangle' &&
                   layer.glassmorphismBorder !== false)) &&
                 layer.shapeType === 'triangle' && (
-                <svg
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                >
-                  <polygon
-                    points="50,1 99,99 1,99"
-                    fill="none"
-                    stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
-                    strokeWidth={hasBorder ? borderWidth * 2 : 1.5}
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
+                  <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                  >
+                    <polygon
+                      points="50,1 99,99 1,99"
+                      fill="none"
+                      stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
+                      strokeWidth={hasBorder ? borderWidth * 2 : 1.5}
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
 
               {hasBorder &&
                 (layer.shapeType === 'square' ||
@@ -2102,9 +2187,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       borderRadius:
-                        layer.shapeType === 'circle'
-                          ? '9999px'
-                          : `${layer.borderRadius ?? 8}px`,
+                        layer.shapeType === 'circle' ? '9999px' : `${layer.borderRadius ?? 8}px`,
                       boxShadow: `inset 0 0 0 ${borderWidth}px ${borderColor}`,
                     }}
                   />
@@ -2414,7 +2497,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       );
 
     let frameElement: React.ReactNode;
-    if (state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') {
+    if (state.frameType === 'code-window') {
+      frameElement = (
+        <CodeFrame
+          code={state.codeSource}
+          language={state.codeLanguage}
+          theme={state.codeTheme}
+          windowStyle={state.codeWindowStyle}
+          filename={state.codeFilename}
+          width={state.codeWindowWidth}
+          height={state.codeWindowHeight}
+          fontSize={state.codeFontSize}
+          showLineNumbers={state.codeLineNumbers}
+          wordWrap={state.codeWordWrap}
+        />
+      );
+    } else if (state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') {
       const currentUrl = slotIndex === 2 ? state.secondUrlText : state.urlText;
       frameElement = (
         <BrowserFrame
@@ -2583,15 +2681,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
     const shadowClass = getShadowClass();
     const currentStyle = state.framelessStyle || 'default';
-    const computedRadius = state.frameType.startsWith('instagram')
-      ? '12px'
-      : state.frameType.startsWith('polaroid')
-        ? '6px'
-        : isFrameless && currentStyle !== 'default' && currentStyle !== 'card'
-          ? `${state.borderRadius + 8}px`
-          : isFrameless || state.frameType.startsWith('safari') || state.frameType === 'chrome-dark'
-            ? `${state.borderRadius}px`
-            : undefined;
+    const computedRadius =
+      state.frameType === 'code-window'
+        ? '12px'
+        : state.frameType.startsWith('instagram')
+          ? '12px'
+          : state.frameType.startsWith('polaroid')
+            ? '6px'
+            : isFrameless && currentStyle !== 'default' && currentStyle !== 'card'
+              ? `${state.borderRadius + 8}px`
+              : isFrameless ||
+                  state.frameType.startsWith('safari') ||
+                  state.frameType === 'chrome-dark'
+                ? `${state.borderRadius}px`
+                : undefined;
 
     const isImage =
       slotIndex === 2 ? state.secondMediaType !== 'video' : state.mediaType !== 'video';
@@ -2935,6 +3038,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     initialScaleY?: number;
     scale: number;
     rotation: number;
+    anchorX: number;
+    anchorY: number;
     shapeType?: import('../types/studio').ShapeType;
   } | null>(null);
 
@@ -3309,6 +3414,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             initialSize: 0,
             scale: currentScale,
             rotation: layer.rotation || 0,
+            anchorX: layer.anchorX ?? 0.5,
+            anchorY: layer.anchorY ?? 0.5,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -3330,6 +3437,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             initialSize: layer.size || 36,
             scale: currentScale,
             rotation: layer.rotation || 0,
+            anchorX: layer.anchorX ?? 0.5,
+            anchorY: layer.anchorY ?? 0.5,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -3351,6 +3460,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             initialSize: 0,
             scale: currentScale,
             rotation: layer.rotation || 0,
+            anchorX: layer.anchorX ?? 0.5,
+            anchorY: layer.anchorY ?? 0.5,
           });
           state.updateState({ isPositionDragging: true });
         }
@@ -3372,6 +3483,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             initialSize: 0,
             scale: currentScale,
             rotation: layer.rotation || 0,
+            anchorX: layer.anchorX ?? 0.5,
+            anchorY: layer.anchorY ?? 0.5,
             shapeType: layer.shapeType,
           });
           state.updateState({ isPositionDragging: true });
@@ -3680,9 +3793,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           break;
         }
       }
-      scheduleDragUpdate(() =>
-        state.updateLayerGroup(layerGroupRotate.id, { rotation })
-      );
+      scheduleDragUpdate(() => state.updateLayerGroup(layerGroupRotate.id, { rotation }));
     } else if (layerGroupResize) {
       const distance = Math.max(
         1,
@@ -3699,12 +3810,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       );
     } else if (layerGroupMove) {
       const scale = layerGroupMove.canvasScale || 1;
-      const x = Math.round(
-        layerGroupMove.initialX + (e.clientX - layerGroupMove.startX) / scale
-      );
-      const y = Math.round(
-        layerGroupMove.initialY + (e.clientY - layerGroupMove.startY) / scale
-      );
+      const x = Math.round(layerGroupMove.initialX + (e.clientX - layerGroupMove.startX) / scale);
+      const y = Math.round(layerGroupMove.initialY + (e.clientY - layerGroupMove.startY) / scale);
       scheduleDragUpdate(() => state.updateLayerGroup(layerGroupMove.id, { x, y }));
     } else if (rotateDragItem) {
       const currentAngle =
@@ -3770,6 +3877,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
       const localDeltaX = deltaX * factorX;
       const localDeltaY = deltaY * factorY;
+      const anchoredDeltaX = getAnchoredResizeDelta(
+        localDeltaX,
+        factorX as -1 | 0 | 1,
+        resizeDragItem.anchorX
+      );
+      const anchoredDeltaY = getAnchoredResizeDelta(
+        localDeltaY,
+        factorY as -1 | 0 | 1,
+        resizeDragItem.anchorY
+      );
 
       if (resizeDragItem.type === 'text') {
         const initW = Math.max(resizeDragItem.initialWidth || 100, 20);
@@ -3779,9 +3896,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
         if (corner === 'l' || corner === 'r') {
           // Stretch X directly on canvas via side handle
-          const nextScaleX = Math.max(0.1, Math.min(8.0, initSx + localDeltaX / initW));
+          const nextScaleX = Math.max(0.1, Math.min(8.0, initSx + anchoredDeltaX / initW));
           const actualDW = (nextScaleX - initSx) * initW;
-          const shiftLocalX = (factorX * actualDW) / 2;
+          const shiftLocalX = getAnchoredResizeCenterShift(
+            actualDW,
+            factorX as -1 | 0 | 1,
+            resizeDragItem.anchorX
+          );
 
           const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
           const shiftCanvasX = shiftLocalX * Math.cos(radNorm);
@@ -3799,9 +3920,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           );
         } else if (corner === 't' || corner === 'b') {
           // Stretch Y directly on canvas via top/bottom handle
-          const nextScaleY = Math.max(0.1, Math.min(8.0, initSy + localDeltaY / initH));
+          const nextScaleY = Math.max(0.1, Math.min(8.0, initSy + anchoredDeltaY / initH));
           const actualDH = (nextScaleY - initSy) * initH;
-          const shiftLocalY = (factorY * actualDH) / 2;
+          const shiftLocalY = getAnchoredResizeCenterShift(
+            actualDH,
+            factorY as -1 | 0 | 1,
+            resizeDragItem.anchorY
+          );
 
           const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
           const shiftCanvasX = -shiftLocalY * Math.sin(radNorm);
@@ -3823,7 +3948,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           const initVisualW = initW * initSx;
           const initVisualH = initH * initSy;
 
-          const avgDelta = (localDeltaX + localDeltaY) / 2;
+          const avgDelta = (anchoredDeltaX + anchoredDeltaY) / 2;
           const scaleRatio = 1 + avgDelta / Math.max(initVisualW, initVisualH, 30);
           const newFontSize = Math.max(8, Math.min(500, Math.round(initFontSize * scaleRatio)));
 
@@ -3831,8 +3956,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           const dW = (fontRatio - 1) * initVisualW;
           const dH = (fontRatio - 1) * initVisualH;
 
-          const shiftLocalX = (factorX * dW) / 2;
-          const shiftLocalY = (factorY * dH) / 2;
+          const shiftLocalX = getAnchoredResizeCenterShift(
+            dW,
+            factorX as -1 | 0 | 1,
+            resizeDragItem.anchorX
+          );
+          const shiftLocalY = getAnchoredResizeCenterShift(
+            dH,
+            factorY as -1 | 0 | 1,
+            resizeDragItem.anchorY
+          );
 
           const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
           const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
@@ -3851,12 +3984,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         }
       } else if (resizeDragItem.type === 'phosphor') {
         const initSize = resizeDragItem.initialSize || 36;
-        const avgDelta = (localDeltaX + localDeltaY) / 2;
+        const avgDelta = (anchoredDeltaX + anchoredDeltaY) / 2;
         const newSize = Math.max(16, Math.min(600, Math.round(initSize + avgDelta)));
 
         const dS = newSize - initSize;
-        const shiftLocalX = (factorX * dS) / 2;
-        const shiftLocalY = (factorY * dS) / 2;
+        const shiftLocalX = getAnchoredResizeCenterShift(
+          dS,
+          factorX as -1 | 0 | 1,
+          resizeDragItem.anchorX
+        );
+        const shiftLocalY = getAnchoredResizeCenterShift(
+          dS,
+          factorY as -1 | 0 | 1,
+          resizeDragItem.anchorY
+        );
 
         const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
         const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
@@ -3881,19 +4022,27 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         let newHeight = initH;
 
         if (isSquare || e.shiftKey) {
-          const avgDelta = (localDeltaX + localDeltaY) / 2;
+          const avgDelta = (anchoredDeltaX + anchoredDeltaY) / 2;
           const aspect = initH > 0 ? initW / initH : 1;
           newWidth = Math.max(10, Math.min(1200, Math.round(initW + avgDelta)));
           newHeight = Math.max(10, Math.min(1200, Math.round(newWidth / aspect)));
         } else {
-          newWidth = Math.max(10, Math.min(1200, Math.round(initW + localDeltaX)));
-          newHeight = Math.max(10, Math.min(1200, Math.round(initH + localDeltaY)));
+          newWidth = Math.max(10, Math.min(1200, Math.round(initW + anchoredDeltaX)));
+          newHeight = Math.max(10, Math.min(1200, Math.round(initH + anchoredDeltaY)));
         }
 
         const dW = newWidth - initW;
         const dH = newHeight - initH;
-        const shiftLocalX = (factorX * dW) / 2;
-        const shiftLocalY = (factorY * dH) / 2;
+        const shiftLocalX = getAnchoredResizeCenterShift(
+          dW,
+          factorX as -1 | 0 | 1,
+          resizeDragItem.anchorX
+        );
+        const shiftLocalY = getAnchoredResizeCenterShift(
+          dH,
+          factorY as -1 | 0 | 1,
+          resizeDragItem.anchorY
+        );
 
         const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
         const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
@@ -3919,19 +4068,27 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         let newHeight = initH;
 
         if (isUniform || e.shiftKey) {
-          const avgDelta = (localDeltaX + localDeltaY) / 2;
+          const avgDelta = (anchoredDeltaX + anchoredDeltaY) / 2;
           const aspect = initH > 0 ? initW / initH : 1;
           newWidth = Math.max(10, Math.min(2000, Math.round(initW + avgDelta)));
           newHeight = Math.max(10, Math.min(2000, Math.round(newWidth / aspect)));
         } else {
-          newWidth = Math.max(10, Math.min(2000, Math.round(initW + localDeltaX)));
-          newHeight = Math.max(10, Math.min(2000, Math.round(initH + localDeltaY)));
+          newWidth = Math.max(10, Math.min(2000, Math.round(initW + anchoredDeltaX)));
+          newHeight = Math.max(10, Math.min(2000, Math.round(initH + anchoredDeltaY)));
         }
 
         const dW = newWidth - initW;
         const dH = newHeight - initH;
-        const shiftLocalX = (factorX * dW) / 2;
-        const shiftLocalY = (factorY * dH) / 2;
+        const shiftLocalX = getAnchoredResizeCenterShift(
+          dW,
+          factorX as -1 | 0 | 1,
+          resizeDragItem.anchorX
+        );
+        const shiftLocalY = getAnchoredResizeCenterShift(
+          dH,
+          factorY as -1 | 0 | 1,
+          resizeDragItem.anchorY
+        );
 
         const radNorm = ((resizeDragItem.rotation || 0) * Math.PI) / 180;
         const shiftCanvasX = shiftLocalX * Math.cos(radNorm) - shiftLocalY * Math.sin(radNorm);
@@ -4113,12 +4270,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         state.currentTimeSec,
         state.animationEasing
       );
-      const motion = evaluateLayerMotion(
-        selectedGroup.motions,
-        undefined,
-        0,
-        state.currentTimeSec
-      );
+      const motion = evaluateLayerMotion(selectedGroup.motions, undefined, 0, state.currentTimeSec);
       if (selectedGroup.visible === false || !motion.isVisible) return null;
       const groupX = (keyframe.x ?? selectedGroup.x) + motion.dx;
       const groupY = (keyframe.y ?? selectedGroup.y) + motion.dy;
@@ -4127,8 +4279,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         (keyframe.scale ?? selectedGroup.scale ?? 1) * motion.scale
       );
       const inverseGroupScale = 1 / groupScale;
-      const groupRotation =
-        (keyframe.rotation ?? selectedGroup.rotation ?? 0) + motion.rotate;
+      const groupRotation = (keyframe.rotation ?? selectedGroup.rotation ?? 0) + motion.rotate;
       const locked = selectedGroup.locked === true;
 
       return (
@@ -4174,7 +4325,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                           ? '-right-[5px] -top-[5px] cursor-ne-resize'
                           : corner === 'bl'
                             ? '-bottom-[5px] -left-[5px] cursor-sw-resize'
-                          : '-bottom-[5px] -right-[5px] cursor-se-resize'
+                            : '-bottom-[5px] -right-[5px] cursor-se-resize'
                     }`}
                     style={{ transform: `scale(${inverseGroupScale})` }}
                   />
@@ -4193,9 +4344,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     title="Rotate group"
                     className="h-6 w-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
                   >
-                    <PhosphorIcons.ArrowClockwiseIcon
-                      className="h-3.5 w-3.5 pointer-events-none"
-                    />
+                    <PhosphorIcons.ArrowClockwiseIcon className="h-3.5 w-3.5 pointer-events-none" />
                   </div>
                   <button
                     type="button"
@@ -4921,12 +5070,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           : layerGroupResize
             ? 'cursor-nw-resize select-none'
             : resizeDragItem
-            ? `${getResizeCursor(resizeDragItem.corner)} select-none`
-            : layerGroupMove || groupDrag || dragItem
-              ? 'cursor-move select-none'
-              : isPanning
-                ? 'cursor-grabbing select-none'
-                : 'cursor-grab'
+              ? `${getResizeCursor(resizeDragItem.corner)} select-none`
+              : layerGroupMove || groupDrag || dragItem
+                ? 'cursor-move select-none'
+                : isPanning
+                  ? 'cursor-grabbing select-none'
+                  : 'cursor-grab'
       }`}
     >
       {/* Floating Pen Tool Toolbar (Fixed minimal vertical icon-only bar on top-left) */}
@@ -5515,37 +5664,39 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             <WatermarkOverlay />
           </div>
 
-          {!readOnly && state.isAnimationMode && (state.mockupMotionPath || state.slot2MockupMotionPath) && (
-            <div
-              className="absolute inset-0 pointer-events-none z-40 flex items-center justify-center"
-              style={{ padding: `${state.padding}px` }}
-            >
-              <MotionPathOverlay
-                keyframes={state.keyframes.map((keyframe) => ({
-                  id: keyframe.id,
-                  timeSec: keyframe.timeSec,
-                  x: keyframe.offsetX,
-                  y: keyframe.offsetY,
-                }))}
-                baseX={state.offsetX}
-                baseY={state.offsetY}
-                config={state.mockupMotionPath}
-              />
-              {state.layoutCount === 2 && (
+          {!readOnly &&
+            state.isAnimationMode &&
+            (state.mockupMotionPath || state.slot2MockupMotionPath) && (
+              <div
+                className="absolute inset-0 pointer-events-none z-40 flex items-center justify-center"
+                style={{ padding: `${state.padding}px` }}
+              >
                 <MotionPathOverlay
                   keyframes={state.keyframes.map((keyframe) => ({
-                    id: `slot2-${keyframe.id}`,
+                    id: keyframe.id,
                     timeSec: keyframe.timeSec,
-                    x: keyframe.slot2OffsetX ?? 0,
-                    y: keyframe.slot2OffsetY ?? 0,
+                    x: keyframe.offsetX,
+                    y: keyframe.offsetY,
                   }))}
-                  baseX={state.slot2OffsetX}
-                  baseY={state.slot2OffsetY}
-                  config={state.slot2MockupMotionPath}
+                  baseX={state.offsetX}
+                  baseY={state.offsetY}
+                  config={state.mockupMotionPath}
                 />
-              )}
-            </div>
-          )}
+                {state.layoutCount === 2 && (
+                  <MotionPathOverlay
+                    keyframes={state.keyframes.map((keyframe) => ({
+                      id: `slot2-${keyframe.id}`,
+                      timeSec: keyframe.timeSec,
+                      x: keyframe.slot2OffsetX ?? 0,
+                      y: keyframe.slot2OffsetY ?? 0,
+                    }))}
+                    baseX={state.slot2OffsetX}
+                    baseY={state.slot2OffsetY}
+                    config={state.slot2MockupMotionPath}
+                  />
+                )}
+              </div>
+            )}
 
           {/* Unclipped Selection Gizmos Layer (Photoshop-like outer line & corner indicator buttons) */}
           {renderSelectionGizmos()}

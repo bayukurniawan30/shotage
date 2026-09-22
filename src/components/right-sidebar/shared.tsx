@@ -5,6 +5,14 @@ import { Coolshape } from 'coolshapes-react';
 import { BackgroundType, ShapeType } from '../../types/studio';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from '../SocialIcons';
 import { StepperSlider } from '../StepperSlider';
+import {
+  GOOGLE_FONTS,
+  isStudioFontLoaded,
+  loadStudioFont,
+  type StudioFont,
+} from '../../utils/fontLoader';
+
+export { GOOGLE_FONTS } from '../../utils/fontLoader';
 
 /** Shared colour control used by editable Studio layer sections. */
 export const LayerColorControl: React.FC<{
@@ -66,29 +74,88 @@ export const LayerColorControl: React.FC<{
   );
 };
 
-export const GOOGLE_FONTS = [
-  { name: 'Inter', family: 'Inter, sans-serif' },
-  { name: 'Roboto', family: 'Roboto, sans-serif' },
-  { name: 'Poppins', family: 'Poppins, sans-serif' },
-  { name: 'Montserrat', family: 'Montserrat, sans-serif' },
-  { name: 'Playfair Display', family: "'Playfair Display', serif" },
-  { name: 'Lora', family: 'Lora, serif' },
-  { name: 'Oswald', family: 'Oswald, sans-serif' },
-  { name: 'Outfit', family: 'Outfit, sans-serif' },
-  { name: 'Raleway', family: "'Raleway', sans-serif" },
-  { name: 'Quicksand', family: "'Quicksand', sans-serif" },
-  { name: 'Exo 2', family: "'Exo 2', sans-serif" },
-  { name: 'Monoton', family: "'Monoton', cursive" },
-  { name: 'Unica One', family: "'Unica One', cursive" },
-  { name: 'Pacifico', family: 'Pacifico, cursive' },
-  { name: 'Fira Code', family: "'Fira Code', monospace" },
-];
+const FontPreviewOption: React.FC<{
+  font: StudioFont;
+  selected: boolean;
+  onSelect: (font: StudioFont) => void;
+}> = ({ font, selected, onSelect }) => {
+  const optionRef = useRef<HTMLButtonElement>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    isStudioFontLoaded(font.name) ? 'ready' : 'idle'
+  );
+
+  const requestFont = () => {
+    if (status === 'ready' || status === 'loading') return;
+    setStatus('loading');
+    void loadStudioFont(font.name)
+      .then(() => setStatus('ready'))
+      .catch(() => setStatus('error'));
+  };
+
+  useEffect(() => {
+    const element = optionRef.current;
+    if (!element || status !== 'idle') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          requestFont();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '24px' }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [status]);
+
+  return (
+    <button
+      ref={optionRef}
+      type="button"
+      onPointerEnter={requestFont}
+      onFocus={requestFont}
+      onClick={async () => {
+        if (!isStudioFontLoaded(font.name)) {
+          setStatus('loading');
+          try {
+            await loadStudioFont(font.name);
+            setStatus('ready');
+          } catch {
+            setStatus('error');
+          }
+        }
+        onSelect(font);
+      }}
+      className={`w-full px-2.5 py-1.5 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors text-left ${
+        selected
+          ? 'bg-[#a2d2ff]/20 text-pastel-blue font-bold'
+          : 'text-slate-200 hover:bg-neutral-800 hover:text-white'
+      }`}
+      style={{ fontFamily: font.family }}
+      title={
+        status === 'error'
+          ? `${font.name} could not be loaded; a fallback will be used.`
+          : font.name
+      }
+    >
+      <span className="truncate">{font.name}</span>
+      <span className="ml-2 flex shrink-0 items-center">
+        {status === 'loading' && (
+          <span className="h-2.5 w-2.5 animate-spin rounded-full border border-slate-500 border-t-pastel-pink" />
+        )}
+        {status === 'error' && <span className="text-[9px] font-bold text-amber-400">!</span>}
+        {selected && status !== 'loading' && <Check className="w-3.5 h-3.5 text-pastel-blue" />}
+      </span>
+    </button>
+  );
+};
 
 export const FontSelect: React.FC<{
   value: string;
   onChange: (fontName: string) => void;
 }> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedFontReady, setSelectedFontReady] = useState(isStudioFontLoaded(value));
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedFont = GOOGLE_FONTS.find((f) => f.name === value) || GOOGLE_FONTS[0];
@@ -103,6 +170,21 @@ export const FontSelect: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setSelectedFontReady(isStudioFontLoaded(value));
+    void loadStudioFont(value)
+      .then(() => {
+        if (active) setSelectedFontReady(true);
+      })
+      .catch(() => {
+        if (active) setSelectedFontReady(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [value]);
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -112,6 +194,9 @@ export const FontSelect: React.FC<{
         style={{ fontFamily: selectedFont.family }}
       >
         <span className="truncate">{selectedFont.name}</span>
+        {!selectedFontReady && (
+          <span className="ml-auto h-2.5 w-2.5 animate-spin rounded-full border border-slate-500 border-t-pastel-pink" />
+        )}
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1.5 ${
             isOpen ? 'rotate-180 text-pastel-pink' : ''
@@ -121,28 +206,17 @@ export const FontSelect: React.FC<{
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-neutral-900 border border-neutral-800 rounded-xl p-1 shadow-2xl max-h-56 overflow-y-auto space-y-0.5 backdrop-blur-md">
-          {GOOGLE_FONTS.map((font) => {
-            const isSelected = font.name === value;
-            return (
-              <button
-                key={font.name}
-                type="button"
-                onClick={() => {
-                  onChange(font.name);
-                  setIsOpen(false);
-                }}
-                className={`w-full px-2.5 py-1.5 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors text-left ${
-                  isSelected
-                    ? 'bg-[#a2d2ff]/20 text-pastel-blue font-bold'
-                    : 'text-slate-200 hover:bg-neutral-800 hover:text-white'
-                }`}
-                style={{ fontFamily: font.family }}
-              >
-                <span style={{ fontFamily: font.family }}>{font.name}</span>
-                {isSelected && <Check className="w-3.5 h-3.5 text-pastel-blue shrink-0" />}
-              </button>
-            );
-          })}
+          {GOOGLE_FONTS.map((font) => (
+            <FontPreviewOption
+              key={font.name}
+              font={font}
+              selected={font.name === value}
+              onSelect={(selected) => {
+                onChange(selected.name);
+                setIsOpen(false);
+              }}
+            />
+          ))}
         </div>
       )}
     </div>

@@ -368,6 +368,7 @@ export type ShinePreset =
 
 export type FrameType =
   | 'frameless'
+  | 'code-window'
   | 'safari-light'
   | 'safari-dark'
   | 'chrome-dark'
@@ -384,6 +385,26 @@ export type FrameType =
   | 'polaroid-dark'
   | 'instagram'
   | 'instagram-dark';
+
+export type CodeLanguage =
+  | 'typescript'
+  | 'javascript'
+  | 'tsx'
+  | 'jsx'
+  | 'html'
+  | 'css'
+  | 'json'
+  | 'bash'
+  | 'python'
+  | 'sql'
+  | 'go'
+  | 'rust'
+  | 'php'
+  | 'yaml'
+  | 'markdown';
+
+export type CodeTheme = 'dark' | 'light';
+export type CodeWindowStyle = 'macos' | 'windows';
 
 export interface StudioState {
   imageSrc: string | null;
@@ -422,6 +443,16 @@ export interface StudioState {
   shadowOverlayPosition?: 'behind' | 'above';
   hideMockup: boolean;
   frameType: FrameType;
+  codeSource: string;
+  codeLanguage: CodeLanguage;
+  codeTheme: CodeTheme;
+  codeWindowStyle: CodeWindowStyle;
+  codeFilename: string;
+  codeWindowWidth: number;
+  codeWindowHeight: number;
+  codeFontSize: number;
+  codeLineNumbers: boolean;
+  codeWordWrap: boolean;
   samsungStatusBar?: 'none' | 'light' | 'dark';
   iphoneStatusBar?: 'none' | 'light' | 'dark';
   urlText: string;
@@ -614,6 +645,24 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shadowOverlayPosition: 'above',
   hideMockup: false,
   frameType: 'frameless',
+  codeSource: `const createShot = (title: string) => {
+  return {
+    title,
+    motion: 'smooth',
+    ready: true,
+  };
+};
+
+createShot('Made with Shotage');`,
+  codeLanguage: 'typescript',
+  codeTheme: 'dark',
+  codeWindowStyle: 'macos',
+  codeFilename: 'shotage.ts',
+  codeWindowWidth: 640,
+  codeWindowHeight: 400,
+  codeFontSize: 14,
+  codeLineNumbers: true,
+  codeWordWrap: false,
   samsungStatusBar: 'none',
   iphoneStatusBar: 'none',
   urlText: 'shotage.app/preview',

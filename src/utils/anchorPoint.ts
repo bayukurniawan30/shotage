@@ -35,3 +35,35 @@ export const getAnchorCompensation = (
 
 export const anchorOrigin = (anchorX?: number, anchorY?: number): string =>
   `${clampAnchor(anchorX ?? 0.5) * 100}% ${clampAnchor(anchorY ?? 0.5) * 100}%`;
+
+/**
+ * Converts pointer travel at a resize handle into size growth while keeping
+ * the chosen anchor fixed. A centered anchor expands twice as fast because a
+ * handle represents only half of the element's distance from the anchor.
+ */
+export const getAnchoredResizeDelta = (
+  outwardDelta: number,
+  handleDirection: -1 | 0 | 1,
+  anchor: number
+): number => {
+  if (handleDirection === 0) return 0;
+  const normalizedAnchor = clampAnchor(anchor);
+  const distanceFromAnchor =
+    handleDirection < 0 ? normalizedAnchor : 1 - normalizedAnchor;
+  return distanceFromAnchor > 0.0001 ? outwardDelta / distanceFromAnchor : outwardDelta;
+};
+
+/** Returns the local center translation required to keep the anchor fixed. */
+export const getAnchoredResizeCenterShift = (
+  sizeDelta: number,
+  handleDirection: -1 | 0 | 1,
+  anchor: number
+): number => {
+  if (handleDirection === 0) return 0;
+  const normalizedAnchor = clampAnchor(anchor);
+  const distanceFromAnchor =
+    handleDirection < 0 ? normalizedAnchor : 1 - normalizedAnchor;
+  return distanceFromAnchor > 0.0001
+    ? (0.5 - normalizedAnchor) * sizeDelta
+    : (handleDirection * sizeDelta) / 2;
+};

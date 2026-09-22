@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ShinePreset } from '../../types/studio';
 import { MiniCanvasBackground } from './MiniCanvasBackground';
@@ -8,8 +8,17 @@ export const ShineSection: React.FC = () => {
   const state = useStudioEditorStore();
   const onChange = state.updateState;
 
-  const activePreset: ShinePreset = state.shinePreset || (state.enableShine ? 'diagonal-glass' : 'none');
+  const activePreset: ShinePreset =
+    state.shinePreset || (state.enableShine ? 'diagonal-glass' : 'none');
   const opacity = state.shineOpacity ?? 35;
+
+  useEffect(() => {
+    if (state.frameType === 'code-window' && (state.shinePreset !== 'none' || state.enableShine)) {
+      onChange({ shinePreset: 'none', enableShine: false });
+    }
+  }, [onChange, state.enableShine, state.frameType, state.shinePreset]);
+
+  if (state.frameType === 'code-window') return null;
 
   const presets: { id: ShinePreset; label: string; previewGradient?: string }[] = [
     {

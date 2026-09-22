@@ -52,6 +52,8 @@ import {
   getStageTransition,
   getStageTransitionLayerTransforms,
 } from '../utils/stageTransitions';
+import { ensureStudioFontsLoaded } from '../utils/fontLoader';
+import { waitForCodeHighlights } from '../utils/codeHighlight';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -310,6 +312,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     announceCreditBalanceUpdated(balance);
   };
 
+  const ensureDesignFontsReady = async () => {
+    const latest = useStudioStore.getState();
+    const fontNames = [
+      ...(latest.textLayers || []).map((layer) => layer.fontFamily),
+      ...(latest.stages || []).flatMap((stage) =>
+        (stage.textLayers || []).map((layer) => layer.fontFamily)
+      ),
+    ];
+    await ensureStudioFontsLoaded(fontNames);
+  };
+
   if (!isOpen) return null;
 
   const handleExport = async (format: 'png' | 'jpeg' | 'webp', isCopy = false) => {
@@ -373,9 +386,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         setImageExportNotice('Free retry applied — no credits charged.');
       }
 
-      // Suppress transitions and wait for fonts so the captured DOM is stable.
+      // Suppress transitions and wait for every design font so capture is stable.
       canvasRef.current.classList.add('exporting-no-transitions');
-      if ('fonts' in document) await document.fonts.ready;
+      await ensureDesignFontsReady();
+      await waitForCodeHighlights(canvasRef.current);
       await new Promise((resolve) => setTimeout(resolve, 50));
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
@@ -452,6 +466,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             requestAnimationFrame(() => requestAnimationFrame(resolve))
           );
           if ('fonts' in document) await document.fonts.ready;
+          await waitForCodeHighlights(canvasRef.current);
 
           let dataUrl: string;
           if (customImageOutputSize) {
@@ -940,10 +955,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       // Pause live player during frame rendering
       onChange({ isPlaying: false, currentTimeSec: 0 });
 
-      // Ensure all loaded web fonts are ready in browser cache before recording
-      if ('fonts' in document) {
-        await document.fonts.ready;
-      }
+      // Ensure every font used across the recorded stages is ready first.
+      await ensureDesignFontsReady();
+      await waitForCodeHighlights(canvasRef.current);
 
       let globalFrameIndex = 0;
       let completedFramesCount = 0;
@@ -960,6 +974,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             requestAnimationFrame(() => requestAnimationFrame(resolve))
           );
           if ('fonts' in document) await document.fonts.ready;
+          await waitForCodeHighlights(canvasRef.current);
         }
 
         try {
@@ -1106,6 +1121,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               if (!incomingElement || !incomingContext || !transitionIncomingCanvas) {
                 throw new Error('Could not render the incoming transition stage');
               }
+              await waitForCodeHighlights(incomingElement);
 
               const incomingPixelRatio =
                 exportCanvas.width / (incomingElement.offsetWidth || exportCanvas.width);

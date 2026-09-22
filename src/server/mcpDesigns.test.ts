@@ -36,6 +36,30 @@ describe('MCP design construction', () => {
     expect(() => buildStudioState({ backgroundType: 'unknown' })).toThrow();
   });
 
+  it('accepts a single-slot source code frame and rejects dual-slot code frames', () => {
+    const state = buildStudioState({
+      frameType: 'code-window',
+      layoutCount: 1,
+      codeSource: 'const ready: boolean = true;',
+      codeLanguage: 'typescript',
+      codeTheme: 'dark',
+      codeWindowStyle: 'macos',
+      codeFilename: 'example.ts',
+      codeWindowWidth: 720,
+      codeWindowHeight: 420,
+      codeFontSize: 15,
+      codeLineNumbers: true,
+      codeWordWrap: false,
+    });
+
+    expect(validateMcpStudioState(state as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
+    expect(() => buildStudioState({ frameType: 'code-window', layoutCount: 2 })).toThrow(
+      /layoutCount must be 1/
+    );
+  });
+
   it('accepts paths, custom easing, text staggering, masks, groups, blur, and transitions', () => {
     const state = buildStudioState({
       durationSec: 8,

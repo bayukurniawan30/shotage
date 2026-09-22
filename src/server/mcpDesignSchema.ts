@@ -40,6 +40,45 @@ export const MCP_BACKGROUND_TYPES = [
   'image',
 ] as const;
 
+export const MCP_FRAME_TYPES = [
+  'frameless',
+  'code-window',
+  'safari-light',
+  'safari-dark',
+  'chrome-dark',
+  'macbook',
+  'macbookair13',
+  'iphone',
+  'iphone14pro',
+  'iphone16',
+  'iphone16-floating',
+  'iphone17-dual-side',
+  'samsung-s21',
+  'tablet',
+  'polaroid',
+  'polaroid-dark',
+  'instagram',
+  'instagram-dark',
+] as const;
+
+export const MCP_CODE_LANGUAGES = [
+  'typescript',
+  'javascript',
+  'tsx',
+  'jsx',
+  'html',
+  'css',
+  'json',
+  'bash',
+  'python',
+  'sql',
+  'go',
+  'rust',
+  'php',
+  'yaml',
+  'markdown',
+] as const;
+
 export const MCP_MOTION_PRESETS = [
   'pop-in',
   'slide-in-left',
@@ -348,6 +387,18 @@ export const studioPatchSchema = z
     gradient: z
       .object({ color1: color, color2: color, angle: finiteNumber.min(0).max(360) })
       .optional(),
+    frameType: z.enum(MCP_FRAME_TYPES).optional(),
+    layoutCount: z.union([z.literal(1), z.literal(2)]).optional(),
+    codeSource: z.string().max(30_000).optional(),
+    codeLanguage: z.enum(MCP_CODE_LANGUAGES).optional(),
+    codeTheme: z.enum(['dark', 'light']).optional(),
+    codeWindowStyle: z.enum(['macos', 'windows']).optional(),
+    codeFilename: z.string().max(80).optional(),
+    codeWindowWidth: finiteNumber.int().min(360).max(1400).optional(),
+    codeWindowHeight: finiteNumber.int().min(100).max(1000).optional(),
+    codeFontSize: finiteNumber.min(8).max(32).optional(),
+    codeLineNumbers: z.boolean().optional(),
+    codeWordWrap: z.boolean().optional(),
     isAnimationMode: z.boolean().optional(),
     durationSec: finiteNumber.min(1).max(60).optional(),
     animationEasing: animationEasingTypeSchema.optional(),
@@ -574,6 +625,8 @@ export function validateMcpStudioState(value: JsonObject): McpDesignValidationRe
   const durationSec = Number(value.durationSec ?? 10);
 
   if (parsed.success) {
+    if (value.frameType === 'code-window' && value.layoutCount === 2)
+      errors.push('studioState.layoutCount must be 1 when frameType is code-window.');
     validateCollections(value, durationSec, 'studioState', errors, warnings);
     if (Array.isArray(value.stages)) {
       (value.stages as JsonObject[]).forEach((stage, index) => {
@@ -587,6 +640,10 @@ export function validateMcpStudioState(value: JsonObject): McpDesignValidationRe
           );
           return;
         }
+        if (stage.frameType === 'code-window' && stage.layoutCount === 2)
+          errors.push(
+            `studioState.stages[${index}].layoutCount must be 1 when frameType is code-window.`
+          );
         validateCollections(
           stage,
           Number(stage.durationSec ?? durationSec),
@@ -679,6 +736,21 @@ export const MCP_MOTION_REFERENCE = {
   },
   anchorPoints:
     'anchorX and anchorY use normalized 0-1 coordinates on mockups, layers, and groups.',
+  sourceCodeFrames: {
+    frameType: 'code-window',
+    rule: 'Use layoutCount=1. Code frames inherit mockup transforms, keyframes, anchors, paths, and motion blur.',
+    fields: {
+      codeSource: 'Plain source text, maximum 30,000 characters.',
+      codeLanguage: MCP_CODE_LANGUAGES,
+      codeTheme: ['dark', 'light'],
+      codeWindowStyle: ['macos', 'windows'],
+      codeWindowWidth: '360-1400',
+      codeWindowHeight: '100-1000',
+      codeFontSize: '8-32',
+      codeLineNumbers: 'boolean',
+      codeWordWrap: 'boolean',
+    },
+  },
   motionBlur: 'Set motionBlurEnabled=true and motionBlurStrength=0-100 at Studio/stage level.',
   textAnimation: {
     presets: ['text-rise', 'text-pop', 'text-blur', 'text-wave'],
