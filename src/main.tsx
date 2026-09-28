@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import './index.css';
+import { isDesktopApp } from './platform/runtime';
 
 const getInitialPage = () => {
   const el = document.getElementById('app');
@@ -13,7 +14,7 @@ const getInitialPage = () => {
     }
   }
   const currentPath = window.location.pathname;
-  let componentName = 'Home';
+  let componentName = isDesktopApp() ? 'Studio' : 'Home';
   if (currentPath === '/studio') componentName = 'Studio';
   if (currentPath === '/pricing') componentName = 'Pricing';
   if (currentPath === '/terms') componentName = 'Terms';
@@ -53,7 +54,7 @@ createInertiaApp({
   },
 });
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isDesktopApp()) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

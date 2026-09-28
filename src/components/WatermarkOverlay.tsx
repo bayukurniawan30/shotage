@@ -34,18 +34,18 @@ export const WatermarkOverlay: React.FC = () => {
       case 'sm':
         return {
           container: 'px-2 py-0.5 gap-1 text-[11px]',
-          logo: 'h-3.5 w-auto',
+          logo: 'h-3.5 w-auto rounded-[4px]',
         };
       case 'lg':
         return {
           container: 'px-3.5 py-1.5 gap-2 text-sm',
-          logo: 'h-5 w-auto',
+          logo: 'h-5 w-auto rounded-[7px]',
         };
       case 'md':
       default:
         return {
           container: 'px-2.5 py-1 gap-1.5 text-xs',
-          logo: 'h-4 w-auto',
+          logo: 'h-4 w-auto rounded-[5px]',
         };
     }
   };

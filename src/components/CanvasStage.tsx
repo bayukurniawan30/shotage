@@ -53,6 +53,8 @@ import {
   getAnchoredResizeDelta,
 } from '../utils/anchorPoint';
 import type { LayerKeyframe, MotionPathConfig } from '../types/animationTypes';
+import { isDesktopApp } from '../platform/runtime';
+import { ExtrudedShape } from './ExtrudedShape';
 
 interface CanvasStageProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
@@ -491,6 +493,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         return 'shadow-[0_35px_60px_-15px_rgba(0,0,0,0.9)]';
       default:
         return '';
+    }
+  };
+
+  const getDesktopMockupShadow = () => {
+    switch (state.shadow) {
+      case 'soft':
+        return 'drop-shadow(0 7px 11px rgba(0,0,0,0.16))';
+      case 'medium':
+        return 'drop-shadow(0 12px 19px rgba(0,0,0,0.18)) drop-shadow(0 23px 30px rgba(0,0,0,0.14))';
+      case 'hard':
+        return 'drop-shadow(0 14px 20px rgba(0,0,0,0.28)) drop-shadow(0 25px 34px rgba(0,0,0,0.22))';
+      case 'floating':
+        return 'drop-shadow(0 18px 26px rgba(0,0,0,0.28)) drop-shadow(0 32px 42px rgba(0,0,0,0.24))';
+      default:
+        return 'none';
     }
   };
 
@@ -1321,11 +1338,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           );
         };
 
+        const textBlur = grouped.blur + (hasClippedTextFill ? 0 : velocityBlur);
+        const hasTextShadow = !!layer.shadow && !layer.bgImage && !layer.gradient;
+        const textShadowOffsetX = kfValues.shadowOffsetX ?? layer.shadowOffsetX ?? 0;
+        const textShadowOffsetY = kfValues.shadowOffsetY ?? layer.shadowOffsetY ?? 4;
+        const textShadowBlur = kfValues.shadowBlur ?? layer.shadowBlur ?? 12;
+        const textShadowOpacity = (kfValues.shadowOpacity ?? layer.shadowOpacity ?? 70) / 100;
+        const desktopTextFilter = [
+          textBlur > 0 ? `blur(${textBlur}px)` : '',
+          hasTextShadow
+            ? `drop-shadow(${textShadowOffsetX}px ${textShadowOffsetY}px ${textShadowBlur}px rgba(0,0,0,${textShadowOpacity}))`
+            : '',
+        ].filter(Boolean).join(' ') || 'none';
+
         return (
           <div
             key={layer.id}
             data-layer-id={layer.id}
             data-group-id={grouped.group?.id}
+            data-export-text-shadow={hasTextShadow ? 'true' : undefined}
             onClick={(e) => {
               e.stopPropagation();
               if (
@@ -1355,16 +1386,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               fontStyle: layer.fontStyle,
               textAlign: layer.textAlign,
               opacity: grouped.visible ? grouped.opacity : 0,
-              filter:
-                grouped.blur + (hasClippedTextFill ? 0 : velocityBlur) > 0
-                  ? `blur(${grouped.blur + (hasClippedTextFill ? 0 : velocityBlur)}px)`
-                  : undefined,
+              filter: textBlur > 0 ? `blur(${textBlur}px)` : undefined,
               textShadow:
-                layer.bgImage || layer.gradient
-                  ? 'none'
-                  : layer.shadow
-                    ? `${kfValues.shadowOffsetX ?? layer.shadowOffsetX ?? 0}px ${kfValues.shadowOffsetY ?? layer.shadowOffsetY ?? 4}px ${kfValues.shadowBlur ?? layer.shadowBlur ?? 12}px rgba(0,0,0,${(kfValues.shadowOpacity ?? layer.shadowOpacity ?? 70) / 100})`
-                    : 'none',
+                hasTextShadow
+                  ? `${textShadowOffsetX}px ${textShadowOffsetY}px ${textShadowBlur}px rgba(0,0,0,${textShadowOpacity})`
+                  : 'none',
+              ...({ '--shotage-export-text-filter': desktopTextFilter } as React.CSSProperties),
               whiteSpace: fullText.includes('\n') ? 'pre-wrap' : 'pre',
               width: 'max-content',
               maxWidth: 'none',
@@ -1735,9 +1762,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         );
         const kfValues = evaluateLayerKeyframes(layer, state.currentTimeSec, state.animationEasing);
         const shapeColor = kfValues.color ?? layer.color ?? '#a2d2ff';
-        const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? 0;
+        const is3DShape = layer.shapeType === 'square-3d' || layer.shapeType === 'rectangle-3d';
+        const shapeBorderRadius = kfValues.borderRadius ?? layer.borderRadius ?? (is3DShape ? 20 : 0);
         const getShapeStyle = (): React.CSSProperties => {
           switch (layer.shapeType) {
+            case 'square-3d':
+            case 'rectangle-3d':
+              return { borderRadius: 0 };
             case 'circle':
               return { borderRadius: '9999px' };
             case 'hexagon':
@@ -1778,7 +1809,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           }
         };
 
-        const isGlass = !!layer.glassmorphism && layer.shapeType !== 'coolshape';
+        const isOpenPath = layer.shapeType === 'custom-path' && layer.pathClosed === false;
+        const isGlass = !!layer.glassmorphism && layer.shapeType !== 'coolshape' && !is3DShape && !isOpenPath;
         const borderWidth = Math.max(0, kfValues.borderWidth ?? layer.borderWidth ?? 2);
         const borderColor = kfValues.borderColor ?? layer.borderColor ?? '#ffffff';
         const hasBorder =
@@ -1789,10 +1821,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           layer.shapeType === 'triangle' ||
           layer.shapeType === 'quote' ||
           layer.shapeType === 'coolshape' ||
-          layer.shapeType === 'custom-path';
+          layer.shapeType === 'custom-path' ||
+          is3DShape;
 
         const getGlassOrSolidBackground = (): React.CSSProperties => {
-          if (layer.shapeType === 'coolshape') {
+          if (layer.shapeType === 'coolshape' || is3DShape) {
             return {
               backgroundColor: 'transparent',
               backgroundImage: 'none',
@@ -1949,7 +1982,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   ? 'hidden'
                   : undefined,
               borderRadius:
-                layer.shapeType === 'coolshape'
+                layer.shapeType === 'coolshape' || is3DShape
                   ? undefined
                   : layer.shapeType === 'circle' && !isSelected
                     ? '9999px'
@@ -1959,7 +1992,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             }}
           >
             {/* SVG Defs for Custom Path Glassmorphic Clip */}
-            {layer.shapeType === 'custom-path' && customUnitPath && (
+            {layer.shapeType === 'custom-path' && !isOpenPath && customUnitPath && (
               <svg
                 className="absolute w-0 h-0 pointer-events-none opacity-0"
                 style={{ position: 'absolute', width: 0, height: 0 }}
@@ -1981,7 +2014,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               style={{
                 ...getGlassOrSolidBackground(),
                 ...getShapeStyle(),
-                opacity: isGlass ? 1 : (layer.opacity ?? 100) / 100,
+                opacity: isGlass || is3DShape || isOpenPath ? 1 : (layer.opacity ?? 100) / 100,
                 filter: 'none',
                 ...(isGlass
                   ? {
@@ -2011,6 +2044,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   : {}),
               }}
             >
+              {is3DShape && (
+                <ExtrudedShape
+                  width={shapeWidth}
+                  height={shapeHeight}
+                  depth={layer.depth ?? 10}
+                  cornerSoftness={shapeBorderRadius}
+                  color={shapeColor}
+                  gradient={layer.gradient}
+                  borderColor={borderColor}
+                  borderWidth={hasBorder ? borderWidth : 0}
+                  className="pointer-events-none block"
+                />
+              )}
               {layer.shapeType === 'coolshape' && (
                 <Coolshape
                   type={layer.coolshapeType || 'star'}
@@ -2021,7 +2067,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 />
               )}
 
-              {/* Merged Custom Path SVG Silhouette */}
+              {/* Filled vector silhouette or open stroked pen path */}
               {layer.shapeType === 'custom-path' &&
                 layer.pathData &&
                 (() => {
@@ -2040,8 +2086,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         layer.viewBox ||
                         `${-shapeWidth / 2} ${-shapeHeight / 2} ${shapeWidth} ${shapeHeight}`
                       }
+                      preserveAspectRatio={isOpenPath ? 'none' : undefined}
                       style={{ width: '100%', height: '100%' }}
                     >
+                      {isOpenPath && (
+                        <path
+                          d={layer.pathData}
+                          fill="none"
+                          stroke={shapeColor}
+                          strokeWidth={Math.max(1, layer.strokeWidth ?? 6)}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      )}
                       <defs>
                         <clipPath id={svgResourceId('shape-clip', layer.id)} clipRule="evenodd">
                           <path d={layer.pathData} fillRule="evenodd" />
@@ -2077,7 +2134,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         )}
                       </defs>
 
-                      {layer.bgImage ? (
+                      {isOpenPath ? null : layer.bgImage ? (
                         layer.bgImageRepeat ? (
                           <path
                             d={layer.pathData}
@@ -2109,7 +2166,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                       ) : null}
 
                       {/* Outer Stroke (Glassmorphic border outline) */}
-                      {isGlass && (hasBorder || layer.glassmorphismBorder !== false) && (
+                      {!isOpenPath && isGlass && (hasBorder || layer.glassmorphismBorder !== false) && (
                         <path
                           d={layer.pathData}
                           fill="none"
@@ -2120,7 +2177,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         />
                       )}
 
-                      {!isGlass && hasBorder && (
+                      {!isOpenPath && !isGlass && hasBorder && (
                         <path
                           d={layer.pathData}
                           fill="none"
@@ -2363,6 +2420,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               src={imgSrc}
               slotIndex={slotIndex}
               isPlaying={state.isPlaying}
+              isExporting={state.isExporting}
               currentTimeSec={state.currentTimeSec}
               className={`w-full h-full ${objectFitClass} transition-all group-hover:brightness-75 ${
                 isFrameless ? '' : 'rounded-none'
@@ -2371,6 +2429,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             />
           ) : (
             <img
+              data-export-mockup-image="true"
               src={imgSrc || placeholderSrc!}
               alt={imgName || 'Screenshot'}
               className={`w-full h-full ${objectFitClass} block transition-all group-hover:brightness-75 ${
@@ -2428,11 +2487,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         </div>
       ) : (
         <label
-          className={`@container w-full p-6 bg-slate-800/80 border-2 border-dashed border-slate-600 flex flex-col items-center justify-center text-center shadow-xl cursor-pointer hover:border-pastel-pink transition-all group ${
-            isFrameless ? 'rounded-xl' : 'rounded-none'
-          }`}
+          className="@container w-full p-6 bg-slate-800 border-2 border-dashed border-slate-600 flex flex-col items-center justify-center text-center cursor-pointer hover:border-pastel-pink transition-all group rounded-none"
           style={{
             ...imageStyle,
+            borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
             aspectRatio: placeholderAspect,
             minWidth:
               isFrameless ||
@@ -2499,18 +2557,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     let frameElement: React.ReactNode;
     if (state.frameType === 'code-window') {
       frameElement = (
-        <CodeFrame
-          code={state.codeSource}
-          language={state.codeLanguage}
-          theme={state.codeTheme}
-          windowStyle={state.codeWindowStyle}
-          filename={state.codeFilename}
-          width={state.codeWindowWidth}
-          height={state.codeWindowHeight}
-          fontSize={state.codeFontSize}
-          showLineNumbers={state.codeLineNumbers}
-          wordWrap={state.codeWordWrap}
-        />
+        <div className="relative w-fit">
+          {state.shadow === 'none' && (
+            <div data-code-frame-export-shadow="true" className="absolute inset-0 pointer-events-none" />
+          )}
+          <div className="relative z-10">
+            <CodeFrame
+              code={state.codeSource}
+              language={state.codeLanguage}
+              theme={state.codeTheme}
+              windowStyle={state.codeWindowStyle}
+              filename={state.codeFilename}
+              width={state.codeWindowWidth}
+              height={state.codeWindowHeight}
+              fontSize={state.codeFontSize}
+              showLineNumbers={state.codeLineNumbers}
+              wordWrap={state.codeWordWrap}
+            />
+          </div>
+        </div>
       );
     } else if (state.frameType.startsWith('safari') || state.frameType === 'chrome-dark') {
       const currentUrl = slotIndex === 2 ? state.secondUrlText : state.urlText;
@@ -2826,9 +2891,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         {/* Underlying shadow backing box with exact matching border-radius */}
         {shadowClass && (
           <div
+            data-mockup-shadow-backing="true"
             className={`absolute inset-0 pointer-events-none transition-all duration-200 ${shadowClass}`}
             style={{
               borderRadius: computedRadius,
+              ...({ '--shotage-export-mockup-shadow': getDesktopMockupShadow() } as React.CSSProperties),
             }}
           />
         )}
@@ -4060,7 +4127,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           })
         );
       } else if (resizeDragItem.type === 'shape') {
-        const isUniform = resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle';
+        const isUniform = resizeDragItem.shapeType && resizeDragItem.shapeType !== 'rectangle' && resizeDragItem.shapeType !== 'rectangle-3d';
         const initW = resizeDragItem.initialWidth || 120;
         const initH = resizeDragItem.initialHeight || 120;
 
@@ -5083,7 +5150,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         <div className="absolute top-4 left-4 z-40 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md p-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto select-none">
           {/* Active Pen Indicator */}
           <div
-            title="Pen Tool Active"
+            title={state.penDrawingKind === 'line' ? 'Pen Line Active' : 'Pen Shape Active'}
             className="w-8 h-8 rounded-lg flex items-center justify-center bg-pastel-pink/15 text-pastel-pink cursor-default"
           >
             <PhosphorIcons.PenNib weight="fill" className="w-4 h-4" />
@@ -5095,8 +5162,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <button
             type="button"
             disabled={penNodeCount < 2}
-            onClick={() => finishPenRef.current?.(penNodeCount >= 3)}
-            title={penNodeCount >= 3 ? 'Close Shape (Enter)' : 'Done (Enter)'}
+            onClick={() => finishPenRef.current?.(state.penDrawingKind !== 'line' && penNodeCount >= 3)}
+            title={state.penDrawingKind !== 'line' && penNodeCount >= 3 ? 'Close Shape (Enter)' : 'Finish Path (Enter)'}
             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
               penNodeCount >= 2
                 ? 'bg-gradient-to-tr from-pastel-pink to-[#a2d2ff] text-slate-950 hover:scale-110 shadow-md shadow-pastel-pink/20 cursor-pointer'
@@ -5180,7 +5247,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         <div
           ref={canvasRef}
           id={canvasId}
-          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${readOnly ? 'exporting-no-transitions' : ''} ${getAspectRatioStyle()}`}
+          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${readOnly ? 'exporting-no-transitions' : ''} ${readOnly && isDesktopApp() ? 'exporting-desktop-shadow-fallback' : ''} ${getAspectRatioStyle()}`}
           style={{
             ...getBackgroundStyle(),
             padding: `${state.padding}px`,
@@ -5640,6 +5707,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             {/* Top-Level Lens Blur (Depth of Field) Overlay covering the entire stage & mockup */}
             {state.lensBlurEnabled && (state.lensBlurAmount ?? 0) > 0 && (
               <div
+                data-lens-blur-overlay="true"
                 className="absolute inset-0 pointer-events-none z-40 transition-all duration-200 scale-[1.03]"
                 style={{
                   backdropFilter: `blur(${state.lensBlurAmount}px) saturate(135%) brightness(92%)`,
@@ -5704,6 +5772,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           {/* Interactive Vector Pen Drawing Overlay */}
           {state.isPenDrawingMode && (
             <PenDrawingOverlay
+              key={state.penDrawingKind ?? 'shape'}
               canvasRef={canvasRef}
               onNodeCountChange={setPenNodeCount}
               finishRef={finishPenRef}

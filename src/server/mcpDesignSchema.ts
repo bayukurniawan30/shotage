@@ -268,6 +268,8 @@ export const mcpShapeLayerInputSchema = z
     shapeType: z.enum([
       'square',
       'rectangle',
+      'square-3d',
+      'rectangle-3d',
       'circle',
       'triangle',
       'hexagon',
@@ -276,6 +278,8 @@ export const mcpShapeLayerInputSchema = z
       'custom-path',
     ]),
     pathData: z.string().optional(),
+    pathClosed: z.boolean().optional(),
+    strokeWidth: finiteNumber.min(1).max(40).optional(),
     unitPathData: z.string().optional(),
     viewBox: z.string().optional(),
     coolshapeType: z
@@ -300,6 +304,7 @@ export const mcpShapeLayerInputSchema = z
       .optional(),
     width: finiteNumber.positive().optional(),
     height: finiteNumber.positive().optional(),
+    depth: finiteNumber.min(0).optional(),
     borderRadius: finiteNumber.min(0).optional(),
     borderEnabled: z.boolean().optional(),
     borderColor: color.optional(),
@@ -561,6 +566,9 @@ function validateCollections(
     const usedTargets = new Set<string>();
     (value.shapeLayers as JsonObject[]).forEach((shape, index) => {
       if (!shape.maskTarget || typeof shape.maskTarget !== 'object') return;
+      if (shape.shapeType === 'square-3d' || shape.shapeType === 'rectangle-3d' || shape.pathClosed === false) {
+        errors.push(`${prefix}.shapeLayers[${index}] cannot use a 3D shape or open path as a mask.`);
+      }
       const target = shape.maskTarget as JsonObject;
       const targetType = String(target.type);
       const targetId = String(target.id);

@@ -11,7 +11,7 @@ import {
   ChevronDown,
 } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
-import { FontSelect, LayerColorControl } from './shared';
+import { DesktopWebOnlyControls, FontSelect, LayerColorControl } from './shared';
 import { StepperSlider } from '../StepperSlider';
 import { Toggle } from '../Toggle';
 import {
@@ -1002,7 +1002,7 @@ export const TextSection: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
@@ -1042,13 +1042,13 @@ export const TextSection: React.FC = () => {
                         accentColor="#ffafcc"
                       />
                     </div>
-                  </div>
+                  </DesktopWebOnlyControls>
                 </div>
               )}
 
               {/* Option: Skew */}
               {activeOption === 'skew' && (
-                <div className="grid grid-cols-2 gap-3">
+                <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew X</span>
@@ -1086,7 +1086,7 @@ export const TextSection: React.FC = () => {
                       accentColor="#ffafcc"
                     />
                   </div>
-                </div>
+                </DesktopWebOnlyControls>
               )}
 
               {/* Option: Opacity */}

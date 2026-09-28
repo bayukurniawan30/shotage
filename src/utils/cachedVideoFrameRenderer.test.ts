@@ -44,6 +44,18 @@ describe('cached video frame renderer eligibility', () => {
     expect(canUseCachedVideoFrameRenderer(makeState({ motionBlurEnabled: true }))).toBe(false);
   });
 
+  it('keeps shadow overlays above mockups in static backgrounds', () => {
+    expect(
+      canUseCachedVideoFrameRenderer(
+        makeState({
+          backgroundType: 'gradient',
+          shadowOverlay: 'shadow-overlay-1',
+          shadowOverlayPosition: 'above',
+        })
+      )
+    ).toBe(false);
+  });
+
   it('accepts static above-mockup text with Flow', () => {
     expect(
       canUseCachedVideoFrameRenderer(

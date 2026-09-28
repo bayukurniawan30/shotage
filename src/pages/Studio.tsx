@@ -43,6 +43,10 @@ import {
 import { AuthButton } from '../components/auth/AuthButton';
 import { authClient, getOptionalAuthToken } from '../lib/auth/client';
 import type { StudioState } from '../types/studio';
+import { apiUrl, isDesktopApp } from '../platform/runtime';
+import { openProjectOnDevice, saveProjectOnDevice } from '../platform/desktop';
+import { setDesktopMenuActions } from '../platform/menu';
+import { DesktopUpdater } from '../components/desktop/DesktopUpdater';
 
 const SPOTLIGHT_SESSION_KEY = 'shotage-spotlight-seen';
 const PROJECT_SPOTLIGHT_GATED = true;
@@ -72,6 +76,9 @@ export const Studio: React.FC = () => {
   const sharedViewKey = new URLSearchParams(window.location.search).get('s') || null;
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [localProject, setLocalProject] = useState<{ path: string; createdAt: string } | null>(
+    null
+  );
   const [isStartOverModalOpen, setIsStartOverModalOpen] = useState(false);
   const [isVideoBetaModalOpen, setIsVideoBetaModalOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
@@ -183,6 +190,68 @@ export const Studio: React.FC = () => {
     // Reset file input value so re-selecting same file works
     e.target.value = '';
   };
+
+  const handleOpenLocalProject = async () => {
+    setIsDesktopMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    if (
+      !window.confirm(
+        'Open a project from your device? Your current unsaved edits will be replaced.'
+      )
+    )
+      return;
+    try {
+      const result = await openProjectOnDevice();
+      if (!result) return;
+      purgeAllVideoDecoders();
+      temporalStore.getState().clear();
+      await clearSavedSession();
+      resetAll();
+      updateState(result.project.studioState);
+      setLocalProject({ path: result.path, createdAt: result.project.createdAt });
+      savedSessionDataRef.current = null;
+      isRestoredOrDismissedRef.current = true;
+      setIsRestorePromptOpen(false);
+      window.history.replaceState({}, '', '/studio');
+      setTimeout(() => fitCanvasToView(), 100);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not open the project.');
+    }
+  };
+
+  const handleSaveLocalProject = async (saveAs = false) => {
+    setIsDesktopMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    try {
+      const result = await saveProjectOnDevice(useStudioStore.getState(), localProject, saveAs);
+      if (result) setLocalProject(result);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not save the project.');
+    }
+  };
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    const handleDesktopShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === 's') {
+        event.preventDefault();
+        void handleSaveLocalProject(event.shiftKey);
+      } else if (key === 'o') {
+        event.preventDefault();
+        void handleOpenLocalProject();
+      } else if (key === 'n') {
+        event.preventDefault();
+        setIsStartOverModalOpen(true);
+      } else if (key === 'e') {
+        event.preventDefault();
+        setIsExportModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleDesktopShortcut);
+    return () => window.removeEventListener('keydown', handleDesktopShortcut);
+  });
 
   const confirmStartOver = () => {
     const currentState = useStudioStore.getState();
@@ -318,7 +387,7 @@ export const Studio: React.FC = () => {
     const loadSharedDesign = async () => {
       try {
         const token = await getOptionalAuthToken();
-        const response = await fetch(`/api/share/${encodeURIComponent(sharedViewKey)}`, {
+        const response = await fetch(apiUrl(`/api/share/${encodeURIComponent(sharedViewKey)}`), {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         const data = await response.json().catch(() => null);
@@ -391,6 +460,18 @@ export const Studio: React.FC = () => {
 
   // Access temporal store for undo / redo
   const temporalStore = useStudioStore.temporal;
+
+  useEffect(() => {
+    setDesktopMenuActions({
+      newProject: () => setIsStartOverModalOpen(true),
+      openProject: () => void handleOpenLocalProject(),
+      saveProject: () => void handleSaveLocalProject(),
+      saveProjectAs: () => void handleSaveLocalProject(true),
+      exportDesign: () => setIsExportModalOpen(true),
+      undo: () => temporalStore.getState().undo(),
+      redo: () => temporalStore.getState().redo(),
+    });
+  });
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -794,7 +875,7 @@ export const Studio: React.FC = () => {
             <img
               src="/shotage-logo-small.png"
               alt="Shotage"
-              className="h-8 w-auto object-contain"
+              className="h-8 w-auto rounded-[10px] object-contain"
             />
             <span className="hidden text-base font-bold tracking-tight text-slate-200 sm:inline">
               Shotage
@@ -867,7 +948,7 @@ export const Studio: React.FC = () => {
             <img
               src="/shotage-logo-small.png"
               alt="Shotage Logo"
-              className="h-8 sm:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-8 sm:h-7 w-auto object-contain rounded-[10px] group-hover:scale-105 transition-transform"
             />
             <span className="hidden sm:inline font-bold text-base tracking-tight text-slate-200 group-hover:text-pastel-pinkLight transition-colors">
               Shotage
@@ -956,6 +1037,32 @@ export const Studio: React.FC = () => {
 
             {isDesktopMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                {isDesktopApp() && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleOpenLocalProject}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 text-left"
+                    >
+                      <UploadCloud01 className="w-4 h-4" /> Open project…
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveLocalProject()}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 text-left"
+                    >
+                      <Download01 className="w-4 h-4" /> Save to device
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveLocalProject(true)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 text-left"
+                    >
+                      <Download01 className="w-4 h-4" /> Save As…
+                    </button>
+                    <div className="my-1 border-t border-neutral-800" />
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -1074,6 +1181,32 @@ export const Studio: React.FC = () => {
 
               {isMobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-[100] animate-in fade-in zoom-in-95 duration-100">
+                  {isDesktopApp() && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleOpenLocalProject}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 text-left"
+                      >
+                        <UploadCloud01 className="w-4 h-4" /> Open project…
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveLocalProject()}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 text-left"
+                      >
+                        <Download01 className="w-4 h-4" /> Save to device
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveLocalProject(true)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-slate-300 hover:text-white hover:bg-neutral-800 text-left"
+                      >
+                        <Download01 className="w-4 h-4" /> Save As…
+                      </button>
+                      <div className="my-1 border-t border-neutral-800" />
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -1175,18 +1308,36 @@ export const Studio: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsLeftSidebarCollapsed((collapsed) => !collapsed)}
-              className={`absolute top-3 z-50 flex h-9 w-9 items-center justify-center border border-neutral-700 bg-neutral-900/95 text-slate-300 shadow-xl backdrop-blur-md transition-all hover:border-pastel-blue/50 hover:text-white cursor-pointer ${
+              className={`absolute top-3 z-50 flex h-9 w-9 items-center justify-center text-slate-300 transition-all hover:text-white cursor-pointer ${
                 isLeftSidebarCollapsed
-                  ? 'left-1/2 -translate-x-1/2 rounded-xl'
-                  : 'left-full rounded-l-none rounded-r-xl border-l-0'
+                  ? 'left-1/2 -translate-x-1/2 rounded-xl border border-neutral-700 bg-neutral-900/95 shadow-xl backdrop-blur-md hover:border-pastel-blue/50'
+                  : 'left-full'
               }`}
               title={isLeftSidebarCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
               aria-label={isLeftSidebarCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
             >
+              {!isLeftSidebarCollapsed && (
+                <svg
+                  className="pointer-events-none absolute -left-px -top-3 h-[60px] w-10 overflow-visible drop-shadow-xl"
+                  viewBox="0 0 40 60"
+                  aria-hidden="true"
+                >
+                  <path d="M -2 0 H 2 V 60 H -2 Z" className="fill-neutral-900" />
+                  <path
+                    d="M 0 0 C 0 7 6 12 12 12 H 26 Q 38 12 38 24 V 36 Q 38 48 26 48 H 12 C 6 48 0 53 0 60 Z"
+                    className="fill-neutral-900"
+                  />
+                  <path
+                    d="M 0 0 C 0 7 6 12 12 12 H 26 Q 38 12 38 24 V 36 Q 38 48 26 48 H 12 C 6 48 0 53 0 60"
+                    className="fill-none stroke-neutral-700"
+                    strokeWidth="1"
+                  />
+                </svg>
+              )}
               {isLeftSidebarCollapsed ? (
                 <PhosphorIcons.CaretRightIcon className="h-4 w-4" weight="bold" />
               ) : (
-                <PhosphorIcons.CaretLeftIcon className="h-4 w-4" weight="bold" />
+                <PhosphorIcons.CaretLeftIcon className="relative h-4 w-4" weight="bold" />
               )}
             </button>
           )}
@@ -1326,20 +1477,39 @@ export const Studio: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsRightSidebarCollapsed((collapsed) => !collapsed)}
-              className={`absolute top-3 z-50 flex h-9 w-9 items-center justify-center border border-neutral-700 bg-neutral-900/95 text-slate-300 shadow-xl backdrop-blur-md transition-all hover:border-pastel-pink/50 hover:text-white cursor-pointer ${
+              className={`absolute top-3 z-50 flex h-9 w-9 items-center justify-center text-slate-300 transition-all hover:text-white cursor-pointer ${
                 isRightSidebarCollapsed
-                  ? 'right-1/2 translate-x-1/2 rounded-xl'
-                  : 'right-full rounded-l-xl rounded-r-none border-r-0'
+                  ? 'right-1/2 translate-x-1/2 rounded-xl border border-neutral-700 bg-neutral-900/95 shadow-xl backdrop-blur-md hover:border-pastel-pink/50'
+                  : 'right-full'
               }`}
               title={isRightSidebarCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
               aria-label={
                 isRightSidebarCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'
               }
             >
+              {!isRightSidebarCollapsed && (
+                <svg
+                  className="pointer-events-none absolute -right-px -top-3 h-[60px] w-10 overflow-visible drop-shadow-xl"
+                  viewBox="0 0 40 60"
+                  aria-hidden="true"
+                  style={{ transform: 'scaleX(-1)' }}
+                >
+                  <path d="M -2 0 H 2 V 60 H -2 Z" className="fill-neutral-900" />
+                  <path
+                    d="M 0 0 C 0 7 6 12 12 12 H 26 Q 38 12 38 24 V 36 Q 38 48 26 48 H 12 C 6 48 0 53 0 60 Z"
+                    className="fill-neutral-900"
+                  />
+                  <path
+                    d="M 0 0 C 0 7 6 12 12 12 H 26 Q 38 12 38 24 V 36 Q 38 48 26 48 H 12 C 6 48 0 53 0 60"
+                    className="fill-none stroke-neutral-700"
+                    strokeWidth="1"
+                  />
+                </svg>
+              )}
               {isRightSidebarCollapsed ? (
                 <PhosphorIcons.CaretLeftIcon className="h-4 w-4" weight="bold" />
               ) : (
-                <PhosphorIcons.CaretRightIcon className="h-4 w-4" weight="bold" />
+                <PhosphorIcons.CaretRightIcon className="relative h-4 w-4" weight="bold" />
               )}
             </button>
           )}
@@ -1479,6 +1649,8 @@ export const Studio: React.FC = () => {
 
       {/* Mobile Install App Button */}
       <InstallPwaModal showFloatingButton={!isMobileMenuOpen} />
+
+      {!isRestorePromptOpen && <DesktopUpdater />}
 
       {/* Cross-project spotlight (random project ad) on shared designs */}
       {isSpotlightOpen && <ProjectSpotlight onClose={() => setIsSpotlightOpen(false)} />}

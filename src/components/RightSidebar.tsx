@@ -47,6 +47,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     text: state.selectedTextLayerId,
     element: state.selectedElementId,
     shape: state.selectedShapeId,
+    icon: state.selectedPhosphorIconLayerId,
   });
 
   useEffect(() => {
@@ -59,14 +60,18 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       text: state.selectedTextLayerId,
       element: state.selectedElementId,
       shape: state.selectedShapeId,
+      icon: state.selectedPhosphorIconLayerId,
     };
 
     if (desktopCollapsed) {
       const selectedText = Boolean(next.text && next.text !== previous.text);
       const selectedElement = Boolean(next.element && next.element !== previous.element);
       const selectedShape = Boolean(next.shape && next.shape !== previous.shape);
+      const selectedIcon = Boolean(next.icon && next.icon !== previous.icon);
 
-      if (selectedText) {
+      if (selectedIcon) {
+        setActiveDesktopSection('icons');
+      } else if (selectedText) {
         const selectedTextLayer = state.textLayers.find((layer) => layer.id === next.text);
         setActiveDesktopSection(
           selectedTextLayer?.socialPlatform !== undefined ? 'social' : 'text'
@@ -80,6 +85,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   }, [
     desktopCollapsed,
     state.selectedElementId,
+    state.selectedPhosphorIconLayerId,
     state.selectedShapeId,
     state.selectedTextLayerId,
     state.textLayers,
@@ -182,7 +188,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   }
 
   return (
-    <div className="w-full bg-neutral-900 border-l border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
+    <div className="w-full bg-neutral-900 border-l border-neutral-700 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       {/* Quick vs Advanced Mode Switcher */}
       <div className="grid grid-cols-2 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800 shrink-0">
         <button

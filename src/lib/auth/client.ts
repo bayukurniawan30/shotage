@@ -1,4 +1,5 @@
 import { BetterAuthReactAdapter } from '@neondatabase/neon-js/auth/react/adapters';
+import { apiUrl } from '../../platform/runtime';
 
 const neonAuthUrl = import.meta.env.VITE_NEON_AUTH_URL?.trim();
 
@@ -138,7 +139,7 @@ export async function getOptionalAuthToken() {
 export async function fetchVerifiedAccount(): Promise<VerifiedAccount> {
   const token = await getAuthToken();
 
-  const response = await fetch('/api/auth/me', {
+  const response = await fetch(apiUrl('/api/auth/me'), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -157,7 +158,7 @@ export async function fetchVerifiedAccount(): Promise<VerifiedAccount> {
 
 export async function createCreditCheckout(pack: CreditPackSlug) {
   const token = await getAuthToken();
-  const response = await fetch('/api/checkout/create', {
+  const response = await fetch(apiUrl('/api/checkout/create'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -178,7 +179,7 @@ export async function createCreditCheckout(pack: CreditPackSlug) {
 
 export async function fetchPurchaseHistory(): Promise<PurchaseHistoryItem[]> {
   const token = await getAuthToken();
-  const response = await fetch('/api/user/purchases', {
+  const response = await fetch(apiUrl('/api/user/purchases'), {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -195,7 +196,7 @@ export async function fetchPurchaseHistory(): Promise<PurchaseHistoryItem[]> {
 
 export async function fetchUserDesigns(): Promise<UserDesignItem[]> {
   const token = await getAuthToken();
-  const response = await fetch('/api/user/designs', {
+  const response = await fetch(apiUrl('/api/user/designs'), {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -212,7 +213,7 @@ export async function fetchUserDesigns(): Promise<UserDesignItem[]> {
 
 export async function deleteUserDesign(id: string) {
   const token = await getAuthToken();
-  const response = await fetch(`/api/user/designs/${encodeURIComponent(id)}`, {
+  const response = await fetch(apiUrl(`/api/user/designs/${encodeURIComponent(id)}`), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -227,7 +228,7 @@ export async function deleteUserDesign(id: string) {
 
 async function mutateCredits(path: string, body: unknown): Promise<ExportReservation> {
   const token = await getAuthToken();
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path as `/api/${string}`), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

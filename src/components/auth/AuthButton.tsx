@@ -24,6 +24,8 @@ import {
 } from '../../lib/auth/client';
 import { getExportCapacity } from '../../lib/credits';
 import { CREDIT_PACK_OPTIONS } from '../../lib/creditPacks';
+import { isDesktopApp } from '../../platform/runtime';
+import { openExternalUrl } from '../../platform/desktop';
 
 type AuthButtonProps = {
   compact?: boolean;
@@ -65,7 +67,8 @@ export function CreditPackDialog({
     setError(null);
     try {
       const { checkoutUrl } = await createCreditCheckout(pack);
-      window.location.assign(checkoutUrl);
+      await openExternalUrl(checkoutUrl);
+      if (isDesktopApp()) onClose();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not open checkout.');
       setPending(null);
@@ -469,7 +472,11 @@ export function AuthButton({
         .catch(() => undefined);
     };
     window.addEventListener(CREDIT_BALANCE_UPDATED_EVENT, refreshBalance);
-    return () => window.removeEventListener(CREDIT_BALANCE_UPDATED_EVENT, refreshBalance);
+    if (isDesktopApp()) window.addEventListener('focus', refreshBalance);
+    return () => {
+      window.removeEventListener(CREDIT_BALANCE_UPDATED_EVENT, refreshBalance);
+      window.removeEventListener('focus', refreshBalance);
+    };
   }, [sessionId]);
 
   useEffect(() => {

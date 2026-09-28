@@ -6,6 +6,8 @@ import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
 import { clampCodeSource, CODE_LANGUAGES } from '../../utils/codeHighlight';
 import type { CodeLanguage, CodeTheme } from '../../types/studio';
+import { isDesktopApp } from '../../platform/runtime';
+import { DESKTOP_UNSUPPORTED_FRAMES } from '../../platform/desktopFrameCompatibility';
 
 interface CodeOptionSelectProps<T extends string> {
   value: T;
@@ -81,6 +83,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
 }) => {
   const state = useStudioEditorStore();
   const onChange = state.updateState;
+  const desktopApp = isDesktopApp();
 
   const [isFrameDropdownOpen, setIsFrameDropdownOpen] = useState(false);
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
@@ -333,9 +336,13 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
                   },
                 ].map((item) => {
                   const isSelected = state.frameType === item.id;
+                  const unavailableOnDesktop = desktopApp && item.id in DESKTOP_UNSUPPORTED_FRAMES;
                   return (
                     <button
                       key={item.id}
+                      type="button"
+                      disabled={unavailableOnDesktop}
+                      aria-label={unavailableOnDesktop ? `${item.label}, unavailable in the desktop app` : item.label}
                       onClick={() => {
                         onChange({
                           frameType: item.id as any,
@@ -350,13 +357,15 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
                         });
                         setIsFrameDropdownOpen(false);
                       }}
-                      className="flex flex-col items-center gap-1 cursor-pointer group"
+                      className={`flex flex-col items-center gap-1 group ${unavailableOnDesktop ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <div
                         className={`w-full aspect-square rounded-xl border p-1.5 flex items-center justify-center transition-all bg-neutral-950 overflow-hidden relative ${
                           isSelected
                             ? 'border-[#a2d2ff] ring-2 ring-[#a2d2ff] bg-neutral-800/80 shadow-md scale-102'
-                            : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
+                            : unavailableOnDesktop
+                              ? 'border-neutral-800 bg-neutral-950/80 opacity-50'
+                              : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/80 hover:scale-102'
                         }`}
                       >
                         <img
@@ -374,10 +383,20 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
                       >
                         {item.label}
                       </span>
+                      {unavailableOnDesktop && (
+                        <span className="text-[9px] font-semibold text-amber-300 text-center leading-tight">
+                          Web only
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+              {desktopApp && state.frameType in DESKTOP_UNSUPPORTED_FRAMES && (
+                <p className="mt-2 text-[10px] leading-4 text-amber-300">
+                  This frame is in the design but desktop export cannot match its 3D tilt yet. Choose another frame or export on the web.
+                </p>
+              )}
             </div>
 
             <div className="pt-2 border-t border-neutral-800/80">

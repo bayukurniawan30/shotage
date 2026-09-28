@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isDesktopApp } from '../platform/runtime';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { useStudioEditorStore } from '../store/useStudioStore';
 import { GRADIENT_PRESETS, GradientPreset } from '../utils/gradientPresets';
@@ -903,6 +904,7 @@ export const QuickModeSection: React.FC = () => {
 
   // Apply mockup variation to canvas
   const handleApplyVariation = (v: MockupVariation) => {
+    if (isDesktopApp() && isDesktopUnsupportedVariation(v)) return;
     if (isDual) {
       onChange({
         layoutPreset: v.layoutPreset || state.layoutPreset,
@@ -939,6 +941,12 @@ export const QuickModeSection: React.FC = () => {
       });
     }
   };
+
+  const isDesktopUnsupportedVariation = (v: MockupVariation) => Boolean(
+    v.rotateX || v.rotateY || v.skewX || v.skewY || v.perspective !== 1000 ||
+    v.slot2RotateX || v.slot2RotateY || v.slot2SkewX || v.slot2SkewY ||
+    (v.slot2Perspective !== undefined && v.slot2Perspective !== 1000)
+  );
 
   const isPhoneFrame =
     state.frameType === 'iphone' ||
@@ -1250,12 +1258,14 @@ export const QuickModeSection: React.FC = () => {
         <div className="space-y-2.5">
           {activeVariations.map((v) => {
             const active = isVariationActive(v);
+            const webOnly = isDesktopApp() && isDesktopUnsupportedVariation(v);
             return (
               <button
                 key={v.id}
                 type="button"
+                disabled={webOnly}
                 onClick={() => handleApplyVariation(v)}
-                className={`w-full text-left rounded-2xl border p-2.5 transition-all cursor-pointer group relative overflow-hidden ${
+                className={`w-full text-left rounded-2xl border p-2.5 transition-all group relative overflow-hidden ${webOnly ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer'} ${
                   active
                     ? 'bg-neutral-900 border-pastel-pink shadow-lg shadow-pastel-pink/10 ring-1 ring-pastel-pink/50'
                     : 'bg-neutral-950/70 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/60'
@@ -1270,7 +1280,11 @@ export const QuickModeSection: React.FC = () => {
                   {renderVariationPreview(v)}
 
                   {/* Active Selection Badge */}
-                  {active && (
+                  {webOnly ? (
+                    <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full bg-amber-500/90 text-neutral-950 font-bold text-[9px]">
+                      Web only
+                    </div>
+                  ) : active && (
                     <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full bg-pastel-pink text-slate-950 font-bold text-[9px] flex items-center gap-1 shadow-md animate-in fade-in">
                       <PhosphorIcons.CheckIcon className="w-2.5 h-2.5 font-bold" />
                       Applied

@@ -161,6 +161,47 @@ input[type='range'] {
   display: none !important;
 }
 
+/* WebKit's SVG foreignObject capture loses text-shadow and distorts a
+   transparent backing box's box-shadow. Keep the mockup image outside the
+   filtered layer: filtering its parent can make the entire mockup disappear
+   on the first desktop capture. The live canvas and web export are unchanged. */
+.exporting-desktop-shadow-fallback .text-layer-item[data-export-text-shadow='true'] {
+  text-shadow: none !important;
+  filter: var(--shotage-export-text-filter) !important;
+}
+
+.exporting-desktop-shadow-fallback [data-mockup-shadow-backing='true'] {
+  box-shadow: none !important;
+  inset: 3px !important;
+  background-color: #111 !important;
+  filter: var(--shotage-export-mockup-shadow) !important;
+}
+
+/* The Source Code frame has its own box-shadow even when the frame-shadow
+   setting is "none". Render that shadow from a separate opaque backing in
+   WebKit exports so its blur does not distort the code window. */
+.exporting-desktop-shadow-fallback .shotage-code-frame {
+  box-shadow: none !important;
+}
+
+.exporting-desktop-shadow-fallback [data-code-frame-export-shadow='true'] {
+  inset: 3px !important;
+  border-radius: 12px;
+  background-color: #111;
+  filter: drop-shadow(0 25px 25px rgba(0, 0, 0, 0.25));
+}
+
+/* WKWebView does not include this masked backdrop-filter in an SVG
+   foreignObject capture. Desktop image export applies an equivalent effect to
+   the final bitmap, so omit the unreliable DOM layer during that capture. */
+.exporting-desktop-lens-blur-fallback [data-lens-blur-overlay='true'] {
+  display: none !important;
+}
+
+img[data-export-probe='true'] {
+  background: linear-gradient(90deg, #ff00ff 50%, #00ff00 50%) center / 20% 20% no-repeat !important;
+}
+
 /* Shiki output inside the Source Code mockup. Keep these rules deterministic for DOM export. */
 .shotage-code-surface .shiki {
   min-height: 100%;

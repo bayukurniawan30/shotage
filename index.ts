@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono';
+import { cors } from 'hono/cors';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
 import {
   Webhook as StandardWebhook,
@@ -53,6 +54,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = new Hono();
+
+// Packaged Tauri windows use a different origin from the hosted API. Requests
+// still require the normal bearer token for protected routes.
+app.use(
+  '/api/*',
+  cors({
+    origin: (origin) =>
+      origin === 'tauri://localhost' || origin === 'http://tauri.localhost' ? origin : '',
+    allowHeaders: ['Authorization', 'Content-Type'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  })
+);
 
 // In-memory identifier → entry id cache so UUID-keyed share URLs don't require
 // listing the whole collection on every page view. TTL keeps it fresh.

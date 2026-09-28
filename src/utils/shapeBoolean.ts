@@ -19,7 +19,8 @@ const BASIC_BOOLEAN_SHAPES = new Set<ShapeLayer['shapeType']>([
  */
 export function canBooleanOperateOnShape(shape?: ShapeLayer | null): boolean {
   if (!shape) return false;
-  if (shape.shapeType === 'custom-path') return Boolean(shape.pathData?.trim());
+  if (shape.shapeType === 'custom-path')
+    return shape.pathClosed !== false && Boolean(shape.pathData?.trim());
   return BASIC_BOOLEAN_SHAPES.has(shape.shapeType);
 }
 

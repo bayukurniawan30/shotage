@@ -1,0 +1,57 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Shotage Studio",
+  "version": "0.1.0",
+  "identifier": "studio.shotage.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeDevCommand": "pnpm exec vite --host 127.0.0.1",
+    "beforeBuildCommand": "pnpm exec vite build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Shotage Studio",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 650,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "devCsp": "default-src 'self' http://127.0.0.1:5173; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self' blob: ws://127.0.0.1:5173 http://127.0.0.1:5173 https://shotage.studio https://*.neon.tech https://*.morphic-cms.com https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self' blob:",
+      "csp": "default-src 'self' tauri: asset:; img-src 'self' asset: http://asset.localhost data: blob: https:; media-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://analytics.baycore.dev; connect-src 'self' blob: https://shotage.studio https://*.neon.tech https://*.morphic-cms.com https://fonts.googleapis.com https://fonts.gstatic.com https://analytics.baycore.dev; worker-src 'self' blob:"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["shotage"]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEyNkM3ODVBMUE5MTQ0RkEKUldUNlJKRWFXbmhzRW5qbDl2Sk1rcjA2NmVTNDJmTnlNbitLcytlVjhTTnZzQ2c2a2w2UXppZlAK",
+      "endpoints": [
+        "https://github.com/bayukurniawan30/shotage-release/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    }
+  }
+}

@@ -30,7 +30,14 @@ describe('shape boolean operations', () => {
       )
     ).toBe(true);
     expect(canBooleanOperateOnShape(shape({ shapeType: 'custom-path' }))).toBe(false);
+    expect(
+      canBooleanOperateOnShape(
+        shape({ shapeType: 'custom-path', pathData: 'M -50 0 L 50 0', pathClosed: false })
+      )
+    ).toBe(false);
     expect(canBooleanOperateOnShape(shape({ shapeType: 'coolshape' }))).toBe(false);
+    expect(canBooleanOperateOnShape(shape({ shapeType: 'square-3d' }))).toBe(false);
+    expect(canBooleanOperateOnShape(shape({ shapeType: 'rectangle-3d' }))).toBe(false);
   });
 
   it('keeps a pen-drawn silhouette when unioning it with a rectangle', () => {

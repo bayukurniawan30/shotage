@@ -124,6 +124,8 @@ export type CoolshapeCategory =
 export type ShapeType =
   | 'square'
   | 'rectangle'
+  | 'square-3d'
+  | 'rectangle-3d'
   | 'circle'
   | 'triangle'
   | 'hexagon'
@@ -135,6 +137,9 @@ export interface ShapeLayer {
   id: string;
   shapeType: ShapeType;
   pathData?: string;
+  /** False for an open pen line; omitted on legacy filled vector shapes. */
+  pathClosed?: boolean;
+  strokeWidth?: number;
   unitPathData?: string;
   viewBox?: string;
   coolshapeType?: CoolshapeCategory;
@@ -149,6 +154,7 @@ export interface ShapeLayer {
   bgImageRepeat?: boolean;
   width: number;
   height: number;
+  depth?: number;
   borderRadius?: number;
   borderEnabled?: boolean;
   borderColor?: string;
@@ -597,6 +603,7 @@ export interface StudioState {
   selectedLayerGroupId: string | null;
   // Pen Drawing Mode State
   isPenDrawingMode?: boolean;
+  penDrawingKind?: 'shape' | 'line';
   isMultiSelectMode?: boolean;
   sidebarMode: 'quick' | 'advanced';
   // Tech Stack Overlay
@@ -776,6 +783,7 @@ createShot('Made with Shotage');`,
   layerGroups: [],
   selectedLayerGroupId: null,
   isPenDrawingMode: false,
+  penDrawingKind: 'shape',
   isMultiSelectMode: false,
   sidebarMode: 'quick',
   techStackConfig: {

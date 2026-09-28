@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle, Loading01, Stars02 } from '@untitledui/icons';
 import { AuthButton } from '../components/auth/AuthButton';
 import { authClient, getAuthToken } from '../lib/auth/client';
+import { apiUrl } from '../platform/runtime';
 
 const scopeLabels: Record<string, string> = {
   'designs:read': 'View your saved Shotage designs',
@@ -24,7 +25,7 @@ export default function McpAuthorize() {
     setError(null);
     try {
       const token = await getAuthToken();
-      const response = await fetch(`/api/oauth/authorize?${params.toString()}`, {
+      const response = await fetch(apiUrl(`/api/oauth/authorize?${params.toString()}`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

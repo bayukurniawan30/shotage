@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+  <defs>
+    <linearGradient id="bg" x1="24" y1="20" x2="366" y2="824" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#181126"/><stop offset="1" stop-color="#0c0913"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="60" y1="170" x2="332" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffafcc"/><stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="390" height="844" fill="url(#bg)"/>
+  <text x="28" y="68" fill="#fff" font-family="Inter,Arial" font-size="24" font-weight="800">NOVA</text>
+  <circle cx="346" cy="59" r="20" fill="#fff" fill-opacity=".1"/>
+  <text x="28" y="132" fill="#aaa0b8" font-family="Inter,Arial" font-size="15">Good morning, Alex</text>
+  <text x="28" y="169" fill="#fff" font-family="Inter,Arial" font-size="28" font-weight="750">Your day at a glance</text>
+  <rect x="28" y="203" width="334" height="176" rx="26" fill="url(#accent)"/>
+  <text x="52" y="249" fill="#32163d" font-family="Inter,Arial" font-size="15" font-weight="700">WEEKLY FOCUS</text>
+  <text x="52" y="305" fill="#20102c" font-family="Inter,Arial" font-size="48" font-weight="850">82%</text>
+  <rect x="52" y="330" width="260" height="12" rx="6" fill="#fff" fill-opacity=".35"/>
+  <rect x="52" y="330" width="213" height="12" rx="6" fill="#fff"/>
+  <text x="28" y="432" fill="#fff" font-family="Inter,Arial" font-size="19" font-weight="750">Today</text>
+  <g font-family="Inter,Arial">
+    <rect x="28" y="458" width="334" height="92" rx="22" fill="#fff" fill-opacity=".075"/>
+    <circle cx="62" cy="504" r="17" fill="#ffafcc"/><text x="96" y="498" fill="#fff" font-size="15" font-weight="700">Launch planning</text><text x="96" y="523" fill="#92889f" font-size="13">10:00 · Product team</text>
+    <rect x="28" y="566" width="334" height="92" rx="22" fill="#fff" fill-opacity=".075"/>
+    <circle cx="62" cy="612" r="17" fill="#a2d2ff"/><text x="96" y="606" fill="#fff" font-size="15" font-weight="700">Review new flows</text><text x="96" y="631" fill="#92889f" font-size="13">14:30 · Design</text>
+    <rect x="28" y="674" width="334" height="92" rx="22" fill="#fff" fill-opacity=".075"/>
+    <circle cx="62" cy="720" r="17" fill="#cdb4db"/><text x="96" y="714" fill="#fff" font-size="15" font-weight="700">Weekly report</text><text x="96" y="739" fill="#92889f" font-size="13">16:00 · Insights</text>
+  </g>
+  <rect x="110" y="798" width="170" height="5" rx="2.5" fill="#fff" fill-opacity=".7"/>
+</svg>

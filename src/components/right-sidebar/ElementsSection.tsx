@@ -4,7 +4,7 @@ import { Copy01, Trash01, ChevronDown } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Coolshape } from 'coolshapes-react';
 import { Toggle } from '../Toggle';
-import { ShapePreview, BooleanIcons, LayerColorControl } from './shared';
+import { DesktopWebOnlyControls, ShapePreview, BooleanIcons, LayerColorControl } from './shared';
 import { StepperSlider } from '../StepperSlider';
 import { ShapeType, CoolshapeCategory } from '../../types/studio';
 import {
@@ -29,7 +29,7 @@ const COOLSHAPE_CATEGORIES: { id: CoolshapeCategory; label: string; count: numbe
 
 export const ElementsSection: React.FC = () => {
   const state = useStudioEditorStore();
-  const [shapeTab, setShapeTab] = useState<'basic' | 'coolshapes'>('coolshapes');
+  const [shapeTab, setShapeTab] = useState<'basic' | 'coolshapes' | '3d'>('coolshapes');
   const [activeCoolshapeCat, setActiveCoolshapeCat] = useState<CoolshapeCategory>('star');
   const [customEmojiInput, setCustomEmojiInput] = useState('');
   const [showAllShapeGradients, setShowAllShapeGradients] = useState(false);
@@ -246,13 +246,23 @@ export const ElementsSection: React.FC = () => {
   ];
 
   const selectedShape = (state.shapeLayers || []).find((s) => s.id === state.selectedShapeId);
+  const is3DShape = selectedShape?.shapeType === 'square-3d' || selectedShape?.shapeType === 'rectangle-3d';
   const isUniform =
     selectedShape &&
     selectedShape.shapeType !== 'rectangle' &&
+    selectedShape.shapeType !== 'rectangle-3d' &&
     selectedShape.shapeType !== 'custom-path';
   const supportsRadius =
     selectedShape &&
     (selectedShape.shapeType === 'square' || selectedShape.shapeType === 'rectangle');
+  const max3DDepth = selectedShape
+    ? Math.max(1, Math.floor(Math.min(selectedShape.width, selectedShape.height) * 0.45))
+    : 1;
+  const visible3DDepth = Math.min(selectedShape?.depth ?? 10, max3DDepth);
+  const max3DCornerSoftness = selectedShape
+    ? Math.max(1, Math.floor((Math.min(selectedShape.width, selectedShape.height) - visible3DDepth) / 2))
+    : 1;
+  const visible3DCornerSoftness = Math.min(selectedShape?.borderRadius ?? 20, max3DCornerSoftness);
 
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 md:bg-neutral-950 p-4 space-y-4 shadow-sm">
@@ -408,12 +418,17 @@ export const ElementsSection: React.FC = () => {
           </span>
         </div>
 
-        {/* Vector Pen Tool Hero Button */}
+        {/* Filled vector shape tool */}
         <button
           type="button"
-          onClick={() => state.setPenDrawingMode(!state.isPenDrawingMode)}
+          onClick={() =>
+            state.setPenDrawingMode(
+              !(state.isPenDrawingMode && state.penDrawingKind !== 'line'),
+              'shape'
+            )
+          }
           className={`w-full py-2 px-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer group ${
-            state.isPenDrawingMode
+            state.isPenDrawingMode && state.penDrawingKind !== 'line'
               ? 'bg-pastel-pink text-slate-950 border-pastel-pink shadow-md shadow-pastel-pink/20 scale-[1.01]'
               : 'bg-gradient-to-r from-neutral-900 to-neutral-950 hover:from-neutral-850 hover:to-neutral-900 border-neutral-800 hover:border-neutral-700 text-white shadow-xs'
           }`}
@@ -421,7 +436,7 @@ export const ElementsSection: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <div
               className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                state.isPenDrawingMode
+                state.isPenDrawingMode && state.penDrawingKind !== 'line'
                   ? 'bg-slate-950 text-pastel-pink shadow-xs'
                   : 'bg-pastel-pink/15 text-pastel-pink group-hover:scale-110'
               }`}
@@ -430,25 +445,25 @@ export const ElementsSection: React.FC = () => {
             </div>
             <div className="text-left">
               <div className="text-xs font-bold leading-tight flex items-center gap-1.5">
-                <span>Vector Pen Tool</span>
+                <span>Vector Shape</span>
                 <span
                   className={`text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded-full font-semibold ${
-                    state.isPenDrawingMode
+                    state.isPenDrawingMode && state.penDrawingKind !== 'line'
                       ? 'bg-slate-950 text-pastel-pink'
                       : 'bg-pastel-pink/20 text-pastel-pink'
                   }`}
                 >
-                  {state.isPenDrawingMode ? 'Active' : 'Draw'}
+                  {state.isPenDrawingMode && state.penDrawingKind !== 'line' ? 'Active' : 'Draw'}
                 </span>
               </div>
               <div
                 className={`text-[10px] ${
-                  state.isPenDrawingMode
+                  state.isPenDrawingMode && state.penDrawingKind !== 'line'
                     ? 'text-slate-800 font-medium'
                     : 'text-slate-400 group-hover:text-slate-300'
                 }`}
               >
-                {state.isPenDrawingMode
+                {state.isPenDrawingMode && state.penDrawingKind !== 'line'
                   ? 'Drawing on canvas... (Click start or Enter to finish)'
                   : 'Click & drag custom Bézier curves'}
               </div>
@@ -456,14 +471,73 @@ export const ElementsSection: React.FC = () => {
           </div>
           <PhosphorIcons.PencilSimpleLineIcon
             className={`w-4 h-4 transition-transform ${
-              state.isPenDrawingMode
+              state.isPenDrawingMode && state.penDrawingKind !== 'line'
                 ? 'rotate-12 text-slate-950 font-bold'
                 : 'text-slate-400 group-hover:text-pastel-pink'
             }`}
           />
         </button>
 
-        {/* Tab switch between Basic Shapes and Coolshapes */}
+        <button
+          type="button"
+          onClick={() =>
+            state.setPenDrawingMode(
+              !(state.isPenDrawingMode && state.penDrawingKind === 'line'),
+              'line'
+            )
+          }
+          className={`w-full py-2 px-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer group ${
+            state.isPenDrawingMode && state.penDrawingKind === 'line'
+              ? 'bg-pastel-pink text-slate-950 border-pastel-pink shadow-md shadow-pastel-pink/20 scale-[1.01]'
+              : 'bg-gradient-to-r from-neutral-900 to-neutral-950 hover:from-neutral-850 hover:to-neutral-900 border-neutral-800 hover:border-neutral-700 text-white shadow-xs'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                state.isPenDrawingMode && state.penDrawingKind === 'line'
+                  ? 'bg-slate-950 text-pastel-pink shadow-xs'
+                  : 'bg-pastel-pink/15 text-pastel-pink group-hover:scale-110'
+              }`}
+            >
+              <PhosphorIcons.LineSegmentIcon weight="bold" className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold leading-tight flex items-center gap-1.5">
+                <span>Vector Line</span>
+                <span
+                  className={`text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded-full font-semibold ${
+                    state.isPenDrawingMode && state.penDrawingKind === 'line'
+                      ? 'bg-slate-950 text-pastel-pink'
+                      : 'bg-pastel-pink/20 text-pastel-pink'
+                  }`}
+                >
+                  {state.isPenDrawingMode && state.penDrawingKind === 'line' ? 'Active' : 'Draw'}
+                </span>
+              </div>
+              <div
+                className={`text-[10px] ${
+                  state.isPenDrawingMode && state.penDrawingKind === 'line'
+                    ? 'text-slate-800 font-medium'
+                    : 'text-slate-400 group-hover:text-slate-300'
+                }`}
+              >
+                {state.isPenDrawingMode && state.penDrawingKind === 'line'
+                  ? 'Drawing on canvas... (Enter to finish)'
+                  : 'Click & drag open Bézier paths'}
+              </div>
+            </div>
+          </div>
+          <PhosphorIcons.PencilSimpleLineIcon
+            className={`w-4 h-4 transition-transform ${
+              state.isPenDrawingMode && state.penDrawingKind === 'line'
+                ? 'rotate-12 text-slate-950 font-bold'
+                : 'text-slate-400 group-hover:text-pastel-pink'
+            }`}
+          />
+        </button>
+
+        {/* Shape families */}
         <div className="flex items-center gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
           <button
             type="button"
@@ -478,15 +552,25 @@ export const ElementsSection: React.FC = () => {
           </button>
           <button
             type="button"
+            onClick={() => setShapeTab('3d')}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              shapeTab === '3d'
+                ? 'bg-neutral-800 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            3D
+          </button>
+          <button
+            type="button"
             onClick={() => setShapeTab('coolshapes')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               shapeTab === 'coolshapes'
                 ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/30 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 animate-pulse" />
-            <span>Coolshapes</span>
+            Coolshapes
           </button>
         </div>
 
@@ -516,6 +600,24 @@ export const ElementsSection: React.FC = () => {
                 <span className="text-[9px] font-medium mt-1 truncate max-w-full text-slate-400 group-hover:text-slate-200">
                   {item.label}
                 </span>
+              </button>
+            ))}
+          </div>
+        ) : shapeTab === '3d' ? (
+          <div className="grid grid-cols-2 gap-2 p-2 bg-neutral-950 rounded-xl border border-neutral-800">
+            {([
+              { id: 'square-3d', label: '3D Square' },
+              { id: 'rectangle-3d', label: '3D Rectangle' },
+            ] as { id: ShapeType; label: string }[]).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={`Add ${item.label}`}
+                onClick={() => state.addShapeLayer(item.id)}
+                className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/60 p-2 text-left transition-all hover:border-pastel-blue/60 hover:bg-pastel-blue/10 cursor-pointer group"
+              >
+                <ShapePreview type={item.id} color="#347ff5" className="w-9 h-9 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-medium text-slate-300">{item.label}</span>
               </button>
             ))}
           </div>
@@ -744,6 +846,10 @@ export const ElementsSection: React.FC = () => {
                   <span className="text-[10px] truncate max-w-full capitalize leading-tight">
                     {shape.shapeType === 'coolshape'
                       ? shape.coolshapeType || 'Cool'
+                      : shape.shapeType === 'square-3d'
+                        ? '3D Square'
+                        : shape.shapeType === 'rectangle-3d'
+                          ? '3D Rectangle'
                       : shape.shapeType}
                   </span>
                   <span className="text-[9px] font-mono text-slate-400">
@@ -860,7 +966,13 @@ export const ElementsSection: React.FC = () => {
               {selectedShape.shapeType === 'coolshape'
                 ? `Coolshape (${selectedShape.coolshapeType || 'star'})`
                 : selectedShape.shapeType === 'custom-path'
-                  ? 'Merged Vector Shape'
+                  ? selectedShape.pathClosed === false
+                    ? 'Vector Line'
+                    : 'Vector Shape'
+                  : selectedShape.shapeType === 'square-3d'
+                    ? '3D Square'
+                    : selectedShape.shapeType === 'rectangle-3d'
+                      ? '3D Rectangle'
                   : selectedShape.shapeType}
             </span>
             <button
@@ -871,6 +983,24 @@ export const ElementsSection: React.FC = () => {
               Deselect
             </button>
           </div>
+
+          {selectedShape.shapeType === 'custom-path' && selectedShape.pathClosed === false && (
+            <div>
+              <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                <span>Thickness</span>
+                <span className="font-mono text-slate-400">{selectedShape.strokeWidth ?? 6}px</span>
+              </div>
+              <StepperSlider
+                min={1}
+                max={40}
+                step={1}
+                value={selectedShape.strokeWidth ?? 6}
+                onChange={(strokeWidth) => state.updateShapeLayer(selectedShape.id, { strokeWidth })}
+                accentColor="#ffafcc"
+              />
+              <p className="mt-1.5 text-[10px] text-slate-500">Round caps and joins</p>
+            </div>
+          )}
 
           {/* Coolshape Specific Controls */}
           {selectedShape.shapeType === 'coolshape' && (
@@ -911,6 +1041,42 @@ export const ElementsSection: React.FC = () => {
             </div>
           )}
 
+          {is3DShape && (
+            <div className="space-y-3 rounded-xl border border-neutral-800/80 bg-neutral-900/60 p-3">
+              <div>
+                <div className="mb-2 flex justify-between text-xs">
+                  <span className="font-medium text-slate-300">Depth</span>
+                  <span className="font-mono text-slate-400">{visible3DDepth}px</span>
+                </div>
+                <StepperSlider
+                  min={0}
+                  max={max3DDepth}
+                  step={1}
+                  value={visible3DDepth}
+                  onChange={(depth) => state.updateShapeLayer(selectedShape.id, { depth })}
+                  accentColor="#ffafcc"
+                />
+              </div>
+              <div className="border-t border-neutral-800/80 pt-3">
+                <div className="mb-2 flex justify-between text-xs">
+                  <span className="font-medium text-slate-300">Corner Softness</span>
+                  <span className="font-mono text-slate-400">{visible3DCornerSoftness}px</span>
+                </div>
+                <StepperSlider
+                  min={0}
+                  max={max3DCornerSoftness}
+                  step={1}
+                  value={visible3DCornerSoftness}
+                  onChange={(borderRadius) =>
+                    state.updateShapeLayer(selectedShape.id, { borderRadius })
+                  }
+                  accentColor="#ffafcc"
+                />
+                <p className="mt-1.5 text-[10px] text-slate-500">Rounds the front and extruded edges.</p>
+              </div>
+            </div>
+          )}
+
           {/* Shape Color */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -932,7 +1098,7 @@ export const ElementsSection: React.FC = () => {
           </div>
 
           {/* Shape Border */}
-          {selectedShape.shapeType !== 'coolshape' && (
+          {selectedShape.shapeType !== 'coolshape' && selectedShape.pathClosed !== false && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="block text-[11px] font-semibold text-slate-300">Border</label>
@@ -1023,7 +1189,7 @@ export const ElementsSection: React.FC = () => {
           )}
 
           {/* Gradient Shape */}
-          <div className="space-y-2.5">
+          {selectedShape.pathClosed !== false && <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-semibold text-slate-300">
                 Gradient Fill
@@ -1353,10 +1519,10 @@ export const ElementsSection: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Image Fill (Clip Shape) */}
-          {selectedShape.shapeType !== 'coolshape' && (
+          {selectedShape.shapeType !== 'coolshape' && !is3DShape && selectedShape.pathClosed !== false && (
             <>
               <div className="space-y-2">
                 <label className="block text-[11px] font-semibold text-slate-300">
@@ -1813,7 +1979,7 @@ export const ElementsSection: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
@@ -1853,13 +2019,13 @@ export const ElementsSection: React.FC = () => {
                         accentColor="#ffafcc"
                       />
                     </div>
-                  </div>
+                  </DesktopWebOnlyControls>
                 </div>
               )}
 
               {/* Option: Skew */}
               {shapeActiveOption === 'skew' && (
-                <div className="grid grid-cols-2 gap-3">
+                <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew X</span>
@@ -1897,7 +2063,7 @@ export const ElementsSection: React.FC = () => {
                       accentColor="#ffafcc"
                     />
                   </div>
-                </div>
+                </DesktopWebOnlyControls>
               )}
 
               {/* Option: Opacity & Blur */}
@@ -1988,11 +2154,11 @@ export const ElementsSection: React.FC = () => {
           )}
 
           {/* Glassmorphic Option */}
-          <div className="space-y-2.5 pt-2 border-t border-neutral-800/80">
+          {selectedShape.pathClosed !== false && <div className="space-y-2.5 pt-2 border-t border-neutral-800/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <label className="text-[11px] font-semibold text-slate-300">Glassmorphic</label>
-                {selectedShape.shapeType === 'coolshape' && (
+                {(selectedShape.shapeType === 'coolshape' || is3DShape) && (
                   <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
                     Disabled
                   </span>
@@ -2000,11 +2166,11 @@ export const ElementsSection: React.FC = () => {
               </div>
               <Toggle
                 isSelected={
-                  selectedShape.shapeType !== 'coolshape' && !!selectedShape.glassmorphism
+                  selectedShape.shapeType !== 'coolshape' && !is3DShape && !!selectedShape.glassmorphism
                 }
-                isDisabled={selectedShape.shapeType === 'coolshape'}
+                isDisabled={selectedShape.shapeType === 'coolshape' || is3DShape}
                 onChange={(checked) => {
-                  if (selectedShape.shapeType === 'coolshape') return;
+                  if (selectedShape.shapeType === 'coolshape' || is3DShape) return;
                   state.updateShapeLayer(selectedShape.id, {
                     glassmorphism: checked,
                     ...(checked && (selectedShape.opacity ?? 100) === 100 ? { opacity: 50 } : {}),
@@ -2014,7 +2180,7 @@ export const ElementsSection: React.FC = () => {
               />
             </div>
 
-            {selectedShape.shapeType !== 'coolshape' && selectedShape.glassmorphism && (
+            {selectedShape.shapeType !== 'coolshape' && !is3DShape && selectedShape.glassmorphism && (
               <div className="space-y-3 pl-2.5 border-l-2 border-pastel-pink/40 pt-1 animate-in fade-in slide-in-from-top-1 duration-150">
                 {/* Glass Blur Slider */}
                 <div>
@@ -2118,7 +2284,7 @@ export const ElementsSection: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Layering Depth */}
           <div>
@@ -2434,7 +2600,7 @@ export const ElementsSection: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
                     {(
                       [
                         ['Skew X', 'skewX'],
@@ -2460,7 +2626,7 @@ export const ElementsSection: React.FC = () => {
                         />
                       </div>
                     ))}
-                  </div>
+                  </DesktopWebOnlyControls>
                 </div>
               )}
 

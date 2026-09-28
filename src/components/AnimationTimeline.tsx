@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { isDesktopApp } from '../platform/runtime';
 import { useStudioStore } from '../store/useStudioStore';
 import {
   Play,
@@ -1260,6 +1261,8 @@ export const AnimationTimeline: React.FC = () => {
                 ? PhosphorIcons.QuotesIcon
                 : s.shapeType === 'coolshape'
                   ? PhosphorIcons.SparkleIcon || PhosphorIcons.SquareIcon
+                  : s.shapeType === 'custom-path' && s.pathClosed === false
+                    ? PhosphorIcons.LineSegmentIcon
                   : s.shapeType === 'custom-path'
                     ? PhosphorIcons.IntersectIcon || PhosphorIcons.SquareIcon
                     : s.shapeType === 'rectangle'
@@ -1645,18 +1648,20 @@ export const AnimationTimeline: React.FC = () => {
             </span>
             {ANIMATION_PRESETS.map((preset) => {
               const isSelected = state.activePresetId === preset.id;
+              const webOnly = isDesktopApp() && preset.keyframes.some((keyframe) => keyframe.rotateX || keyframe.rotateY);
               return (
                 <button
                   key={preset.id}
+                  disabled={webOnly}
                   onClick={() => applyPreset(preset.id)}
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all whitespace-nowrap shrink-0 ${webOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${
                     isSelected
                       ? 'bg-pastel-pink/20 border-pastel-pink text-pastel-pink font-bold shadow-xs'
                       : 'bg-neutral-950/80 border-neutral-800 text-slate-400 hover:bg-neutral-800 hover:text-white'
                   }`}
-                  title={preset.description}
+                  title={webOnly ? `${preset.description} · Web only` : preset.description}
                 >
-                  {preset.name}
+                  {preset.name}{webOnly ? ' · Web only' : ''}
                 </button>
               );
             })}
@@ -1720,10 +1725,12 @@ export const AnimationTimeline: React.FC = () => {
             }).map((preset) => {
               const isEntrance = preset.category === 'entrance';
               const isExit = preset.category === 'exit';
+              const webOnly = isDesktopApp() && preset.id === 'flip-in';
 
               return (
                 <button
                   key={preset.id}
+                  disabled={webOnly}
                   onClick={() =>
                     state.addLayerMotionBlock(
                       selectedTrack.type as any,
@@ -1731,19 +1738,19 @@ export const AnimationTimeline: React.FC = () => {
                       preset.id
                     )
                   }
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 ${webOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${
                     isEntrance
                       ? 'bg-cyan-950/40 border-cyan-800/80 text-cyan-300 hover:bg-cyan-900/60 hover:border-cyan-400'
                       : isExit
                         ? 'bg-rose-950/40 border-rose-800/80 text-rose-300 hover:bg-rose-900/60 hover:border-rose-400'
                         : 'bg-neutral-950/80 border-neutral-800 text-slate-300 hover:bg-neutral-800 hover:text-white'
                   }`}
-                  title={`${preset.name}: ${preset.description} (Click to add at timeline playhead)`}
+                  title={webOnly ? `${preset.name}: Web only` : `${preset.name}: ${preset.description} (Click to add at timeline playhead)`}
                 >
                   <span className="text-[10px] opacity-70">
                     {isEntrance ? '📥' : isExit ? '📤' : '💫'}
                   </span>
-                  <span>{preset.name}</span>
+                  <span>{preset.name}{webOnly ? ' · Web only' : ''}</span>
                   <span className="text-[9px] font-mono opacity-60 bg-neutral-900 px-1 py-0.2 rounded">
                     {preset.defaultDurationSec}s
                   </span>

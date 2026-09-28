@@ -93,6 +93,8 @@ export const LayersSection: React.FC = () => {
               ? PhosphorIcons.QuotesIcon
               : s.shapeType === 'coolshape'
               ? PhosphorIcons.SparkleIcon
+                : s.shapeType === 'custom-path' && s.pathClosed === false
+                  ? PhosphorIcons.LineSegmentIcon
                 : s.shapeType === 'custom-path'
                   ? PhosphorIcons.IntersectIcon || PhosphorIcons.SquareIcon
                   : s.shapeType === 'rectangle'
@@ -654,8 +656,8 @@ export const LayersSection: React.FC = () => {
             <PhosphorIcons.MagicWandIcon className="h-4 w-4 text-pastel-pink" />
             Shape mask
           </div>
-          {selectedMaskShape.shapeType === 'coolshape' ? (
-            <p className="text-[10px] leading-relaxed text-slate-500">Basic and pen-drawn custom shapes can be masks. Coolshapes are not supported yet.</p>
+          {selectedMaskShape.shapeType === 'coolshape' || selectedMaskShape.shapeType === 'square-3d' || selectedMaskShape.shapeType === 'rectangle-3d' || selectedMaskShape.pathClosed === false ? (
+            <p className="text-[10px] leading-relaxed text-slate-500">Basic and closed pen-drawn shapes can be masks. Open lines, Coolshapes, and 3D shapes cannot be masks.</p>
           ) : (
             <select
               value={selectedMaskShape.maskTarget ? `${selectedMaskShape.maskTarget.type}:${selectedMaskShape.maskTarget.id}` : ''}

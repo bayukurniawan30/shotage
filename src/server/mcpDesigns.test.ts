@@ -29,6 +29,22 @@ describe('MCP design construction', () => {
       height: 180,
       borderWidth: 0,
     });
+    expect(createShapeLayer({ shapeType: 'rectangle-3d' }, 0)).toMatchObject({
+      shapeType: 'rectangle-3d',
+      width: 180,
+      height: 120,
+      depth: 10,
+      borderRadius: 20,
+    });
+  });
+
+  it('accepts 3D shape depth in a saved design', () => {
+    const state = buildStudioState({
+      shapeLayers: [createShapeLayer({ shapeType: 'square-3d', depth: 42 }, 0)],
+    });
+    expect(validateMcpStudioState(state as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
   });
 
   it('rejects invalid duration and background values', () => {

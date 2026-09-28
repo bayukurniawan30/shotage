@@ -6,7 +6,7 @@ import { Toggle } from '../Toggle';
 import { StepperSlider } from '../StepperSlider';
 import { PhosphorWeight, PhosphorBadgeStyle } from '../../types/studio';
 import { getPhosphorIcon } from '../phosphorIconRegistry';
-import { LayerColorControl } from './shared';
+import { DesktopWebOnlyControls, LayerColorControl } from './shared';
 
 export const PhosphorIconsSection: React.FC = () => {
   const state = useStudioEditorStore();
@@ -578,18 +578,25 @@ export const PhosphorIconsSection: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {([
-              ['Blur', 'blur', 0, 40, 'px'],
-              ['Skew X', 'skewX', -60, 60, '°'],
-              ['Skew Y', 'skewY', -60, 60, '°'],
-            ] as const).map(([label, key, min, max, unit]) => (
-              <div key={key}>
-                <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? 0}{unit}</span></div>
-                <StepperSlider min={min} max={max} step={1} value={selectedLayer[key] ?? 0}
-                  onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { [key]: value })}
-                  accentColor="#ffafcc" />
-              </div>
-            ))}
+            <div>
+              <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">Blur</span><span className="font-mono text-slate-400">{selectedLayer.blur ?? 0}px</span></div>
+              <StepperSlider min={0} max={40} step={1} value={selectedLayer.blur ?? 0}
+                onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { blur: value })}
+                accentColor="#ffafcc" />
+            </div>
+            <DesktopWebOnlyControls className="grid grid-cols-1 gap-3">
+              {([
+                ['Skew X', 'skewX'],
+                ['Skew Y', 'skewY'],
+              ] as const).map(([label, key]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? 0}°</span></div>
+                  <StepperSlider min={-60} max={60} step={1} value={selectedLayer[key] ?? 0}
+                    onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { [key]: value })}
+                    accentColor="#ffafcc" />
+                </div>
+              ))}
+            </DesktopWebOnlyControls>
           </div>
 
           {/* Phosphor Icon Transform & Adjustment Circle Buttons */}

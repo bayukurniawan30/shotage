@@ -1,0 +1,482 @@
+{
+  "imageSrc": "/templates/product-intro-home.svg",
+  "imageName": "nova-home.svg",
+  "imageWidth": 390,
+  "imageHeight": 844,
+  "secondImageSrc": null,
+  "secondImageName": "",
+  "secondImageWidth": null,
+  "secondImageHeight": null,
+  "layoutCount": 1,
+  "mediaType": "image",
+  "layoutPreset": "side-by-side",
+  "zoom": 84,
+  "slot2Zoom": 100,
+  "alignment": "center",
+  "padding": 36,
+  "borderRadius": 16,
+  "imageFit": "cover",
+  "slabThickness": 0,
+  "slabColor": "#1e293b",
+  "enableShine": true,
+  "shinePreset": "apple-glare",
+  "shineOpacity": 18,
+  "framelessStyle": "default",
+  "shadow": "floating",
+  "shadowOverlay": "none",
+  "shadowOverlayOpacity": 85,
+  "shadowOverlayPosition": "above",
+  "hideMockup": false,
+  "frameType": "iphone",
+  "iphoneStatusBar": "light",
+  "urlText": "nova.app",
+  "backgroundType": "flow",
+  "backgroundColor": "#11071f",
+  "gradient": {
+    "color1": "#11071f",
+    "color2": "#432070",
+    "angle": 145
+  },
+  "flowPreset": "flow-1",
+  "flowColors": ["#12051f", "#4c1d95", "#c026d3", "#f472b6"],
+  "flowSpeed": 18,
+  "flowDistortion": 42,
+  "flowSwirl": 10,
+  "flowScale": 58,
+  "bgImageUrl": null,
+  "bgBlur": 0,
+  "bgGrain": 8,
+  "bgGrainBlendMode": "soft-light",
+  "bgGrainSize": "fine",
+  "bgGrainColor": "monochrome",
+  "bgPatternEnabled": false,
+  "bgPatternPreset": "pattern-1",
+  "bgPatternColor": "#cdb4db",
+  "bgPatternOpacity": 12,
+  "lensBlurEnabled": false,
+  "watermarkType": "none",
+  "watermarkPosition": "bottom-right",
+  "watermarkSize": "sm",
+  "customWidth": 1080,
+  "customHeight": 1920,
+  "aspectRatio": "9:16",
+  "rotateX": 0,
+  "rotateY": 0,
+  "skewX": 0,
+  "skewY": 0,
+  "slot1Rotate": 0,
+  "slot2Rotate": 0,
+  "slot2RotateX": 0,
+  "slot2RotateY": 0,
+  "slot2SkewX": 0,
+  "slot2SkewY": 0,
+  "slot2Perspective": 1000,
+  "perspective": 1100,
+  "offsetX": 0,
+  "offsetY": 95,
+  "slot2OffsetX": 0,
+  "slot2OffsetY": 0,
+  "exportFormat": "png",
+  "exportScale": 2,
+  "isAnimationMode": true,
+  "isPlaying": false,
+  "currentTimeSec": 0,
+  "durationSec": 4,
+  "animationEasing": "ease-in-out",
+  "activePresetId": "",
+  "keyframes": [
+    {
+      "id": "hero-phone-0",
+      "timeSec": 0,
+      "rotateX": 4,
+      "rotateY": -8,
+      "zoom": 70,
+      "offsetX": 0,
+      "offsetY": 145,
+      "slot1Rotate": -1
+    },
+    {
+      "id": "hero-phone-1",
+      "timeSec": 1.2,
+      "rotateX": 0,
+      "rotateY": 0,
+      "zoom": 84,
+      "offsetX": 0,
+      "offsetY": 95,
+      "slot1Rotate": 0
+    },
+    {
+      "id": "hero-phone-2",
+      "timeSec": 4,
+      "rotateX": 0,
+      "rotateY": 2,
+      "zoom": 87,
+      "offsetX": 0,
+      "offsetY": 90,
+      "slot1Rotate": 0
+    }
+  ],
+  "textLayers": [
+    {
+      "id": "hero-label",
+      "text": "INTRODUCING",
+      "fontFamily": "Inter",
+      "fontSize": 18,
+      "fontWeight": "800",
+      "fontStyle": "normal",
+      "color": "#ffafcc",
+      "textAlign": "center",
+      "x": 0,
+      "y": -310,
+      "shadow": false,
+      "opacity": 100,
+      "rotation": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "position": "above",
+      "name": "Intro label",
+      "visible": true,
+      "locked": false,
+      "motions": [
+        {
+          "id": "hero-label-in",
+          "preset": "fade-in",
+          "startTimeSec": 0.1,
+          "durationSec": 0.6,
+          "easing": "ease-out"
+        },
+        {
+          "id": "hero-label-out",
+          "preset": "fade-out",
+          "startTimeSec": 3.25,
+          "durationSec": 0.55,
+          "easing": "ease-in"
+        }
+      ]
+    },
+    {
+      "id": "hero-title",
+      "text": "Meet Nova",
+      "fontFamily": "Inter",
+      "fontSize": 58,
+      "fontWeight": "800",
+      "fontStyle": "normal",
+      "color": "#ffffff",
+      "textAlign": "center",
+      "x": 0,
+      "y": -255,
+      "shadow": true,
+      "opacity": 100,
+      "rotation": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "position": "above",
+      "name": "Product name",
+      "visible": true,
+      "locked": false,
+      "motions": [
+        {
+          "id": "hero-title-in",
+          "preset": "blur-in",
+          "startTimeSec": 0.35,
+          "durationSec": 0.8,
+          "easing": "ease-out"
+        },
+        {
+          "id": "hero-title-out",
+          "preset": "blur-out",
+          "startTimeSec": 3.2,
+          "durationSec": 0.65,
+          "easing": "ease-in"
+        }
+      ]
+    },
+    {
+      "id": "hero-subtitle",
+      "text": "Make every day feel effortless.",
+      "fontFamily": "Inter",
+      "fontSize": 23,
+      "fontWeight": "500",
+      "fontStyle": "normal",
+      "color": "#ddd6e8",
+      "textAlign": "center",
+      "x": 0,
+      "y": -195,
+      "shadow": false,
+      "opacity": 100,
+      "rotation": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "position": "above",
+      "name": "Product promise",
+      "visible": true,
+      "locked": false,
+      "motions": [
+        {
+          "id": "hero-subtitle-in",
+          "preset": "slide-in-up",
+          "startTimeSec": 0.8,
+          "durationSec": 0.8,
+          "easing": "ease-out"
+        },
+        {
+          "id": "hero-subtitle-out",
+          "preset": "fade-out",
+          "startTimeSec": 3.1,
+          "durationSec": 0.6,
+          "easing": "ease-in"
+        }
+      ]
+    }
+  ],
+  "phosphorIconLayers": [],
+  "canvasElements": [],
+  "shapeLayers": [
+    {
+      "id": "hero-orbit",
+      "shapeType": "circle",
+      "color": "transparent",
+      "width": 330,
+      "height": 330,
+      "borderRadius": 165,
+      "borderEnabled": true,
+      "borderColor": "#ffafcc",
+      "borderWidth": 2,
+      "x": 0,
+      "y": 105,
+      "rotation": 0,
+      "opacity": 24,
+      "position": "underneath",
+      "name": "Decorative orbit",
+      "visible": true,
+      "locked": false,
+      "motions": [
+        {
+          "id": "hero-orbit-pulse",
+          "preset": "blink",
+          "startTimeSec": 0,
+          "durationSec": 4,
+          "easing": "linear"
+        }
+      ]
+    }
+  ],
+  "layerGroups": [],
+  "layerOrder": [
+    { "type": "text", "id": "hero-label" },
+    { "type": "text", "id": "hero-title" },
+    { "type": "text", "id": "hero-subtitle" },
+    { "type": "shape", "id": "hero-orbit" }
+  ],
+  "selectedTextLayerId": null,
+  "selectedTextLayerIds": [],
+  "selectedPhosphorIconLayerId": null,
+  "selectedPhosphorIconLayerIds": [],
+  "selectedElementId": null,
+  "selectedElementIds": [],
+  "selectedShapeId": null,
+  "selectedShapeIds": [],
+  "selectedLayerGroupId": null,
+  "activeStageIndex": 0,
+  "stages": [
+    {
+      "imageSrc": "/templates/product-intro-home.svg",
+      "imageName": "nova-home.svg",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "frameType": "iphone",
+      "backgroundType": "flow",
+      "flowPreset": "flow-1",
+      "flowColors": ["#12051f", "#4c1d95", "#c026d3", "#f472b6"],
+      "flowSpeed": 18,
+      "flowDistortion": 42,
+      "flowSwirl": 10,
+      "flowScale": 58,
+      "zoom": 84,
+      "offsetX": 0,
+      "offsetY": 95,
+      "rotateX": 0,
+      "rotateY": 0,
+      "slot1Rotate": 0,
+      "isAnimationMode": true,
+      "durationSec": 4,
+      "animationEasing": "ease-in-out",
+      "keyframes": [
+        { "id": "hero-phone-0", "timeSec": 0, "rotateX": 4, "rotateY": -8, "zoom": 70, "offsetX": 0, "offsetY": 145, "slot1Rotate": -1 },
+        { "id": "hero-phone-1", "timeSec": 1.2, "rotateX": 0, "rotateY": 0, "zoom": 84, "offsetX": 0, "offsetY": 95, "slot1Rotate": 0 },
+        { "id": "hero-phone-2", "timeSec": 4, "rotateX": 0, "rotateY": 2, "zoom": 87, "offsetX": 0, "offsetY": 90, "slot1Rotate": 0 }
+      ],
+      "textLayers": [
+        {
+          "id": "hero-label", "text": "INTRODUCING", "fontFamily": "Inter", "fontSize": 18, "fontWeight": "800", "fontStyle": "normal", "color": "#ffafcc", "textAlign": "center", "x": 0, "y": -310, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Intro label", "visible": true, "locked": false,
+          "motions": [
+            { "id": "hero-label-in", "preset": "fade-in", "startTimeSec": 0.1, "durationSec": 0.6, "easing": "ease-out" },
+            { "id": "hero-label-out", "preset": "fade-out", "startTimeSec": 3.25, "durationSec": 0.55, "easing": "ease-in" }
+          ]
+        },
+        {
+          "id": "hero-title", "text": "Meet Nova", "fontFamily": "Inter", "fontSize": 58, "fontWeight": "800", "fontStyle": "normal", "color": "#ffffff", "textAlign": "center", "x": 0, "y": -255, "shadow": true, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Product name", "visible": true, "locked": false,
+          "motions": [
+            { "id": "hero-title-in", "preset": "blur-in", "startTimeSec": 0.35, "durationSec": 0.8, "easing": "ease-out" },
+            { "id": "hero-title-out", "preset": "blur-out", "startTimeSec": 3.2, "durationSec": 0.65, "easing": "ease-in" }
+          ]
+        },
+        {
+          "id": "hero-subtitle", "text": "Make every day feel effortless.", "fontFamily": "Inter", "fontSize": 23, "fontWeight": "500", "fontStyle": "normal", "color": "#ddd6e8", "textAlign": "center", "x": 0, "y": -195, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Product promise", "visible": true, "locked": false,
+          "motions": [
+            { "id": "hero-subtitle-in", "preset": "slide-in-up", "startTimeSec": 0.8, "durationSec": 0.8, "easing": "ease-out" },
+            { "id": "hero-subtitle-out", "preset": "fade-out", "startTimeSec": 3.1, "durationSec": 0.6, "easing": "ease-in" }
+          ]
+        }
+      ],
+      "shapeLayers": [
+        { "id": "hero-orbit", "shapeType": "circle", "color": "transparent", "width": 330, "height": 330, "borderRadius": 165, "borderEnabled": true, "borderColor": "#ffafcc", "borderWidth": 2, "x": 0, "y": 105, "rotation": 0, "opacity": 18, "position": "underneath", "name": "Decorative orbit", "visible": true, "locked": false, "motions": [{ "id": "hero-orbit-pulse", "preset": "blink", "startTimeSec": 0, "durationSec": 4, "easing": "linear" }] }
+      ],
+      "layerOrder": [
+        { "type": "text", "id": "hero-label" }, { "type": "text", "id": "hero-title" }, { "type": "text", "id": "hero-subtitle" }, { "type": "shape", "id": "hero-orbit" }
+      ]
+    },
+    {
+      "imageSrc": "/templates/product-intro-organize.svg",
+      "imageName": "nova-projects.svg",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "frameType": "iphone",
+      "backgroundType": "flow",
+      "flowPreset": "flow-1",
+      "flowColors": ["#12051f", "#4c1d95", "#c026d3", "#f472b6"],
+      "flowSpeed": 18,
+      "flowDistortion": 42,
+      "flowSwirl": 10,
+      "flowScale": 58,
+      "zoom": 94,
+      "offsetX": 34,
+      "offsetY": 96,
+      "rotateX": 1,
+      "rotateY": 4,
+      "slot1Rotate": 0,
+      "isAnimationMode": true,
+      "durationSec": 5,
+      "animationEasing": "ease-in-out",
+      "keyframes": [
+        { "id": "feature-one-phone-0", "timeSec": 0, "rotateX": 1, "rotateY": 4, "zoom": 84, "offsetX": 34, "offsetY": 112, "slot1Rotate": 0 },
+        { "id": "feature-one-phone-1", "timeSec": 1.6, "rotateX": 1, "rotateY": 4, "zoom": 94, "offsetX": 34, "offsetY": 96, "slot1Rotate": 0 },
+        { "id": "feature-one-phone-2", "timeSec": 5, "rotateX": 1, "rotateY": 4, "zoom": 98, "offsetX": 34, "offsetY": 92, "slot1Rotate": 0 }
+      ],
+      "textLayers": [
+        {
+          "id": "feature-one-label", "text": "PRODUCT REVEAL", "fontFamily": "Inter", "fontSize": 17, "fontWeight": "800", "fontStyle": "normal", "color": "#f9a8d4", "textAlign": "left", "x": -72, "y": -315, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Reveal label", "visible": true, "locked": false,
+          "motions": [{ "id": "feature-one-label-in", "preset": "fade-in", "startTimeSec": 0.15, "durationSec": 0.6, "easing": "ease-out" }, { "id": "feature-one-label-out", "preset": "fade-out", "startTimeSec": 4.25, "durationSec": 0.55, "easing": "ease-in" }]
+        },
+        {
+          "id": "feature-one-title", "text": "Designed around you", "fontFamily": "Inter", "fontSize": 43, "fontWeight": "800", "fontStyle": "normal", "color": "#ffffff", "textAlign": "left", "x": -18, "y": -255, "shadow": true, "opacity": 100, "rotation": 0, "scaleX": 0.82, "scaleY": 1, "position": "above", "name": "Product reveal", "visible": true, "locked": false,
+          "motions": [{ "id": "feature-one-title-in", "preset": "blur-in", "startTimeSec": 0.4, "durationSec": 0.8, "easing": "ease-out" }, { "id": "feature-one-title-out", "preset": "fade-out", "startTimeSec": 4.15, "durationSec": 0.65, "easing": "ease-in" }]
+        },
+        {
+          "id": "feature-one-body", "text": "One elegant space for every idea.", "fontFamily": "Inter", "fontSize": 21, "fontWeight": "500", "fontStyle": "normal", "color": "#e9d5ff", "textAlign": "left", "x": -42, "y": -190, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 0.9, "scaleY": 1, "position": "above", "name": "Reveal description", "visible": true, "locked": false,
+          "motions": [{ "id": "feature-one-body-in", "preset": "slide-in-up", "startTimeSec": 0.85, "durationSec": 0.75, "easing": "ease-out" }, { "id": "feature-one-body-out", "preset": "fade-out", "startTimeSec": 4.05, "durationSec": 0.65, "easing": "ease-in" }]
+        }
+      ],
+      "shapeLayers": [],
+      "layerOrder": [{ "type": "text", "id": "feature-one-label" }, { "type": "text", "id": "feature-one-title" }, { "type": "text", "id": "feature-one-body" }]
+    },
+    {
+      "imageSrc": "/templates/product-intro-insights.svg",
+      "imageName": "nova-insights.svg",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "frameType": "iphone",
+      "backgroundType": "flow",
+      "flowPreset": "flow-1",
+      "flowColors": ["#12051f", "#4c1d95", "#c026d3", "#f472b6"],
+      "flowSpeed": 18,
+      "flowDistortion": 42,
+      "flowSwirl": 10,
+      "flowScale": 58,
+      "zoom": 102,
+      "offsetX": -34,
+      "offsetY": 94,
+      "rotateX": 0,
+      "rotateY": -4,
+      "slot1Rotate": 0,
+      "isAnimationMode": true,
+      "durationSec": 5,
+      "animationEasing": "ease-in-out",
+      "keyframes": [
+        { "id": "feature-two-phone-0", "timeSec": 0, "rotateX": 0, "rotateY": -4, "zoom": 92, "offsetX": -34, "offsetY": 108, "slot1Rotate": 0 },
+        { "id": "feature-two-phone-1", "timeSec": 1.6, "rotateX": 0, "rotateY": -4, "zoom": 102, "offsetX": -34, "offsetY": 94, "slot1Rotate": 0 },
+        { "id": "feature-two-phone-2", "timeSec": 5, "rotateX": 0, "rotateY": -4, "zoom": 106, "offsetX": -34, "offsetY": 90, "slot1Rotate": 0 }
+      ],
+      "textLayers": [
+        {
+          "id": "feature-two-label", "text": "FOCUS  •  PLAN  •  CREATE", "fontFamily": "Inter", "fontSize": 17, "fontWeight": "800", "fontStyle": "normal", "color": "#f9a8d4", "textAlign": "center", "x": 0, "y": -315, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Feature highlights label", "visible": true, "locked": false,
+          "motions": [{ "id": "feature-two-label-in", "preset": "fade-in", "startTimeSec": 0.1, "durationSec": 0.6, "easing": "ease-out" }, { "id": "feature-two-label-out", "preset": "fade-out", "startTimeSec": 4.25, "durationSec": 0.55, "easing": "ease-in" }]
+        },
+        {
+          "id": "feature-two-stat", "text": "Everything flows", "fontFamily": "Inter", "fontSize": 52, "fontWeight": "800", "fontStyle": "normal", "color": "#ffffff", "textAlign": "center", "x": 0, "y": -255, "shadow": true, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Feature highlights", "visible": true, "locked": false,
+          "motions": [{ "id": "feature-two-stat-in", "preset": "blur-in", "startTimeSec": 0.4, "durationSec": 0.8, "easing": "ease-out" }, { "id": "feature-two-stat-out", "preset": "blur-out", "startTimeSec": 4.1, "durationSec": 0.7, "easing": "ease-in" }]
+        },
+        {
+          "id": "feature-two-body", "text": "Clear priorities. Calm progress. Better work.", "fontFamily": "Inter", "fontSize": 21, "fontWeight": "500", "fontStyle": "normal", "color": "#e9d5ff", "textAlign": "center", "x": 0, "y": -190, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 0.88, "scaleY": 1, "position": "above", "name": "Feature description", "visible": true, "locked": false,
+          "motions": [{ "id": "feature-two-body-in", "preset": "slide-in-up", "startTimeSec": 0.95, "durationSec": 0.8, "easing": "ease-out" }, { "id": "feature-two-body-out", "preset": "slide-out-up", "startTimeSec": 4.05, "durationSec": 0.7, "easing": "ease-in" }]
+        }
+      ],
+      "shapeLayers": [],
+      "layerOrder": [{ "type": "text", "id": "feature-two-label" }, { "type": "text", "id": "feature-two-stat" }, { "type": "text", "id": "feature-two-body" }]
+    },
+    {
+      "imageSrc": "/templates/product-intro-home.svg",
+      "imageName": "nova-home.svg",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "frameType": "iphone",
+      "backgroundType": "flow",
+      "flowPreset": "flow-1",
+      "flowColors": ["#12051f", "#4c1d95", "#c026d3", "#f472b6"],
+      "flowSpeed": 18,
+      "flowDistortion": 42,
+      "flowSwirl": 10,
+      "flowScale": 58,
+      "zoom": 84,
+      "offsetX": 0,
+      "offsetY": 90,
+      "rotateX": 0,
+      "rotateY": 0,
+      "slot1Rotate": 0,
+      "isAnimationMode": true,
+      "durationSec": 6,
+      "animationEasing": "ease-in-out",
+      "keyframes": [
+        { "id": "cta-phone-0", "timeSec": 0, "rotateX": 2, "rotateY": 5, "zoom": 76, "offsetX": 0, "offsetY": 112, "slot1Rotate": 0 },
+        { "id": "cta-phone-1", "timeSec": 1.6, "rotateX": 0, "rotateY": 0, "zoom": 84, "offsetX": 0, "offsetY": 90, "slot1Rotate": 0 },
+        { "id": "cta-phone-2", "timeSec": 6, "rotateX": 0, "rotateY": 0, "zoom": 88, "offsetX": 0, "offsetY": 86, "slot1Rotate": 0 }
+      ],
+      "textLayers": [
+        {
+          "id": "cta-title", "text": "Ready to try Nova?", "fontFamily": "Inter", "fontSize": 46, "fontWeight": "800", "fontStyle": "normal", "color": "#ffffff", "textAlign": "center", "x": 0, "y": -280, "shadow": true, "opacity": 100, "rotation": 0, "scaleX": 0.9, "scaleY": 1, "position": "above", "name": "CTA heading", "visible": true, "locked": false,
+          "motions": [{ "id": "cta-title-in", "preset": "blur-in", "startTimeSec": 0.25, "durationSec": 0.9, "easing": "ease-out" }]
+        },
+        {
+          "id": "cta-subtitle", "text": "Your best work starts today.", "fontFamily": "Inter", "fontSize": 21, "fontWeight": "500", "fontStyle": "normal", "color": "#d9d1e4", "textAlign": "center", "x": 0, "y": -215, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "CTA subtitle", "visible": true, "locked": false,
+          "motions": [{ "id": "cta-subtitle-in", "preset": "slide-in-up", "startTimeSec": 0.85, "durationSec": 0.8, "easing": "ease-out" }]
+        },
+        {
+          "id": "cta-button-text", "text": "GET STARTED", "fontFamily": "Inter", "fontSize": 18, "fontWeight": "800", "fontStyle": "normal", "color": "#25112f", "textAlign": "center", "x": 0, "y": 330, "shadow": false, "opacity": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "CTA button label", "visible": true, "locked": false,
+          "motions": [{ "id": "cta-button-in", "preset": "fade-in", "startTimeSec": 1.8, "durationSec": 0.6, "easing": "ease-out" }]
+        },
+        {
+          "id": "cta-url", "text": "nova.app", "fontFamily": "Inter", "fontSize": 17, "fontWeight": "600", "fontStyle": "normal", "color": "#ffffff", "textAlign": "center", "x": 0, "y": 385, "shadow": false, "opacity": 78, "rotation": 0, "scaleX": 1, "scaleY": 1, "position": "above", "name": "Product URL", "visible": true, "locked": false,
+          "motions": [{ "id": "cta-url-in", "preset": "fade-in", "startTimeSec": 2.5, "durationSec": 0.8, "easing": "ease-out" }]
+        }
+      ],
+      "shapeLayers": [
+        { "id": "cta-button-bg", "shapeType": "rectangle", "color": "#ffafcc", "width": 220, "height": 58, "borderRadius": 29, "borderEnabled": false, "borderColor": "#ffffff", "borderWidth": 0, "x": 0, "y": 330, "rotation": 0, "opacity": 100, "position": "above", "name": "CTA button", "visible": true, "locked": false, "motions": [{ "id": "cta-button-bg-in", "preset": "fade-in", "startTimeSec": 1.8, "durationSec": 0.6, "easing": "ease-out" }] }
+      ],
+      "layerOrder": [{ "type": "text", "id": "cta-title" }, { "type": "text", "id": "cta-subtitle" }, { "type": "text", "id": "cta-button-text" }, { "type": "text", "id": "cta-url" }, { "type": "shape", "id": "cta-button-bg" }]
+    }
+  ],
+  "sidebarMode": "advanced",
+  "resetKey": 0,
+  "isExporting": false,
+  "exportTimeSec": null
+}

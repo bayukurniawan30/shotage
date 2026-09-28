@@ -61,6 +61,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
   onLastHasHandleChange,
 }) => {
   const state = useStudioStore();
+  const isLine = state.penDrawingKind === 'line';
   const overlayRef = useRef<SVGSVGElement | null>(null);
 
   const [nodes, setNodes] = useState<PenNode[]>([]);
@@ -149,7 +150,8 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
           : undefined,
       }));
 
-      const pathData = generateSvgPathFromNodes(centeredNodes, isClosed);
+      const pathClosed = !isLine && isClosed;
+      const pathData = generateSvgPathFromNodes(centeredNodes, pathClosed);
       const viewBox = `${-w / 2} ${-h / 2} ${w} ${h}`;
 
       state.addShapeLayer('custom-path', {
@@ -158,14 +160,16 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
         x: shapeRelX,
         y: shapeRelY,
         pathData,
+        pathClosed,
+        strokeWidth: isLine ? 6 : undefined,
         viewBox,
         color: '#a2d2ff',
-        name: 'Custom Vector Shape',
+        name: isLine ? 'Vector Line' : 'Custom Vector Shape',
       });
 
       state.setPenDrawingMode(false);
     },
-    [nodes, activeNode, state, canvasRef]
+    [nodes, activeNode, state, canvasRef, isLine]
   );
 
   // Undo last placed node
@@ -210,7 +214,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
     const { x, y } = getCanvasCoords(e);
 
     // If near start point and have at least 3 points, close path!
-    if (isNearStart && nodes.length >= 3) {
+    if (!isLine && isNearStart && nodes.length >= 3) {
       finishPath(true);
       return;
     }
@@ -238,7 +242,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
     setHoverPos({ x, y });
 
     // Check distance to first point (compensated for zoom scale so screen radius is ~14px)
-    if (nodes.length >= 3) {
+    if (!isLine && nodes.length >= 3) {
       const first = nodes[0];
       const dist = Math.hypot(x - first.x, y - first.y);
       setIsNearStart(dist <= 14 * invZoom);
@@ -303,7 +307,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (nodes.length >= 2) {
-          finishPath(nodes.length >= 3);
+          finishPath(!isLine && nodes.length >= 3);
         } else {
           state.setPenDrawingMode(false);
         }
@@ -315,7 +319,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nodes, finishPath, undoLastNode, state]);
+  }, [nodes, finishPath, undoLastNode, state, isLine]);
 
   // Combined node list for rendering (includes active node during drag)
   const allNodes = activeNode ? [...nodes, activeNode] : nodes;
@@ -325,7 +329,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
   let previewSegmentStr = '';
   if (nodes.length > 0 && hoverPos && !isDragging) {
     const last = nodes[nodes.length - 1];
-    const target = isNearStart && nodes.length >= 3 ? nodes[0] : hoverPos;
+    const target = !isLine && isNearStart && nodes.length >= 3 ? nodes[0] : hoverPos;
 
     if (last.handleOut) {
       const dx = target.x - last.x;
@@ -342,7 +346,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
   const anchorHalf = 4 * invZoom;
   const anchorSize = 8 * invZoom;
   const knobRadius = 3.5 * invZoom;
-  const strokeWidthMain = 2 * invZoom;
+  const strokeWidthMain = isLine ? 6 : 2 * invZoom;
   const strokeWidthGuide = 1.5 * invZoom;
   const strokeWidthHandle = 1 * invZoom;
 
@@ -378,7 +382,7 @@ export const PenDrawingOverlay: React.FC<PenDrawingOverlayProps> = ({
           {livePathStr && (
             <path
               d={livePathStr}
-              fill="rgba(162, 210, 255, 0.12)"
+              fill={isLine ? 'none' : 'rgba(162, 210, 255, 0.12)'}
               stroke="#a2d2ff"
               strokeWidth={strokeWidthMain}
               strokeLinecap="round"

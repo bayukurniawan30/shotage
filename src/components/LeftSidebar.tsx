@@ -147,7 +147,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   }
 
   return (
-    <div className="w-full bg-neutral-900 border-r border-neutral-800 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
+    <div className="w-full bg-neutral-900 border-r border-neutral-700 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
       <ImageUploadSection onImageUpload={onImageUpload} />
       <AspectSection />
       <FrameSection />

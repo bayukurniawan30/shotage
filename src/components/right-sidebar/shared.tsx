@@ -5,6 +5,8 @@ import { Coolshape } from 'coolshapes-react';
 import { BackgroundType, ShapeType } from '../../types/studio';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from '../SocialIcons';
 import { StepperSlider } from '../StepperSlider';
+import { isDesktopApp } from '../../platform/runtime';
+import { ExtrudedShape } from '../ExtrudedShape';
 import {
   GOOGLE_FONTS,
   isStudioFontLoaded,
@@ -601,6 +603,21 @@ export const ShapePreview: React.FC<{
     fill: 'none',
   };
   switch (type) {
+    case 'square-3d':
+    case 'rectangle-3d':
+      return (
+        <div className={`${className} flex items-center justify-center`}>
+          <div className={type === 'square-3d' ? 'h-full w-full' : 'h-3/4 w-full'}>
+            <ExtrudedShape
+              width={24}
+              height={type === 'square-3d' ? 24 : 18}
+              depth={5}
+              cornerSoftness={5}
+              color={color}
+            />
+          </div>
+        </div>
+      );
     case 'circle':
       return (
         <svg {...common}>
@@ -654,6 +671,23 @@ export const ShapePreview: React.FC<{
   }
 };
 
+export const DesktopWebOnlyControls: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className = '' }) => {
+  if (!isDesktopApp()) return <div className={className}>{children}</div>;
+  return (
+    <fieldset disabled className="min-w-0 cursor-not-allowed">
+      <legend className="mb-2 text-[10px] font-semibold text-amber-300">
+        Web only · Desktop export cannot match these transforms yet
+      </legend>
+      <div className={`${className} pointer-events-none select-none grayscale opacity-55`}>
+        {children}
+      </div>
+    </fieldset>
+  );
+};
+
 export interface TiltValues {
   rotateX: number;
   rotateY: number;
@@ -682,6 +716,7 @@ export const TiltSliderGroup: React.FC<{
 
   const sliders = (
     <div className="space-y-3">
+      <DesktopWebOnlyControls className="space-y-3">
       <div>
         <div className="flex justify-between text-xs mb-1">
           <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
@@ -758,6 +793,7 @@ export const TiltSliderGroup: React.FC<{
           accentColor="#ffafcc"
         />
       </div>
+      </DesktopWebOnlyControls>
 
       <div>
         <div className="flex justify-between text-xs mb-1">

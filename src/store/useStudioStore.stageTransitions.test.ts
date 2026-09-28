@@ -69,4 +69,25 @@ describe('stage transition preview snapshots', () => {
       shadowOffsetY: 7,
     });
   });
+
+  it('preserves an open pen path and its stroke through stage snapshots', () => {
+    const lineId = useStudioStore.getState().addShapeLayer('custom-path', {
+      pathData: 'M -40 0 C -10 -20, 10 20, 40 0',
+      pathClosed: false,
+      strokeWidth: 12,
+      color: '#ffafcc',
+      name: 'Vector Line',
+    });
+    useStudioStore.getState().addStage();
+    useStudioStore.getState().selectStage(0);
+
+    const line = getStageSnapshot(useStudioStore.getState()).shapeLayers?.find(
+      (shape) => shape.id === lineId
+    );
+    expect(line).toMatchObject({
+      pathClosed: false,
+      strokeWidth: 12,
+      color: '#ffafcc',
+    });
+  });
 });

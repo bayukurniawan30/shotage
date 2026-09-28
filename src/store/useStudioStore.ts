@@ -100,7 +100,7 @@ interface StudioStore extends StudioState {
   refreshLayerGroupBounds: (id: string) => void;
   mergeSelectedShapes: (operation?: BooleanOperation) => boolean;
   booleanOperationOnShapes: (operation?: BooleanOperation) => boolean;
-  setPenDrawingMode: (active: boolean) => void;
+  setPenDrawingMode: (active: boolean, kind?: 'shape' | 'line') => void;
   setMultiSelectMode: (enabled: boolean | ((prev: boolean) => boolean)) => void;
   toggleMultiSelectMode: () => void;
   clearAllSelection: () => void;
@@ -1434,6 +1434,8 @@ export const useStudioStore = create<StudioStore>()(
           > = {
             square: { width: 120, height: 120 },
             rectangle: { width: 160, height: 100 },
+            'square-3d': { width: 120, height: 120 },
+            'rectangle-3d': { width: 160, height: 100 },
             circle: { width: 120, height: 120 },
             triangle: { width: 130, height: 120 },
             hexagon: { width: 140, height: 122 },
@@ -1444,9 +1446,16 @@ export const useStudioStore = create<StudioStore>()(
           const newShape: import('../types/studio').ShapeLayer = {
             id: newId,
             shapeType,
-            color: '#a2d2ff',
+            color: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? '#347ff5' : '#a2d2ff',
             ...dims[shapeType],
-            borderRadius: shapeType === 'square' || shapeType === 'rectangle' ? 8 : 0,
+            depth: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 10 : undefined,
+            borderRadius:
+              shapeType === 'square-3d' ||
+              shapeType === 'rectangle-3d'
+                ? 20
+                : shapeType === 'square' || shapeType === 'rectangle'
+                  ? 8
+                  : 0,
             borderEnabled: false,
             borderColor: '#ffffff',
             borderWidth: 2,
@@ -1461,11 +1470,18 @@ export const useStudioStore = create<StudioStore>()(
             anchorX: 0.5,
             anchorY: 0.5,
             position: 'above',
-            shadow: false,
+            shadow: shapeType === 'square-3d' || shapeType === 'rectangle-3d',
+            shadowOpacity: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 28 : undefined,
+            shadowBlur: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 24 : undefined,
+            shadowOffsetY: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 14 : undefined,
             name:
               customProps?.name ||
               (shapeType === 'coolshape'
                 ? `Coolshape ${customProps?.coolshapeType || 'star'}`
+                : shapeType === 'square-3d'
+                  ? '3D Square'
+                  : shapeType === 'rectangle-3d'
+                    ? '3D Rectangle'
                 : shapeType),
             visible: true,
             locked: false,
@@ -1485,7 +1501,11 @@ export const useStudioStore = create<StudioStore>()(
         });
         return newId;
       },
-      setPenDrawingMode: (active) => set({ isPenDrawingMode: active }),
+      setPenDrawingMode: (active, kind) =>
+        set((state) => ({
+          isPenDrawingMode: active,
+          penDrawingKind: kind ?? state.penDrawingKind ?? 'shape',
+        })),
       setMultiSelectMode: (enabled) =>
         set((state) => ({
           isMultiSelectMode:
@@ -1560,7 +1580,7 @@ export const useStudioStore = create<StudioStore>()(
         set((state) => {
           const mask = (state.shapeLayers || []).find((shape) => shape.id === id);
           if (!mask) return state;
-          if (mask.shapeType === 'coolshape') return state;
+          if (mask.shapeType === 'coolshape' || mask.shapeType === 'square-3d' || mask.shapeType === 'rectangle-3d' || mask.pathClosed === false) return state;
           if (target?.type === 'shape' && target.id === id) return state;
           const targetExists = !target
             ? true

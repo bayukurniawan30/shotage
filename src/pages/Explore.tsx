@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { Footer } from '../components/Footer';
 import { PublicHeader } from '../components/PublicHeader';
+import { apiUrl } from '../platform/runtime';
 
 export interface ShotageShareablesContent {
   name: string;
@@ -52,7 +53,7 @@ export const Explore: React.FC = () => {
           import.meta.env?.VITE_MORPHIC_API_URL ||
           'https://main-workspace.morphic-cms.com';
 
-        let response = await fetch('/api/explore');
+        let response = await fetch(apiUrl('/api/explore'));
         if (!response.ok) {
           throw new Error(`Failed to load community designs (HTTP ${response.status})`);
         }

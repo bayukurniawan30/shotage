@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+  <defs><linearGradient id="chart" x1="30" y1="250" x2="360" y2="560" gradientUnits="userSpaceOnUse"><stop stop-color="#ffafcc"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+  <rect width="390" height="844" fill="#0d0a14"/>
+  <text x="28" y="68" fill="#fff" font-family="Inter,Arial" font-size="24" font-weight="800">Insights</text>
+  <text x="28" y="118" fill="#92899e" font-family="Inter,Arial" font-size="14">Performance this month</text>
+  <text x="28" y="177" fill="#fff" font-family="Inter,Arial" font-size="48" font-weight="850">+32%</text>
+  <rect x="250" y="137" width="112" height="44" rx="16" fill="#55d6a7" fill-opacity=".14"/><text x="306" y="165" fill="#72e4b9" font-family="Inter,Arial" font-size="13" font-weight="750" text-anchor="middle">On track</text>
+  <rect x="28" y="220" width="334" height="308" rx="28" fill="#fff" fill-opacity=".065"/>
+  <path d="M52 465C91 443 102 397 140 406C179 415 187 327 228 349C270 371 288 282 338 263" stroke="url(#chart)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M52 465C91 443 102 397 140 406C179 415 187 327 228 349C270 371 288 282 338 263V496H52V465Z" fill="url(#chart)" fill-opacity=".12"/>
+  <g fill="#fff"><circle cx="140" cy="406" r="7"/><circle cx="228" cy="349" r="7"/><circle cx="338" cy="263" r="7"/></g>
+  <text x="28" y="580" fill="#fff" font-family="Inter,Arial" font-size="19" font-weight="750">Highlights</text>
+  <g font-family="Inter,Arial">
+    <rect x="28" y="606" width="158" height="132" rx="24" fill="#ffafcc" fill-opacity=".12"/><text x="50" y="648" fill="#ffafcc" font-size="13" font-weight="700">TASKS DONE</text><text x="50" y="704" fill="#fff" font-size="38" font-weight="850">148</text>
+    <rect x="204" y="606" width="158" height="132" rx="24" fill="#a2d2ff" fill-opacity=".12"/><text x="226" y="648" fill="#a2d2ff" font-size="13" font-weight="700">TIME SAVED</text><text x="226" y="704" fill="#fff" font-size="38" font-weight="850">12h</text>
+  </g>
+  <rect x="110" y="798" width="170" height="5" rx="2.5" fill="#fff" fill-opacity=".7"/>
+</svg>

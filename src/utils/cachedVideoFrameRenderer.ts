@@ -26,6 +26,9 @@ const EXPORT_FILTER = (node: Node) => {
  */
 export function canUseCachedVideoFrameRenderer(state: StudioState) {
   if (UNSUPPORTED_ANIMATED_BACKGROUNDS.has(state.backgroundType)) return false;
+  // The shadow overlay can sit above the mockup. Flattening it into the
+  // cached background would put it behind the separately composited mockup.
+  if (state.shadowOverlay && state.shadowOverlay !== 'none') return false;
   // Motion blur depends on each frame's instantaneous velocity and filter, so
   // the static mockup cache cannot reproduce it faithfully.
   if (state.motionBlurEnabled) return false;
@@ -34,7 +37,6 @@ export function canUseCachedVideoFrameRenderer(state: StudioState) {
     ((state.bgBlur ?? 0) > 0 ||
       (state.bgGrain ?? 0) > 0 ||
       state.bgPatternEnabled ||
-      (state.shadowOverlay && state.shadowOverlay !== 'none') ||
       (state.lensBlurEnabled && (state.lensBlurAmount ?? 0) > 0))
   ) {
     return false;
@@ -114,6 +116,10 @@ interface CreateRendererOptions {
   pixelRatio: number;
   fontEmbedCSS: string;
   transparent: boolean;
+  captureMockup?: (
+    element: HTMLElement,
+    options: Parameters<typeof toCanvas>[1]
+  ) => Promise<HTMLCanvasElement>;
 }
 
 function parseZIndex(element: HTMLElement, root: HTMLElement) {
@@ -243,7 +249,9 @@ export async function createCachedVideoFrameRenderer(
       const height = element.offsetHeight || rect.height;
       if (!width || !height) continue;
 
-      const canvas = await toCanvas(element, snapshotOptions);
+      const canvas = options.captureMockup
+        ? await options.captureMockup(element, snapshotOptions)
+        : await toCanvas(element, snapshotOptions);
       mockups.push({
         element,
         canvas,

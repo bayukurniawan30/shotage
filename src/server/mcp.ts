@@ -87,7 +87,7 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
             textLayers:
               'Use the textLayers shortcut for creation, or complete text layer objects in studioState.',
             shapeLayers:
-              'Use the shapeLayers shortcut for creation. A shape can become a mask with maskTarget.',
+              'Use the shapeLayers shortcut for creation. A custom-path with pathClosed=false renders as an open line using color and strokeWidth (round caps and joins); open lines cannot be masks or used in Boolean shape operations. square-3d and rectangle-3d render as extruded boxes; depth controls extrusion and borderRadius controls corner softness (both in pixels). Basic and closed custom-path shapes can become masks with maskTarget; 3D shapes cannot.',
             canvasElements:
               'Complete objects for emoji, line, and arrow layers; preserve src from get_design.',
             phosphorIconLayers: 'Complete independent Phosphor icon layer objects.',
