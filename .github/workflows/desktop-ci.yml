@@ -1,11 +1,123 @@
-- uses: tauri-apps/tauri-action@v1
-  env:
-    GITHUB_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
-    TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-  with:
-    owner: bayukurniawan30
-    repo: shotage-release
-    releaseCommitish: main
-    tagName: v__VERSION__
-    releaseName: Shotage Studio v__VERSION__
-    releaseDraft: true
+name: Desktop release
+
+# A normal push to main does not publish desktop binaries. Tag an approved
+# commit as desktop-v0.1.0 (matching the app version) to create a draft release.
+on:
+  push:
+    tags:
+      - "desktop-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify desktop release
+    runs-on: ubuntu-latest
+    env:
+      VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Verify tag and app versions match
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          tauri_version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          cargo_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' src-tauri/Cargo.toml | head -n 1)"
+
+          if [[ "$GITHUB_REF_NAME" != "desktop-v${version}" || "$tauri_version" != "$version" || "$cargo_version" != "$version" ]]; then
+            echo "Version mismatch: tag=$GITHUB_REF_NAME package=$version tauri=$tauri_version cargo=$cargo_version" >&2
+            exit 1
+          fi
+
+      - name: Verify desktop auth configuration
+        shell: bash
+        run: |
+          if [[ -z "$VITE_NEON_AUTH_URL" ]]; then
+            echo "Set the VITE_NEON_AUTH_URL repository variable before building desktop releases." >&2
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run test
+
+  release:
+    name: Build ${{ matrix.name }}
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    env:
+      VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
+    strategy:
+      fail-fast: false
+      # Tauri Action updates one shared latest.json asset in the draft release.
+      # Serial builds avoid concurrent writes to that asset.
+      max-parallel: 1
+      matrix:
+        include:
+          - name: macOS Apple Silicon
+            runner: macos-latest
+            target: aarch64-apple-darwin
+          - name: macOS Intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: Windows x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # Ad-hoc signing is enough to build a macOS draft, but public macOS
+          # distribution still needs an Apple certificate and notarization.
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
+        with:
+          owner: bayukurniawan30
+          repo: shotage-release
+          # This must name an existing branch in the public release repository.
+          releaseCommitish: main
+          tagName: v__VERSION__
+          releaseName: Shotage Studio v__VERSION__
+          releaseBody: Draft desktop build for installation and updater testing.
+          releaseDraft: true
+          prerelease: false
+          updaterJsonPreferNsis: true
+          args: --target ${{ matrix.target }}
