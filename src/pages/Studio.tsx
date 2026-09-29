@@ -1449,7 +1449,11 @@ export const Studio: React.FC = () => {
               </div>
             </div>
 
-            <CanvasStage canvasRef={canvasRef} onImageUpload={handleImageUpload} />
+            <CanvasStage
+              canvasRef={canvasRef}
+              onImageUpload={handleImageUpload}
+              leftSidebarExpanded={!isLeftSidebarCollapsed && !isPreviewMode}
+            />
           </div>
 
           {/* Animation Keyframe Timeline Dock */}

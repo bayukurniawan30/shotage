@@ -2249,6 +2249,15 @@ export const useStudioStore = create<StudioStore>()(
           if (targetIdx === -1) return state;
 
           const targetLayer = { ...layers[targetIdx] };
+          if (
+            meta?.openPathOnly &&
+            !(
+              layerType === 'shape' &&
+              targetLayer.shapeType === 'custom-path' &&
+              targetLayer.pathClosed === false &&
+              !!targetLayer.pathData
+            )
+          ) return state;
           const currentMotions: LayerMotionBlock[] = targetLayer.motions
             ? [...targetLayer.motions]
             : [];

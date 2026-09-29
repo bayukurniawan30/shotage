@@ -714,6 +714,7 @@ export type MotionPresetId =
   | 'drop-bounce'
   | 'flip-in'
   | 'blur-in'
+  | 'draw-on'
   | 'typeahead'
   | TextAnimationPresetId
   // Emphasis & Loops
@@ -753,6 +754,7 @@ export interface MotionPresetMeta {
   defaultDurationSec: number;
   badge: string;
   textOnly?: boolean;
+  openPathOnly?: boolean;
   textAnimation?: boolean;
 }
 
@@ -829,6 +831,15 @@ export const MOTION_PRESETS: MotionPresetMeta[] = [
     description: 'Smooth camera focus blur dissolving into crisp focus',
     defaultDurationSec: 0.9,
     badge: 'Blur In',
+  },
+  {
+    id: 'draw-on',
+    name: 'Draw On',
+    category: 'entrance',
+    description: 'Reveal an open vector path from its first point to its last',
+    defaultDurationSec: 1.2,
+    badge: 'Draw',
+    openPathOnly: true,
   },
   {
     id: 'typeahead',
@@ -1215,6 +1226,7 @@ export interface LayerMotionResult {
   animatedText?: string;
   untypedText?: string;
   showCursor?: boolean;
+  drawProgress?: number;
 }
 
 export function evaluateLayerMotion(
@@ -1406,6 +1418,12 @@ export function evaluateLayerMotion(
         scale,
         blur,
         opacity,
+      };
+    }
+    case 'draw-on': {
+      return {
+        ...defaultResult,
+        drawProgress: Math.max(0, Math.min(1, calculateEasing(progress, activeBlock.easing ?? 'ease-in-out'))),
       };
     }
     case 'typeahead': {

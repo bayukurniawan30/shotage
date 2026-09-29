@@ -47,6 +47,24 @@ describe('MCP design construction', () => {
     });
   });
 
+  it('accepts draw-on only for an open vector path', () => {
+    const motion = { id: 'draw', preset: 'draw-on' as const, startTimeSec: 0, durationSec: 1.2 };
+    const openPath = createShapeLayer({
+      shapeType: 'custom-path',
+      pathClosed: false,
+      pathData: 'M 0 0 L 100 100',
+      motions: [motion],
+    }, 0);
+    const valid = buildStudioState({ shapeLayers: [openPath] });
+    expect(validateMcpStudioState(valid as unknown as Record<string, unknown>)).toEqual({ warnings: [] });
+
+    expect(() => buildStudioState({
+      shapeLayers: [createShapeLayer({ shapeType: 'rectangle', motions: [motion] }, 0)],
+    })).toThrow(
+      /requires an open vector path/
+    );
+  });
+
   it('rejects invalid duration and background values', () => {
     expect(() => buildStudioState({ durationSec: 61 })).toThrow();
     expect(() => buildStudioState({ backgroundType: 'unknown' })).toThrow();

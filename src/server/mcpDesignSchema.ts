@@ -89,6 +89,7 @@ export const MCP_MOTION_PRESETS = [
   'drop-bounce',
   'flip-in',
   'blur-in',
+  'draw-on',
   'typeahead',
   'text-rise',
   'text-pop',
@@ -484,6 +485,16 @@ function validateTimedLayer(
     if (!isText && TEXT_ONLY_MOTIONS.has(String(motion.preset)))
       errors.push(`${path}.motions[${index}].preset is text-only.`);
     if (
+      motion.preset === 'draw-on' &&
+      !(
+        layer.shapeType === 'custom-path' &&
+        layer.pathClosed === false &&
+        typeof layer.pathData === 'string' &&
+        layer.pathData.length > 0
+      )
+    )
+      errors.push(`${path}.motions[${index}].preset requires an open vector path.`);
+    if (
       isText &&
       !String(motion.preset).startsWith('text-') &&
       (motion.textUnit !== undefined ||
@@ -765,6 +776,10 @@ export const MCP_MOTION_REFERENCE = {
     textUnit: ['character', 'word'],
     textOrder: ['forward', 'reverse', 'center', 'random'],
     staggerSec: '0-0.2 seconds between units; 0.03-0.08 is usually readable.',
+  },
+  vectorLineDraw: {
+    preset: 'draw-on',
+    rule: 'Use only on a shape layer with shapeType="custom-path", pathClosed=false, and pathData. Reveals the stroke from the path start to its end.',
   },
   masks: {
     owner: 'A shape layer acts as the mask and is hidden as ordinary artwork.',

@@ -62,6 +62,7 @@ interface CanvasStageProps {
   stateOverride?: Partial<StudioState>;
   readOnly?: boolean;
   canvasId?: string;
+  leftSidebarExpanded?: boolean;
 }
 
 interface MaskPose {
@@ -341,6 +342,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   stateOverride,
   readOnly = false,
   canvasId = 'shotage-canvas',
+  leftSidebarExpanded = false,
 }) => {
   const liveState = useStudioStore();
   const state = stateOverride
@@ -2097,6 +2099,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                           strokeWidth={Math.max(1, layer.strokeWidth ?? 6)}
                           strokeLinecap="round"
                           strokeLinejoin="round"
+                          pathLength={motion.drawProgress === undefined ? undefined : 1}
+                          strokeDasharray={motion.drawProgress === undefined ? undefined : 1}
+                          strokeDashoffset={motion.drawProgress === undefined ? undefined : 1 - motion.drawProgress}
+                          strokeOpacity={motion.drawProgress === 0 ? 0 : undefined}
                         />
                       )}
                       <defs>
@@ -5147,7 +5153,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     >
       {/* Floating Pen Tool Toolbar (Fixed minimal vertical icon-only bar on top-left) */}
       {!readOnly && state.isPenDrawingMode && (
-        <div className="absolute top-4 left-4 z-40 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md p-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto select-none">
+        <div className={`absolute top-4 left-4 z-40 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md p-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto select-none ${leftSidebarExpanded ? 'md:top-16' : ''}`}>
           {/* Active Pen Indicator */}
           <div
             title={state.penDrawingKind === 'line' ? 'Pen Line Active' : 'Pen Shape Active'}

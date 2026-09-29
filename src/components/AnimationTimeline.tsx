@@ -1720,6 +1720,19 @@ export const AnimationTimeline: React.FC = () => {
             {/* Motion Preset Chips */}
             {MOTION_PRESETS.filter((p) => {
               if (p.textOnly && selectedTrack.type !== 'text') return false;
+              if (
+                p.openPathOnly &&
+                !(
+                  selectedTrack.type === 'shape' &&
+                  state.shapeLayers.some(
+                    (shape) =>
+                      shape.id === selectedTrack.id &&
+                      shape.shapeType === 'custom-path' &&
+                      shape.pathClosed === false &&
+                      !!shape.pathData
+                  )
+                )
+              ) return false;
               if (motionCategoryFilter === 'all') return true;
               return p.category === motionCategoryFilter;
             }).map((preset) => {

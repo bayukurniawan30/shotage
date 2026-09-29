@@ -708,11 +708,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         return outputCanvas;
       };
 
-      const customCanvasToBlob = (canvas: HTMLCanvasElement, type = 'image/png') =>
+      const encodeCanvasToBlob = (canvas: HTMLCanvasElement, type = 'image/png') =>
         new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.95));
+      const imageMimeType = format === 'jpeg' ? 'image/jpeg' : `image/${format}`;
 
       if (stageScope === 'all' && totalImageStages > 1 && !isCopy) {
-        const stagedDownloads: Array<{ href: string; filename: string }> = [];
+        const stagedDownloads: Array<{ href?: string; blob?: Blob; filename: string }> = [];
 
         for (let i = 0; i < totalImageStages; i++) {
           state.selectStage(i);
@@ -728,24 +729,23 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           if (isDesktopApp()) canvasRef.current.classList.add('exporting-desktop-shadow-fallback');
           restoreDesktopMockupProbes = await prepareDesktopMockupProbes(canvasRef.current);
 
-          let dataUrl: string;
+          let dataUrl: string | undefined;
+          let imageBlob: Blob | undefined;
           if (customImageOutputSize) {
             const customCanvas = await renderCustomSizedCanvas();
             if (!customCanvas) throw new Error('Failed to generate the custom-size image.');
-            dataUrl = customCanvas.toDataURL(
-              format === 'jpeg' ? 'image/jpeg' : `image/${format}`,
-              0.95
-            );
+            if (isDesktopApp()) {
+              imageBlob = (await encodeCanvasToBlob(customCanvas, imageMimeType)) ?? undefined;
+            } else {
+              dataUrl = customCanvas.toDataURL(imageMimeType, 0.95);
+            }
             customCanvas.width = 0;
             customCanvas.height = 0;
           } else if (isDesktopApp()) {
             const capturedCanvas = applyDesktopLensBlur(
               await captureDesktopImageCanvas(canvasRef.current, options)
             );
-            dataUrl = capturedCanvas.toDataURL(
-              format === 'jpeg' ? 'image/jpeg' : `image/${format}`,
-              0.95
-            );
+            imageBlob = (await encodeCanvasToBlob(capturedCanvas, imageMimeType)) ?? undefined;
             capturedCanvas.width = 0;
             capturedCanvas.height = 0;
           } else if (format === 'webp') {
@@ -761,6 +761,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
           stagedDownloads.push({
             href: dataUrl,
+            blob: imageBlob,
             filename: `shotage-stage-${i + 1}-${Date.now()}.${format}`,
           });
           restoreDesktopMockupProbes();
@@ -770,12 +771,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         state.selectStage(initialStageIndex);
         for (const download of stagedDownloads) {
           if (isDesktopApp()) {
-            const saved = await saveExportToDevice(
-              await (await fetch(download.href)).blob(),
-              download.filename
-            );
+            if (!download.blob) throw new Error('Could not encode the desktop image.');
+            const saved = await saveExportToDevice(download.blob, download.filename);
             if (!saved) throw new Error('Image export was cancelled.');
           } else {
+            if (!download.href) throw new Error('Could not generate the image download.');
             const link = document.createElement('a');
             link.download = download.filename;
             link.href = download.href;
@@ -788,12 +788,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         if (isCopy) {
           const customCanvas = customImageOutputSize ? await renderCustomSizedCanvas() : null;
           const blob = customCanvas
-            ? await customCanvasToBlob(customCanvas)
+            ? await encodeCanvasToBlob(customCanvas)
             : isDesktopApp()
               ? await (async () => {
                   const capturedCanvas = await captureDesktopImageCanvas(canvasRef.current!, options);
                   applyDesktopLensBlur(capturedCanvas);
-                  const result = await customCanvasToBlob(capturedCanvas);
+                  const result = await encodeCanvasToBlob(capturedCanvas);
                   capturedCanvas.width = 0;
                   capturedCanvas.height = 0;
                   return result;
@@ -807,24 +807,23 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
           alert('Copied high-res image to clipboard!');
         } else {
-          let dataUrl: string;
+          let dataUrl: string | undefined;
+          let imageBlob: Blob | undefined;
           if (customImageOutputSize) {
             const customCanvas = await renderCustomSizedCanvas();
             if (!customCanvas) throw new Error('Failed to generate the custom-size image.');
-            dataUrl = customCanvas.toDataURL(
-              format === 'jpeg' ? 'image/jpeg' : `image/${format}`,
-              0.95
-            );
+            if (isDesktopApp()) {
+              imageBlob = (await encodeCanvasToBlob(customCanvas, imageMimeType)) ?? undefined;
+            } else {
+              dataUrl = customCanvas.toDataURL(imageMimeType, 0.95);
+            }
             customCanvas.width = 0;
             customCanvas.height = 0;
           } else if (isDesktopApp()) {
             const capturedCanvas = applyDesktopLensBlur(
               await captureDesktopImageCanvas(canvasRef.current, options)
             );
-            dataUrl = capturedCanvas.toDataURL(
-              format === 'jpeg' ? 'image/jpeg' : `image/${format}`,
-              0.95
-            );
+            imageBlob = (await encodeCanvasToBlob(capturedCanvas, imageMimeType)) ?? undefined;
             capturedCanvas.width = 0;
             capturedCanvas.height = 0;
           } else if (format === 'webp') {
@@ -839,12 +838,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           }
 
           if (isDesktopApp()) {
-            const saved = await saveExportToDevice(
-              await (await fetch(dataUrl)).blob(),
-              `shotage-${Date.now()}.${format}`
-            );
+            if (!imageBlob) throw new Error('Could not encode the desktop image.');
+            const saved = await saveExportToDevice(imageBlob, `shotage-${Date.now()}.${format}`);
             if (!saved) throw new Error('Image export was cancelled.');
           } else {
+            if (!dataUrl) throw new Error('Could not generate the image download.');
             const link = document.createElement('a');
             link.download = `shotage-${Date.now()}.${format}`;
             link.href = dataUrl;
@@ -888,6 +886,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         );
       } else if (err instanceof Error && err.message.startsWith('The mockup image did not render')) {
         setImageExportError(`${err.message} Reserved credits were released.`);
+      } else if (isDesktopApp() && err instanceof Error) {
+        setImageExportError(`The image export failed: ${err.message} Reserved credits were released.`);
       } else {
         setImageExportError('The image export failed. Reserved credits were released.');
       }

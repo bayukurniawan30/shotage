@@ -5,6 +5,7 @@ import {
   calculateMotionBlurRadius,
   evaluateTextAnimationUnit,
   evaluateLayerKeyframes,
+  evaluateLayerMotion,
   evaluateMotionPathSegment,
   interpolateColorOklab,
   segmentTextForAnimation,
@@ -51,6 +52,22 @@ describe('custom cubic Bezier easing', () => {
     );
 
     expect(result.x).toBeCloseTo(50, 4);
+  });
+});
+
+describe('open vector path draw motion', () => {
+  const drawMotion = [{ id: 'draw', preset: 'draw-on' as const, startTimeSec: 1, durationSec: 2 }];
+
+  it('hides the path before drawing and reveals it progressively', () => {
+    expect(evaluateLayerMotion(drawMotion, undefined, 0, 0.5).isVisible).toBe(false);
+    expect(evaluateLayerMotion(drawMotion, undefined, 0, 1).drawProgress).toBe(0);
+    expect(evaluateLayerMotion(drawMotion, undefined, 0, 2).drawProgress).toBeCloseTo(0.5);
+    expect(evaluateLayerMotion(drawMotion, undefined, 0, 3).drawProgress).toBeUndefined();
+  });
+
+  it('clamps spring easing without drawing past the endpoint', () => {
+    const springMotion = [{ ...drawMotion[0], easing: 'spring' as const }];
+    expect(evaluateLayerMotion(springMotion, undefined, 0, 2.5).drawProgress).toBe(1);
   });
 });
 
