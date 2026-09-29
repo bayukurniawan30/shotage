@@ -1,3 +1,11 @@
-env:
-  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-  RELEASE_REPO_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+- uses: tauri-apps/tauri-action@v1
+  env:
+    GITHUB_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+    TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  with:
+    owner: bayukurniawan30
+    repo: shotage-release
+    releaseCommitish: main
+    tagName: v__VERSION__
+    releaseName: Shotage Studio v__VERSION__
+    releaseDraft: true
