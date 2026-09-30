@@ -137,8 +137,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <PhosphorIcons.XIcon className="h-4 w-4" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-              {renderSection(activeDesktopSection)}
+            <div dir="rtl" className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div dir="ltr" className="space-y-4">
+                {renderSection(activeDesktopSection)}
+              </div>
             </div>
           </div>
         )}
@@ -147,14 +149,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   }
 
   return (
-    <div className="w-full bg-neutral-900 border-r border-neutral-700 flex flex-col h-full overflow-y-auto p-4 space-y-4 text-slate-200 shrink-0">
-      <ImageUploadSection onImageUpload={onImageUpload} />
-      <AspectSection />
-      <FrameSection />
-      {state.frameType === 'frameless' && <StyleSection />}
-      <ShineSection />
-      {!isDeviceFrame && <ShadowSection />}
-      <ShadowOverlaySection />
+    <div dir="rtl" className="w-full bg-neutral-900 border-r border-neutral-700 h-full overflow-y-auto p-4 text-slate-200 shrink-0">
+      {/* Only the scroll container is RTL; controls and copy keep their normal layout. */}
+      <div dir="ltr" className="flex flex-col space-y-4">
+        <ImageUploadSection onImageUpload={onImageUpload} />
+        <AspectSection />
+        <FrameSection />
+        {state.frameType === 'frameless' && <StyleSection />}
+        <ShineSection />
+        {!isDeviceFrame && <ShadowSection />}
+        <ShadowOverlaySection />
+      </div>
     </div>
   );
 };

@@ -30,6 +30,20 @@ describe('session stage transition restore', () => {
 });
 
 describe('session feature restore', () => {
+  it('restores guides for each stage and keeps the active stage latest edits', () => {
+    const guide = { id: 'guide', axis: 'vertical' as const, position: 0.25 };
+    const restored = normalizeRestoredSession({
+      rulersVisible: true,
+      activeStageIndex: 0,
+      canvasGuides: [guide],
+      stages: [{ canvasGuides: [] }, {}],
+    });
+    expect(restored.rulersVisible).toBe(true);
+    expect(restored.canvasGuides).toEqual([guide]);
+    expect(restored.stages?.[0].canvasGuides).toEqual([guide]);
+    expect(restored.stages?.[1].canvasGuides).toEqual([]);
+  });
+
   it('keeps masks, appearance keyframes, motion settings, and their stage copies', () => {
     const shapeLayers = [
       {

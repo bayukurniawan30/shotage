@@ -61,6 +61,7 @@ export const Studio: React.FC = () => {
   const isPreviewMode = useStudioStore((state) => state.isPreviewMode);
   const togglePreviewMode = useStudioStore((state) => state.togglePreviewMode);
   const previewCanvasZoom = useStudioStore((state) => state.previewCanvasZoom);
+  const rulersVisible = useStudioStore((state) => state.rulersVisible ?? false);
   const isMultiSelectMode = useStudioStore((state) => state.isMultiSelectMode);
   const toggleMultiSelectMode = useStudioStore((state) => state.toggleMultiSelectMode);
   const clearAllSelection = useStudioStore((state) => state.clearAllSelection);
@@ -85,6 +86,7 @@ export const Studio: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+  const [canvasCenterRequest, setCanvasCenterRequest] = useState(0);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const zoomFrameRef = useRef<number | null>(null);
@@ -835,6 +837,7 @@ export const Studio: React.FC = () => {
       return;
     }
     fitCanvasToView();
+    setCanvasCenterRequest((request) => request + 1);
   };
 
   const handleCanvasZoomChange = (value: number) => {
@@ -1370,7 +1373,7 @@ export const Studio: React.FC = () => {
                     ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
                     : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
                 }`}
-                title="Fit canvas to viewport"
+                title="Fit and center canvas in viewport"
               >
                 Fit
               </button>
@@ -1408,9 +1411,20 @@ export const Studio: React.FC = () => {
                 iconVariant="zoom"
                 className="flex-1 min-w-[90px] sm:min-w-[120px]"
               />
-              <span className="text-[11px] sm:text-xs font-mono text-slate-400 w-8 sm:w-9 text-right shrink-0">
-                {previewCanvasZoom}%
-              </span>
+              <button
+                type="button"
+                onClick={() => updateState({ rulersVisible: !rulersVisible })}
+                aria-label={rulersVisible ? 'Hide rulers and guides' : 'Show rulers and guides'}
+                aria-pressed={rulersVisible}
+                title={rulersVisible ? 'Hide rulers and guides' : 'Show rulers and guides'}
+                className={`flex h-7 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                  rulersVisible
+                    ? 'border-pastel-blue/40 bg-pastel-blue/15 text-pastel-blue'
+                    : 'border-transparent text-slate-400 hover:bg-neutral-800 hover:text-white'
+                }`}
+              >
+                <PhosphorIcons.RulerIcon className="h-4 w-4" weight={rulersVisible ? 'fill' : 'regular'} />
+              </button>
 
               {/* Multi-Select Mode Toggle for Mobile Only */}
               <div className="h-3.5 w-px bg-neutral-800 shrink-0 mx-0.5 md:hidden" />
@@ -1453,6 +1467,7 @@ export const Studio: React.FC = () => {
               canvasRef={canvasRef}
               onImageUpload={handleImageUpload}
               leftSidebarExpanded={!isLeftSidebarCollapsed && !isPreviewMode}
+              centerRequest={canvasCenterRequest}
             />
           </div>
 

@@ -5,6 +5,7 @@ import { temporal } from 'zundo';
 import { StudioState, DEFAULT_STUDIO_STATE, StageTransition } from '../types/studio';
 import {
   calculateEasing,
+  evaluateLayerKeyframes,
   LayerMotionBlock,
   LayerKeyframe,
   MotionPresetId,
@@ -162,6 +163,7 @@ const TRANSIENT_STUDIO_KEYS = [
   'isPositionDragging',
   'isPreviewMode',
   'previewCanvasZoom',
+  'rulersVisible',
   'selectedTextLayerId',
   'selectedTextLayerIds',
   'selectedPhosphorIconLayerId',
@@ -196,7 +198,8 @@ function withoutPlaybackFrameState(state: StudioStore) {
 function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k: string]: any }>(
   layer: T,
   updates: Partial<T>,
-  currentTimeSec: number
+  currentTimeSec: number,
+  easing?: StudioState['animationEasing']
 ): T {
   const updated = { ...layer, ...updates };
   if (updated.keyframes && updated.keyframes.length > 0) {
@@ -239,51 +242,14 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
       updated.keyframes = kfs as any;
     } else {
       // Auto-create a keyframe at playhead position t
+      const sampled = sampleLayerKeyframe(layer, t, easing);
+      for (const key of Object.keys(sampled) as (keyof typeof sampled)[]) {
+        if (updates[key] !== undefined) (sampled as Record<string, unknown>)[key] = updates[key];
+      }
       const newKf: LayerKeyframe = {
         id: `kf-layer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         timeSec: t,
-        x: updates.x !== undefined ? (updates.x as number) : updated.x,
-        y: updates.y !== undefined ? (updates.y as number) : updated.y,
-        width: updates.width !== undefined ? (updates.width as number) : updated.width,
-        height: updates.height !== undefined ? (updates.height as number) : updated.height,
-        scale: updates.scale !== undefined ? (updates.scale as number) : updated.scale,
-        scaleX: updates.scaleX !== undefined ? (updates.scaleX as number) : updated.scaleX,
-        scaleY: updates.scaleY !== undefined ? (updates.scaleY as number) : updated.scaleY,
-        rotation: updates.rotation !== undefined ? (updates.rotation as number) : updated.rotation,
-        pitch: updates.pitch !== undefined ? (updates.pitch as number) : updated.pitch,
-        yaw: updates.yaw !== undefined ? (updates.yaw as number) : updated.yaw,
-        opacity: updates.opacity !== undefined ? (updates.opacity as number) : updated.opacity,
-        borderRadius:
-          updates.borderRadius !== undefined
-            ? (updates.borderRadius as number)
-            : updated.borderRadius,
-        fontSize: updates.fontSize !== undefined ? (updates.fontSize as number) : updated.fontSize,
-        blur: updates.blur !== undefined ? (updates.blur as number) : updated.blur,
-        skewX: updates.skewX !== undefined ? (updates.skewX as number) : updated.skewX,
-        skewY: updates.skewY !== undefined ? (updates.skewY as number) : updated.skewY,
-        color: updates.color !== undefined ? (updates.color as string) : updated.color,
-        borderWidth:
-          updates.borderWidth !== undefined ? (updates.borderWidth as number) : updated.borderWidth,
-        borderColor:
-          updates.borderColor !== undefined ? (updates.borderColor as string) : updated.borderColor,
-        letterSpacing:
-          updates.letterSpacing !== undefined
-            ? (updates.letterSpacing as number)
-            : updated.letterSpacing,
-        shadowOpacity:
-          updates.shadowOpacity !== undefined
-            ? (updates.shadowOpacity as number)
-            : updated.shadowOpacity,
-        shadowBlur:
-          updates.shadowBlur !== undefined ? (updates.shadowBlur as number) : updated.shadowBlur,
-        shadowOffsetX:
-          updates.shadowOffsetX !== undefined
-            ? (updates.shadowOffsetX as number)
-            : updated.shadowOffsetX,
-        shadowOffsetY:
-          updates.shadowOffsetY !== undefined
-            ? (updates.shadowOffsetY as number)
-            : updated.shadowOffsetY,
+        ...sampled,
       };
       kfs.push(newKf);
       kfs.sort((a, b) => a.timeSec - b.timeSec);
@@ -291,6 +257,20 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
     }
   }
   return updated;
+}
+
+function sampleLayerKeyframe(
+  layer: Parameters<typeof evaluateLayerKeyframes>[0],
+  timeSec: number,
+  easing?: StudioState['animationEasing']
+) {
+  // Keep path positions, but do not bake its automatic orientation into rotation:
+  // the renderer applies that orientation again during playback.
+  return evaluateLayerKeyframes(
+    { ...layer, motionPath: layer.motionPath ? { ...layer.motionPath, autoOrient: false } : undefined },
+    timeSec,
+    easing
+  );
 }
 
 type LayerReference = import('../types/studio').LayerReference;
@@ -568,6 +548,7 @@ export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     customWidth,
     customHeight,
     aspectRatio,
+    canvasGuides,
     rotateX,
     rotateY,
     skewX,
@@ -704,6 +685,7 @@ export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     customWidth,
     customHeight,
     aspectRatio,
+    canvasGuides: (canvasGuides || []).map((guide) => ({ ...guide })),
     rotateX,
     rotateY,
     skewX,
@@ -1036,7 +1018,7 @@ export const useStudioStore = create<StudioStore>()(
       updateTextLayer: (id, updates) =>
         set((state) => {
           const textLayers = state.textLayers.map((l) =>
-            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec) : l
+            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec, state.animationEasing) : l
           );
           const nextState = { ...state, textLayers };
           return {
@@ -1251,7 +1233,7 @@ export const useStudioStore = create<StudioStore>()(
       updatePhosphorIconLayer: (id, updates) =>
         set((state) => {
           const phosphorIconLayers = (state.phosphorIconLayers || []).map((l) =>
-            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec) : l
+            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec, state.animationEasing) : l
           );
           const nextState = { ...state, phosphorIconLayers };
           return {
@@ -1362,7 +1344,7 @@ export const useStudioStore = create<StudioStore>()(
       updateCanvasElement: (id, updates) =>
         set((state) => {
           const canvasElements = (state.canvasElements || []).map((el) =>
-            el.id === id ? syncKeyframesOnLayerUpdate(el, updates, state.currentTimeSec) : el
+            el.id === id ? syncKeyframesOnLayerUpdate(el, updates, state.currentTimeSec, state.animationEasing) : el
           );
           const nextState = { ...state, canvasElements };
           return {
@@ -1530,7 +1512,7 @@ export const useStudioStore = create<StudioStore>()(
       updateShapeLayer: (id, updates) =>
         set((state) => {
           const shapeLayers = (state.shapeLayers || []).map((s) =>
-            s.id === id ? syncKeyframesOnLayerUpdate(s, updates, state.currentTimeSec) : s
+            s.id === id ? syncKeyframesOnLayerUpdate(s, updates, state.currentTimeSec, state.animationEasing) : s
           );
           const nextState = { ...state, shapeLayers };
           return {
@@ -1732,7 +1714,7 @@ export const useStudioStore = create<StudioStore>()(
           if (!current) return state;
           const nextGroups = (state.layerGroups || []).map((group) =>
             group.id === id
-              ? syncKeyframesOnLayerUpdate(group, updates, state.currentTimeSec)
+              ? syncKeyframesOnLayerUpdate(group, updates, state.currentTimeSec, state.animationEasing)
               : group
           );
           if (!updates.position || updates.position === current.position) {
@@ -2119,6 +2101,7 @@ export const useStudioStore = create<StudioStore>()(
           return {
             ...state,
             ...targetSnapshot,
+            canvasGuides: targetSnapshot.canvasGuides || [],
             stages: currentStages,
             activeStageIndex: index,
             isPlaying: false,
@@ -2198,6 +2181,7 @@ export const useStudioStore = create<StudioStore>()(
           return {
             ...state,
             ...activeSnapshot,
+            canvasGuides: activeSnapshot.canvasGuides || [],
             stages: currentStages,
             activeStageIndex: nextActiveIndex,
           };
@@ -2469,35 +2453,13 @@ export const useStudioStore = create<StudioStore>()(
           // If a keyframe already exists near this timestamp, update it
           const existingIdx = currentKfs.findIndex((k) => Math.abs(k.timeSec - t) < 0.08);
           const newKf: LayerKeyframe = {
+            ...(existingIdx !== -1 ? currentKfs[existingIdx] : {}),
             id:
               existingIdx !== -1
                 ? currentKfs[existingIdx].id
                 : `kf-layer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
             timeSec: Math.round(t * 100) / 100,
-            x: targetLayer.x,
-            y: targetLayer.y,
-            width: targetLayer.width,
-            height: targetLayer.height,
-            scale: targetLayer.scale,
-            scaleX: targetLayer.scaleX,
-            scaleY: targetLayer.scaleY,
-            rotation: targetLayer.rotation,
-            pitch: targetLayer.pitch,
-            yaw: targetLayer.yaw,
-            opacity: targetLayer.opacity,
-            borderRadius: targetLayer.borderRadius,
-            fontSize: targetLayer.fontSize,
-            blur: targetLayer.blur,
-            skewX: targetLayer.skewX,
-            skewY: targetLayer.skewY,
-            color: targetLayer.color,
-            borderWidth: targetLayer.borderWidth,
-            borderColor: targetLayer.borderColor,
-            letterSpacing: targetLayer.letterSpacing,
-            shadowOpacity: targetLayer.shadowOpacity,
-            shadowBlur: targetLayer.shadowBlur,
-            shadowOffsetX: targetLayer.shadowOffsetX,
-            shadowOffsetY: targetLayer.shadowOffsetY,
+            ...sampleLayerKeyframe(targetLayer, t, state.animationEasing),
             ...props,
           };
 
@@ -2603,35 +2565,13 @@ export const useStudioStore = create<StudioStore>()(
 
           const existingIdx = currentKfs.findIndex((k) => Math.abs(k.timeSec - t) < 0.08);
           const newKf: LayerKeyframe = {
+            ...(existingIdx !== -1 ? currentKfs[existingIdx] : {}),
             id:
               existingIdx !== -1
                 ? currentKfs[existingIdx].id
                 : `kf-layer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
             timeSec: Math.round(t * 100) / 100,
-            x: targetLayer.x,
-            y: targetLayer.y,
-            width: targetLayer.width,
-            height: targetLayer.height,
-            scale: targetLayer.scale,
-            scaleX: targetLayer.scaleX,
-            scaleY: targetLayer.scaleY,
-            rotation: targetLayer.rotation,
-            pitch: targetLayer.pitch,
-            yaw: targetLayer.yaw,
-            opacity: targetLayer.opacity,
-            borderRadius: targetLayer.borderRadius,
-            fontSize: targetLayer.fontSize,
-            blur: targetLayer.blur,
-            skewX: targetLayer.skewX,
-            skewY: targetLayer.skewY,
-            color: targetLayer.color,
-            borderWidth: targetLayer.borderWidth,
-            borderColor: targetLayer.borderColor,
-            letterSpacing: targetLayer.letterSpacing,
-            shadowOpacity: targetLayer.shadowOpacity,
-            shadowBlur: targetLayer.shadowBlur,
-            shadowOffsetX: targetLayer.shadowOffsetX,
-            shadowOffsetY: targetLayer.shadowOffsetY,
+            ...sampleLayerKeyframe(targetLayer, t, state.animationEasing),
           };
 
           if (existingIdx !== -1) {

@@ -1,5 +1,6 @@
 import type { AnimationEasingType } from '../types/animationTypes';
 import type { StageTransition, StageTransitionType, StudioState } from '../types/studio';
+import { normalizeCanvasGuides } from './canvasGuides';
 
 const DB_NAME = 'shotage_session_db';
 const DB_VERSION = 1;
@@ -47,7 +48,11 @@ const normalizeTransition = (value: unknown): StageTransition => {
 
 export const normalizeRestoredSession = (data: Partial<StudioState>): Partial<StudioState> => {
   if (!Array.isArray(data.stages) || data.stages.length === 0) {
-    return { ...data, transitionOut: normalizeTransition(data.transitionOut) };
+    return {
+      ...data,
+      canvasGuides: normalizeCanvasGuides(data.canvasGuides),
+      transitionOut: normalizeTransition(data.transitionOut),
+    };
   }
 
   const activeStageIndex = Math.max(
@@ -56,6 +61,9 @@ export const normalizeRestoredSession = (data: Partial<StudioState>): Partial<St
   );
   const stages = data.stages.map((stage, index) => ({
     ...stage,
+    canvasGuides: normalizeCanvasGuides(
+      index === activeStageIndex ? data.canvasGuides ?? stage.canvasGuides : stage.canvasGuides
+    ),
     transitionOut: normalizeTransition(
       stage.transitionOut || (index === activeStageIndex ? data.transitionOut : undefined)
     ),
@@ -65,6 +73,7 @@ export const normalizeRestoredSession = (data: Partial<StudioState>): Partial<St
     ...data,
     stages,
     activeStageIndex,
+    canvasGuides: stages[activeStageIndex].canvasGuides,
     transitionOut: stages[activeStageIndex].transitionOut,
   };
 };

@@ -20,6 +20,7 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
   onPreviewTransition,
 }) => {
   const isPreviewMode = useStudioStore((state) => state.isPreviewMode);
+  const rulersVisible = useStudioStore((state) => state.rulersVisible ?? false);
   const activeStageIndex = useStudioStore((state) => state.activeStageIndex ?? 0);
   const stages = useStudioStore((state) => state.stages || []);
   const selectStage = useStudioStore((state) => state.selectStage);
@@ -69,7 +70,7 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
 
   return (
     <>
-      <div className="fixed top-16 left-1/2 z-30 flex w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/95 px-2.5 py-1 shadow-xl backdrop-blur-md pointer-events-auto animate-in fade-in zoom-in-95 duration-200 sm:w-auto">
+      <div className={`fixed ${rulersVisible ? 'top-[88px]' : 'top-16'} left-1/2 z-30 flex w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/95 px-2.5 py-1 shadow-xl backdrop-blur-md pointer-events-auto animate-in fade-in zoom-in-95 duration-200 sm:w-auto`}>
         {/* Icon & Stage Text Label */}
         <div className="flex items-center gap-1.5 pr-2 border-r border-neutral-800/80 text-xs font-bold text-slate-400 select-none">
           <CardsThree weight="duotone" className="w-4 h-4 text-pastel-pink shrink-0" />
@@ -177,7 +178,7 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
       {openBoundaryIndex !== null &&
         openTransition &&
         createPortal(
-          <div className="fixed left-1/2 top-24 z-[70] w-64 -translate-x-1/2 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-2xl">
+          <div className={`fixed left-1/2 ${rulersVisible ? 'top-[120px]' : 'top-24'} z-[70] w-64 -translate-x-1/2 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-2xl`}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-bold text-white">Stage transition</p>

@@ -90,4 +90,23 @@ describe('stage transition preview snapshots', () => {
       color: '#ffafcc',
     });
   });
+
+  it('keeps guides stage-specific, including switching to an older stage without guides', () => {
+    const guide = { id: 'guide-a', axis: 'vertical' as const, position: 0.25 };
+    useStudioStore.getState().updateState({ canvasGuides: [guide] });
+    const snapshot = getStageSnapshot(useStudioStore.getState());
+    expect(snapshot.canvasGuides).toEqual([guide]);
+    expect(snapshot.canvasGuides).not.toBe(useStudioStore.getState().canvasGuides);
+
+    useStudioStore.getState().addStage();
+    useStudioStore.getState().updateState({ canvasGuides: [] });
+    useStudioStore.getState().selectStage(0);
+    expect(useStudioStore.getState().canvasGuides).toEqual([guide]);
+    useStudioStore.getState().selectStage(1);
+    expect(useStudioStore.getState().canvasGuides).toEqual([]);
+
+    useStudioStore.setState({ stages: [snapshot, {}], activeStageIndex: 0, canvasGuides: [guide] });
+    useStudioStore.getState().selectStage(1);
+    expect(useStudioStore.getState().canvasGuides).toEqual([]);
+  });
 });

@@ -412,6 +412,13 @@ export type CodeLanguage =
 export type CodeTheme = 'dark' | 'light';
 export type CodeWindowStyle = 'macos' | 'windows';
 
+export interface CanvasGuide {
+  id: string;
+  axis: 'horizontal' | 'vertical';
+  // Fraction of the artboard height/width, measured from its top/left edge.
+  position: number;
+}
+
 export interface StudioState {
   imageSrc: string | null;
   imageName: string;
@@ -426,6 +433,8 @@ export interface StudioState {
   zoom: number; // 50 to 150
   slot2Zoom: number; // 50 to 150
   previewCanvasZoom: number; // 50 to 150
+  rulersVisible?: boolean;
+  canvasGuides?: CanvasGuide[];
   alignment: 'center' | 'top' | 'bottom';
   padding: number; // 0 to 120
   borderRadius: number; // 0 to 32
@@ -636,6 +645,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   zoom: 100,
   slot2Zoom: 100,
   previewCanvasZoom: 100,
+  rulersVisible: false,
+  canvasGuides: [],
   alignment: 'center',
   padding: 48,
   borderRadius: 16,

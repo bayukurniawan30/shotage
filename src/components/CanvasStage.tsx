@@ -55,6 +55,7 @@ import {
 import type { LayerKeyframe, MotionPathConfig } from '../types/animationTypes';
 import { isDesktopApp } from '../platform/runtime';
 import { ExtrudedShape } from './ExtrudedShape';
+import { CanvasRulers } from './CanvasRulers';
 
 interface CanvasStageProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
@@ -63,6 +64,7 @@ interface CanvasStageProps {
   readOnly?: boolean;
   canvasId?: string;
   leftSidebarExpanded?: boolean;
+  centerRequest?: number;
 }
 
 interface MaskPose {
@@ -343,6 +345,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   readOnly = false,
   canvasId = 'shotage-canvas',
   leftSidebarExpanded = false,
+  centerRequest = 0,
 }) => {
   const liveState = useStudioStore();
   const state = stateOverride
@@ -3205,10 +3208,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     };
   }, []);
 
-  // Reset pan offset to center when aspect ratio changes or when state is reset
+  // Reset the editor view without changing any design element positions.
   useEffect(() => {
     setPan({ x: 0, y: 0 });
-  }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey]);
+  }, [state.aspectRatio, state.imageSrc, state.secondImageSrc, state.resetKey, centerRequest]);
 
   // Double-click confirmation state for delete handles (must be clicked twice within 1000ms)
   const pendingDeleteRef = useRef<{
@@ -5151,6 +5154,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   : 'cursor-grab'
       }`}
     >
+      {!readOnly && state.rulersVisible && (
+        <CanvasRulers
+          key={`${state.activeStageIndex}:${state.resetKey}`}
+          canvasRef={canvasRef}
+          geometryKey={`${pan.x}:${pan.y}:${state.previewCanvasZoom}:${state.aspectRatio}:${leftSidebarExpanded}`}
+          logicalWidth={state.aspectRatio === 'custom' ? Math.max(160, state.customWidth || 1280) : undefined}
+          logicalHeight={state.aspectRatio === 'custom' ? Math.max(160, state.customHeight || 720) : undefined}
+          leftSidebarExpanded={leftSidebarExpanded}
+        />
+      )}
       {/* Floating Pen Tool Toolbar (Fixed minimal vertical icon-only bar on top-left) */}
       {!readOnly && state.isPenDrawingMode && (
         <div className={`absolute top-4 left-4 z-40 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md p-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto select-none ${leftSidebarExpanded ? 'md:top-16' : ''}`}>

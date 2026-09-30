@@ -1,4 +1,5 @@
 import type { StudioState } from '../types/studio';
+import { normalizeCanvasGuides } from './canvasGuides';
 
 export type SharedDesignLoadFailure = 'sign_in' | 'unavailable' | 'service_error';
 
@@ -24,6 +25,7 @@ export function hydrateSharedStudioState(parsed: Partial<StudioState>): Partial<
 
   return {
     ...hydratedStage,
+    canvasGuides: normalizeCanvasGuides(hydratedStage.canvasGuides),
     stages: parsed.stages,
     activeStageIndex: 0,
     currentTimeSec: 0,
