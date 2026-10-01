@@ -12,6 +12,15 @@ import { SOCIAL_PLATFORMS } from '../components/SocialIcons';
 import { TECH_STACK_ITEMS } from '../components/TechStackIcons';
 
 describe('MCP design construction', () => {
+  it('preserves and validates image fill animation fields', () => {
+    const fill = { bgImage: 'https://example.com/image.png', bgImageZoom: 125, bgImageOffsetX: 10, bgImageOffsetY: -20, bgImageRepeat: false };
+    const keyframes = [{ id: 'fill-start', timeSec: 0, bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0 }, { id: 'fill-end', timeSec: 2, bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 }];
+    const state = buildStudioState({ durationSec: 3, textLayers: [createTextLayer(mcpTextLayerInputSchema.parse({ text: 'Image', ...fill, keyframes }), 0)], shapeLayers: [createShapeLayer({ shapeType: 'rectangle', ...fill, keyframes }, 0)] });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.textLayers[0]).toMatchObject({ ...fill, keyframes });
+    expect(state.shapeLayers[0]).toMatchObject({ ...fill, keyframes });
+    expect(() => validateMcpStudioState({ ...state, shapeLayers: [{ ...state.shapeLayers[0], keyframes: [{ ...keyframes[0], bgImageZoom: 0 }] }] })).toThrow();
+  });
   it('merges nested state and clears volatile editor fields', () => {
     const state = buildStudioState({
       aspectRatio: '1:1',

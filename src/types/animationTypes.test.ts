@@ -20,6 +20,35 @@ const linearCurve: CubicBezierEasing = {
   y2: 1,
 };
 
+describe('image fill keyframes', () => {
+  const layer = {
+    bgImage: 'https://example.com/image.png',
+    keyframes: [
+      { id: 'start', timeSec: 0, bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0, easing: linearCurve },
+      { id: 'end', timeSec: 2, bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 },
+    ],
+  };
+
+  it('interpolates fill zoom and offsets independently of layer geometry', () => {
+    expect(evaluateLayerKeyframes({ ...layer, x: 20, width: 180 }, 1)).toMatchObject({
+      bgImageZoom: 150, bgImageOffsetX: 40, bgImageOffsetY: -20, x: 20, width: 180,
+    });
+  });
+
+  it('holds exact fill endpoints before and after the animation', () => {
+    expect(evaluateLayerKeyframes(layer, -1)).toMatchObject({ bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0 });
+    expect(evaluateLayerKeyframes(layer, 3)).toMatchObject({ bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 });
+  });
+
+  it('uses legacy visible defaults for omitted fill fields', () => {
+    const legacy = { bgImage: layer.bgImage };
+    expect(evaluateLayerKeyframes(legacy, 0)).toMatchObject({ bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0 });
+    expect(evaluateLayerKeyframes({ ...legacy, keyframes: [{ id: 'first', timeSec: 0, easing: linearCurve }, layer.keyframes[1]] }, 1))
+      .toMatchObject({ bgImageZoom: 150, bgImageOffsetX: 40, bgImageOffsetY: -20 });
+    expect(evaluateLayerKeyframes({ x: 0 }, 0).bgImageZoom).toBeUndefined();
+  });
+});
+
 describe('custom cubic Bezier easing', () => {
   it('preserves exact endpoints and linear midpoint', () => {
     expect(calculateCubicBezier(0, linearCurve)).toBe(0);

@@ -168,6 +168,9 @@ export function calculateEasing(progress: number, type: AnimationEasing = 'ease-
 export interface LayerKeyframe {
   id: string;
   timeSec: number; // 0 to durationSec
+  bgImageZoom?: number;
+  bgImageOffsetX?: number;
+  bgImageOffsetY?: number;
   x?: number;
   y?: number;
   width?: number;
@@ -196,6 +199,9 @@ export interface LayerKeyframe {
 }
 
 export interface LayerKeyframeResult {
+  bgImageZoom?: number;
+  bgImageOffsetX?: number;
+  bgImageOffsetY?: number;
   x?: number;
   y?: number;
   width?: number;
@@ -345,6 +351,10 @@ export function evaluateMotionPathSegment(
 
 export function evaluateLayerKeyframes<
   T extends {
+    bgImage?: string | null;
+    bgImageZoom?: number;
+    bgImageOffsetX?: number;
+    bgImageOffsetY?: number;
     x?: number;
     y?: number;
     width?: number;
@@ -378,8 +388,15 @@ export function evaluateLayerKeyframes<
   defaultEasing: AnimationEasingType = 'ease-in-out'
 ): LayerKeyframeResult {
   const kfs = layer.keyframes;
+  // Legacy fills omit these fields; capture their visible defaults, not undefined.
+  const fillZoom = layer.bgImageZoom ?? (layer.bgImage ? 100 : undefined);
+  const fillX = layer.bgImageOffsetX ?? (layer.bgImage ? 0 : undefined);
+  const fillY = layer.bgImageOffsetY ?? (layer.bgImage ? 0 : undefined);
   if (!kfs || kfs.length === 0) {
     return {
+      bgImageZoom: fillZoom,
+      bgImageOffsetX: fillX,
+      bgImageOffsetY: fillY,
       x: layer.x,
       y: layer.y,
       width: layer.width,
@@ -418,6 +435,9 @@ export function evaluateLayerKeyframes<
     const first = sorted[0];
     const path = sorted.length > 1 ? pathAt(first, sorted[1], 0) : null;
     return {
+      bgImageZoom: first.bgImageZoom ?? fillZoom,
+      bgImageOffsetX: first.bgImageOffsetX ?? fillX,
+      bgImageOffsetY: first.bgImageOffsetY ?? fillY,
       x: path?.x ?? first.x ?? layer.x,
       y: path?.y ?? first.y ?? layer.y,
       width: first.width ?? layer.width,
@@ -453,6 +473,9 @@ export function evaluateLayerKeyframes<
     const last = sorted[sorted.length - 1];
     const path = sorted.length > 1 ? pathAt(sorted[sorted.length - 2], last, 1) : null;
     return {
+      bgImageZoom: last.bgImageZoom ?? fillZoom,
+      bgImageOffsetX: last.bgImageOffsetX ?? fillX,
+      bgImageOffsetY: last.bgImageOffsetY ?? fillY,
       x: path?.x ?? last.x ?? layer.x,
       y: path?.y ?? last.y ?? layer.y,
       width: last.width ?? layer.width,
@@ -526,6 +549,9 @@ export function evaluateLayerKeyframes<
   return {
     x: path.x,
     y: path.y,
+    bgImageZoom: lerpNum(kf1.bgImageZoom, kf2.bgImageZoom, fillZoom),
+    bgImageOffsetX: lerpNum(kf1.bgImageOffsetX, kf2.bgImageOffsetX, fillX),
+    bgImageOffsetY: lerpNum(kf1.bgImageOffsetY, kf2.bgImageOffsetY, fillY),
     width: lerpNum(kf1.width, kf2.width, layer.width),
     height: lerpNum(kf1.height, kf2.height, layer.height),
     scale: lerpNum(kf1.scale, kf2.scale, layer.scale),

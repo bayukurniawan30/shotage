@@ -69,7 +69,7 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
     {
       title: 'Get Shotage design reference',
       description:
-        'Returns the current Shotage design and motion authoring contract, including fonts, patterns, social layers, tech stacks, guides, keyframes, easing, paths, anchors, text staggering, masks, groups, motion blur, and stage transitions. Call this before creation or editing.',
+        'Returns the current Shotage design and motion authoring contract, including fonts, patterns, social layers, tech stacks, guides, keyframes, image-fill pan/zoom, easing, paths, anchors, text staggering, masks, groups, motion blur, and stage transitions. Call this before creation or editing.',
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async () => {

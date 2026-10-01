@@ -234,6 +234,9 @@ export const mcpLayerKeyframeSchema = z
     borderColor: color.optional(),
     letterSpacing: finiteNumber.optional(),
     shadowOpacity: finiteNumber.min(0).max(100).optional(),
+    bgImageZoom: finiteNumber.min(10).max(400).optional(),
+    bgImageOffsetX: finiteNumber.optional(),
+    bgImageOffsetY: finiteNumber.optional(),
     shadowBlur: finiteNumber.min(0).optional(),
     shadowOffsetX: finiteNumber.optional(),
     shadowOffsetY: finiteNumber.optional(),
@@ -304,8 +307,17 @@ const animatedLayerFields = {
   motionPath: mcpMotionPathSchema.optional(),
 };
 
+const imageFillFields = {
+  bgImage: z.string().nullable().optional(),
+  bgImageZoom: finiteNumber.min(10).max(400).optional(),
+  bgImageOffsetX: finiteNumber.optional(),
+  bgImageOffsetY: finiteNumber.optional(),
+  bgImageRepeat: z.boolean().optional(),
+};
+
 export const mcpTextLayerInputSchema = z
   .object({
+    ...imageFillFields,
     id: z.string().min(1).optional(),
     text: z.string().min(1),
     fontFamily: z.string().min(1).optional(),
@@ -337,6 +349,7 @@ export const mcpTextLayerInputSchema = z
 
 export const mcpShapeLayerInputSchema = z
   .object({
+    ...imageFillFields,
     id: z.string().min(1).optional(),
     shapeType: z.enum([
       'square',
@@ -874,6 +887,9 @@ export const MCP_MOTION_REFERENCE = {
     'borderWidth',
     'borderColor',
     'letterSpacing',
+    'bgImageZoom',
+    'bgImageOffsetX',
+    'bgImageOffsetY',
     'shadowOpacity',
     'shadowBlur',
     'shadowOffsetX',
@@ -890,6 +906,12 @@ export const MCP_MOTION_REFERENCE = {
   },
   anchorPoints:
     'anchorX and anchorY use normalized 0-1 coordinates on mockups, layers, and groups.',
+  imageFills: {
+    layers: 'Shape and text layers use bgImage, not imageSrc, for their image fill.',
+    keyframes:
+      'Animate bgImageZoom (10-400 percent), bgImageOffsetX and bgImageOffsetY (pixels) to pan/zoom the image inside a stationary layer. Defaults are 100, 0, 0.',
+    preservation: 'Preserve bgImage URLs/data, bgImageRepeat, and existing crop settings when editing.',
+  },
   sourceCodeFrames: {
     frameType: 'code-window',
     rule: 'Use layoutCount=1. Code frames inherit mockup transforms, keyframes, anchors, paths, and motion blur.',

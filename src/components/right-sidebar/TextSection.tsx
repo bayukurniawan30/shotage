@@ -692,66 +692,46 @@ export const TextSection: React.FC = () => {
 
             {selectedLayer.bgImage && (
               <div className="space-y-2.5 pt-1 animate-in fade-in duration-150">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Zoom</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedLayer.bgImageZoom ?? 100}%
-                    </span>
-                  </div>
-                  <StepperSlider
-                    min={10}
-                    max={400}
-                    step={1}
-                    value={selectedLayer.bgImageZoom ?? 100}
-                    onChange={(val) =>
-                      state.updateTextLayer(selectedLayer.id, {
-                        bgImageZoom: val,
-                      })
-                    }
-                    accentColor="#ffafcc"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Offset X</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedLayer.bgImageOffsetX || 0}px
-                      </span>
-                    </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="min-w-0">
+                    <span className="block text-xs font-medium text-slate-300 mb-1">Zoom</span>
                     <StepperSlider
-                      min={-300}
-                      max={300}
+                      min={10}
+                      max={400}
                       step={1}
-                      value={selectedLayer.bgImageOffsetX || 0}
-                      onChange={(val) =>
-                        state.updateTextLayer(selectedLayer.id, {
-                          bgImageOffsetX: val,
-                        })
-                      }
+                      value={selectedLayer.bgImageZoom ?? 100}
+                      variant="compact"
+                      unit="%"
+                      label="Image Fill Zoom"
+                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { bgImageZoom: val })}
                       accentColor="#ffafcc"
                     />
                   </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Offset Y</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedLayer.bgImageOffsetY || 0}px
-                      </span>
-                    </div>
+                  <div className="min-w-0">
+                    <span className="block text-xs font-medium text-slate-300 mb-1">Offset X</span>
                     <StepperSlider
                       min={-300}
                       max={300}
                       step={1}
-                      value={selectedLayer.bgImageOffsetY || 0}
-                      onChange={(val) =>
-                        state.updateTextLayer(selectedLayer.id, {
-                          bgImageOffsetY: val,
-                        })
-                      }
+                      value={selectedLayer.bgImageOffsetX ?? 0}
+                      variant="compact"
+                      unit="px"
+                      label="Image Fill Offset X"
+                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { bgImageOffsetX: val })}
+                      accentColor="#ffafcc"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block text-xs font-medium text-slate-300 mb-1">Offset Y</span>
+                    <StepperSlider
+                      min={-300}
+                      max={300}
+                      step={1}
+                      value={selectedLayer.bgImageOffsetY ?? 0}
+                      variant="compact"
+                      unit="px"
+                      label="Image Fill Offset Y"
+                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { bgImageOffsetY: val })}
                       accentColor="#ffafcc"
                     />
                   </div>

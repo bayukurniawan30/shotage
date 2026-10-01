@@ -210,6 +210,11 @@ function syncKeyframesOnLayerUpdate<T extends { keyframes?: LayerKeyframe[]; [k:
     if (kfIdx !== -1) {
       const targetKf = kfs[kfIdx];
       const newKf = { ...targetKf };
+      if (updates.bgImageZoom !== undefined) newKf.bgImageZoom = updates.bgImageZoom as number;
+      if (updates.bgImageOffsetX !== undefined)
+        newKf.bgImageOffsetX = updates.bgImageOffsetX as number;
+      if (updates.bgImageOffsetY !== undefined)
+        newKf.bgImageOffsetY = updates.bgImageOffsetY as number;
       if (updates.width !== undefined) newKf.width = updates.width as number;
       if (updates.height !== undefined) newKf.height = updates.height as number;
       if (updates.x !== undefined) newKf.x = updates.x as number;

@@ -1133,8 +1133,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         const textFillStyle: React.CSSProperties = layer.bgImage
           ? {
               backgroundImage: `url(${layer.bgImage})`,
-              backgroundSize: `${layer.bgImageZoom ?? 100}%`,
-              backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
+              backgroundSize: `${kfValues.bgImageZoom ?? layer.bgImageZoom ?? 100}%`,
+              backgroundPosition: `calc(50% + ${kfValues.bgImageOffsetX ?? layer.bgImageOffsetX ?? 0}px) calc(50% + ${kfValues.bgImageOffsetY ?? layer.bgImageOffsetY ?? 0}px)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -1225,15 +1225,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 fillLayout && fillSlice && layer.bgImage
                   ? {
                       backgroundImage: `url(${layer.bgImage})`,
-                      backgroundSize: `${(fillLayout.width * (layer.bgImageZoom ?? 100)) / 100}px auto`,
+                      backgroundSize: `${(fillLayout.width * (kfValues.bgImageZoom ?? layer.bgImageZoom ?? 100)) / 100}px auto`,
                       backgroundPosition: `calc(50% + ${
                         fillLayout.width / 2 +
-                        (layer.bgImageOffsetX || 0) -
+                        (kfValues.bgImageOffsetX ?? layer.bgImageOffsetX ?? 0) -
                         fillSlice.left -
                         fillSlice.width / 2
                       }px) calc(50% + ${
                         fillLayout.height / 2 +
-                        (layer.bgImageOffsetY || 0) -
+                        (kfValues.bgImageOffsetY ?? layer.bgImageOffsetY ?? 0) -
                         fillSlice.top -
                         fillLayout.lineHeight / 2
                       }px)`,
@@ -1847,8 +1847,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           if (layer.bgImage) {
             return {
               backgroundImage: `url(${layer.bgImage})`,
-              backgroundSize: `${layer.bgImageZoom ?? 100}%`,
-              backgroundPosition: `calc(50% + ${layer.bgImageOffsetX || 0}px) calc(50% + ${layer.bgImageOffsetY || 0}px)`,
+              backgroundSize: `${kfValues.bgImageZoom ?? layer.bgImageZoom ?? 100}%`,
+              backgroundPosition: `calc(50% + ${kfValues.bgImageOffsetX ?? layer.bgImageOffsetX ?? 0}px) calc(50% + ${kfValues.bgImageOffsetY ?? layer.bgImageOffsetY ?? 0}px)`,
               backgroundRepeat: layer.bgImageRepeat ? 'repeat' : 'no-repeat',
             };
           }
@@ -2076,13 +2076,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               {layer.shapeType === 'custom-path' &&
                 layer.pathData &&
                 (() => {
-                  const zoom = (layer.bgImageZoom ?? 100) / 100;
+                  const zoom = (kfValues.bgImageZoom ?? layer.bgImageZoom ?? 100) / 100;
                   const imgW = shapeWidth * zoom;
                   const imgH = shapeHeight * zoom;
                   const imgX =
-                    -shapeWidth / 2 + (layer.bgImageOffsetX || 0) - (imgW - shapeWidth) / 2;
+                    -shapeWidth / 2 + (kfValues.bgImageOffsetX ?? layer.bgImageOffsetX ?? 0) - (imgW - shapeWidth) / 2;
                   const imgY =
-                    -shapeHeight / 2 + (layer.bgImageOffsetY || 0) - (imgH - shapeHeight) / 2;
+                    -shapeHeight / 2 + (kfValues.bgImageOffsetY ?? layer.bgImageOffsetY ?? 0) - (imgH - shapeHeight) / 2;
 
                   return (
                     <svg

@@ -110,4 +110,27 @@ describe('capturing evaluated layer keyframes', () => {
     expect(useStudioStore.getState().textLayers.find((text) => text.id === id)?.keyframes?.[0])
       .toMatchObject({ x: 30, y: 30, opacity: 75 });
   });
+
+  it.each(['shape', 'text'] as const)('captures and auto-keys %s image fill settings', (type) => {
+    const store = useStudioStore.getState();
+    const id = type === 'shape' ? store.addShapeLayer('rectangle') : store.addTextLayer();
+    const update = (values: { bgImage?: string; bgImageZoom?: number; bgImageOffsetX?: number; bgImageOffsetY?: number }) => {
+      const state = useStudioStore.getState();
+      if (type === 'shape') state.updateShapeLayer(id, values);
+      else state.updateTextLayer(id, values);
+    };
+    const get = () => (type === 'shape' ? useStudioStore.getState().shapeLayers : useStudioStore.getState().textLayers).find((l) => l.id === id)!;
+    update({ bgImage: 'https://example.com/image.png' });
+    store.captureLayerKeyframe(type, id, 0);
+    expect(get().keyframes?.[0]).toMatchObject({ bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0 });
+    store.updateState({ currentTimeSec: 2, animationEasing: 'linear' });
+    update({ bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 });
+    expect(get().keyframes?.at(-1)).toMatchObject({ timeSec: 2, bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 });
+    store.updateState({ currentTimeSec: 2 });
+    update({ bgImageOffsetX: 100 });
+    expect(get().keyframes).toHaveLength(2);
+    expect(get().keyframes?.at(-1)?.bgImageOffsetX).toBe(100);
+    store.captureLayerKeyframe(type, id, 4);
+    expect(get().keyframes?.at(-1)).toMatchObject({ timeSec: 4, bgImageZoom: 200, bgImageOffsetX: 100, bgImageOffsetY: -40 });
+  });
 });
