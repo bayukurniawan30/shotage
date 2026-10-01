@@ -1,153 +1,121 @@
-import React from 'react';
-import { WAVE_PRESETS } from '../utils/wavePresets';
+import React, { useId } from 'react';
+import { WAVE_PRESETS, WAVE_PROFILES, type WavePreset } from '../utils/wavePresets';
 
 interface WaveBackgroundProps {
   presetId?: string;
 }
 
-export const WaveBackground: React.FC<WaveBackgroundProps> = ({ presetId = 'wave-1' }) => {
-  const preset = WAVE_PRESETS.find((w) => w.id === presetId) || WAVE_PRESETS[0];
+const WIDTH = 1440;
+const HEIGHT = 900;
+const LAYERS = [0, 1, 2, 3];
 
-  const cBase = preset.colors[0];
-  const cWave1 = preset.colors[1];
-  const cWave2 = preset.colors[2];
-
-  // Render path curves based on wave type
-  const renderPaths = () => {
-    switch (preset.pathType) {
-      case 'multi-sine':
-        return (
-          <>
-            <path
-              d="M0,160 C320,300 480,100 800,240 C1120,380 1280,160 1440,280 L1440,900 L0,900 Z"
-              fill={cWave1}
-              opacity={preset.opacity * 0.4}
-            />
-            <path
-              d="M0,280 C360,120 600,340 960,180 C1200,80 1360,300 1440,200 L1440,900 L0,900 Z"
-              fill={cWave2}
-              opacity={preset.opacity * 0.7}
-            />
-          </>
-        );
-
-      case 'layered':
-        return (
-          <>
-            <path
-              d="M0,120 C240,240 480,60 720,180 C960,300 1200,120 1440,240 L1440,900 L0,900 Z"
-              fill={cWave1}
-              opacity={preset.opacity * 0.5}
-            />
-            <path
-              d="M0,240 C320,100 640,320 960,160 C1280,300 1360,180 1440,280 L1440,900 L0,900 Z"
-              fill={cWave2}
-              opacity={preset.opacity * 0.8}
-            />
-          </>
-        );
-
-      case 'blob':
-        return (
-          <>
-            <path
-              d="M0,90 C400,280 600,-40 1000,220 C1250,380 1350,120 1440,300 L1440,900 L0,900 Z"
-              fill={cWave1}
-              opacity={preset.opacity * 0.5}
-            />
-            <path
-              d="M0,320 C280,140 680,360 1040,160 C1240,40 1380,260 1440,180 L1440,900 L0,900 Z"
-              fill={cWave2}
-              opacity={preset.opacity * 0.75}
-            />
-          </>
-        );
-
-      case 'peaks':
-        return (
-          <>
-            <path
-              d="M0,180 Q360,40 720,260 Q1080,80 1440,220 L1440,900 L0,900 Z"
-              fill={cWave1}
-              opacity={preset.opacity * 0.45}
-            />
-            <path
-              d="M0,260 Q400,120 800,320 Q1200,100 1440,260 L1440,900 L0,900 Z"
-              fill={cWave2}
-              opacity={preset.opacity * 0.8}
-            />
-          </>
-        );
-
-      case 'curved-flow':
-        return (
-          <>
-            <path
-              d="M0,100 C480,360 960,40 1440,300 L1440,900 L0,900 Z"
-              fill={cWave1}
-              opacity={preset.opacity * 0.5}
-            />
-            <path
-              d="M0,260 C480,80 960,380 1440,140 L1440,900 L0,900 Z"
-              fill={cWave2}
-              opacity={preset.opacity * 0.75}
-            />
-          </>
-        );
-
-      case 'sine':
-      default:
-        return (
-          <>
-            <path
-              d="M0,200 Q360,320 720,200 T1440,200 L1440,900 L0,900 Z"
-              fill={cWave1}
-              opacity={preset.opacity * 0.5}
-            />
-            <path
-              d="M0,300 Q360,180 720,300 T1440,300 L1440,900 L0,900 Z"
-              fill={cWave2}
-              opacity={preset.opacity * 0.8}
-            />
-          </>
-        );
-    }
+function waveContour(type: WavePreset['pathType'], layer: number) {
+  const { amplitude, cycles, phase, harmonic, tilt } = WAVE_PROFILES[type];
+  const frequency = (Math.PI * 2 * cycles) / WIDTH;
+  const y = (x: number) => {
+    const angle = x * frequency + phase;
+    return (
+      440 +
+      layer * 92 +
+      tilt * (x / WIDTH - 0.5) +
+      amplitude * (Math.sin(angle) + harmonic * Math.sin(2 * angle + 0.6))
+    );
   };
+  const slope = (x: number) => {
+    const angle = x * frequency + phase;
+    return (
+      tilt / WIDTH +
+      amplitude * frequency * (Math.cos(angle) + 2 * harmonic * Math.cos(2 * angle + 0.6))
+    );
+  };
+  // Matching tangents keep every join smooth; overscan avoids edge seams.
+  const start = -120;
+  const end = WIDTH + 120;
+  const step = (end - start) / 8;
+  const number = (value: number) => value.toFixed(2);
+  let edge = `M ${start} ${number(y(start))}`;
+  for (let segment = 0; segment < 8; segment++) {
+    const x0 = start + segment * step;
+    const x1 = x0 + step;
+    edge +=
+      ` C ${number(x0 + step / 3)} ${number(y(x0) + (slope(x0) * step) / 3)}` +
+      ` ${number(x1 - step / 3)} ${number(y(x1) - (slope(x1) * step) / 3)}` +
+      ` ${number(x1)} ${number(y(x1))}`;
+  }
+  return { edge, surface: `${edge} L ${end} ${HEIGHT + 120} L ${start} ${HEIGHT + 120} Z` };
+}
+
+// Geometry is shared by every palette and remains fixed during video capture.
+const CONTOURS = Object.fromEntries(
+  Object.keys(WAVE_PROFILES).map((type) => [
+    type,
+    LAYERS.map((layer) => waveContour(type as WavePreset['pathType'], layer)),
+  ])
+) as Record<WavePreset['pathType'], ReturnType<typeof waveContour>[]>;
+
+export const WaveBackground: React.FC<WaveBackgroundProps> = React.memo(function WaveBackground({
+  presetId = 'wave-1',
+}) {
+  const preset = WAVE_PRESETS.find((wave) => wave.id === presetId) || WAVE_PRESETS[0];
+  const [base, primary, secondary] = preset.colors;
+  // Previews and canvas instances need their own SVG paint servers.
+  const id = `wave-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   return (
     <div
       className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"
-      style={{ backgroundColor: cBase }}
+      style={{ backgroundColor: base }}
+      aria-hidden="true"
     >
       <svg
-        viewBox="0 0 1440 900"
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="none"
-        className="w-full h-full block transform scale-105"
+        className="w-full h-full block"
       >
         <defs>
-          <linearGradient id={`grad-${preset.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={cWave1} />
-            <stop offset="100%" stopColor={cWave2} />
+          <radialGradient id={`${id}-ambient`} cx="22%" cy="18%" r="85%">
+            <stop offset="0%" stopColor={primary} stopOpacity="0.2" />
+            <stop offset="65%" stopColor={secondary} stopOpacity="0.05" />
+            <stop offset="100%" stopColor={base} stopOpacity="0" />
+          </radialGradient>
+          {LAYERS.map((layer) => (
+            <linearGradient
+              key={layer}
+              id={`${id}-surface-${layer}`}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1={320 + layer * 92}
+              x2={WIDTH}
+              y2={HEIGHT + 60}
+            >
+              <stop offset="0%" stopColor={layer % 2 === 0 ? primary : secondary} />
+              <stop
+                offset="48%"
+                stopColor={layer % 2 === 0 ? secondary : primary}
+                stopOpacity="0.72"
+              />
+              <stop offset="100%" stopColor={base} />
+            </linearGradient>
+          ))}
+          <linearGradient id={`${id}-edge`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={secondary} stopOpacity="0" />
+            <stop offset="35%" stopColor={secondary} stopOpacity="0.3" />
+            <stop offset="70%" stopColor={primary} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={primary} stopOpacity="0" />
           </linearGradient>
-
-          <filter id={`glow-blur-${preset.id}`} x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="120" />
-          </filter>
         </defs>
-
-        {/* Ambient Top Glow with Soft Blur Filter */}
-        <circle
-          cx="720"
-          cy="0"
-          r="500"
-          fill={`url(#grad-${preset.id})`}
-          opacity="0.45"
-          filter={`url(#glow-blur-${preset.id})`}
-        />
-
-        {/* SVG Wave Paths */}
-        {renderPaths()}
+        <rect width={WIDTH} height={HEIGHT} fill={`url(#${id}-ambient)`} />
+        {CONTOURS[preset.pathType].map(({ edge, surface }, layer) => (
+          <g key={layer}>
+            <path
+              d={surface}
+              fill={`url(#${id}-surface-${layer})`}
+              opacity={preset.opacity * (0.36 + layer * 0.16)}
+            />
+            <path d={edge} fill="none" stroke={`url(#${id}-edge)`} strokeWidth="1.5" />
+          </g>
+        ))}
       </svg>
     </div>
   );
-};
+});

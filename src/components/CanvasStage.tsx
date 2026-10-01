@@ -65,6 +65,7 @@ interface CanvasStageProps {
   canvasId?: string;
   leftSidebarExpanded?: boolean;
   centerRequest?: number;
+  overview?: boolean;
 }
 
 interface MaskPose {
@@ -346,6 +347,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   canvasId = 'shotage-canvas',
   leftSidebarExpanded = false,
   centerRequest = 0,
+  overview = false,
 }) => {
   const liveState = useStudioStore();
   const state = stateOverride
@@ -5140,7 +5142,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       onTouchStart={readOnly ? undefined : handleTouchStart}
       onTouchMove={readOnly ? undefined : handleTouchMove}
       onTouchEnd={readOnly ? undefined : handleTouchEnd}
-      className={`absolute inset-0 max-w-full flex items-center justify-center p-3 sm:p-6 md:p-12 overflow-hidden transition-all duration-300 ${
+      className={`absolute inset-0 max-w-full flex items-center justify-center ${overview ? '' : 'p-3 sm:p-6 md:p-12'} overflow-hidden transition-all duration-300 ${
         layerGroupRotate || rotateDragItem
           ? 'cursor-grabbing select-none'
           : layerGroupResize
@@ -5266,7 +5268,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         <div
           ref={canvasRef}
           id={canvasId}
-          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${readOnly ? 'exporting-no-transitions' : ''} ${readOnly && isDesktopApp() ? 'exporting-desktop-shadow-fallback' : ''} ${getAspectRatioStyle()}`}
+          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${readOnly ? 'exporting-no-transitions' : ''} ${readOnly && !overview && isDesktopApp() ? 'exporting-desktop-shadow-fallback' : ''} ${getAspectRatioStyle()}`}
           style={{
             ...getBackgroundStyle(),
             padding: `${state.padding}px`,
@@ -5281,7 +5283,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         >
           {/* Cropped Canvas Content Layer (Photoshop-like Artboard Clipping) */}
           <div
-            id="shotage-canvas-content"
+            id={`${canvasId}-content`}
             className="absolute inset-0 overflow-hidden pointer-events-auto rounded-[inherit] flex items-center justify-center"
             style={{
               padding: `${state.padding}px`,
@@ -5375,12 +5377,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               {state.backgroundType === 'animatedGradient' && (
                 <AnimatedGradientBackground
                   presetId={state.animatedGradientPreset || 'anim-grad-1'}
+                  isStatic={overview}
                 />
               )}
 
               {/* Pure CSS Animated Mesh Background Layer */}
               {state.backgroundType === 'animatedMesh' && (
-                <AnimatedMeshBackground presetId={state.animatedMeshPreset || 'anim-mesh-1'} />
+                <AnimatedMeshBackground presetId={state.animatedMeshPreset || 'anim-mesh-1'} isStatic={overview} />
               )}
 
               {/* Background Image Layer */}

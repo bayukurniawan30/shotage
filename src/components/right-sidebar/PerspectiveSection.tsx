@@ -265,7 +265,6 @@ export const PerspectiveSection: React.FC = () => {
                     { name: 'Charcoal', hex: '#0f172a' },
                     { name: 'Steel', hex: '#334155' },
                     { name: 'Silver / White', hex: '#ffffff' },
-                    { name: 'Obsidian', hex: '#000000' },
                     { name: 'Pastel Pink', hex: '#ffafcc' },
                     { name: 'Pastel Blue', hex: '#a2d2ff' },
                     { name: 'Lavender', hex: '#cdb4db' },

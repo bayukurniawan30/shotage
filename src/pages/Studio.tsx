@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useRef, useEffect, useState } from 'react';
 import { getStageSnapshot, useStudioStore } from '../store/useStudioStore';
 import { CanvasStage } from '../components/CanvasStage';
+import { StageOverview, type StageOverviewHandle } from '../components/StageOverview';
 import { LeftSidebar } from '../components/LeftSidebar';
 import { RightSidebar } from '../components/RightSidebar';
 import { MobileStudioNavbar } from '../components/MobileStudioNavbar';
@@ -87,6 +88,16 @@ export const Studio: React.FC = () => {
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   const [canvasCenterRequest, setCanvasCenterRequest] = useState(0);
+  const [overviewZoom, setOverviewZoom] = useState(100);
+  const overviewRef = useRef<StageOverviewHandle>(null);
+  const visibleCanvasZoom = isPreviewMode ? overviewZoom : previewCanvasZoom;
+  const openExportModal = () => {
+    if (useStudioStore.getState().isPreviewMode) return;
+    setIsExportModalOpen(true);
+  };
+  useEffect(() => {
+    if (isPreviewMode) updateState({ isPlaying: false });
+  }, [isPreviewMode, updateState]);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const zoomFrameRef = useRef<number | null>(null);
@@ -172,6 +183,7 @@ export const Studio: React.FC = () => {
   };
 
   const handleImportSettings = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (useStudioStore.getState().isPreviewMode) return;
     setIsDesktopMenuOpen(false);
     setIsMobileMenuOpen(false);
     const file = e.target.files?.[0];
@@ -235,6 +247,7 @@ export const Studio: React.FC = () => {
   useEffect(() => {
     if (!isDesktopApp()) return;
     const handleDesktopShortcut = (event: KeyboardEvent) => {
+      if (useStudioStore.getState().isPreviewMode) return;
       if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
       const key = event.key.toLowerCase();
       if (key === 's') {
@@ -469,9 +482,9 @@ export const Studio: React.FC = () => {
       openProject: () => void handleOpenLocalProject(),
       saveProject: () => void handleSaveLocalProject(),
       saveProjectAs: () => void handleSaveLocalProject(true),
-      exportDesign: () => setIsExportModalOpen(true),
-      undo: () => temporalStore.getState().undo(),
-      redo: () => temporalStore.getState().redo(),
+      exportDesign: openExportModal,
+      undo: () => { if (!useStudioStore.getState().isPreviewMode) temporalStore.getState().undo(); },
+      redo: () => { if (!useStudioStore.getState().isPreviewMode) temporalStore.getState().redo(); },
     });
   });
   const [canUndo, setCanUndo] = useState(false);
@@ -494,6 +507,9 @@ export const Studio: React.FC = () => {
   // - Escape: Deselect all layers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useStudioStore.getState().isPreviewMode) {
+        return;
+      }
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
@@ -684,6 +700,7 @@ export const Studio: React.FC = () => {
   const dragCounter = useRef(0);
 
   const handleImageUpload = (file: File) => {
+    if (useStudioStore.getState().isPreviewMode) return;
     if (!isValidMediaFile(file)) {
       alert(
         'Please upload a valid image or video file (.png, .jpg, .jpeg, .webp, .svg, .mp4, .webm, .mov)'
@@ -722,6 +739,7 @@ export const Studio: React.FC = () => {
     const handleDragEnter = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      if (useStudioStore.getState().isPreviewMode) return;
       dragCounter.current += 1;
       if (e.dataTransfer?.types && Array.from(e.dataTransfer.types).includes('Files')) {
         setIsDraggingFile(true);
@@ -747,6 +765,7 @@ export const Studio: React.FC = () => {
       e.stopPropagation();
       setIsDraggingFile(false);
       dragCounter.current = 0;
+      if (useStudioStore.getState().isPreviewMode) return;
 
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
         const droppedFile = e.dataTransfer.files[0];
@@ -813,6 +832,10 @@ export const Studio: React.FC = () => {
 
   // Zoom preset: Fit computes the scale so the canvas fits inside the stage viewport
   const fitCanvasToView = () => {
+    if (isPreviewMode) {
+      overviewRef.current?.fit();
+      return;
+    }
     const container = centerStageRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
@@ -828,6 +851,11 @@ export const Studio: React.FC = () => {
   };
 
   const handleZoomPreset = (preset: 'fit' | '100' | '200') => {
+    if (isPreviewMode) {
+      if (preset === 'fit') overviewRef.current?.fit();
+      else setOverviewZoom(Number(preset));
+      return;
+    }
     if (preset === '100') {
       updateState({ previewCanvasZoom: 100 });
       return;
@@ -841,6 +869,10 @@ export const Studio: React.FC = () => {
   };
 
   const handleCanvasZoomChange = (value: number) => {
+    if (isPreviewMode) {
+      setOverviewZoom(value);
+      return;
+    }
     pendingZoomRef.current = value;
     if (zoomFrameRef.current !== null) return;
     zoomFrameRef.current = requestAnimationFrame(() => {
@@ -961,6 +993,7 @@ export const Studio: React.FC = () => {
 
         {/* Center Section: Desktop Toolbar */}
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-1.5 bg-neutral-950/90 p-1 rounded-xl border border-neutral-800 shadow-inner">
+          {!isPreviewMode && <>
           {/* 1. Undo Button */}
           <button
             onClick={() => temporalStore.getState().undo()}
@@ -1025,20 +1058,26 @@ export const Studio: React.FC = () => {
           <div className="h-4 w-px bg-neutral-800 my-auto mx-0.5"></div>
 
           {/* 5. More Options Dropdown Menu (DotsVertical) */}
+          </>}
           <div className="relative" ref={desktopMenuRef}>
             <button
-              onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
-              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+              onClick={() => {
+                if (isPreviewMode) {
+                  togglePreviewMode();
+                  setIsDesktopMenuOpen(false);
+                } else setIsDesktopMenuOpen(!isDesktopMenuOpen);
+              }}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${isPreviewMode ? 'flex items-center gap-2 px-3 text-xs font-medium' : ''} ${
                 isDesktopMenuOpen
                   ? 'bg-neutral-700 text-white border-neutral-600'
                   : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
               }`}
-              title="More Options"
+              title={isPreviewMode ? 'Exit Full Preview' : 'More Options'}
             >
-              <DotsVertical className="w-4 h-4" />
+              {isPreviewMode ? <><Expand03 className="w-4 h-4" /><span>Exit Full Preview</span></> : <DotsVertical className="w-4 h-4" />}
             </button>
 
-            {isDesktopMenuOpen && (
+            {!isPreviewMode && isDesktopMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                 {isDesktopApp() && (
                   <>
@@ -1098,6 +1137,7 @@ export const Studio: React.FC = () => {
                     type="file"
                     accept=".json"
                     onChange={handleImportSettings}
+                    disabled={isPreviewMode}
                     className="hidden"
                   />
                 </label>
@@ -1119,6 +1159,7 @@ export const Studio: React.FC = () => {
         <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Mobile-Only Toolbar Actions */}
           <div className="flex md:hidden items-center gap-1 bg-neutral-950/90 p-1 rounded-xl border border-neutral-800">
+            {!isPreviewMode && <>
             <button
               onClick={() => temporalStore.getState().undo()}
               disabled={!canUndo}
@@ -1167,22 +1208,26 @@ export const Studio: React.FC = () => {
                 <Play className="w-3.5 h-3.5" color={isAnimationMode ? '#bde0fe' : '#a2d2ff'} />
               </span>
             </button>
+            </>}
             <div className="relative" ref={mobileMenuRef}>
               <button
                 onClick={() => {
-                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                  if (isPreviewMode) {
+                    togglePreviewMode();
+                    setIsMobileMenuOpen(false);
+                  } else setIsMobileMenuOpen(!isMobileMenuOpen);
                 }}
-                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${isPreviewMode ? 'flex items-center gap-1.5 px-2 text-xs font-medium' : ''} ${
                   isMobileMenuOpen
                     ? 'bg-neutral-700 text-white border-neutral-600'
                     : 'bg-neutral-800 hover:bg-neutral-700 text-slate-300 border-neutral-700'
                 }`}
-                title="More Options"
+                title={isPreviewMode ? 'Exit Full Preview' : 'More Options'}
               >
-                <DotsVertical className="w-4 h-4" />
+                {isPreviewMode ? <><Expand03 className="w-4 h-4" /><span>Exit Full Preview</span></> : <DotsVertical className="w-4 h-4" />}
               </button>
 
-              {isMobileMenuOpen && (
+              {!isPreviewMode && isMobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-1 z-[100] animate-in fade-in zoom-in-95 duration-100">
                   {isDesktopApp() && (
                     <>
@@ -1242,6 +1287,7 @@ export const Studio: React.FC = () => {
                       type="file"
                       accept=".json"
                       onChange={handleImportSettings}
+                      disabled={isPreviewMode}
                       className="hidden"
                     />
                   </label>
@@ -1274,8 +1320,8 @@ export const Studio: React.FC = () => {
             <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
             <span className="hidden sm:inline">Support Me</span>
           </a> */}
-          <button
-            onClick={() => setIsExportModalOpen(true)}
+          {!isPreviewMode && <button
+            onClick={openExportModal}
             className="px-3 sm:px-4 py-1.5 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-[#ffafcc]/25 transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98]"
             style={{
               backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)',
@@ -1283,20 +1329,21 @@ export const Studio: React.FC = () => {
           >
             <Download01 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export</span>
-          </button>
+          </button>}
         </div>
       </header>
 
       {/* Centered Fixed Stage Manager Toolbar */}
-      <StageManagerToolbar
+      {!isPreviewMode && <StageManagerToolbar
         onPreviewAll={() => openSequencePreview()}
         onPreviewTransition={(boundaryIndex) => openSequencePreview(boundaryIndex)}
-      />
+      />}
 
       {/* 3-Column Studio Workspace */}
       <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-3.5rem)] h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden relative">
         {/* Left Sidebar (Desktop Only, Animated Slide Out to Left in Preview Mode) */}
         <div
+          inert={isPreviewMode}
           className={`relative z-40 hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
             isPreviewMode
               ? '-translate-x-full opacity-0 pointer-events-none w-0 overflow-hidden'
@@ -1355,7 +1402,7 @@ export const Studio: React.FC = () => {
             {/* Floating Bottom Zoom Slider (Full Preview Mode OR Normal Mode) */}
             <div
               className={`fixed left-1/2 -translate-x-1/2 z-20 bg-neutral-900/95 border border-neutral-800 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-2xl flex items-center gap-2 sm:gap-3 animate-in fade-in duration-200 w-[90%] max-w-md sm:w-auto justify-between ${
-                isAnimationMode
+                isAnimationMode && !isPreviewMode
                   ? 'bottom-[158px] sm:bottom-[104px]'
                   : isPreviewMode
                     ? 'bottom-6 sm:bottom-8'
@@ -1363,13 +1410,13 @@ export const Studio: React.FC = () => {
               }`}
             >
               <span className="text-[11px] sm:text-xs font-semibold text-slate-300 shrink-0">
-                Canvas Zoom
+                {isPreviewMode ? 'Overview Zoom' : 'Canvas Zoom'}
               </span>
               <button
                 type="button"
                 onClick={() => handleZoomPreset('fit')}
-                className={`hidden sm:inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
-                  previewCanvasZoom <= 30
+                className={`${isPreviewMode ? 'inline-block' : 'hidden sm:inline-block'} px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  visibleCanvasZoom <= 30
                     ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
                     : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
                 }`}
@@ -1381,7 +1428,7 @@ export const Studio: React.FC = () => {
                 type="button"
                 onClick={() => handleZoomPreset('100')}
                 className={`hidden sm:inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
-                  previewCanvasZoom === 100
+                  visibleCanvasZoom === 100
                     ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
                     : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
                 }`}
@@ -1393,7 +1440,7 @@ export const Studio: React.FC = () => {
                 type="button"
                 onClick={() => handleZoomPreset('200')}
                 className={`hidden sm:inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
-                  previewCanvasZoom >= 200
+                  visibleCanvasZoom >= 200
                     ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40'
                     : 'text-slate-300 hover:bg-neutral-800 border border-transparent'
                 }`}
@@ -1402,10 +1449,10 @@ export const Studio: React.FC = () => {
                 200%
               </button>
               <StepperSlider
-                min={25}
+                min={isPreviewMode ? 2 : 25}
                 max={200}
                 step={1}
-                value={previewCanvasZoom}
+                value={visibleCanvasZoom}
                 onChange={handleCanvasZoomChange}
                 accentColor="#ffafcc"
                 iconVariant="zoom"
@@ -1413,7 +1460,7 @@ export const Studio: React.FC = () => {
                 hideSliderOnMobile
                 className="flex-1 justify-center md:min-w-[120px]"
               />
-              <button
+              {!isPreviewMode && <button
                 type="button"
                 onClick={() => updateState({ rulersVisible: !rulersVisible })}
                 aria-label={rulersVisible ? 'Hide rulers and guides' : 'Show rulers and guides'}
@@ -1426,9 +1473,10 @@ export const Studio: React.FC = () => {
                 }`}
               >
                 <PhosphorIcons.RulerIcon className="h-4 w-4" weight={rulersVisible ? 'fill' : 'regular'} />
-              </button>
+              </button>}
 
               {/* Multi-Select Mode Toggle for Mobile Only */}
+              {!isPreviewMode && <>
               <div className="h-3.5 w-px bg-neutral-800 shrink-0 mx-0.5 md:hidden" />
               <div className="flex md:hidden items-center gap-1 shrink-0">
                 <button
@@ -1463,18 +1511,19 @@ export const Studio: React.FC = () => {
                   </button>
                 )}
               </div>
+              </>}
             </div>
 
-            <CanvasStage
+            {isPreviewMode ? <StageOverview ref={overviewRef} zoom={overviewZoom} onZoomChange={setOverviewZoom} /> : <CanvasStage
               canvasRef={canvasRef}
               onImageUpload={handleImageUpload}
               leftSidebarExpanded={!isLeftSidebarCollapsed && !isPreviewMode}
               centerRequest={canvasCenterRequest}
-            />
+            />}
           </div>
 
           {/* Animation Keyframe Timeline Dock */}
-          {isAnimationMode && (
+          {isAnimationMode && !isPreviewMode && (
             <div
               className={`absolute bottom-[20px] md:bottom-6 left-1/2 -translate-x-1/2 w-[94%] z-30 pointer-events-auto transition-[max-width] duration-300 ${
                 isLeftSidebarCollapsed || isRightSidebarCollapsed ? 'max-w-5xl' : 'max-w-4xl'
@@ -1487,6 +1536,7 @@ export const Studio: React.FC = () => {
 
         {/* Right Sidebar (Desktop Only, Animated Slide Out to Right in Preview Mode) */}
         <div
+          inert={isPreviewMode}
           className={`relative z-40 hidden md:block h-full shrink-0 transition-all duration-300 ease-in-out ${
             isPreviewMode
               ? 'translate-x-full opacity-0 pointer-events-none w-0 overflow-hidden'
