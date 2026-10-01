@@ -254,13 +254,13 @@ export const TechStackSection: React.FC = () => {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-slate-300">Logo Size</span>
-                <span className="font-mono text-slate-400">{config.size || 28}px</span>
               </div>
               <StepperSlider
                 min={16}
                 max={64}
                 step={1}
                 value={config.size || 28}
+                variant="compact" unit="px" label="Logo Size"
                 onChange={(val) => updateConfig({ size: val })}
                 accentColor="#a2d2ff"
               />
@@ -269,13 +269,13 @@ export const TechStackSection: React.FC = () => {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-slate-300">Gap</span>
-                <span className="font-mono text-slate-400">{config.gap || 12}px</span>
               </div>
               <StepperSlider
                 min={4}
                 max={36}
                 step={1}
                 value={config.gap || 12}
+                variant="compact" unit="px" label="Gap"
                 onChange={(val) => updateConfig({ gap: val })}
                 accentColor="#a2d2ff"
               />
@@ -283,17 +283,17 @@ export const TechStackSection: React.FC = () => {
           </div>
 
           {/* Fine Position Offset (X & Y) */}
-          <div className="space-y-2 pt-1 border-t border-neutral-800/60">
+          <div className="grid grid-cols-2 gap-3 pt-1 border-t border-neutral-800/60">
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-slate-300">Offset X</span>
-                <span className="font-mono text-slate-400">{config.xOffset || 0}px</span>
               </div>
               <StepperSlider
                 min={-200}
                 max={200}
                 step={1}
                 value={config.xOffset || 0}
+                variant="compact" unit="px" label="Offset X"
                 onChange={(val) => updateConfig({ xOffset: val })}
                 accentColor="#a2d2ff"
               />
@@ -302,13 +302,13 @@ export const TechStackSection: React.FC = () => {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-slate-300">Offset Y</span>
-                <span className="font-mono text-slate-400">{config.yOffset || 0}px</span>
               </div>
               <StepperSlider
                 min={-200}
                 max={200}
                 step={1}
                 value={config.yOffset || 0}
+                variant="compact" unit="px" label="Offset Y"
                 onChange={(val) => updateConfig({ yOffset: val })}
                 accentColor="#a2d2ff"
               />

@@ -109,6 +109,7 @@ export const PerspectiveSection: React.FC = () => {
 
           <div className="border-t border-neutral-800/80 pt-3">
             <AnchorPointControl
+              compact
               label={state.layoutCount === 2 ? 'Anchor point (Slot 1)' : 'Anchor point'}
               anchorX={state.mockupAnchorX}
               anchorY={state.mockupAnchorY}
@@ -126,6 +127,7 @@ export const PerspectiveSection: React.FC = () => {
           {state.layoutCount === 2 && (
             <div className="border-t border-neutral-800/80 pt-3">
               <AnchorPointControl
+                compact
                 label="Anchor point (Slot 2)"
                 anchorX={state.slot2MockupAnchorX}
                 anchorY={state.slot2MockupAnchorY}

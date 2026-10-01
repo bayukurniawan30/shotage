@@ -20,6 +20,10 @@ import {
   MCP_BACKGROUND_TYPES,
   MCP_MOTION_PRESETS,
   MCP_MOTION_REFERENCE,
+  MCP_FONT_REFERENCE,
+  MCP_PATTERN_REFERENCE,
+  MCP_SOCIAL_PLATFORMS,
+  MCP_TECH_STACK_IDS,
   mcpShapeLayerInputSchema,
   mcpTextLayerInputSchema,
   studioPatchSchema,
@@ -53,10 +57,10 @@ function requireScope(principal: McpPrincipal, scope: McpScope) {
 
 function createServer(principal: McpPrincipal, requestUrl: string) {
   const server = new McpServer(
-    { name: 'Shotage', version: '1.1.0' },
+    { name: 'Shotage', version: '1.2.0' },
     {
       instructions:
-        'Shotage MCP creates and edits saved designs; it does not control an open canvas. For advanced animation, first call get_design_reference, use stable unique IDs for layers/keyframes/motions, call validate_design, then create_design. Before update_design, call get_design and preserve complete arrays because array patches replace stored arrays. New designs are private until submit_design_to_explore is called.',
+        'Shotage MCP creates and edits saved designs; it does not control an open canvas. First call get_design_reference for supported motion, fonts, patterns, social layers, tech stacks, and guides. Use stable unique IDs for layers/keyframes/motions/guides, call validate_design, then create_design. Before update_design, call get_design and preserve complete arrays because array patches replace stored arrays. Guides are editor-only, not exported artwork. New designs are private until submit_design_to_explore is called.',
     }
   );
 
@@ -65,7 +69,7 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
     {
       title: 'Get Shotage design reference',
       description:
-        'Returns the current Shotage design and motion authoring contract, including keyframes, easing, paths, anchors, text staggering, masks, groups, motion blur, and stage transitions. Call this before advanced creation or editing.',
+        'Returns the current Shotage design and motion authoring contract, including fonts, patterns, social layers, tech stacks, guides, keyframes, easing, paths, anchors, text staggering, masks, groups, motion blur, and stage transitions. Call this before creation or editing.',
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async () => {
@@ -87,12 +91,79 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
             textLayers:
               'Use the textLayers shortcut for creation, or complete text layer objects in studioState.',
             shapeLayers:
-              'Use the shapeLayers shortcut for creation. A custom-path with pathClosed=false renders as an open line using color and strokeWidth (round caps and joins); open lines cannot be masks or used in Boolean shape operations. square-3d and rectangle-3d render as extruded boxes; depth controls extrusion and borderRadius controls corner softness (both in pixels). Basic and closed custom-path shapes can become masks with maskTarget; 3D shapes cannot.',
+              'Use the shapeLayers shortcut for creation. A custom-path with pathClosed=false renders as an open line using color and strokeWidth (round caps and joins); open lines cannot be masks or used in Boolean shape operations. square-3d and rectangle-3d render as extruded boxes; depth controls extrusion (default 10px) and borderRadius controls corner softness (default 20px). New shapes default to zero rotation, pitch, yaw and skew. Basic and closed custom-path shapes can become masks with maskTarget; Coolshapes and 3D shapes cannot.',
             canvasElements:
               'Complete objects for emoji, line, and arrow layers; preserve src from get_design.',
             phosphorIconLayers: 'Complete independent Phosphor icon layer objects.',
             layerGroups: 'Groups reference existing layer IDs and can carry their own animation.',
             stages: 'Up to 5 stage snapshots. Put transitionOut on each outgoing stage.',
+            socialMedia: {
+              location:
+                'textLayers; use socialPlatform for a social handle layer, not canvasElements.',
+              platforms: MCP_SOCIAL_PLATFORMS,
+              fields: [
+                'socialPlatform',
+                'socialStyle',
+                'iconColor',
+                'iconSize',
+                'fontSize',
+                'x',
+                'y',
+              ],
+              styles: ['default', 'badge-light', 'badge-dark', 'glass-dark', 'glass-light'],
+              iconSize: '10-60px',
+            },
+            techStackConfig: {
+              selectedIcons: MCP_TECH_STACK_IDS,
+              enabled: 'boolean',
+              size: '16-64px',
+              gap: '4-36px',
+              style: ['row', 'column'],
+              position: [
+                'top-left',
+                'top-center',
+                'top-right',
+                'center-left',
+                'center',
+                'center-right',
+                'bottom-left',
+                'bottom-center',
+                'bottom-right',
+              ],
+              badgeStyle: [
+                'plain',
+                'glass-dark',
+                'glass-light',
+                'glass-frosted',
+                'glass-smoky',
+                'glass-crystal',
+                'badge-dark',
+                'badge-light',
+              ],
+              xOffset: '-200 to 200px',
+              yOffset: '-200 to 200px',
+            },
+            fonts: {
+              choices: MCP_FONT_REFERENCE,
+              fontSize: '6-500px; Studio size control starts at 12px',
+              fontFamily: 'Use the font name, e.g. Croissant One.',
+            },
+            patterns: {
+              choices: MCP_PATTERN_REFERENCE,
+              fields: ['bgPatternEnabled', 'bgPatternPreset', 'bgPatternColor', 'bgPatternOpacity'],
+              opacity: '0-100',
+            },
+            guides: {
+              rulersVisible: 'boolean',
+              canvasGuides: [
+                {
+                  id: 'unique ID',
+                  axis: 'horizontal | vertical',
+                  position: '0-1 fraction of artboard height/width from top/left',
+                },
+              ],
+              rule: 'Editor-only alignment aids; not rendered in image/video exports. Arrays replace existing guides.',
+            },
           },
           motion: MCP_MOTION_REFERENCE,
           gradientPresets: GRADIENT_PRESETS.map(({ name, c1, c2 }) => ({

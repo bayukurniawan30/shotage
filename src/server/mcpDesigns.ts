@@ -160,15 +160,19 @@ export function createShapeLayer(
   index: number
 ): ShapeLayer {
   return {
-    color: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? '#347ff5' : '#ffffff',
+    color:
+      input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? '#347ff5' : '#ffffff',
     width: 180,
     height: input.shapeType === 'rectangle-3d' ? 120 : 180,
     depth: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 10 : undefined,
     borderRadius: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 20 : 0,
     x: index * 32,
     y: index * 32,
-    rotation: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 2 : 0,
-    skewX: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? -5 : 0,
+    rotation: 0,
+    pitch: 0,
+    yaw: 0,
+    skewX: 0,
+    skewY: 0,
     opacity: 100,
     position: 'above',
     visible: true,
@@ -177,9 +181,12 @@ export function createShapeLayer(
     borderColor: '#ffffff',
     borderWidth: 0,
     shadow: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d',
-    shadowOpacity: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 28 : undefined,
-    shadowBlur: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 24 : undefined,
-    shadowOffsetY: input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 14 : undefined,
+    shadowOpacity:
+      input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 28 : undefined,
+    shadowBlur:
+      input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 24 : undefined,
+    shadowOffsetY:
+      input.shapeType === 'square-3d' || input.shapeType === 'rectangle-3d' ? 14 : undefined,
     ...input,
     id: input.id || `shape-${crypto.randomUUID()}`,
     shapeType: input.shapeType,

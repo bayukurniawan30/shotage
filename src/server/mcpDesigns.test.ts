@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { buildStudioState, createShapeLayer, createTextLayer } from './mcpDesigns';
-import { validateMcpStudioState } from './mcpDesignSchema';
+import {
+  validateMcpStudioState,
+  mcpTextLayerInputSchema,
+  MCP_FONT_REFERENCE,
+  MCP_PATTERN_REFERENCE,
+  MCP_SOCIAL_PLATFORMS,
+  MCP_TECH_STACK_IDS,
+} from './mcpDesignSchema';
+import { SOCIAL_PLATFORMS } from '../components/SocialIcons';
+import { TECH_STACK_ITEMS } from '../components/TechStackIcons';
 
 describe('MCP design construction', () => {
   it('merges nested state and clears volatile editor fields', () => {
@@ -35,7 +44,99 @@ describe('MCP design construction', () => {
       height: 120,
       depth: 10,
       borderRadius: 20,
+      rotation: 0,
+      pitch: 0,
+      yaw: 0,
+      skewX: 0,
+      skewY: 0,
     });
+  });
+
+  it('exposes current fonts, patterns, social platforms and tech stack choices', () => {
+    expect(MCP_FONT_REFERENCE).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Croissant One' }),
+        expect.objectContaining({ name: 'Google Sans Code' }),
+        expect.objectContaining({ name: 'Ubuntu' }),
+      ])
+    );
+    expect(MCP_PATTERN_REFERENCE).toContainEqual({ id: 'pattern-9', name: 'Square Grid' });
+    expect([...MCP_SOCIAL_PLATFORMS].sort()).toEqual(SOCIAL_PLATFORMS.map(({ id }) => id).sort());
+    expect([...MCP_TECH_STACK_IDS].sort()).toEqual(TECH_STACK_ITEMS.map(({ id }) => id).sort());
+  });
+
+  it('accepts 500px text and social layer fields in shortcuts and saved states', () => {
+    const input = mcpTextLayerInputSchema.parse({
+      text: '@shotage',
+      fontFamily: 'Ubuntu',
+      fontSize: 500,
+      socialPlatform: 'instagram',
+      socialStyle: 'glass-dark',
+      iconColor: '#ffffff',
+      iconSize: 32,
+    });
+    const state = buildStudioState({ textLayers: [createTextLayer(input, 0)] });
+    expect(state.textLayers[0]).toMatchObject(input);
+    expect(() => mcpTextLayerInputSchema.parse({ ...input, fontSize: 501 })).toThrow();
+    expect(() =>
+      buildStudioState({
+        textLayers: [{ ...state.textLayers[0], socialPlatform: 'unknown' }],
+      })
+    ).toThrow(/socialPlatform/);
+  });
+
+  it('merges partial tech stacks and accepts patterns and normalized guides', () => {
+    const state = buildStudioState({
+      techStackConfig: { enabled: true, selectedIcons: ['react', 'vite'], size: 40 },
+      bgPatternEnabled: true,
+      bgPatternPreset: 'pattern-9',
+      bgPatternColor: '#ffffff',
+      bgPatternOpacity: 20,
+      rulersVisible: true,
+      canvasGuides: [{ id: 'safe-top', axis: 'horizontal', position: 0.08 }],
+    });
+    expect(state.techStackConfig).toMatchObject({
+      enabled: true,
+      selectedIcons: ['react', 'vite'],
+      size: 40,
+      gap: 12,
+    });
+    expect(state.canvasGuides).toHaveLength(1);
+    expect(() =>
+      buildStudioState({ canvasGuides: [] }, state as unknown as Record<string, unknown>)
+    ).not.toThrow();
+  });
+
+  it.each([
+    { techStackConfig: { selectedIcons: ['unknown'] } },
+    { techStackConfig: { size: 65 } },
+    { techStackConfig: { gap: -1 } },
+    { techStackConfig: { xOffset: 201 } },
+    { bgPatternPreset: 'unknown' },
+    { bgPatternOpacity: 101 },
+    { rulersVisible: 'yes' },
+    { canvasGuides: [{ id: 'guide', axis: 'diagonal', position: 0.5 }] },
+    { canvasGuides: [{ id: 'guide', axis: 'vertical', position: 1.1 }] },
+    {
+      canvasGuides: [
+        { id: 'duplicate', axis: 'vertical', position: 0.1 },
+        { id: 'duplicate', axis: 'horizontal', position: 0.2 },
+      ],
+    },
+  ])('rejects invalid newly documented settings: %j', (patch) => {
+    expect(() => buildStudioState(patch)).toThrow(/Invalid Shotage design/);
+    expect(() => buildStudioState({ stages: [patch] })).toThrow(/stages\[0\]/);
+  });
+
+  it('rejects Coolshape masks just like Studio', () => {
+    const text = createTextLayer({ id: 'target', text: 'Hello' }, 0);
+    const mask = createShapeLayer(
+      { shapeType: 'coolshape', maskTarget: { type: 'text', id: text.id } },
+      0
+    );
+    expect(() => buildStudioState({ textLayers: [text], shapeLayers: [mask] })).toThrow(
+      /Coolshape/
+    );
   });
 
   it('accepts 3D shape depth in a saved design', () => {
@@ -49,20 +150,25 @@ describe('MCP design construction', () => {
 
   it('accepts draw-on only for an open vector path', () => {
     const motion = { id: 'draw', preset: 'draw-on' as const, startTimeSec: 0, durationSec: 1.2 };
-    const openPath = createShapeLayer({
-      shapeType: 'custom-path',
-      pathClosed: false,
-      pathData: 'M 0 0 L 100 100',
-      motions: [motion],
-    }, 0);
-    const valid = buildStudioState({ shapeLayers: [openPath] });
-    expect(validateMcpStudioState(valid as unknown as Record<string, unknown>)).toEqual({ warnings: [] });
-
-    expect(() => buildStudioState({
-      shapeLayers: [createShapeLayer({ shapeType: 'rectangle', motions: [motion] }, 0)],
-    })).toThrow(
-      /requires an open vector path/
+    const openPath = createShapeLayer(
+      {
+        shapeType: 'custom-path',
+        pathClosed: false,
+        pathData: 'M 0 0 L 100 100',
+        motions: [motion],
+      },
+      0
     );
+    const valid = buildStudioState({ shapeLayers: [openPath] });
+    expect(validateMcpStudioState(valid as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
+
+    expect(() =>
+      buildStudioState({
+        shapeLayers: [createShapeLayer({ shapeType: 'rectangle', motions: [motion] }, 0)],
+      })
+    ).toThrow(/requires an open vector path/);
   });
 
   it('rejects invalid duration and background values', () => {

@@ -122,7 +122,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
     <div className="md:hidden flex flex-col w-full bg-neutral-900 border-t border-neutral-800 shrink-0 relative z-40">
       {/* Bottom Horizontal Scrollable Icon Navbar */}
       <div
-        className="flex items-center gap-1.5 px-4 pt-2.5 overflow-x-auto no-scrollbar scroll-smooth"
+        className="flex items-center gap-1.5 px-4 pt-4 overflow-x-auto no-scrollbar scroll-smooth"
         style={{ paddingBottom: 'max(1.5rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))' }}
       >
         {tabs.map((tab) => {
@@ -132,7 +132,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
             <button
               key={tab.id}
               onClick={() => setActiveTab(isSelected ? null : tab.id)}
-              className={`flex flex-col items-center justify-center min-w-[76px] px-2.5 py-2 rounded-xl transition-all shrink-0 cursor-pointer ${
+              className={`flex h-14 flex-col items-center justify-center min-w-[76px] px-2.5 py-2 rounded-xl transition-all shrink-0 cursor-pointer ${
                 isSelected
                   ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -150,7 +150,7 @@ export const MobileStudioNavbar: React.FC<MobileStudioNavbarProps> = ({ onImageU
       {/* Expandable Mobile Panel Drawer */}
       {activeTab && (
         <div
-          style={{ bottom: 'max(80px, calc(68px + env(safe-area-inset-bottom, 0px)))' }}
+          style={{ bottom: 'max(96px, calc(84px + env(safe-area-inset-bottom, 0px)))' }}
           className={`fixed inset-x-0 z-50 bg-neutral-900/95 border-t border-neutral-800 backdrop-blur-xl overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-200 ${
             activeTab === 'aspect' ? 'min-h-[40vh] max-h-[50vh]' : 'min-h-[50vh] max-h-[55vh]'
           }`}

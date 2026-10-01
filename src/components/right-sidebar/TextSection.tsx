@@ -13,6 +13,8 @@ import {
 import * as PhosphorIcons from '@phosphor-icons/react';
 import { DesktopWebOnlyControls, FontSelect, LayerColorControl } from './shared';
 import { StepperSlider } from '../StepperSlider';
+import { OpacityBlurControls } from '../OpacityBlurControls';
+import { RotationControls } from '../RotationControls';
 import { Toggle } from '../Toggle';
 import {
   GRADIENT_PRESETS,
@@ -859,17 +861,19 @@ export const TextSection: React.FC = () => {
             <div className="pt-1 space-y-3 animate-in fade-in duration-150">
               {/* Option: Size & Stretch */}
               {activeOption === 'size' && (
-                <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Font Size</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.fontSize}px</span>
                     </div>
                     <StepperSlider
                       min={12}
                       max={500}
                       step={1}
                       value={selectedLayer.fontSize}
+                      variant="compact"
+                      unit="px"
+                      label="Font Size"
                       onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
                           fontSize: val,
@@ -879,19 +883,37 @@ export const TextSection: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Letter Spacing</span>
+                    </div>
+                    <StepperSlider
+                      min={-10}
+                      max={40}
+                      step={0.5}
+                      value={selectedLayer.letterSpacing ?? 0}
+                      variant="compact"
+                      unit="px"
+                      label="Letter Spacing"
+                      onChange={(letterSpacing) =>
+                        state.updateTextLayer(selectedLayer.id, { letterSpacing })
+                      }
+                      accentColor="#ffafcc"
+                    />
+                  </div>
+                  <div className="col-span-2 grid grid-cols-2 gap-3">
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Stretch X</span>
-                        <span className="font-mono text-slate-400">
-                          {(selectedLayer.scaleX ?? 1).toFixed(2)}x
-                        </span>
                       </div>
                       <StepperSlider
                         min={0.1}
                         max={8.0}
                         step={0.05}
                         value={selectedLayer.scaleX ?? 1}
+                        variant="compact"
+                        unit="x"
+                        label="Stretch X"
                         onChange={(val) =>
                           state.updateTextLayer(selectedLayer.id, {
                             scaleX: val,
@@ -904,15 +926,15 @@ export const TextSection: React.FC = () => {
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Stretch Y</span>
-                        <span className="font-mono text-slate-400">
-                          {(selectedLayer.scaleY ?? 1).toFixed(2)}x
-                        </span>
                       </div>
                       <StepperSlider
                         min={0.1}
                         max={8.0}
                         step={0.05}
                         value={selectedLayer.scaleY ?? 1}
+                        variant="compact"
+                        unit="x"
+                        label="Stretch Y"
                         onChange={(val) =>
                           state.updateTextLayer(selectedLayer.id, {
                             scaleY: val,
@@ -921,24 +943,6 @@ export const TextSection: React.FC = () => {
                         accentColor="#ffafcc"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Letter Spacing</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedLayer.letterSpacing ?? 0}px
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={-10}
-                      max={40}
-                      step={0.5}
-                      value={selectedLayer.letterSpacing ?? 0}
-                      onChange={(letterSpacing) =>
-                        state.updateTextLayer(selectedLayer.id, { letterSpacing })
-                      }
-                      accentColor="#ffafcc"
-                    />
                   </div>
                 </div>
               )}
@@ -949,13 +953,15 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position X</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
                     </div>
                     <StepperSlider
                       min={-300}
                       max={300}
                       step={1}
                       value={selectedLayer.x}
+                      variant="compact"
+                      unit="px"
+                      label="Position X"
                       onChange={(val) => state.updateTextLayer(selectedLayer.id, { x: val })}
                       accentColor="#ffafcc"
                     />
@@ -964,13 +970,15 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position Y</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
                     </div>
                     <StepperSlider
                       min={-300}
                       max={300}
                       step={1}
                       value={selectedLayer.y}
+                      variant="compact"
+                      unit="px"
+                      label="Position Y"
                       onChange={(val) => state.updateTextLayer(selectedLayer.id, { y: val })}
                       accentColor="#ffafcc"
                     />
@@ -980,70 +988,9 @@ export const TextSection: React.FC = () => {
 
               {/* Option: Rotation & 3D Tilt */}
               {activeOption === 'rotation' && (
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Rotation</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedLayer.rotation ?? 0}°
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={-180}
-                      max={180}
-                      step={1}
-                      value={selectedLayer.rotation ?? 0}
-                      onChange={(val) =>
-                        state.updateTextLayer(selectedLayer.id, {
-                          rotation: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-
-                  <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
-                        <span className="font-mono text-slate-400">
-                          {selectedLayer.pitch ?? 0}°
-                        </span>
-                      </div>
-                      <StepperSlider
-                        min={-30}
-                        max={30}
-                        step={1}
-                        value={selectedLayer.pitch ?? 0}
-                        onChange={(val) =>
-                          state.updateTextLayer(selectedLayer.id, {
-                            pitch: val,
-                          })
-                        }
-                        accentColor="#ffafcc"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-                        <span className="font-mono text-slate-400">{selectedLayer.yaw ?? 0}°</span>
-                      </div>
-                      <StepperSlider
-                        min={-30}
-                        max={30}
-                        step={1}
-                        value={selectedLayer.yaw ?? 0}
-                        onChange={(val) =>
-                          state.updateTextLayer(selectedLayer.id, {
-                            yaw: val,
-                          })
-                        }
-                        accentColor="#ffafcc"
-                      />
-                    </div>
-                  </DesktopWebOnlyControls>
-                </div>
+                <RotationControls rotation={selectedLayer.rotation ?? 0}
+                  pitch={selectedLayer.pitch ?? 0} yaw={selectedLayer.yaw ?? 0}
+                  onChange={(updates) => state.updateTextLayer(selectedLayer.id, updates)} />
               )}
 
               {/* Option: Skew */}
@@ -1052,13 +999,15 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew X</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.skewX ?? 0}°</span>
                     </div>
                     <StepperSlider
                       min={-60}
                       max={60}
                       step={1}
                       value={selectedLayer.skewX ?? 0}
+                      variant="compact"
+                      unit="°"
+                      label="Skew X"
                       onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
                           skewX: val,
@@ -1071,13 +1020,15 @@ export const TextSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew Y</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.skewY ?? 0}°</span>
                     </div>
                     <StepperSlider
                       min={-60}
                       max={60}
                       step={1}
                       value={selectedLayer.skewY ?? 0}
+                      variant="compact"
+                      unit="°"
+                      label="Skew Y"
                       onChange={(val) =>
                         state.updateTextLayer(selectedLayer.id, {
                           skewY: val,
@@ -1091,36 +1042,11 @@ export const TextSection: React.FC = () => {
 
               {/* Option: Opacity */}
               {activeOption === 'opacity' && (
-                <div className="space-y-3">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Opacity</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedLayer.opacity ?? 100}%
-                    </span>
-                  </div>
-                  <StepperSlider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={selectedLayer.opacity ?? 100}
-                    onChange={(val) => state.updateTextLayer(selectedLayer.id, { opacity: val })}
-                    accentColor="#ffafcc"
-                  />
-                  <div>
-                    <div className="flex justify-between text-xs mb-1 mt-3">
-                      <span className="font-medium text-slate-300">Blur</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.blur ?? 0}px</span>
-                    </div>
-                    <StepperSlider
-                      min={0}
-                      max={40}
-                      step={1}
-                      value={selectedLayer.blur ?? 0}
-                      onChange={(blur) => state.updateTextLayer(selectedLayer.id, { blur })}
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-                </div>
+                <OpacityBlurControls
+                  opacity={selectedLayer.opacity ?? 100} blur={selectedLayer.blur ?? 0}
+                  onOpacityChange={(opacity) => state.updateTextLayer(selectedLayer.id, { opacity })}
+                  onBlurChange={(blur) => state.updateTextLayer(selectedLayer.id, { blur })}
+                />
               )}
             </div>
           </div>
@@ -1186,16 +1112,13 @@ export const TextSection: React.FC = () => {
                 <div key={key}>
                   <div className="flex justify-between text-[10px] mb-1">
                     <span className="text-slate-300">{label}</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedLayer[key] ?? fallback}
-                      {unit}
-                    </span>
                   </div>
                   <StepperSlider
                     min={min}
                     max={max}
                     step={1}
                     value={selectedLayer[key] ?? fallback}
+                    variant="compact" unit={unit} label={`Shadow ${label}`}
                     onChange={(value) => state.updateTextLayer(selectedLayer.id, { [key]: value })}
                     accentColor="#ffafcc"
                   />

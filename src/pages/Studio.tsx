@@ -1409,7 +1409,9 @@ export const Studio: React.FC = () => {
                 onChange={handleCanvasZoomChange}
                 accentColor="#ffafcc"
                 iconVariant="zoom"
-                className="flex-1 min-w-[90px] sm:min-w-[120px]"
+                label="canvas zoom"
+                hideSliderOnMobile
+                className="flex-1 justify-center md:min-w-[120px]"
               />
               <button
                 type="button"

@@ -248,15 +248,13 @@ export const SocialSection: React.FC = () => {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-slate-300">Icon Size</span>
-                <span className="font-mono text-slate-400">
-                  {selectedLayer.iconSize || Math.round(selectedLayer.fontSize * 1.1)}px
-                </span>
               </div>
               <StepperSlider
                 min={10}
                 max={60}
                 step={1}
                 value={selectedLayer.iconSize || Math.round(selectedLayer.fontSize * 1.1)}
+                variant="compact" unit="px" label="Icon Size"
                 onChange={(val) =>
                   state.updateTextLayer(selectedLayer.id, {
                     iconSize: val,
@@ -269,13 +267,13 @@ export const SocialSection: React.FC = () => {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-slate-300">Font Size</span>
-                <span className="font-mono text-slate-400">{selectedLayer.fontSize}px</span>
               </div>
               <StepperSlider
                 min={10}
                 max={60}
                 step={1}
                 value={selectedLayer.fontSize}
+                variant="compact" unit="px" label="Font Size"
                 onChange={(val) =>
                   state.updateTextLayer(selectedLayer.id, {
                     fontSize: val,
@@ -300,17 +298,17 @@ export const SocialSection: React.FC = () => {
           </div>
 
           {/* X & Y Position */}
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Position X (Horizontal)</span>
-                <span className="font-mono text-slate-400">{selectedLayer.x}px</span>
+                <span className="font-medium text-slate-300">Position X</span>
               </div>
               <StepperSlider
                 min={-400}
                 max={400}
                 step={1}
                 value={selectedLayer.x}
+                variant="compact" unit="px" label="Position X"
                 onChange={(val) =>
                   state.updateTextLayer(selectedLayer.id, { x: val })
                 }
@@ -320,14 +318,14 @@ export const SocialSection: React.FC = () => {
 
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Position Y (Vertical)</span>
-                <span className="font-mono text-slate-400">{selectedLayer.y}px</span>
+                <span className="font-medium text-slate-300">Position Y</span>
               </div>
               <StepperSlider
                 min={-400}
                 max={400}
                 step={1}
                 value={selectedLayer.y}
+                variant="compact" unit="px" label="Position Y"
                 onChange={(val) =>
                   state.updateTextLayer(selectedLayer.id, { y: val })
                 }

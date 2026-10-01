@@ -6,6 +6,8 @@ import { Coolshape } from 'coolshapes-react';
 import { Toggle } from '../Toggle';
 import { DesktopWebOnlyControls, ShapePreview, BooleanIcons, LayerColorControl } from './shared';
 import { StepperSlider } from '../StepperSlider';
+import { OpacityBlurControls } from '../OpacityBlurControls';
+import { RotationControls } from '../RotationControls';
 import { ShapeType, CoolshapeCategory } from '../../types/studio';
 import {
   GRADIENT_PRESETS,
@@ -1824,38 +1826,40 @@ export const ElementsSection: React.FC = () => {
               {/* Option: Size */}
               {shapeActiveOption === 'size' &&
                 (isUniform ? (
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Size</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedShape.width || 120}px
-                      </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-300">Size</span>
+                      </div>
+                      <StepperSlider
+                        min={10}
+                        max={400}
+                        step={1}
+                        value={selectedShape.width || 120}
+                        variant="compact"
+                        unit="px"
+                        label="Size"
+                        onChange={(v) => {
+                          state.updateShapeLayer(selectedShape.id, { width: v, height: v });
+                        }}
+                        accentColor="#ffafcc"
+                      />
                     </div>
-                    <StepperSlider
-                      min={10}
-                      max={400}
-                      step={1}
-                      value={selectedShape.width || 120}
-                      onChange={(v) => {
-                        state.updateShapeLayer(selectedShape.id, { width: v, height: v });
-                      }}
-                      accentColor="#ffafcc"
-                    />
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Width</span>
-                        <span className="font-mono text-slate-400">
-                          {selectedShape.width || 160}px
-                        </span>
                       </div>
                       <StepperSlider
                         min={10}
                         max={600}
                         step={1}
                         value={selectedShape.width || 160}
+                        variant="compact"
+                        unit="px"
+                        label="Width"
                         onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
                             width: val,
@@ -1868,15 +1872,15 @@ export const ElementsSection: React.FC = () => {
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-medium text-slate-300">Height</span>
-                        <span className="font-mono text-slate-400">
-                          {selectedShape.height || 100}px
-                        </span>
                       </div>
                       <StepperSlider
                         min={10}
                         max={600}
                         step={1}
                         value={selectedShape.height || 100}
+                        variant="compact"
+                        unit="px"
+                        label="Height"
                         onChange={(val) =>
                           state.updateShapeLayer(selectedShape.id, {
                             height: val,
@@ -1894,13 +1898,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position X</span>
-                      <span className="font-mono text-slate-400">{selectedShape.x || 0}px</span>
                     </div>
                     <StepperSlider
                       min={-400}
                       max={400}
                       step={1}
                       value={selectedShape.x || 0}
+                      variant="compact"
+                      unit="px"
+                      label="Position X"
                       onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
                           x: val,
@@ -1913,13 +1919,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position Y</span>
-                      <span className="font-mono text-slate-400">{selectedShape.y || 0}px</span>
                     </div>
                     <StepperSlider
                       min={-400}
                       max={400}
                       step={1}
                       value={selectedShape.y || 0}
+                      variant="compact"
+                      unit="px"
+                      label="Position Y"
                       onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
                           y: val,
@@ -1957,70 +1965,9 @@ export const ElementsSection: React.FC = () => {
 
               {/* Option: Rotation & 3D Tilt */}
               {shapeActiveOption === 'rotation' && (
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Rotation</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedShape.rotation || 0}°
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={-180}
-                      max={180}
-                      step={1}
-                      value={selectedShape.rotation || 0}
-                      onChange={(val) =>
-                        state.updateShapeLayer(selectedShape.id, {
-                          rotation: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-
-                  <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
-                        <span className="font-mono text-slate-400">
-                          {selectedShape.pitch || 0}°
-                        </span>
-                      </div>
-                      <StepperSlider
-                        min={-30}
-                        max={30}
-                        step={1}
-                        value={selectedShape.pitch || 0}
-                        onChange={(val) =>
-                          state.updateShapeLayer(selectedShape.id, {
-                            pitch: val,
-                          })
-                        }
-                        accentColor="#ffafcc"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-                        <span className="font-mono text-slate-400">{selectedShape.yaw || 0}°</span>
-                      </div>
-                      <StepperSlider
-                        min={-30}
-                        max={30}
-                        step={1}
-                        value={selectedShape.yaw || 0}
-                        onChange={(val) =>
-                          state.updateShapeLayer(selectedShape.id, {
-                            yaw: val,
-                          })
-                        }
-                        accentColor="#ffafcc"
-                      />
-                    </div>
-                  </DesktopWebOnlyControls>
-                </div>
+                <RotationControls rotation={selectedShape.rotation ?? 0}
+                  pitch={selectedShape.pitch ?? 0} yaw={selectedShape.yaw ?? 0}
+                  onChange={(updates) => state.updateShapeLayer(selectedShape.id, updates)} />
               )}
 
               {/* Option: Skew */}
@@ -2029,13 +1976,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew X</span>
-                      <span className="font-mono text-slate-400">{selectedShape.skewX || 0}°</span>
                     </div>
                     <StepperSlider
                       min={-60}
                       max={60}
                       step={1}
                       value={selectedShape.skewX || 0}
+                      variant="compact"
+                      unit="°"
+                      label="Skew X"
                       onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
                           skewX: val,
@@ -2048,13 +1997,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Skew Y</span>
-                      <span className="font-mono text-slate-400">{selectedShape.skewY || 0}°</span>
                     </div>
                     <StepperSlider
                       min={-60}
                       max={60}
                       step={1}
                       value={selectedShape.skewY || 0}
+                      variant="compact"
+                      unit="°"
+                      label="Skew Y"
                       onChange={(val) =>
                         state.updateShapeLayer(selectedShape.id, {
                           skewY: val,
@@ -2068,47 +2019,11 @@ export const ElementsSection: React.FC = () => {
 
               {/* Option: Opacity & Blur */}
               {shapeActiveOption === 'opacityBlur' && (
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Opacity</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedShape.opacity ?? 100}%
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={10}
-                      max={100}
-                      step={1}
-                      value={selectedShape.opacity ?? 100}
-                      onChange={(val) =>
-                        state.updateShapeLayer(selectedShape.id, {
-                          opacity: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Blur</span>
-                      <span className="font-mono text-slate-400">{selectedShape.blur ?? 0}px</span>
-                    </div>
-                    <StepperSlider
-                      min={0}
-                      max={40}
-                      step={1}
-                      value={selectedShape.blur ?? 0}
-                      onChange={(val) =>
-                        state.updateShapeLayer(selectedShape.id, {
-                          blur: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-                </div>
+                <OpacityBlurControls
+                  opacity={selectedShape.opacity ?? 100} blur={selectedShape.blur ?? 0} opacityMin={10}
+                  onOpacityChange={(opacity) => state.updateShapeLayer(selectedShape.id, { opacity })}
+                  onBlurChange={(blur) => state.updateShapeLayer(selectedShape.id, { blur })}
+                />
               )}
             </div>
           </div>
@@ -2135,16 +2050,13 @@ export const ElementsSection: React.FC = () => {
                 <div key={key}>
                   <div className="flex justify-between text-[10px] mb-1">
                     <span className="text-slate-300">{label}</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedShape[key] ?? fallback}
-                      {unit}
-                    </span>
                   </div>
                   <StepperSlider
                     min={min}
                     max={max}
                     step={1}
                     value={selectedShape[key] ?? fallback}
+                    variant="compact" unit={unit} label={`Shadow ${label}`}
                     onChange={(value) => state.updateShapeLayer(selectedShape.id, { [key]: value })}
                     accentColor="#ffafcc"
                   />
@@ -2452,15 +2364,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Width</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedElement.width || 90}px
-                      </span>
                     </div>
                     <StepperSlider
                       min={20}
                       max={800}
                       step={1}
                       value={selectedElement.width || 90}
+                      variant="compact"
+                      unit="px"
+                      label="Width"
                       onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
                           width: val,
@@ -2473,15 +2385,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Height</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedElement.height || 90}px
-                      </span>
                     </div>
                     <StepperSlider
                       min={20}
                       max={800}
                       step={1}
                       value={selectedElement.height || 90}
+                      variant="compact"
+                      unit="px"
+                      label="Height"
                       onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
                           height: val,
@@ -2499,13 +2411,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position X</span>
-                      <span className="font-mono text-slate-400">{selectedElement.x || 0}px</span>
                     </div>
                     <StepperSlider
                       min={-400}
                       max={400}
                       step={1}
                       value={selectedElement.x || 0}
+                      variant="compact"
+                      unit="px"
+                      label="Position X"
                       onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
                           x: val,
@@ -2518,13 +2432,15 @@ export const ElementsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position Y</span>
-                      <span className="font-mono text-slate-400">{selectedElement.y || 0}px</span>
                     </div>
                     <StepperSlider
                       min={-400}
                       max={400}
                       step={1}
                       value={selectedElement.y || 0}
+                      variant="compact"
+                      unit="px"
+                      label="Position Y"
                       onChange={(val) =>
                         state.updateCanvasElement(selectedElement.id, {
                           y: val,
@@ -2539,26 +2455,8 @@ export const ElementsSection: React.FC = () => {
               {/* Option: Rotation & Flip */}
               {elementActiveOption === 'rotation' && (
                 <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Rotation</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedElement.rotation || 0}°
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={-180}
-                      max={180}
-                      step={1}
-                      value={selectedElement.rotation || 0}
-                      onChange={(val) =>
-                        state.updateCanvasElement(selectedElement.id, {
-                          rotation: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
+                  <RotationControls rotation={selectedElement.rotation ?? 0}
+                    onChange={(updates) => state.updateCanvasElement(selectedElement.id, updates)} />
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
@@ -2632,49 +2530,11 @@ export const ElementsSection: React.FC = () => {
 
               {/* Option: Opacity & Blur */}
               {elementActiveOption === 'opacityBlur' && (
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Opacity</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedElement.opacity ?? 100}%
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={10}
-                      max={100}
-                      step={1}
-                      value={selectedElement.opacity ?? 100}
-                      onChange={(val) =>
-                        state.updateCanvasElement(selectedElement.id, {
-                          opacity: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-300">Blur</span>
-                      <span className="font-mono text-slate-400">
-                        {selectedElement.blur ?? 0}px
-                      </span>
-                    </div>
-                    <StepperSlider
-                      min={0}
-                      max={40}
-                      step={1}
-                      value={selectedElement.blur ?? 0}
-                      onChange={(val) =>
-                        state.updateCanvasElement(selectedElement.id, {
-                          blur: val,
-                        })
-                      }
-                      accentColor="#ffafcc"
-                    />
-                  </div>
-                </div>
+                <OpacityBlurControls
+                  opacity={selectedElement.opacity ?? 100} blur={selectedElement.blur ?? 0} opacityMin={10}
+                  onOpacityChange={(opacity) => state.updateCanvasElement(selectedElement.id, { opacity })}
+                  onBlurChange={(blur) => state.updateCanvasElement(selectedElement.id, { blur })}
+                />
               )}
             </div>
           </div>
@@ -2703,16 +2563,13 @@ export const ElementsSection: React.FC = () => {
                 <div key={key}>
                   <div className="flex justify-between text-[10px] mb-1">
                     <span className="text-slate-300">{label}</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedElement[key] ?? fallback}
-                      {unit}
-                    </span>
                   </div>
                   <StepperSlider
                     min={min}
                     max={max}
                     step={1}
                     value={selectedElement[key] ?? fallback}
+                    variant="compact" unit={unit} label={`Shadow ${label}`}
                     onChange={(value) =>
                       state.updateCanvasElement(selectedElement.id, { [key]: value })
                     }

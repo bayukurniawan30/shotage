@@ -1,4 +1,70 @@
 import { z } from 'zod';
+import { GOOGLE_FONTS } from '../utils/fontLoader.js';
+import { PATTERN_PRESETS } from '../utils/patternPresets.js';
+import type { SocialPlatform } from '../types/studio.js';
+import type { TechStackId } from '../components/TechStackIcons.js';
+
+export const MCP_SOCIAL_PLATFORMS = [
+  'instagram',
+  'facebook',
+  'youtube',
+  'tiktok',
+  'github',
+  'whatsapp',
+  'x',
+  'threads',
+  'linkedin',
+  'dribbble',
+  'behance',
+  'figma',
+  'discord',
+  'telegram',
+  'reddit',
+  'twitch',
+  'spotify',
+  'pinterest',
+  'producthunt',
+  'medium',
+  'substack',
+] as const satisfies readonly SocialPlatform[];
+
+export const MCP_TECH_STACK_IDS = [
+  'angular',
+  'bootstrap',
+  'cakephp',
+  'codeigniter',
+  'css3',
+  'figma',
+  'firebase',
+  'flutter',
+  'go',
+  'html5',
+  'java',
+  'javascript',
+  'laravel',
+  'mongodb',
+  'mysql',
+  'nextjs',
+  'nodejs',
+  'nuxtjs',
+  'php',
+  'postgresql',
+  'python',
+  'react',
+  'redis',
+  'ruby',
+  'sketch',
+  'sqlite',
+  'svelte',
+  'tailwindcss',
+  'typescript',
+  'vercel',
+  'vite',
+  'vue',
+] as const satisfies readonly TechStackId[];
+
+export const MCP_FONT_REFERENCE = GOOGLE_FONTS.map(({ name, family }) => ({ name, family }));
+export const MCP_PATTERN_REFERENCE = PATTERN_PRESETS.map(({ id, name }) => ({ id, name }));
 
 type JsonObject = Record<string, unknown>;
 
@@ -243,7 +309,7 @@ export const mcpTextLayerInputSchema = z
     id: z.string().min(1).optional(),
     text: z.string().min(1),
     fontFamily: z.string().min(1).optional(),
-    fontSize: finiteNumber.min(6).max(400).optional(),
+    fontSize: finiteNumber.min(6).max(500).optional(),
     fontWeight: z.enum(['300', '400', '500', '600', '700', '800', '900']).optional(),
     fontStyle: z.enum(['normal', 'italic']).optional(),
     color: color.optional(),
@@ -256,6 +322,12 @@ export const mcpTextLayerInputSchema = z
     scaleY: finiteNumber.min(0.1).max(10).optional(),
     letterSpacing: finiteNumber.optional(),
     shadow: z.boolean().optional(),
+    socialPlatform: z.enum(MCP_SOCIAL_PLATFORMS).optional(),
+    socialStyle: z
+      .enum(['default', 'badge-light', 'badge-dark', 'glass-dark', 'glass-light'])
+      .optional(),
+    iconColor: color.optional(),
+    iconSize: finiteNumber.min(10).max(60).optional(),
     position: z.enum(['above', 'underneath']).optional(),
     visible: z.boolean().optional(),
     locked: z.boolean().optional(),
@@ -383,6 +455,47 @@ const layerGroupSchema = z
   })
   .passthrough();
 
+const techStackConfigSchema = z
+  .object({
+    enabled: z.boolean(),
+    selectedIcons: z.array(z.enum(MCP_TECH_STACK_IDS)),
+    size: finiteNumber.min(16).max(64),
+    gap: finiteNumber.min(4).max(36),
+    style: z.enum(['row', 'column']),
+    position: z.enum([
+      'top-left',
+      'top-center',
+      'top-right',
+      'center-left',
+      'center',
+      'center-right',
+      'bottom-left',
+      'bottom-center',
+      'bottom-right',
+    ]),
+    badgeStyle: z.enum([
+      'plain',
+      'glass-dark',
+      'glass-light',
+      'glass-frosted',
+      'glass-smoky',
+      'glass-crystal',
+      'badge-dark',
+      'badge-light',
+    ]),
+    xOffset: finiteNumber.min(-200).max(200),
+    yOffset: finiteNumber.min(-200).max(200),
+  })
+  .partial();
+
+const canvasGuideSchema = z
+  .object({
+    id: z.string().min(1),
+    axis: z.enum(['horizontal', 'vertical']),
+    position: finiteNumber.min(0).max(1),
+  })
+  .strict();
+
 export const studioPatchSchema = z
   .object({
     aspectRatio: z.enum(MCP_ASPECT_RATIOS).optional(),
@@ -390,6 +503,13 @@ export const studioPatchSchema = z
     customHeight: finiteNumber.int().min(160).max(7680).optional(),
     backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
     backgroundColor: color.optional(),
+    bgPatternEnabled: z.boolean().optional(),
+    bgPatternPreset: z.enum(PATTERN_PRESETS.map(({ id }) => id)).optional(),
+    bgPatternColor: color.optional(),
+    bgPatternOpacity: finiteNumber.min(0).max(100).optional(),
+    rulersVisible: z.boolean().optional(),
+    canvasGuides: z.array(canvasGuideSchema).optional(),
+    techStackConfig: techStackConfigSchema.optional(),
     gradient: z
       .object({ color1: color, color2: color, angle: finiteNumber.min(0).max(360) })
       .optional(),
@@ -526,6 +646,14 @@ function validateCollections(
   warnings: string[]
 ) {
   const durationSec = Number(value.durationSec ?? inheritedDuration);
+  const guideIds = new Set<string>();
+  if (Array.isArray(value.canvasGuides)) {
+    value.canvasGuides.forEach((guide, index) => {
+      const id = String((guide as JsonObject).id);
+      if (guideIds.has(id)) errors.push(`${prefix}.canvasGuides[${index}].id duplicates "${id}".`);
+      guideIds.add(id);
+    });
+  }
   const mockupKeyframes = Array.isArray(value.keyframes) ? (value.keyframes as JsonObject[]) : [];
   const mockupKeyframeIds = new Set<string>();
   mockupKeyframes.forEach((keyframe, index) => {
@@ -577,8 +705,15 @@ function validateCollections(
     const usedTargets = new Set<string>();
     (value.shapeLayers as JsonObject[]).forEach((shape, index) => {
       if (!shape.maskTarget || typeof shape.maskTarget !== 'object') return;
-      if (shape.shapeType === 'square-3d' || shape.shapeType === 'rectangle-3d' || shape.pathClosed === false) {
-        errors.push(`${prefix}.shapeLayers[${index}] cannot use a 3D shape or open path as a mask.`);
+      if (
+        shape.shapeType === 'coolshape' ||
+        shape.shapeType === 'square-3d' ||
+        shape.shapeType === 'rectangle-3d' ||
+        shape.pathClosed === false
+      ) {
+        errors.push(
+          `${prefix}.shapeLayers[${index}] cannot use a Coolshape, 3D shape or open path as a mask.`
+        );
       }
       const target = shape.maskTarget as JsonObject;
       const targetType = String(target.type);
@@ -788,6 +923,7 @@ export const MCP_MOTION_REFERENCE = {
       'The target must exist in the same stage.',
       'A target can have only one mask.',
       'A shape cannot mask itself.',
+      'Coolshapes, 3D shapes, and open paths cannot be masks; use basic or closed custom-path shapes.',
     ],
   },
   groups: {

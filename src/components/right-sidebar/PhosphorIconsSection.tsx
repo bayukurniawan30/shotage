@@ -4,6 +4,8 @@ import * as PhosphorIcons from '@phosphor-icons/react';
 import { Copy01, Trash01 } from '@untitledui/icons';
 import { Toggle } from '../Toggle';
 import { StepperSlider } from '../StepperSlider';
+import { OpacityBlurControls } from '../OpacityBlurControls';
+import { RotationControls } from '../RotationControls';
 import { PhosphorWeight, PhosphorBadgeStyle } from '../../types/studio';
 import { getPhosphorIcon } from '../phosphorIconRegistry';
 import { DesktopWebOnlyControls, LayerColorControl } from './shared';
@@ -497,8 +499,9 @@ export const PhosphorIconsSection: React.FC = () => {
                 ['Offset Y', 'shadowOffsetY', -50, 50, 'px', 8],
               ] as const).map(([label, key, min, max, unit, fallback]) => (
                 <div key={key}>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? fallback}{unit}</span></div>
+                  <div className="text-[10px] mb-1 text-slate-300">{label}</div>
                   <StepperSlider min={min} max={max} step={1} value={selectedLayer[key] ?? fallback}
+                    variant="compact" unit={unit} label={`Shadow ${label}`}
                     onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { [key]: value })}
                     accentColor="#ffafcc" />
                 </div>
@@ -578,20 +581,15 @@ export const PhosphorIconsSection: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <div>
-              <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">Blur</span><span className="font-mono text-slate-400">{selectedLayer.blur ?? 0}px</span></div>
-              <StepperSlider min={0} max={40} step={1} value={selectedLayer.blur ?? 0}
-                onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { blur: value })}
-                accentColor="#ffafcc" />
-            </div>
-            <DesktopWebOnlyControls className="grid grid-cols-1 gap-3">
+            <DesktopWebOnlyControls className="grid grid-cols-2 gap-3">
               {([
                 ['Skew X', 'skewX'],
                 ['Skew Y', 'skewY'],
               ] as const).map(([label, key]) => (
                 <div key={key}>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-slate-300">{label}</span><span className="font-mono text-slate-400">{selectedLayer[key] ?? 0}°</span></div>
+                  <div className="text-[10px] mb-1 text-slate-300">{label}</div>
                   <StepperSlider min={-60} max={60} step={1} value={selectedLayer[key] ?? 0}
+                    variant="compact" unit="°" label={label}
                     onChange={(value) => state.updatePhosphorIconLayer(selectedLayer.id, { [key]: value })}
                     accentColor="#ffafcc" />
                 </div>
@@ -683,23 +681,27 @@ export const PhosphorIconsSection: React.FC = () => {
             <div className="pt-1 space-y-3 animate-in fade-in duration-150">
               {/* Option: Size */}
               {activeOption === 'size' && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Icon Size</span>
-                    <span className="font-mono text-slate-400">{selectedLayer.size || 40}px</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-300">Icon Size</span>
+                    </div>
+                    <StepperSlider
+                      min={16}
+                      max={120}
+                      step={1}
+                      value={selectedLayer.size || 40}
+                      variant="compact"
+                      unit="px"
+                      label="Icon Size"
+                      onChange={(val) =>
+                        state.updatePhosphorIconLayer(selectedLayer.id, {
+                          size: val,
+                        })
+                      }
+                      accentColor="#ffafcc"
+                    />
                   </div>
-                  <StepperSlider
-                    min={16}
-                    max={120}
-                    step={1}
-                    value={selectedLayer.size || 40}
-                    onChange={(val) =>
-                      state.updatePhosphorIconLayer(selectedLayer.id, {
-                        size: val,
-                      })
-                    }
-                    accentColor="#ffafcc"
-                  />
                 </div>
               )}
 
@@ -709,13 +711,15 @@ export const PhosphorIconsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position X</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.x || 0}px</span>
                     </div>
                     <StepperSlider
                       min={-400}
                       max={400}
                       step={1}
                       value={selectedLayer.x || 0}
+                      variant="compact"
+                      unit="px"
+                      label="Position X"
                       onChange={(val) =>
                         state.updatePhosphorIconLayer(selectedLayer.id, {
                           x: val,
@@ -728,13 +732,15 @@ export const PhosphorIconsSection: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-slate-300">Position Y</span>
-                      <span className="font-mono text-slate-400">{selectedLayer.y || 0}px</span>
                     </div>
                     <StepperSlider
                       min={-400}
                       max={400}
                       step={1}
                       value={selectedLayer.y || 0}
+                      variant="compact"
+                      unit="px"
+                      label="Position Y"
                       onChange={(val) =>
                         state.updatePhosphorIconLayer(selectedLayer.id, {
                           y: val,
@@ -748,50 +754,17 @@ export const PhosphorIconsSection: React.FC = () => {
 
               {/* Option: Rotation */}
               {activeOption === 'rotation' && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Rotation</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedLayer.rotation || 0}°
-                    </span>
-                  </div>
-                  <StepperSlider
-                    min={-180}
-                    max={180}
-                    step={1}
-                    value={selectedLayer.rotation || 0}
-                    onChange={(val) =>
-                      state.updatePhosphorIconLayer(selectedLayer.id, {
-                        rotation: val,
-                      })
-                    }
-                    accentColor="#ffafcc"
-                  />
-                </div>
+                <RotationControls rotation={selectedLayer.rotation ?? 0}
+                  onChange={(updates) => state.updatePhosphorIconLayer(selectedLayer.id, updates)} />
               )}
 
               {/* Option: Opacity */}
               {activeOption === 'opacity' && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-300">Opacity</span>
-                    <span className="font-mono text-slate-400">
-                      {selectedLayer.opacity ?? 100}%
-                    </span>
-                  </div>
-                  <StepperSlider
-                    min={10}
-                    max={100}
-                    step={1}
-                    value={selectedLayer.opacity ?? 100}
-                    onChange={(val) =>
-                      state.updatePhosphorIconLayer(selectedLayer.id, {
-                        opacity: val,
-                      })
-                    }
-                    accentColor="#ffafcc"
-                  />
-                </div>
+                <OpacityBlurControls
+                  opacity={selectedLayer.opacity ?? 100} blur={selectedLayer.blur ?? 0} opacityMin={10}
+                  onOpacityChange={(opacity) => state.updatePhosphorIconLayer(selectedLayer.id, { opacity })}
+                  onBlurChange={(blur) => state.updatePhosphorIconLayer(selectedLayer.id, { blur })}
+                />
               )}
             </div>
           </div>

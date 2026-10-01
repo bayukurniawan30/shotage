@@ -60,7 +60,7 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
       : null;
 
   useEffect(() => {
-    if (stageCount <= 3 || window.innerWidth >= 640) return;
+    if (window.innerWidth >= 640) return;
     stageScrollerRef.current
       ?.querySelector<HTMLElement>(`[data-stage-index="${activeStageIndex}"]`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -70,20 +70,21 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
 
   return (
     <>
-      <div className={`fixed ${rulersVisible ? 'top-[88px]' : 'top-16'} left-1/2 z-30 flex w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/95 px-2.5 py-1 shadow-xl backdrop-blur-md pointer-events-auto animate-in fade-in zoom-in-95 duration-200 sm:w-auto`}>
+      <div className={`fixed ${rulersVisible ? 'top-[88px]' : 'top-16'} left-1/2 z-30 flex w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/95 px-2.5 py-1 shadow-xl backdrop-blur-md pointer-events-auto animate-in fade-in zoom-in-95 duration-200`}>
         {/* Icon & Stage Text Label */}
-        <div className="flex items-center gap-1.5 pr-2 border-r border-neutral-800/80 text-xs font-bold text-slate-400 select-none">
+        <div className={`flex shrink-0 items-center gap-1.5 text-xs font-bold text-slate-400 select-none ${stageCount === 1 ? 'sm:pr-2 sm:border-r sm:border-neutral-800/80' : 'pr-2 border-r border-neutral-800/80'}`}>
           <CardsThree weight="duotone" className="w-4 h-4 text-pastel-pink shrink-0" />
-          <span className="text-[11px] font-semibold text-slate-300">Stage</span>
+          <span className="text-[11px] font-semibold text-slate-300">
+            <span className={stageCount === 1 ? 'hidden sm:inline' : ''}>Stage</span>
+            {stageCount === 1 && <span className="sm:hidden">Stage 1</span>}
+          </span>
         </div>
 
         {/* Compact Stage Buttons with Bigger Number Text */}
         <div
           ref={stageScrollerRef}
           data-testid="stage-manager-scroller"
-          className={`min-w-0 overscroll-x-contain ${
-            stageCount > 3 ? 'overflow-x-auto pb-1 -mb-1 sm:overflow-visible sm:pb-0 sm:mb-0' : ''
-          }`}
+          className={`min-w-0 overflow-x-auto overscroll-x-contain no-scrollbar py-1 -my-1 sm:overflow-visible sm:py-0 sm:my-0 ${stageCount === 1 ? 'hidden sm:block' : ''}`}
         >
           <div className="flex w-max items-center gap-1">
             {Array.from({ length: stageCount }).map((_, index) => {
@@ -100,7 +101,7 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
                       type="button"
                       data-stage-index={index}
                       onClick={() => selectStage(index)}
-                      className={`w-6 h-6 rounded text-sm font-extrabold flex items-center justify-center transition-all cursor-pointer relative ${
+                      className={`w-8 h-8 sm:w-6 sm:h-6 rounded text-sm font-extrabold flex items-center justify-center transition-all cursor-pointer relative ${
                         isActive
                           ? 'bg-gradient-to-r from-pastel-pink to-[#a2d2ff] text-slate-950 shadow-sm shadow-pastel-pink/20 ring-1 ring-pastel-pink/50 scale-105'
                           : 'bg-neutral-800/80 hover:bg-neutral-700 text-slate-300 border border-neutral-700/60'
@@ -132,7 +133,7 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
                         onClick={() =>
                           setOpenBoundaryIndex((current) => (current === index ? null : index))
                         }
-                        className={`flex h-6 items-center gap-0.5 rounded-md border px-1.5 text-[9px] font-bold transition-colors ${
+                        className={`flex h-8 sm:h-6 items-center gap-0.5 rounded-md border px-1.5 text-[9px] font-bold transition-colors ${
                           transition.type === 'none'
                             ? 'border-neutral-700 bg-neutral-950 text-slate-500 hover:text-slate-300'
                             : 'border-pastel-pink/50 bg-pastel-pink/10 text-pastel-pink hover:bg-pastel-pink/20'
@@ -148,12 +149,16 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
               );
             })}
 
-            {/* Add Stage (+) Button (Visible when stage count < 5) */}
+          </div>
+        </div>
+
+        {/* Keep actions outside the scrolling tabs so they stay reachable. */}
+        <div className="flex shrink-0 items-center gap-1">
             {stageCount < 5 && (
               <button
                 type="button"
                 onClick={() => addStage()}
-                className="w-6 h-6 rounded bg-neutral-950/80 hover:bg-pastel-pink/20 text-slate-400 hover:text-pastel-pink border border-dashed border-neutral-700 hover:border-pastel-pink/60 transition-all flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 sm:w-6 sm:h-6 rounded bg-neutral-950/80 hover:bg-pastel-pink/20 text-slate-400 hover:text-pastel-pink border border-dashed border-neutral-700 hover:border-pastel-pink/60 transition-all flex items-center justify-center cursor-pointer"
                 title="Add Stage (Max 5)"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -164,14 +169,13 @@ export const StageManagerToolbar: React.FC<StageManagerToolbarProps> = ({
               <button
                 type="button"
                 onClick={onPreviewAll}
-                className="ml-1 flex h-6 items-center gap-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 text-[9px] font-bold text-slate-300 hover:border-pastel-pink/50 hover:text-pastel-pink"
+                className="ml-1 flex h-8 sm:h-6 items-center gap-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 text-[9px] font-bold text-slate-300 hover:border-pastel-pink/50 hover:text-pastel-pink"
                 title={`Preview all stages (${sequenceDuration.toFixed(1)}s)`}
               >
                 <Film01 className="h-3 w-3" />
                 <span className="hidden sm:inline">Preview</span>
               </button>
             )}
-          </div>
         </div>
       </div>
 

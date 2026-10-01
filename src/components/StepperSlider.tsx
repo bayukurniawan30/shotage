@@ -13,6 +13,10 @@ export interface StepperSliderProps {
   onPointerUp?: (e: React.PointerEvent) => void;
   onPointerCancel?: (e: React.PointerEvent) => void;
   iconVariant?: 'default' | 'zoom';
+  variant?: 'slider' | 'compact';
+  unit?: string;
+  label?: string;
+  hideSliderOnMobile?: boolean;
 }
 
 export const StepperSlider: React.FC<StepperSliderProps> = ({
@@ -28,6 +32,10 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
   onPointerUp,
   onPointerCancel,
   iconVariant = 'default',
+  variant = 'slider',
+  unit = '',
+  label = 'value',
+  hideSliderOnMobile = false,
 }) => {
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -83,11 +91,12 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
   const percentage = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
 
   return (
-    <div className={`flex items-center gap-2 select-none ${className}`}>
+    <div className={`flex items-center select-none ${variant === 'compact' ? 'gap-0 rounded-lg border border-neutral-800 bg-neutral-950/70' : 'gap-2'} ${className}`}>
       {/* Minus Button */}
       <button
         type="button"
         disabled={disabled || value <= min}
+        onClick={(e) => { if (e.detail === 0) stepChange(-step); }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.preventDefault();
@@ -106,13 +115,13 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
           clearTimers();
           onPointerCancel?.(e);
         }}
-        className={`w-7 h-7 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
+        className={`${variant === 'compact' ? 'w-5 h-7 border-0 rounded-l-lg' : 'w-7 h-7 rounded-lg border'} shrink-0 flex items-center justify-center transition-all ${
           disabled || value <= min
             ? 'opacity-30 border-neutral-800 bg-neutral-950/40 text-slate-500 cursor-not-allowed'
             : 'border-neutral-800 bg-neutral-900/90 hover:bg-neutral-800 hover:border-neutral-700 text-slate-300 hover:text-white active:scale-95 cursor-pointer shadow-xs'
         }`}
         title={`Decrease by ${step}`}
-        aria-label="Decrease value"
+        aria-label={`Decrease ${label}`}
       >
         {iconVariant === 'zoom' ? (
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -126,7 +135,11 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
       </button>
 
       {/* Slider Track and Thumb */}
-      <div className="relative flex-1 flex items-center h-7 group">
+      {variant === 'compact' ? (
+        <output aria-label={label} className="flex-1 min-w-0 text-center text-[10px] font-mono tabular-nums text-slate-200 whitespace-nowrap">
+          {Math.round(value * 100) / 100}{unit}
+        </output>
+      ) : <div className={`relative flex-1 items-center h-7 group ${hideSliderOnMobile ? 'hidden md:flex' : 'flex'}`}>
         <input
           type="range"
           min={min}
@@ -143,12 +156,13 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
           }}
           className={`w-full h-1.5 appearance-none rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-neutral-900 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-neutral-900 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-transform ${disabled ? 'cursor-not-allowed opacity-55 [&::-webkit-slider-thumb]:bg-neutral-400 [&::-moz-range-thumb]:bg-neutral-400' : 'cursor-pointer [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:active:scale-95 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:hover:scale-125'}`}
         />
-      </div>
+      </div>}
 
       {/* Plus Button */}
       <button
         type="button"
         disabled={disabled || value >= max}
+        onClick={(e) => { if (e.detail === 0) stepChange(step); }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.preventDefault();
@@ -167,13 +181,13 @@ export const StepperSlider: React.FC<StepperSliderProps> = ({
           clearTimers();
           onPointerCancel?.(e);
         }}
-        className={`w-7 h-7 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
+        className={`${variant === 'compact' ? 'w-5 h-7 border-0 rounded-r-lg' : 'w-7 h-7 rounded-lg border'} shrink-0 flex items-center justify-center transition-all ${
           disabled || value >= max
             ? 'opacity-30 border-neutral-800 bg-neutral-950/40 text-slate-500 cursor-not-allowed'
             : 'border-neutral-800 bg-neutral-900/90 hover:bg-neutral-800 hover:border-neutral-700 text-slate-300 hover:text-white active:scale-95 cursor-pointer shadow-xs'
         }`}
         title={`Increase by ${step}`}
-        aria-label="Increase value"
+        aria-label={`Increase ${label}`}
       >
         {iconVariant === 'zoom' ? (
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

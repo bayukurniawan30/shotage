@@ -5,6 +5,7 @@ import { Coolshape } from 'coolshapes-react';
 import { BackgroundType, ShapeType } from '../../types/studio';
 import { SocialIcon, SOCIAL_PLATFORMS, SocialPlatform } from '../SocialIcons';
 import { StepperSlider } from '../StepperSlider';
+import { RotationControls } from '../RotationControls';
 import { isDesktopApp } from '../../platform/runtime';
 import { ExtrudedShape } from '../ExtrudedShape';
 import {
@@ -716,48 +717,30 @@ export const TiltSliderGroup: React.FC<{
 
   const sliders = (
     <div className="space-y-3">
+      <RotationControls
+        rotation={values.rotation}
+        pitch={values.rotateX}
+        yaw={values.rotateY}
+        onChange={(updates) => {
+          if (updates.rotation !== undefined) handlers.onRotation(updates.rotation);
+          if (updates.pitch !== undefined) handlers.onRotateX(updates.pitch);
+          if (updates.yaw !== undefined) handlers.onRotateY(updates.yaw);
+        }}
+      />
       <DesktopWebOnlyControls className="space-y-3">
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="font-medium text-slate-300">Pitch (Rotate X)</span>
-          <span className="font-mono text-slate-400">{values.rotateX}°</span>
-        </div>
-        <StepperSlider
-          min={-30}
-          max={30}
-          step={1}
-          value={values.rotateX}
-          onChange={(v) => handlers.onRotateX(v)}
-          accentColor="#ffafcc"
-        />
-      </div>
-
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="font-medium text-slate-300">Yaw (Rotate Y)</span>
-          <span className="font-mono text-slate-400">{values.rotateY}°</span>
-        </div>
-        <StepperSlider
-          min={-30}
-          max={30}
-          step={1}
-          value={values.rotateY}
-          onChange={(v) => handlers.onRotateY(v)}
-          accentColor="#ffafcc"
-        />
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <div className="flex justify-between text-xs mb-1">
             <span className="font-medium text-slate-300">Skew X</span>
-            <span className="font-mono text-slate-400">{values.skewX}°</span>
           </div>
           <StepperSlider
             min={-60}
             max={60}
             step={1}
             value={values.skewX}
+            variant="compact"
+            unit="°"
+            label="Skew X"
             onChange={(v) => handlers.onSkewX(v)}
             accentColor="#ffafcc"
           />
@@ -766,13 +749,15 @@ export const TiltSliderGroup: React.FC<{
         <div>
           <div className="flex justify-between text-xs mb-1">
             <span className="font-medium text-slate-300">Skew Y</span>
-            <span className="font-mono text-slate-400">{values.skewY}°</span>
           </div>
           <StepperSlider
             min={-60}
             max={60}
             step={1}
             value={values.skewY}
+            variant="compact"
+            unit="°"
+            label="Skew Y"
             onChange={(v) => handlers.onSkewY(v)}
             accentColor="#ffafcc"
           />
@@ -795,20 +780,6 @@ export const TiltSliderGroup: React.FC<{
       </div>
       </DesktopWebOnlyControls>
 
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="font-medium text-slate-300">Rotation</span>
-          <span className="font-mono text-slate-400">{values.rotation}°</span>
-        </div>
-        <StepperSlider
-          min={-180}
-          max={180}
-          step={1}
-          value={values.rotation}
-          onChange={(v) => handlers.onRotation(v)}
-          accentColor="#ffafcc"
-        />
-      </div>
     </div>
   );
 

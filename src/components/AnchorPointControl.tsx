@@ -1,11 +1,13 @@
 import React from 'react';
 import { clampAnchor } from '../utils/anchorPoint';
+import { StepperSlider } from './StepperSlider';
 
 interface AnchorPointControlProps {
   anchorX?: number;
   anchorY?: number;
   disabled?: boolean;
   label?: string;
+  compact?: boolean;
   onChange: (anchorX: number, anchorY: number) => void;
 }
 
@@ -16,6 +18,7 @@ export const AnchorPointControl: React.FC<AnchorPointControlProps> = ({
   anchorY = 0.5,
   disabled = false,
   label = 'Anchor point',
+  compact = false,
   onChange,
 }) => {
   const x = clampAnchor(anchorX);
@@ -65,24 +68,44 @@ export const AnchorPointControl: React.FC<AnchorPointControlProps> = ({
             ['X', x],
             ['Y', y],
           ] as const).map(([axis, value]) => (
-            <label key={axis} className="text-[9px] font-semibold text-slate-500">
+            <div key={axis} className="text-[9px] font-semibold text-slate-500">
               {axis}
               <div className="relative mt-1">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={Math.round(value * 100)}
-                  onChange={(event) => {
-                    const next = clampAnchor(Number(event.target.value) / 100);
-                    onChange(axis === 'X' ? next : x, axis === 'Y' ? next : y);
-                  }}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-950 py-1.5 pl-2 pr-5 font-mono text-[10px] text-slate-200 focus:border-pastel-blue/60 focus:outline-none"
-                />
-                <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-600">%</span>
+                {compact ? (
+                  <StepperSlider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(value * 100)}
+                    variant="compact"
+                    unit="%"
+                    label={`${label} ${axis}`}
+                    disabled={disabled}
+                    onChange={(percentage) => {
+                      const next = clampAnchor(percentage / 100);
+                      onChange(axis === 'X' ? next : x, axis === 'Y' ? next : y);
+                    }}
+                  />
+                ) : (
+                  <>
+                    <input
+                      aria-label={`${label} ${axis}`}
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={Math.round(value * 100)}
+                      onChange={(event) => {
+                        const next = clampAnchor(Number(event.target.value) / 100);
+                        onChange(axis === 'X' ? next : x, axis === 'Y' ? next : y);
+                      }}
+                      className="w-full rounded-lg border border-neutral-800 bg-neutral-950 py-1.5 pl-2 pr-5 font-mono text-[10px] text-slate-200 focus:border-pastel-blue/60 focus:outline-none"
+                    />
+                    <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-600">%</span>
+                  </>
+                )}
               </div>
-            </label>
+            </div>
           ))}
         </div>
       </div>
