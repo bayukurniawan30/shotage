@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useStudioEditorStore } from '../../store/useStudioStore';
-import { ChevronDown, Check, Stars02, RefreshCw01, Plus, Trash01, Play, PauseSquare } from '@untitledui/icons';
+import {
+  ChevronDown,
+  Check,
+  Stars02,
+  RefreshCw01,
+  Plus,
+  Trash01,
+  Play,
+  PauseSquare,
+} from '@untitledui/icons';
 import { StepperSlider } from '../StepperSlider';
 import { extractDominantColors, generateGradientVariations } from '../../utils/colorExtractor';
 import { FLOW_PRESETS, getRandomFlowColors } from '../../utils/flowPresets';
@@ -49,7 +58,9 @@ export const BackgroundSection: React.FC = () => {
   const [showAllRadiant, setShowAllRadiant] = useState(false);
   const [showAllLinearSwatches, setShowAllLinearSwatches] = useState(false);
   const [showAllPatterns, setShowAllPatterns] = useState(false);
-  const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>([]);
+  const [autoGradients, setAutoGradients] = useState<{ name: string; c1: string; c2: string }[]>(
+    []
+  );
 
   // Automatically extract primary image colors when imageSrc changes
   useEffect(() => {
@@ -337,7 +348,8 @@ export const BackgroundSection: React.FC = () => {
           <div className="p-2.5 bg-neutral-900/60 border border-neutral-800/80 rounded-xl space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-slate-300">
-                Color Palette ({(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).length} stops)
+                Color Palette (
+                {(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).length} stops)
               </span>
               <button
                 type="button"
@@ -360,133 +372,149 @@ export const BackgroundSection: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).map((color, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-1.5 p-1.5 bg-neutral-950/80 rounded-lg border border-neutral-800/80"
-                >
-                  <label
-                    className="w-5 h-5 rounded-md border border-neutral-700 cursor-pointer shrink-0 shadow-xs relative overflow-hidden"
-                    style={{ backgroundColor: color }}
+              {(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).map(
+                (color, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-1.5 p-1.5 bg-neutral-950/80 rounded-lg border border-neutral-800/80"
                   >
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => {
-                        const newColors = [...(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A'])];
-                        newColors[idx] = e.target.value;
-                        onChange({ flowColors: newColors });
-                      }}
-                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                    />
-                  </label>
-                  <input
-                    type="text"
-                    value={color.toUpperCase()}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const newColors = [...(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A'])];
-                      newColors[idx] = val;
-                      onChange({ flowColors: newColors });
-                    }}
-                    className="w-full bg-transparent text-[11px] font-mono text-slate-200 focus:outline-none"
-                  />
-                  {(state.flowColors || []).length > 3 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newColors = (state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']).filter(
-                          (_, i) => i !== idx
-                        );
-                        onChange({ flowColors: newColors });
-                      }}
-                      className="text-slate-500 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
-                      title="Remove color stop"
+                    <label
+                      className="w-5 h-5 rounded-md border border-neutral-700 cursor-pointer shrink-0 shadow-xs relative overflow-hidden"
+                      style={{ backgroundColor: color }}
                     >
-                      <Trash01 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => {
+                          const newColors = [
+                            ...(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']),
+                          ];
+                          newColors[idx] = e.target.value;
+                          onChange({ flowColors: newColors });
+                        }}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      value={color.toUpperCase()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const newColors = [
+                          ...(state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']),
+                        ];
+                        newColors[idx] = val;
+                        onChange({ flowColors: newColors });
+                      }}
+                      className="w-full bg-transparent text-[11px] font-mono text-slate-200 focus:outline-none"
+                    />
+                    {(state.flowColors || []).length > 3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newColors = (
+                            state.flowColors || ['#EAF4FC', '#1E50A2', '#F09199', '#895B8A']
+                          ).filter((_, i) => i !== idx);
+                          onChange({ flowColors: newColors });
+                        }}
+                        className="text-slate-500 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
+                        title="Remove color stop"
+                      >
+                        <Trash01 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )
+              )}
             </div>
           </div>
 
           {/* Flow Speed Slider */}
-          <div className="space-y-1 pt-1">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-medium text-slate-300">Flow Speed</span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => onChange({ flowSpeed: (state.flowSpeed ?? 30) > 0 ? 0 : 30 })}
-                  className="p-1 rounded text-slate-400 hover:text-pastel-pink hover:bg-slate-800/60 transition-colors cursor-pointer"
-                  title={(state.flowSpeed ?? 30) > 0 ? 'Pause Animation' : 'Resume Animation'}
-                >
-                  {(state.flowSpeed ?? 30) > 0 ? (
-                    <PauseSquare className="w-3 h-3" />
-                  ) : (
-                    <Play className="w-3 h-3" />
-                  )}
-                </button>
-                <span className="font-mono text-slate-400">{state.flowSpeed ?? 30}%</span>
+          <div className="grid grid-cols-2 items-end gap-2 pt-1">
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-medium text-slate-300">Flow Speed</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onChange({ flowSpeed: (state.flowSpeed ?? 30) > 0 ? 0 : 30 })}
+                    className="p-1 rounded text-slate-400 hover:text-pastel-pink hover:bg-slate-800/60 transition-colors cursor-pointer"
+                    title={(state.flowSpeed ?? 30) > 0 ? 'Pause Animation' : 'Resume Animation'}
+                  >
+                    {(state.flowSpeed ?? 30) > 0 ? (
+                      <PauseSquare className="w-3 h-3" />
+                    ) : (
+                      <Play className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
               </div>
+              <StepperSlider
+                variant="compact"
+                label="Flow Speed"
+                unit="%"
+                min={0}
+                max={100}
+                step={1}
+                value={state.flowSpeed ?? 30}
+                onChange={(val) => onChange({ flowSpeed: val })}
+                accentColor="#ffafcc"
+              />
             </div>
-            <StepperSlider
-              min={0}
-              max={100}
-              step={1}
-              value={state.flowSpeed ?? 30}
-              onChange={(val) => onChange({ flowSpeed: val })}
-              accentColor="#ffafcc"
-            />
-          </div>
 
-          {/* Fluid Wave Distortion Slider */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-300">Fluid Distortion</span>
-              <span className="font-mono text-slate-400">{state.flowDistortion ?? 60}%</span>
+            {/* Fluid Wave Distortion Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Fluid Distortion</span>
+              </div>
+              <StepperSlider
+                variant="compact"
+                label="Fluid Distortion"
+                unit="%"
+                min={0}
+                max={100}
+                step={1}
+                value={state.flowDistortion ?? 60}
+                onChange={(val) => onChange({ flowDistortion: val })}
+                accentColor="#ffafcc"
+              />
             </div>
-            <StepperSlider
-              min={0}
-              max={100}
-              step={1}
-              value={state.flowDistortion ?? 60}
-              onChange={(val) => onChange({ flowDistortion: val })}
-              accentColor="#ffafcc"
-            />
-          </div>
 
-          {/* Center Swirl Slider */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-300">Center Swirl</span>
-              <span className="font-mono text-slate-400">{state.flowSwirl ?? 15}%</span>
+            {/* Center Swirl Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Center Swirl</span>
+              </div>
+              <StepperSlider
+                variant="compact"
+                label="Center Swirl"
+                unit="%"
+                min={0}
+                max={100}
+                step={1}
+                value={state.flowSwirl ?? 15}
+                onChange={(val) => onChange({ flowSwirl: val })}
+                accentColor="#ffafcc"
+              />
             </div>
-            <StepperSlider
-              min={0}
-              max={100}
-              step={1}
-              value={state.flowSwirl ?? 15}
-              onChange={(val) => onChange({ flowSwirl: val })}
-              accentColor="#ffafcc"
-            />
-          </div>
 
-          {/* Field Scale Slider */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-300">Field Scale</span>
-              <span className="font-mono text-slate-400">{state.flowScale ?? 50}%</span>
+            {/* Field Scale Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Field Scale</span>
+              </div>
+              <StepperSlider
+                variant="compact"
+                label="Field Scale"
+                unit="%"
+                min={10}
+                max={100}
+                step={1}
+                value={state.flowScale ?? 50}
+                onChange={(val) => onChange({ flowScale: val })}
+                accentColor="#ffafcc"
+              />
             </div>
-            <StepperSlider
-              min={10}
-              max={100}
-              step={1}
-              value={state.flowScale ?? 50}
-              onChange={(val) => onChange({ flowScale: val })}
-              accentColor="#ffafcc"
-            />
           </div>
         </div>
       )}
@@ -628,7 +656,14 @@ export const BackgroundSection: React.FC = () => {
                 type="button"
                 disabled={(state.mistStops || []).length >= 6}
                 onClick={() => {
-                  const curr = state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'];
+                  const curr = state.mistStops || [
+                    '#FBF2E2',
+                    '#F3DDC2',
+                    '#D9BCAE',
+                    '#B08F9B',
+                    '#7A6483',
+                    '#463A5E',
+                  ];
                   if (curr.length < 6) {
                     onChange({ mistStops: [...curr, '#2A2035'], mistPreset: 'custom' });
                   }
@@ -645,7 +680,16 @@ export const BackgroundSection: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {(state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E']).map((color, idx) => (
+              {(
+                state.mistStops || [
+                  '#FBF2E2',
+                  '#F3DDC2',
+                  '#D9BCAE',
+                  '#B08F9B',
+                  '#7A6483',
+                  '#463A5E',
+                ]
+              ).map((color, idx) => (
                 <div
                   key={idx}
                   className="flex items-center gap-1.5 p-1.5 bg-neutral-950/80 rounded-lg border border-neutral-800/80"
@@ -658,7 +702,16 @@ export const BackgroundSection: React.FC = () => {
                       type="color"
                       value={color}
                       onChange={(e) => {
-                        const newStops = [...(state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'])];
+                        const newStops = [
+                          ...(state.mistStops || [
+                            '#FBF2E2',
+                            '#F3DDC2',
+                            '#D9BCAE',
+                            '#B08F9B',
+                            '#7A6483',
+                            '#463A5E',
+                          ]),
+                        ];
                         newStops[idx] = e.target.value;
                         onChange({ mistStops: newStops, mistPreset: 'custom' });
                       }}
@@ -670,7 +723,16 @@ export const BackgroundSection: React.FC = () => {
                     value={color.toUpperCase()}
                     onChange={(e) => {
                       const val = e.target.value;
-                      const newStops = [...(state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E'])];
+                      const newStops = [
+                        ...(state.mistStops || [
+                          '#FBF2E2',
+                          '#F3DDC2',
+                          '#D9BCAE',
+                          '#B08F9B',
+                          '#7A6483',
+                          '#463A5E',
+                        ]),
+                      ];
                       newStops[idx] = val;
                       onChange({ mistStops: newStops, mistPreset: 'custom' });
                     }}
@@ -680,9 +742,16 @@ export const BackgroundSection: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        const newStops = (state.mistStops || ['#FBF2E2', '#F3DDC2', '#D9BCAE', '#B08F9B', '#7A6483', '#463A5E']).filter(
-                          (_, i) => i !== idx
-                        );
+                        const newStops = (
+                          state.mistStops || [
+                            '#FBF2E2',
+                            '#F3DDC2',
+                            '#D9BCAE',
+                            '#B08F9B',
+                            '#7A6483',
+                            '#463A5E',
+                          ]
+                        ).filter((_, i) => i !== idx);
                         onChange({ mistStops: newStops, mistPreset: 'custom' });
                       }}
                       className="text-slate-500 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
@@ -712,76 +781,76 @@ export const BackgroundSection: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-            {/* Ranges */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="font-medium text-slate-300">Ranges</span>
+              {/* Ranges */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-slate-300">Ranges</span>
+                </div>
+                <StepperSlider
+                  variant="compact"
+                  label="Ranges"
+                  min={3}
+                  max={9}
+                  step={1}
+                  value={state.mistRanges ?? 5}
+                  onChange={(val) => onChange({ mistRanges: val })}
+                  accentColor="#ffafcc"
+                />
               </div>
-              <StepperSlider
-                variant="compact"
-                label="Ranges"
-                min={3}
-                max={9}
-                step={1}
-                value={state.mistRanges ?? 5}
-                onChange={(val) => onChange({ mistRanges: val })}
-                accentColor="#ffafcc"
-              />
-            </div>
 
-            {/* Horizon Slider */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="font-medium text-slate-300">Horizon (Sky Share)</span>
+              {/* Horizon Slider */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-slate-300">Horizon (Sky Share)</span>
+                </div>
+                <StepperSlider
+                  variant="compact"
+                  label="Horizon (Sky Share)"
+                  unit="%"
+                  min={20}
+                  max={58}
+                  step={1}
+                  value={state.mistHorizon ?? 42}
+                  onChange={(val) => onChange({ mistHorizon: val })}
+                  accentColor="#ffafcc"
+                />
               </div>
-              <StepperSlider
-                variant="compact"
-                label="Horizon (Sky Share)"
-                unit="%"
-                min={20}
-                max={58}
-                step={1}
-                value={state.mistHorizon ?? 42}
-                onChange={(val) => onChange({ mistHorizon: val })}
-                accentColor="#ffafcc"
-              />
-            </div>
 
-            {/* Peaks Height Slider */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="font-medium text-slate-300">Peak Height</span>
+              {/* Peaks Height Slider */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-slate-300">Peak Height</span>
+                </div>
+                <StepperSlider
+                  variant="compact"
+                  label="Peak Height"
+                  unit="%"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={state.mistPeaks ?? 50}
+                  onChange={(val) => onChange({ mistPeaks: val })}
+                  accentColor="#ffafcc"
+                />
               </div>
-              <StepperSlider
-                variant="compact"
-                label="Peak Height"
-                unit="%"
-                min={0}
-                max={100}
-                step={1}
-                value={state.mistPeaks ?? 50}
-                onChange={(val) => onChange({ mistPeaks: val })}
-                accentColor="#ffafcc"
-              />
-            </div>
 
-            {/* Sharpness Slider */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="font-medium text-slate-300">Alpine Sharpness</span>
+              {/* Sharpness Slider */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-slate-300">Alpine Sharpness</span>
+                </div>
+                <StepperSlider
+                  variant="compact"
+                  label="Alpine Sharpness"
+                  unit="%"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={state.mistSharp ?? 55}
+                  onChange={(val) => onChange({ mistSharp: val })}
+                  accentColor="#ffafcc"
+                />
               </div>
-              <StepperSlider
-                variant="compact"
-                label="Alpine Sharpness"
-                unit="%"
-                min={0}
-                max={100}
-                step={1}
-                value={state.mistSharp ?? 55}
-                onChange={(val) => onChange({ mistSharp: val })}
-                accentColor="#ffafcc"
-              />
-            </div>
             </div>
           </div>
 
@@ -988,35 +1057,41 @@ export const BackgroundSection: React.FC = () => {
           </div>
 
           {/* Spectrum Angle Slider */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-300">Spectrum Angle</span>
-              <span className="font-mono text-slate-400">{state.spectralAngle ?? 135}°</span>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Spectrum Angle</span>
+              </div>
+              <StepperSlider
+                variant="compact"
+                label="Spectrum Angle"
+                unit="°"
+                min={0}
+                max={360}
+                step={1}
+                value={state.spectralAngle ?? 135}
+                onChange={(val) => onChange({ spectralAngle: val })}
+                accentColor="#ffafcc"
+              />
             </div>
-            <StepperSlider
-              min={0}
-              max={360}
-              step={1}
-              value={state.spectralAngle ?? 135}
-              onChange={(val) => onChange({ spectralAngle: val })}
-              accentColor="#ffafcc"
-            />
-          </div>
 
-          {/* Prism Blur Depth Slider */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-300">Prism Blur Depth</span>
-              <span className="font-mono text-slate-400">{state.spectralBlur ?? 45}px</span>
+            {/* Prism Blur Depth Slider */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-slate-300">Prism Blur Depth</span>
+              </div>
+              <StepperSlider
+                variant="compact"
+                label="Prism Blur Depth"
+                unit="px"
+                min={10}
+                max={80}
+                step={1}
+                value={state.spectralBlur ?? 45}
+                onChange={(val) => onChange({ spectralBlur: val })}
+                accentColor="#ffafcc"
+              />
             </div>
-            <StepperSlider
-              min={10}
-              max={80}
-              step={1}
-              value={state.spectralBlur ?? 45}
-              onChange={(val) => onChange({ spectralBlur: val })}
-              accentColor="#ffafcc"
-            />
           </div>
         </div>
       )}
@@ -1457,9 +1532,7 @@ export const BackgroundSection: React.FC = () => {
               max={360}
               step={1}
               value={state.gradient.angle}
-              onChange={(val) =>
-                onChange({ gradient: { ...state.gradient, angle: val } })
-              }
+              onChange={(val) => onChange({ gradient: { ...state.gradient, angle: val } })}
               accentColor="#ffafcc"
             />
           </div>
@@ -1739,7 +1812,10 @@ export const BackgroundSection: React.FC = () => {
                 <div className="flex justify-between items-center text-[11px] mb-1.5 text-slate-400">
                   <span>Blend Mode</span>
                   <span className="text-slate-500 text-[10px]">
-                    {GRAIN_BLEND_MODES.find((m) => m.id === (state.bgGrainBlendMode || 'overlay'))?.desc}
+                    {
+                      GRAIN_BLEND_MODES.find((m) => m.id === (state.bgGrainBlendMode || 'overlay'))
+                        ?.desc
+                    }
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
