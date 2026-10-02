@@ -6,6 +6,7 @@ import {
   isUnlimitedUser,
   reservationOperationSchema,
   reservationRequestSchema,
+  normalizeReservationRequest,
 } from './credits';
 
 describe('isUnlimitedUser', () => {
@@ -83,6 +84,26 @@ describe('credit API validation', () => {
         videoDurationSeconds: 60,
       }).success
     ).toBe(true);
+  });
+
+  it('enforces the 30-credit single-stage icon-pack tier on the server', () => {
+    const request = reservationRequestSchema.parse({
+      ...common,
+      kind: 'image',
+      purpose: 'icon-pack',
+      format: 'jpeg',
+      scale: 1,
+      stageScope: 'all',
+      stageCount: 5,
+    });
+    const normalized = normalizeReservationRequest(request);
+    expect(normalized).toMatchObject({
+      format: 'png',
+      scale: 3,
+      stageScope: 'current',
+      stageCount: 1,
+    });
+    expect(getImageExportCost(normalized.scale, normalized.stageCount)).toBe(30);
   });
 
   it('rejects invalid hashes, formats, durations, and operation keys', () => {

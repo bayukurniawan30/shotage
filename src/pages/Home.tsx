@@ -450,7 +450,7 @@ export const Home: React.FC = () => {
                 <>
                   {/* Floating Decorative Hand-Drawn Arrow (Left: public/element/arrow/3.svg) */}
                   <div
-                    className="absolute left-2 sm:-left-6 top-[350px] -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
+                    className="absolute left-2 sm:-left-6 top-[316px] -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
                     style={{ opacity: Math.max(1 - heroZoomProgress * 2.5, 0) }}
                   >
                     <div
@@ -499,7 +499,7 @@ export const Home: React.FC = () => {
 
                   {/* Floating Decorative Hand-Drawn Arrow (Right: public/element/arrow/9.svg) */}
                   <div
-                    className="absolute right-2 sm:-right-6 top-60 -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
+                    className="absolute right-2 sm:-right-6 top-72 -translate-y-1/2 hidden md:block pointer-events-none z-40 select-none transition-opacity duration-300"
                     style={{ opacity: Math.max(1 - heroZoomProgress * 2.5, 0) }}
                   >
                     <div

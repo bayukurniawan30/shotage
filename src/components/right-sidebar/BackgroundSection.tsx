@@ -711,13 +711,15 @@ export const BackgroundSection: React.FC = () => {
               </button>
             </div>
 
-            {/* Ranges Slider */}
+            <div className="grid grid-cols-2 gap-2">
+            {/* Ranges */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="font-medium text-slate-300">Ranges</span>
-                <span className="font-mono text-slate-400">{state.mistRanges ?? 5} ranges</span>
               </div>
               <StepperSlider
+                variant="compact"
+                label="Ranges"
                 min={3}
                 max={9}
                 step={1}
@@ -731,9 +733,11 @@ export const BackgroundSection: React.FC = () => {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="font-medium text-slate-300">Horizon (Sky Share)</span>
-                <span className="font-mono text-slate-400">{state.mistHorizon ?? 42}% sky</span>
               </div>
               <StepperSlider
+                variant="compact"
+                label="Horizon (Sky Share)"
+                unit="%"
                 min={20}
                 max={58}
                 step={1}
@@ -747,9 +751,11 @@ export const BackgroundSection: React.FC = () => {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="font-medium text-slate-300">Peak Height</span>
-                <span className="font-mono text-slate-400">{state.mistPeaks ?? 50}%</span>
               </div>
               <StepperSlider
+                variant="compact"
+                label="Peak Height"
+                unit="%"
                 min={0}
                 max={100}
                 step={1}
@@ -763,9 +769,11 @@ export const BackgroundSection: React.FC = () => {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="font-medium text-slate-300">Alpine Sharpness</span>
-                <span className="font-mono text-slate-400">{state.mistSharp ?? 55}%</span>
               </div>
               <StepperSlider
+                variant="compact"
+                label="Alpine Sharpness"
+                unit="%"
                 min={0}
                 max={100}
                 step={1}
@@ -773,6 +781,7 @@ export const BackgroundSection: React.FC = () => {
                 onChange={(val) => onChange({ mistSharp: val })}
                 accentColor="#ffafcc"
               />
+            </div>
             </div>
           </div>
 

@@ -254,7 +254,7 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
       inputSchema: {
         name: z.string().min(1).max(120),
         aspectRatio: z
-          .enum(['16:9', '1:1', '9:16', '4:3', '3:2', '3:4', '4:5', 'custom'])
+          .enum(['16:9', '1:1', 'app-icon', '9:16', '4:3', '3:2', '3:4', '4:5', 'custom'])
           .optional(),
         backgroundType: z.enum(['solid', 'gradient', 'flow', 'transparent']).optional(),
         backgroundColor: z.string().optional(),

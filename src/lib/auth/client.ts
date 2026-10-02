@@ -84,6 +84,7 @@ export type ImageReservationRequest = {
   idempotencyKey: string;
   projectHash: string;
   kind: 'image';
+  purpose?: 'icon-pack';
   format: 'png' | 'jpeg' | 'webp';
   scale: number;
   stageScope: 'current' | 'all';

@@ -4,7 +4,9 @@ import { ChevronDown } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
 import { getAspectRatioCategory, getAspectRatioLabel, getRecommendedZoomForAspect } from './utils';
 
-export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({ alwaysExpanded = false }) => {
+export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({
+  alwaysExpanded = false,
+}) => {
   const state = useStudioEditorStore();
   const onChange = state.updateState;
 
@@ -35,27 +37,35 @@ export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({ alwaysEx
       </div>
 
       <div className={alwaysExpanded ? '' : 'relative'} ref={aspectDropdownRef}>
-        {!alwaysExpanded && <button
-          onClick={() => setIsAspectDropdownOpen(!isAspectDropdownOpen)}
-          className="w-full flex items-center justify-between px-3 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
-        >
-          <div className="flex items-center gap-2 truncate">
-            <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
-              {getAspectRatioCategory(state.aspectRatio)}
-            </span>
-            <span className="text-slate-300 font-medium truncate">
-              {getAspectRatioLabel(state.aspectRatio, state.customWidth, state.customHeight)}
-            </span>
-          </div>
-          <ChevronDown
-            className={`w-4 h-4 text-slate-400 group-hover:text-slate-200 transition-transform duration-200 shrink-0 ml-2 ${
-              isAspectDropdownOpen ? 'rotate-180 text-pastel-pink' : ''
-            }`}
-          />
-        </button>}
+        {!alwaysExpanded && (
+          <button
+            onClick={() => setIsAspectDropdownOpen(!isAspectDropdownOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl text-xs text-slate-200 transition-all cursor-pointer shadow-inner group"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
+                {getAspectRatioCategory(state.aspectRatio)}
+              </span>
+              <span className="text-slate-300 font-medium truncate">
+                {getAspectRatioLabel(state.aspectRatio, state.customWidth, state.customHeight)}
+              </span>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-slate-400 group-hover:text-slate-200 transition-transform duration-200 shrink-0 ml-2 ${
+                isAspectDropdownOpen ? 'rotate-180 text-pastel-pink' : ''
+              }`}
+            />
+          </button>
+        )}
 
         {(alwaysExpanded || isAspectDropdownOpen) && (
-          <div className={alwaysExpanded ? 'space-y-3' : 'absolute top-full left-0 right-0 mt-2 z-50 max-h-[360px] space-y-3 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150'}>
+          <div
+            className={
+              alwaysExpanded
+                ? 'space-y-3'
+                : 'absolute top-full left-0 right-0 mt-2 z-50 max-h-[360px] space-y-3 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150'
+            }
+          >
             {/* Custom Pixel Dimensions Input */}
             <div className="pb-2 border-b border-neutral-800/80 space-y-2">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">
@@ -131,6 +141,7 @@ export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({ alwaysEx
                 {[
                   { id: 'auto', label: 'Auto', ratio: 'Auto', aspectClass: 'aspect-square' },
                   { id: '1:1', label: 'Square', ratio: '1:1', aspectClass: 'aspect-square' },
+                  { id: 'app-icon', label: 'App Icon', ratio: '1:1', aspectClass: 'aspect-square' },
                   { id: '4:3', label: 'Standard', ratio: '4:3', aspectClass: 'aspect-[4/3]' },
                   { id: '3:2', label: 'Classic', ratio: '3:2', aspectClass: 'aspect-[3/2]' },
                   { id: '5:4', label: 'Frame', ratio: '5:4', aspectClass: 'aspect-[5/4]' },
@@ -162,6 +173,9 @@ export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({ alwaysEx
                               : state.layoutPreset;
                           onChange({
                             aspectRatio: item.id as any,
+                            ...(item.id === 'app-icon'
+                              ? { customWidth: 1024, customHeight: 1024 }
+                              : {}),
                             zoom: recZoom,
                             slot2Zoom: recZoom,
                             layoutPreset: newPreset,

@@ -21,6 +21,13 @@ import { PROJECTS } from './ProjectSpotlight';
 import { optimizeStudioStateForExport } from '../utils/imageOptimizer';
 import { compressGzipString } from '../utils/gzipCompression';
 import {
+  generateIconPack,
+  renderIconCanvas,
+  type IconPackOptions,
+  type IconPlatform,
+} from '../utils/iconPack';
+import { EXPORT_COSTS } from '../lib/credits';
+import {
   canUseCachedVideoFrameRenderer,
   createCachedVideoFrameRenderer,
   type CachedVideoFrameRenderer,
@@ -104,10 +111,7 @@ async function retryReservationMutation(mutation: () => Promise<ExportReservatio
   throw lastError;
 }
 
-async function warmDesktopCapture(
-  node: HTMLElement,
-  options: Parameters<typeof toCanvas>[1]
-) {
+async function warmDesktopCapture(node: HTMLElement, options: Parameters<typeof toCanvas>[1]) {
   if (!isDesktopApp()) return;
   // The video frame image has no source until the first frame is sought below.
   // It sits inside the mockup, so skip before decoding mockup images.
@@ -118,10 +122,12 @@ async function warmDesktopCapture(
   // A loaded DOM image is not necessarily decoded inside html-to-image's SVG
   // foreignObject. WKWebView can omit it on the first rasterization, even when
   // the canvas preview already shows it. Wait for the source before priming.
-  await Promise.all(mockupImages.map(async (image) => {
-    await image.decode();
-    if (!image.naturalWidth) throw new Error('The mockup image could not be loaded for export.');
-  }));
+  await Promise.all(
+    mockupImages.map(async (image) => {
+      await image.decode();
+      if (!image.naturalWidth) throw new Error('The mockup image could not be loaded for export.');
+    })
+  );
 
   // Prime the foreignObject renderer once without paying the memory cost of
   // repeated full-stage captures. The mockup shadow is rendered separately
@@ -191,9 +197,12 @@ function hasUnpaintedDesktopMockup(node: HTMLElement, canvas: HTMLCanvasElement)
   for (const image of probes) {
     const rect = image.getBoundingClientRect();
     if (!rect.width || !rect.height) continue;
-    const centerY = ((rect.top + rect.height / 2 - stageRect.top) / stageRect.height) * canvas.height;
-    const leftX = ((rect.left + rect.width * 0.46 - stageRect.left) / stageRect.width) * canvas.width;
-    const rightX = ((rect.left + rect.width * 0.54 - stageRect.left) / stageRect.width) * canvas.width;
+    const centerY =
+      ((rect.top + rect.height / 2 - stageRect.top) / stageRect.height) * canvas.height;
+    const leftX =
+      ((rect.left + rect.width * 0.46 - stageRect.left) / stageRect.width) * canvas.width;
+    const rightX =
+      ((rect.left + rect.width * 0.54 - stageRect.left) / stageRect.width) * canvas.width;
     const left = sample(leftX, centerY);
     const right = sample(rightX, centerY);
     const magenta = left[0] > left[1] + 90 && left[2] > left[1] + 90;
@@ -231,7 +240,11 @@ async function captureAnimationFrameCanvas(
 
   // Validate the frozen video images before passing a snapshot to the encoder.
   if (node.querySelector('canvas[data-slot-canvas]')) {
-    return captureDesktopVideoFrame(node, options, (canvas) => !hasUnpaintedDesktopMockup(node, canvas));
+    return captureDesktopVideoFrame(
+      node,
+      options,
+      (canvas) => !hasUnpaintedDesktopMockup(node, canvas)
+    );
   }
 
   return firstFrame ? captureDesktopImageCanvas(node, options) : toCanvas(node, options);
@@ -334,8 +347,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const [exportingType, setExportingType] = useState<'image' | 'video' | null>(null);
   const [videoFormat, setVideoFormat] = useState<'mp4' | 'webm'>('mp4');
   const [videoFps, setVideoFps] = useState<30 | 60>(30);
-  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'share'>(
-    state.isAnimationMode ? 'video' : 'image'
+  const isIconPreset = state.aspectRatio === 'app-icon';
+  const [iconPreviews, setIconPreviews] = useState<{ size: number; src: string }[]>([]);
+  const [isIconPreviewing, setIsIconPreviewing] = useState(false);
+  const [iconOptions, setIconOptions] = useState<IconPackOptions>({
+    platforms: ['web', 'android', 'ios', 'windows'],
+    name: 'My App',
+    shortName: 'My App',
+    startUrl: '/',
+    background: '#ffffff',
+    theme: '#ffffff',
+    padding: 0,
+    legacyTiles: true,
+  });
+  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'share' | 'icons'>(
+    isIconPreset ? 'icons' : state.isAnimationMode ? 'video' : 'image'
   );
   const [exportProgress, setExportProgress] = useState(0);
   const [exportScope, setExportScope] = useState<'current' | 'all'>('current');
@@ -366,6 +392,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
   useEffect(() => {
     if (!isOpen) return;
+    setActiveTab(isIconPreset ? 'icons' : state.isAnimationMode ? 'video' : 'image');
     setShareUrl('');
     setShareError('');
     setIsSharing(false);
@@ -376,13 +403,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setVideoExportError('');
     setVideoExportNotice('');
     setCreditDialogOpen(false);
-  }, [isOpen]);
+    setIconPreviews([]);
+  }, [isOpen, isIconPreset]);
+
+  useEffect(() => {
+    setIconPreviews([]);
+  }, [iconOptions.background, iconOptions.padding, state.activeStageIndex]);
 
   useEffect(() => {
     if (!session.isPending && !session.data?.user && activeTab === 'share') {
-      setActiveTab(state.isAnimationMode ? 'video' : 'image');
+      setActiveTab(isIconPreset ? 'icons' : state.isAnimationMode ? 'video' : 'image');
     }
-  }, [activeTab, session.data?.user, session.isPending, state.isAnimationMode]);
+  }, [activeTab, session.data?.user, session.isPending, state.isAnimationMode, isIconPreset]);
 
   useEffect(() => {
     const user = session.data?.user;
@@ -479,8 +511,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const imageStageCount = exportScope === 'all' ? totalImageStages : 1;
   const imageDownloadCost = getImageExportCost(state.exportScale, imageStageCount);
   const imageCopyCost = getImageExportCost(state.exportScale);
-  const customImageBaseSize =
-    state.aspectRatio === 'custom'
+  const customImageBaseSize = isIconPreset
+    ? { width: 1024, height: 1024 }
+    : state.aspectRatio === 'custom'
       ? {
           width: Math.max(160, state.customWidth || 1280),
           height: Math.max(160, state.customHeight || 720),
@@ -525,7 +558,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   );
   const desktopVideoIssue = isDesktopApp() ? getDesktopFrameExportIssue(state, exportScope) : null;
   const videoActionsDisabled =
-    isExporting || session.isPending || accountPending || !sessionUser || videoDurationInvalid || Boolean(desktopVideoIssue);
+    isExporting ||
+    session.isPending ||
+    accountPending ||
+    !sessionUser ||
+    videoDurationInvalid ||
+    Boolean(desktopVideoIssue);
 
   const syncCreditBalance = (balance: number) => {
     setVerifiedAccount((account) =>
@@ -556,14 +594,32 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
 
   if (!isOpen) return null;
 
-  const handleExport = async (format: 'png' | 'jpeg' | 'webp', isCopy = false) => {
+  const handleExport = async (
+    format: 'png' | 'jpeg' | 'webp',
+    isCopy = false,
+    isIconPack = false,
+    isIconPreview = false
+  ) => {
     if (!canvasRef.current || imageExportLockRef.current) return;
-    if (!sessionUser) {
+    if (!sessionUser && !isIconPreview) {
       setImageExportError('Sign in before exporting a high-resolution image.');
       return;
     }
 
-    const stageScope = isCopy ? 'current' : exportScope;
+    const stageScope = isCopy || isIconPack ? 'current' : exportScope;
+    if (
+      isIconPack &&
+      !isIconPreview &&
+      (!isIconPreset ||
+        !iconOptions.platforms.length ||
+        (iconOptions.platforms.includes('web') &&
+          (!iconOptions.startUrl.startsWith('/') || iconOptions.startUrl.startsWith('//'))))
+    ) {
+      setImageExportError(
+        'Select a platform and use a site-relative Start URL, such as / or /studio.'
+      );
+      return;
+    }
     const desktopFrameIssue = isDesktopApp()
       ? getDesktopFrameExportIssue(useStudioStore.getState(), stageScope)
       : null;
@@ -572,8 +628,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       return;
     }
     const stageCount = stageScope === 'all' ? totalImageStages : 1;
-    const expectedCost = getImageExportCost(state.exportScale, stageCount);
+    const expectedCost = isIconPack
+      ? EXPORT_COSTS.iconPack
+      : getImageExportCost(state.exportScale, stageCount);
     if (
+      !isIconPreview &&
       verifiedAccount &&
       !verifiedAccount.credits.unlimited &&
       verifiedAccount.credits.balance < expectedCost
@@ -593,7 +652,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     setImageExportError('');
     setImageExportNotice('');
     setIsExporting(true);
+    setIsIconPreviewing(isIconPreview);
     setExportingType('image');
+    if (isIconPack) state.updateState({ isPlaying: false });
 
     let reservation: ExportReservation | null = null;
     let renderCompleted = false;
@@ -605,24 +666,33 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
     const releaseKey = crypto.randomUUID();
 
     try {
-      const projectHash = await createProjectHash(useStudioStore.getState());
-      reservation = await retryReservationMutation(() =>
-        reserveImageExport({
-          idempotencyKey: reservationKey,
-          projectHash,
-          kind: 'image',
-          format,
-          scale: state.exportScale,
-          stageScope,
-          stageCount,
-          videoDurationSeconds: null,
-        })
-      );
-      syncCreditBalance(reservation.balance);
-      if (reservation.unlimited) {
-        setImageExportNotice('Included with your Creator plan — no credits charged.');
-      } else if (reservation.protectedRetry) {
-        setImageExportNotice('Free retry applied — no credits charged.');
+      if (!isIconPreview) {
+        const projectHash = await createProjectHash(
+          isIconPack
+            ? { purpose: 'icon-pack-v1', design: useStudioStore.getState(), options: iconOptions }
+            : useStudioStore.getState()
+        );
+        reservation = await retryReservationMutation(() =>
+          reserveImageExport({
+            idempotencyKey: reservationKey,
+            projectHash,
+            kind: 'image',
+            ...(isIconPack ? { purpose: 'icon-pack' as const } : {}),
+            format,
+            // Icon packs use the existing 30-credit image tier; the hash separates
+            // pack settings from normal image exports and protects matching retries.
+            scale: isIconPack ? 3 : state.exportScale,
+            stageScope,
+            stageCount,
+            videoDurationSeconds: null,
+          })
+        );
+        syncCreditBalance(reservation.balance);
+        if (reservation.unlimited) {
+          setImageExportNotice('Included with your Creator plan — no credits charged.');
+        } else if (reservation.protectedRetry) {
+          setImageExportNotice('Free retry applied — no credits charged.');
+        }
       }
 
       // Suppress transitions and wait for every design font so capture is stable.
@@ -657,7 +727,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         ...(state.backgroundType === 'transparent' ? { backgroundColor: 'transparent' } : {}),
       };
 
-      const applyDesktopLensBlur = (canvas: HTMLCanvasElement, pixelRatio: number = state.exportScale) => {
+      const applyDesktopLensBlur = (
+        canvas: HTMLCanvasElement,
+        pixelRatio: number = state.exportScale
+      ) => {
         if (!isDesktopApp()) return canvas;
         const latestState = useStudioStore.getState();
         applyLensBlurToExportCanvas(canvas, {
@@ -679,30 +752,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         if (!customImageOutputSize || !canvasRef.current) return null;
         // CanvasStage renders custom artboards at a fixed 45% display scale.
         // Do not read getBoundingClientRect(): it includes the editor's zoom.
-        const capturePixelRatio = state.exportScale / 0.45;
+        const capturePixelRatio = (isIconPack ? 1 : state.exportScale) / 0.45;
+        const outputSize = isIconPack ? { width: 1024, height: 1024 } : customImageOutputSize;
         const captureOptions = { ...options, pixelRatio: capturePixelRatio };
         const capturedCanvas = isDesktopApp()
           ? await captureDesktopImageCanvas(canvasRef.current, captureOptions)
           : await toCanvas(canvasRef.current, captureOptions);
         applyDesktopLensBlur(capturedCanvas, capturePixelRatio);
         if (
-          capturedCanvas.width === customImageOutputSize.width &&
-          capturedCanvas.height === customImageOutputSize.height
+          capturedCanvas.width === outputSize.width &&
+          capturedCanvas.height === outputSize.height
         ) {
           return capturedCanvas;
         }
         const outputCanvas = document.createElement('canvas');
-        outputCanvas.width = customImageOutputSize.width;
-        outputCanvas.height = customImageOutputSize.height;
+        outputCanvas.width = outputSize.width;
+        outputCanvas.height = outputSize.height;
         const outputContext = outputCanvas.getContext('2d');
         if (!outputContext) throw new Error('Could not create the export canvas.');
-        outputContext.drawImage(
-          capturedCanvas,
-          0,
-          0,
-          customImageOutputSize.width,
-          customImageOutputSize.height
-        );
+        outputContext.drawImage(capturedCanvas, 0, 0, outputSize.width, outputSize.height);
         capturedCanvas.width = 0;
         capturedCanvas.height = 0;
         return outputCanvas;
@@ -712,7 +780,37 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.95));
       const imageMimeType = format === 'jpeg' ? 'image/jpeg' : `image/${format}`;
 
-      if (stageScope === 'all' && totalImageStages > 1 && !isCopy) {
+      if (isIconPack) {
+        restoreDesktopMockupProbes = await prepareDesktopMockupProbes(canvasRef.current);
+        const master = await renderCustomSizedCanvas();
+        if (!master) throw new Error('Could not render the icon master.');
+        try {
+          if (isIconPreview) {
+            const previews = [16, 32, 48].map((size) => {
+              const icon = renderIconCanvas(
+                master,
+                size,
+                size,
+                iconOptions.background,
+                iconOptions.padding
+              );
+              try {
+                return { size, src: icon.toDataURL('image/png') };
+              } finally {
+                icon.width = icon.height = 0;
+              }
+            });
+            setIconPreviews(previews);
+            return; // Free preview: no reservation, download, or settlement.
+          }
+          const zip = await generateIconPack(master, iconOptions);
+          if (!(await saveExportToDevice(zip, `shotage-icon-pack-${Date.now()}.zip`))) {
+            throw new Error('Icon pack export was cancelled.');
+          }
+        } finally {
+          master.width = master.height = 0;
+        }
+      } else if (stageScope === 'all' && totalImageStages > 1 && !isCopy) {
         const stagedDownloads: Array<{ href?: string; blob?: Blob; filename: string }> = [];
 
         for (let i = 0; i < totalImageStages; i++) {
@@ -791,7 +889,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             ? await encodeCanvasToBlob(customCanvas)
             : isDesktopApp()
               ? await (async () => {
-                  const capturedCanvas = await captureDesktopImageCanvas(canvasRef.current!, options);
+                  const capturedCanvas = await captureDesktopImageCanvas(
+                    canvasRef.current!,
+                    options
+                  );
                   applyDesktopLensBlur(capturedCanvas);
                   const result = await encodeCanvasToBlob(capturedCanvas);
                   capturedCanvas.width = 0;
@@ -852,6 +953,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }
       renderCompleted = true;
 
+      if (!reservation) throw new Error('The export credit reservation is missing.');
       const settled = await retryReservationMutation(() =>
         settleExportReservation(reservation!.reservationId, settlementKey)
       );
@@ -876,7 +978,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         }
       }
 
-      if (err instanceof CreditApiError) {
+      if (isIconPreview) {
+        setImageExportError(
+          `Icon preview failed: ${err instanceof Error ? err.message : 'Could not render the design.'}`
+        );
+      } else if (err instanceof CreditApiError) {
         if (typeof err.balance === 'number') syncCreditBalance(err.balance);
         if (err.code === 'INSUFFICIENT_CREDITS') setCreditDialogOpen(true);
         setImageExportError(err.message);
@@ -884,10 +990,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         setImageExportError(
           'Your image was exported, but credit finalization is still pending. Do not export again yet.'
         );
-      } else if (err instanceof Error && err.message.startsWith('The mockup image did not render')) {
+      } else if (
+        err instanceof Error &&
+        err.message.startsWith('The mockup image did not render')
+      ) {
         setImageExportError(`${err.message} Reserved credits were released.`);
       } else if (isDesktopApp() && err instanceof Error) {
-        setImageExportError(`The image export failed: ${err.message} Reserved credits were released.`);
+        setImageExportError(
+          `The image export failed: ${err.message} Reserved credits were released.`
+        );
       } else {
         setImageExportError('The image export failed. Reserved credits were released.');
       }
@@ -903,6 +1014,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       }
       temporaryObjectUrls.forEach((url) => setTimeout(() => URL.revokeObjectURL(url), 2_000));
       setIsExporting(false);
+      setIsIconPreviewing(false);
       setExportingType(null);
       imageExportLockRef.current = false;
     }
@@ -1011,10 +1123,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         : [state.activeStageIndex];
 
       const fps = videoFps;
-      if (isDesktopApp() && stagesToRecord.some((index) => {
-        const stage = isMultiStage ? stageSnapshots[index] : synchronizedState;
-        return stage?.mediaType === 'video' || (stage?.layoutCount === 2 && stage.secondMediaType === 'video');
-      })) {
+      if (
+        isDesktopApp() &&
+        stagesToRecord.some((index) => {
+          const stage = isMultiStage ? stageSnapshots[index] : synchronizedState;
+          return (
+            stage?.mediaType === 'video' ||
+            (stage?.layoutCount === 2 && stage.secondMediaType === 'video')
+          );
+        })
+      ) {
         const { DesktopVideoExportSession } = await import('../utils/exportVideoDecoder');
         desktopVideoSession = new DesktopVideoExportSession(fps);
       }
@@ -1282,7 +1400,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               const { sample, decoderDescription } = convertAvcAnnexB(encoded);
               if (decoderDescription) desktopAvcDescription = decoderDescription;
               if (!desktopAvcDescription) {
-                throw new Error('The H.264 encoder did not provide SPS/PPS headers for the MP4 export.');
+                throw new Error(
+                  'The H.264 encoder did not provide SPS/PPS headers for the MP4 export.'
+                );
               }
               const decoderConfig: VideoDecoderConfig = {
                 codec: supportedConfig!.codec,
@@ -1375,13 +1495,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
           filter: (node) => {
             const element = node as HTMLElement;
-            return element.tagName !== 'VIDEO' && ![
-              'delete-handle',
-              'rotate-handle',
-              'resize-handle',
-              'selection-gizmo-container',
-              'selection-gizmo-item',
-            ].some((className) => element.classList?.contains(className));
+            return (
+              element.tagName !== 'VIDEO' &&
+              ![
+                'delete-handle',
+                'rotate-handle',
+                'resize-handle',
+                'selection-gizmo-container',
+                'selection-gizmo-item',
+              ].some((className) => element.classList?.contains(className))
+            );
           },
         });
 
@@ -1409,7 +1532,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           });
 
           // Do not capture until the source video has painted the requested frame.
-          await syncUploadedVideoFrames(canvasRef.current, targetTimeSec, durationSec, desktopVideoSession);
+          await syncUploadedVideoFrames(
+            canvasRef.current,
+            targetTimeSec,
+            durationSec,
+            desktopVideoSession
+          );
 
           try {
             const isTransitionFrame =
@@ -1499,13 +1627,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   ...(isTransparentExport ? { backgroundColor: 'transparent' } : {}),
                   filter: (node) => {
                     const element = node as HTMLElement;
-                    return element.tagName !== 'VIDEO' && ![
-                      'delete-handle',
-                      'rotate-handle',
-                      'resize-handle',
-                      'selection-gizmo-container',
-                      'selection-gizmo-item',
-                    ].some((className) => element.classList?.contains(className));
+                    return (
+                      element.tagName !== 'VIDEO' &&
+                      ![
+                        'delete-handle',
+                        'rotate-handle',
+                        'resize-handle',
+                        'selection-gizmo-container',
+                        'selection-gizmo-item',
+                      ].some((className) => element.classList?.contains(className))
+                    );
                   },
                 });
               }
@@ -1526,9 +1657,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                   );
                 },
               };
-              const restoreIncomingProbes = incomingFrame === 0
-                ? await prepareDesktopMockupProbes(incomingElement)
-                : null;
+              const restoreIncomingProbes =
+                incomingFrame === 0 ? await prepareDesktopMockupProbes(incomingElement) : null;
               let incomingRenderedCanvas: HTMLCanvasElement;
               try {
                 incomingRenderedCanvas = await captureAnimationFrameCanvas(
@@ -1973,7 +2103,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
       )}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-5 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        className={`max-h-[calc(100dvh-2rem)] w-full ${activeTab === 'icons' ? 'max-w-xl' : 'max-w-md'} space-y-5 overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default`}
       >
         <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
           <div className="flex items-center gap-2.5">
@@ -1987,20 +2117,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-100">
-                {activeTab === 'video'
-                  ? 'Export Video Animation'
-                  : activeTab === 'share'
-                    ? 'Share Your Design'
-                    : 'Export High-Res Graphics'}
+                {activeTab === 'icons'
+                  ? 'Export App Icon Pack'
+                  : activeTab === 'video'
+                    ? 'Export Video Animation'
+                    : activeTab === 'share'
+                      ? 'Share Your Design'
+                      : 'Export High-Res Graphics'}
               </h3>
               <p className="text-xs text-slate-400">
-                {activeTab === 'video'
-                  ? 'Record 3D motion animation as video'
-                  : activeTab === 'share'
-                    ? shareVisibility === 'public'
-                      ? 'Submit your design for Explore review'
-                      : 'Save a design only your account can open'
-                    : 'Select file format and scale multiplier'}
+                {activeTab === 'icons'
+                  ? 'Platform-ready icons in one ZIP'
+                  : activeTab === 'video'
+                    ? 'Record 3D motion animation as video'
+                    : activeTab === 'share'
+                      ? shareVisibility === 'public'
+                        ? 'Submit your design for Explore review'
+                        : 'Save a design only your account can open'
+                      : 'Select file format and scale multiplier'}
               </p>
             </div>
           </div>
@@ -2029,7 +2163,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               <span className="hidden sm:inline">Image Export</span>
             </span>
           </button>
-          {state.isAnimationMode && (
+          {isIconPreset && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('icons')}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border transition-all ${activeTab === 'icons' ? 'bg-[#a2d2ff]/20 text-[#a2d2ff] border-[#a2d2ff]/40' : 'text-slate-400 border-transparent hover:bg-neutral-900'}`}
+            >
+              Icon Pack
+            </button>
+          )}
+          {state.isAnimationMode && !isIconPreset && (
             <button
               onClick={() => setActiveTab('video')}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -2060,6 +2203,268 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
           )}
         </div>
 
+        {activeTab === 'icons' && isIconPreset && (
+          <div className="space-y-4">
+            <p className="text-xs text-slate-400">
+              Generate app icons from the current stage. One ZIP includes a 1024px master and your
+              selected platforms. PNGs are flattened against the chosen background.
+            </p>
+            <div className="grid grid-cols-4 gap-1.5" role="group" aria-label="Icon platforms">
+              {(['web', 'android', 'ios', 'windows'] as IconPlatform[]).map((platform) => (
+                <label
+                  key={platform}
+                  className={`relative flex min-w-0 cursor-pointer flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-[10px] font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pastel-blue ${isExporting ? 'cursor-not-allowed opacity-50' : ''} ${iconOptions.platforms.includes(platform) ? 'border-pastel-pink/50 bg-pastel-pink/10 text-pastel-pink' : 'border-neutral-800 bg-neutral-950 text-slate-400 hover:border-neutral-700 hover:text-slate-200'}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={iconOptions.platforms.includes(platform)}
+                    disabled={isExporting}
+                    onChange={(event) =>
+                      setIconOptions((current) => ({
+                        ...current,
+                        platforms: event.target.checked
+                          ? [...current.platforms, platform]
+                          : current.platforms.filter((item) => item !== platform),
+                      }))
+                    }
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-4 w-4 items-center justify-center rounded border ${iconOptions.platforms.includes(platform) ? 'border-pastel-pink bg-pastel-pink text-neutral-950' : 'border-neutral-600 bg-neutral-900'}`}
+                  >
+                    {iconOptions.platforms.includes(platform) && <Check className="h-3 w-3" />}
+                  </span>
+                  {
+                    {
+                      web: 'Web / PWA',
+                      android: 'Android',
+                      ios: 'iOS / iPadOS',
+                      windows: 'Windows',
+                    }[platform]
+                  }
+                </label>
+              ))}
+            </div>
+            {iconOptions.platforms.includes('web') && (
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {(
+                  [
+                    { key: 'name', label: 'App Name' },
+                    { key: 'shortName', label: 'Short Name' },
+                    { key: 'startUrl', label: 'Start URL' },
+                  ] as const
+                ).map(({ key, label }) => (
+                  <label key={key} className="min-w-0 space-y-1 text-xs text-slate-300">
+                    <span>{label}</span>
+                    <input
+                      value={iconOptions[key]}
+                      maxLength={200}
+                      disabled={isExporting}
+                      onChange={(event) =>
+                        setIconOptions((current) => ({ ...current, [key]: event.target.value }))
+                      }
+                      className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-2 text-slate-200"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {(
+                [
+                  { key: 'background', label: 'Icon Background' },
+                  { key: 'theme', label: 'Theme Color' },
+                ] as const
+              ).map(({ key, label }) => (
+                <label key={key} className="text-xs text-slate-300 space-y-1">
+                  <span>{label}</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={iconOptions[key]}
+                      disabled={isExporting}
+                      onChange={(event) =>
+                        setIconOptions((current) => ({ ...current, [key]: event.target.value }))
+                      }
+                    />
+                    <span className="font-mono">{iconOptions[key]}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <label className="block text-xs text-slate-300">
+              Artwork Padding: {iconOptions.padding}%
+              <input
+                type="range"
+                min={0}
+                max={30}
+                value={iconOptions.padding}
+                disabled={isExporting}
+                className="block w-full mt-2"
+                onChange={(event) =>
+                  setIconOptions((current) => ({ ...current, padding: Number(event.target.value) }))
+                }
+              />
+            </label>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-200">Small icon preview</span>
+                <button
+                  type="button"
+                  disabled={isExporting}
+                  onClick={() => handleExport('png', false, true, true)}
+                  className="rounded-lg border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-[11px] font-semibold text-pastel-blue hover:bg-neutral-700 disabled:opacity-50"
+                >
+                  {isIconPreviewing
+                    ? 'Rendering…'
+                    : iconPreviews.length
+                      ? 'Refresh preview · Free'
+                      : 'Generate preview · Free'}
+                </button>
+              </div>
+              {iconPreviews.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {iconPreviews.map(({ size, src }) => (
+                    <div key={size} className="flex flex-col items-center gap-2">
+                      <div className="flex h-16 w-full items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900">
+                        <img
+                          src={src}
+                          width={size}
+                          height={size}
+                          style={{ width: size, height: size }}
+                          alt={`${size} by ${size} pixel icon preview`}
+                          className="max-w-none"
+                        />
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {size} × {size}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[11px] text-slate-400">
+                Actual size in CSS pixels, using the same resizing as export. Fine text and details
+                may still need simplifying. Refresh after editing the design.
+              </p>
+            </div>
+            {iconOptions.platforms.includes('windows') && (
+              <label className="flex items-center gap-2 text-xs text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={iconOptions.legacyTiles}
+                  className="accent-pastel-pink"
+                  disabled={isExporting}
+                  onChange={(event) =>
+                    setIconOptions((current) => ({ ...current, legacyTiles: event.target.checked }))
+                  }
+                />
+                Include legacy web tiles and browserconfig.xml
+              </label>
+            )}
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-xs text-slate-400 space-y-1">
+              <p>Always: 1024px master + README.</p>
+              {iconOptions.platforms.includes('web') && (
+                <p>
+                  Web: favicons, touch icon, 192/512px regular and maskable icons, manifest.json,
+                  HTML tags.
+                </p>
+              )}
+              {iconOptions.platforms.includes('android') && (
+                <p>
+                  Android: 48–192px launcher icons + 512px store icon. Standard PNGs, not adaptive
+                  icons.
+                </p>
+              )}
+              {iconOptions.platforms.includes('ios') && (
+                <p>iOS: 13 PNG sizes + AppIcon.appiconset/Contents.json. Traditional flat icons.</p>
+              )}
+              {iconOptions.platforms.includes('windows') && (
+                <p>
+                  Windows: multi-size ICO
+                  {iconOptions.legacyTiles ? ' + 4 legacy tiles and browserconfig.xml' : ''}.
+                </p>
+              )}
+              <p>
+                Maskable icons automatically receive safe padding. Any corners drawn into your
+                design remain in the export.
+              </p>
+            </div>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 px-3.5 py-3">
+              {session.isPending || accountPending ? (
+                <div className="flex items-center justify-center gap-2 py-1 text-xs text-slate-400">
+                  <Loading01 className="h-3.5 w-3.5 animate-spin text-pastel-pink" />
+                  Checking your credits…
+                </div>
+              ) : !sessionUser ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-white">Sign in to export</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">
+                      New accounts receive 100 welcome credits.
+                    </p>
+                  </div>
+                  <AuthButton variant="studio" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Your balance
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-white">
+                      {verifiedAccount
+                        ? hasUnlimitedExports
+                          ? '∞ Unlimited'
+                          : `${verifiedAccount.credits.balance.toLocaleString()} credits`
+                        : 'Balance unavailable'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Export cost
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-pastel-pink">
+                      {hasUnlimitedExports ? 'Included' : `${EXPORT_COSTS.iconPack} credits`}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            {imageExportError && (
+              <p role="alert" className="text-xs text-red-300">
+                {imageExportError}
+              </p>
+            )}
+            {imageExportNotice && (
+              <p role="status" className="text-xs text-pastel-blue">
+                {imageExportNotice}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={
+                isExporting ||
+                !iconOptions.platforms.length ||
+                accountPending ||
+                session.isPending ||
+                !sessionUser
+              }
+              onClick={() => handleExport('png', false, true)}
+              className="w-full rounded-xl py-3 font-bold text-sm text-neutral-950 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundImage: 'linear-gradient(135deg, #cdb4db, #ffafcc, #a2d2ff)' }}
+            >
+              {isIconPreviewing
+                ? 'Rendering free preview…'
+                : isExporting
+                  ? 'Generating Icon Pack…'
+                  : !sessionUser
+                    ? 'Sign in to export an Icon Pack'
+                    : `Download Icon Pack ZIP · ${hasUnlimitedExports ? 'Included' : `${EXPORT_COSTS.iconPack} credits`}`}
+            </button>
+          </div>
+        )}
         {/* Tab 1: Image Export */}
         {activeTab === 'image' && (
           <>
@@ -2195,7 +2600,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
 
             {(desktopImageIssue || desktopCopyIssue) && (
-              <div role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-5 text-amber-200">
+              <div
+                role="alert"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-5 text-amber-200"
+              >
                 {desktopImageIssue || desktopCopyIssue}
               </div>
             )}
@@ -2269,7 +2677,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
         )}
 
         {/* Tab 2: Video Export (When Animation Mode is active) */}
-        {state.isAnimationMode && activeTab === 'video' && (
+        {state.isAnimationMode && !isIconPreset && activeTab === 'video' && (
           <>
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
@@ -2422,7 +2830,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
             </div>
 
             {desktopVideoIssue && (
-              <div role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-5 text-amber-200">
+              <div
+                role="alert"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[11px] leading-5 text-amber-200"
+              >
                 {desktopVideoIssue}
               </div>
             )}

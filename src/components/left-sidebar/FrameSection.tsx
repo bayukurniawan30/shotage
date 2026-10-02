@@ -626,7 +626,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
               type="text"
               value={state.urlText}
               onChange={(e) => onChange({ urlText: e.target.value })}
-              placeholder="shotage.app/preview"
+              placeholder="shotage.studio"
               className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink"
             />
           </div>
@@ -640,7 +640,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
                 type="text"
                 value={state.secondUrlText}
                 onChange={(e) => onChange({ secondUrlText: e.target.value })}
-                placeholder="shotage.app/demo"
+                placeholder="shotage.studio"
                 className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-pastel-pink"
               />
             </div>
@@ -735,6 +735,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-2">
           {[
             {
               label: 'Window Width',
@@ -755,7 +756,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
               unit: 'px',
             },
             {
-              label: 'Code Font Size',
+              label: 'Font Size',
               value: state.codeFontSize,
               min: 8,
               max: 32,
@@ -764,15 +765,14 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
               unit: 'px',
             },
           ].map((control) => (
-            <div key={control.key}>
-              <div className="mb-1 flex items-center justify-between text-xs">
+            <div key={control.key} className="min-w-0">
+              <div className="mb-1 text-[10px]">
                 <span className="font-medium text-slate-300">{control.label}</span>
-                <span className="font-mono text-[11px] text-slate-400">
-                  {control.value}
-                  {control.unit}
-                </span>
               </div>
               <StepperSlider
+                variant="compact"
+                unit={control.unit}
+                label={control.label}
                 min={control.min}
                 max={control.max}
                 step={control.step}
@@ -782,6 +782,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
               />
             </div>
           ))}
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             {[

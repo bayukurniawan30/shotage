@@ -6,9 +6,6 @@ const links = [
   { href: '/explore', label: 'Explore' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/faq', label: 'FAQ' },
-  { href: '/terms', label: 'Terms' },
-  { href: '/privacy', label: 'Privacy' },
-  { href: '/refund-policy', label: 'Refunds' },
 ];
 
 type PublicHeaderProps = {

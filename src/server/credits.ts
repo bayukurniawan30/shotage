@@ -42,6 +42,7 @@ export const reservationRequestSchema = z.discriminatedUnion('kind', [
   z.object({
     ...reservationFields,
     kind: z.literal('image'),
+    purpose: z.literal('icon-pack').optional(),
     format: z.enum(['png', 'jpeg', 'webp']),
     videoDurationSeconds: z.null().optional().default(null),
   }),
@@ -58,6 +59,14 @@ export const reservationOperationSchema = z.object({
 });
 
 export type ReservationRequest = z.infer<typeof reservationRequestSchema>;
+
+export function normalizeReservationRequest(request: ReservationRequest): ReservationRequest {
+  // Icon packs share the 30-credit image tier but always bill one active stage.
+  if (request.kind === 'image' && request.purpose === 'icon-pack') {
+    return { ...request, format: 'png', scale: 3, stageScope: 'current', stageCount: 1 };
+  }
+  return request;
+}
 
 export type CreditProfile = {
   userId: string;
@@ -140,6 +149,9 @@ export async function reserveExportCredits(
   request: ReservationRequest,
   unlimited = false
 ): Promise<ReservationResult> {
+  // Reuse the existing high-density image accounting tier without a DB
+  // migration. Enforce pack pricing/scope on the server, never from UI values.
+  request = normalizeReservationRequest(request);
   const result = await getDatabase().execute<ReservationRow>(sql`
     select *
     from ${unlimited ? sql`public.reserve_unlimited_export` : sql`public.reserve_export_credits`}(

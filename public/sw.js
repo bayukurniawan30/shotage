@@ -3,7 +3,7 @@ const ASSETS_TO_CACHE = [
   '/manifest.json',
   '/favicon.ico',
   '/shotage-logo-small.png',
-  '/shotage-og.jpg',
+  '/shotage-og.jpeg',
   '/animated-example-1.png',
   '/animated-example-2.png',
   '/animated-example-3.png',

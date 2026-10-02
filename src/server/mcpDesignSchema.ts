@@ -72,6 +72,7 @@ export const MCP_ASPECT_RATIOS = [
   'auto',
   '16:9',
   '1:1',
+  'app-icon',
   '9:16',
   '4:3',
   '3:2',
@@ -910,7 +911,8 @@ export const MCP_MOTION_REFERENCE = {
     layers: 'Shape and text layers use bgImage, not imageSrc, for their image fill.',
     keyframes:
       'Animate bgImageZoom (10-400 percent), bgImageOffsetX and bgImageOffsetY (pixels) to pan/zoom the image inside a stationary layer. Defaults are 100, 0, 0.',
-    preservation: 'Preserve bgImage URLs/data, bgImageRepeat, and existing crop settings when editing.',
+    preservation:
+      'Preserve bgImage URLs/data, bgImageRepeat, and existing crop settings when editing.',
   },
   sourceCodeFrames: {
     frameType: 'code-window',

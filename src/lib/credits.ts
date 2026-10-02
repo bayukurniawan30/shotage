@@ -1,6 +1,7 @@
 export const EXPORT_COSTS = {
   imageStandard: 15,
   image4k: 30,
+  iconPack: 30,
   videoShort: 75,
   videoLong: 120,
 } as const;

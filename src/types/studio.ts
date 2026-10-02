@@ -533,6 +533,7 @@ export interface StudioState {
     | 'auto'
     | '16:9'
     | '1:1'
+    | 'app-icon'
     | '9:16'
     | '4:3'
     | '3:2'
@@ -683,8 +684,8 @@ createShot('Made with Shotage');`,
   codeWordWrap: false,
   samsungStatusBar: 'none',
   iphoneStatusBar: 'none',
-  urlText: 'shotage.app/preview',
-  secondUrlText: 'shotage.app/demo',
+  urlText: 'shotage.studio',
+  secondUrlText: 'shotage.studio',
   sharedDesignName: null,
   sharedDesignPublisher: null,
   backgroundType: 'gradient',

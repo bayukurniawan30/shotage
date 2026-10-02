@@ -24,6 +24,7 @@ export const FRAME_LABELS: Record<string, string> = {
 };
 
 export const getAspectRatioCategory = (aspectRatio: string) => {
+  if (aspectRatio === 'app-icon') return 'App Icon';
   if (aspectRatio === 'custom') return 'Custom';
   if (['auto', '16:9', '1:1', '9:16', '4:3', '3:2', '3:4', '5:4', '4:5'].includes(aspectRatio))
     return 'General';
@@ -56,6 +57,8 @@ export const getAspectRatioLabel = (
       return 'YouTube Video (16:9)';
     case '16:9':
       return 'Landscape (16:9)';
+    case 'app-icon':
+      return 'App Icon (1:1 · 1024 × 1024)';
     case '1:1':
       return 'Square (1:1)';
     case '9:16':
@@ -81,7 +84,8 @@ export const getRecommendedZoomForAspect = (
   customH?: number
 ) => {
   let ratioNum = 16 / 9;
-  if (aspectRatio === '1:1' || aspectRatio === 'ig-post') ratioNum = 1;
+  if (aspectRatio === '1:1' || aspectRatio === 'ig-post' || aspectRatio === 'app-icon')
+    ratioNum = 1;
   else if (aspectRatio === '9:16' || aspectRatio === 'ig-story') ratioNum = 9 / 16;
   else if (aspectRatio === '4:3') ratioNum = 4 / 3;
   else if (aspectRatio === '3:2') ratioNum = 3 / 2;

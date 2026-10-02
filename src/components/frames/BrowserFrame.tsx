@@ -62,7 +62,7 @@ export const BrowserFrame: React.FC<BrowserFrameProps> = ({
             <span
               className={`truncate max-w-[200px] ${isDark ? 'text-slate-100' : 'text-slate-900'}`}
             >
-              {urlText || 'https://example.com'}
+              {urlText || 'shotage.studio'}
             </span>
           </div>
         )}
@@ -72,7 +72,7 @@ export const BrowserFrame: React.FC<BrowserFrameProps> = ({
           <div className="flex-1 flex items-center gap-1 ml-1">
             <div className="px-2 py-[2px] mb-[-3px] text-[5px] max-w-[140px] bg-neutral-900 rounded-t border-t border-x border-neutral-800 font-mono font-semibold text-slate-100 flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-pastel-pink shrink-0"></span>
-              <span className="truncate">{urlText || 'App Showcase'}</span>
+              <span className="truncate">{urlText || 'shotage.studio'}</span>
             </div>
           </div>
         )}
