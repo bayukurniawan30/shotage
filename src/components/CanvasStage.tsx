@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
+import { useIconPreviewStore } from '../store/useIconPreviewStore';
+import { IconClipDefinition, IconConstructionGuides, iconPreviewClip } from './IconPreview';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { CodeFrame } from './frames/CodeFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
@@ -350,6 +352,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   overview = false,
 }) => {
   const liveState = useStudioStore();
+  const iconPreview = useIconPreviewStore();
+  const iconClipId = `${canvasId}-icon-preview-clip`;
   const state = stateOverride
     ? ({
         ...liveState,
@@ -5310,9 +5314,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         <div
           ref={canvasRef}
           id={canvasId}
-          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${readOnly ? 'exporting-no-transitions' : ''} ${readOnly && !overview && isDesktopApp() ? 'exporting-desktop-shadow-fallback' : ''} ${getAspectRatioStyle()}`}
+          className={`relative flex items-center justify-center transition-all duration-300 overflow-visible shadow-2xl box-border shrink-0 ${state.aspectRatio === 'app-icon' && !readOnly ? 'app-icon-preview-root' : ''} ${readOnly ? 'exporting-no-transitions' : ''} ${readOnly && !overview && isDesktopApp() ? 'exporting-desktop-shadow-fallback' : ''} ${getAspectRatioStyle()}`}
           style={{
             ...getBackgroundStyle(),
+            ...(state.aspectRatio === 'app-icon'
+              ? { backgroundImage: 'none', backgroundColor: 'transparent' }
+              : {}),
             padding: `${state.padding}px`,
             ...(state.aspectRatio === 'app-icon'
               ? { width: '460.8px', height: '460.8px', aspectRatio: '1 / 1' }
@@ -5325,12 +5332,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 : {}),
           }}
         >
+          {state.aspectRatio === 'app-icon' && !readOnly && <IconClipDefinition id={iconClipId} />}
           {/* Cropped Canvas Content Layer (Photoshop-like Artboard Clipping) */}
           <div
             id={`${canvasId}-content`}
-            className="absolute inset-0 overflow-hidden pointer-events-auto rounded-[inherit] flex items-center justify-center"
+            className={`absolute inset-0 overflow-hidden pointer-events-auto rounded-[inherit] flex items-center justify-center ${state.aspectRatio === 'app-icon' && !readOnly ? 'app-icon-preview-content' : ''}`}
             style={{
               padding: `${state.padding}px`,
+              ...(state.aspectRatio === 'app-icon' && !readOnly
+                ? { clipPath: iconPreviewClip(iconPreview.shape, iconClipId) }
+                : {}),
             }}
           >
             {/* Global Canvas Background Layer Container with Blur Support */}
@@ -5799,6 +5810,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
             {/* Watermark Overlay (Placed at top-level above Lens Blur) */}
             <WatermarkOverlay />
+            {state.aspectRatio === 'app-icon' && !readOnly && iconPreview.guides && (
+              <IconConstructionGuides
+                construction={iconPreview.construction}
+                dragging={state.isPositionDragging}
+              />
+            )}
           </div>
 
           {!readOnly &&

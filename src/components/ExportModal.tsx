@@ -27,6 +27,8 @@ import {
   type IconPlatform,
 } from '../utils/iconPack';
 import { EXPORT_COSTS } from '../lib/credits';
+import { useIconPreviewStore } from '../store/useIconPreviewStore';
+import { IconClipDefinition, iconPreviewClip } from './IconPreview';
 import {
   canUseCachedVideoFrameRenderer,
   createCachedVideoFrameRenderer,
@@ -348,6 +350,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const [videoFormat, setVideoFormat] = useState<'mp4' | 'webm'>('mp4');
   const [videoFps, setVideoFps] = useState<30 | 60>(30);
   const isIconPreset = state.aspectRatio === 'app-icon';
+  const iconPreviewShape = useIconPreviewStore((settings) => settings.shape);
+  const iconPreviewClipId = `icon-export-preview-${React.useId().replace(/:/g, '')}`;
   const [iconPreviews, setIconPreviews] = useState<{ size: number; src: string }[]>([]);
   const [isIconPreviewing, setIsIconPreviewing] = useState(false);
   const [iconOptions, setIconOptions] = useState<IconPackOptions>({
@@ -2325,6 +2329,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
               </div>
               {iconPreviews.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
+                  <IconClipDefinition id={iconPreviewClipId} />
                   {iconPreviews.map(({ size, src }) => (
                     <div key={size} className="flex flex-col items-center gap-2">
                       <div className="flex h-16 w-full items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900">
@@ -2332,7 +2337,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                           src={src}
                           width={size}
                           height={size}
-                          style={{ width: size, height: size }}
+                          style={{
+                            width: size,
+                            height: size,
+                            clipPath: iconPreviewClip(iconPreviewShape, iconPreviewClipId),
+                          }}
                           alt={`${size} by ${size} pixel icon preview`}
                           className="max-w-none"
                         />
@@ -2345,8 +2354,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 </div>
               )}
               <p className="text-[11px] text-slate-400">
-                Actual size in CSS pixels, using the same resizing as export. Fine text and details
-                may still need simplifying. Refresh after editing the design.
+                Actual size in CSS pixels with your selected preview mask. The PNG files remain
+                square. Fine details may still need simplifying. Refresh after editing the design.
               </p>
             </div>
             {iconOptions.platforms.includes('windows') && (

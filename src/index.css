@@ -146,6 +146,15 @@ input[type='range'] {
 }
 
 /* Instant exact layout rendering during export */
+.app-icon-preview-root {
+  box-shadow: none;
+}
+
+/* Editor masks must never alter image, thumbnail, or video capture. */
+.exporting-no-transitions .app-icon-preview-content {
+  clip-path: none !important;
+}
+
 .exporting-no-transitions,
 .exporting-no-transitions * {
   transition: none !important;

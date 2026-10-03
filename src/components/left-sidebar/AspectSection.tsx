@@ -3,12 +3,14 @@ import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ChevronDown } from '@untitledui/icons';
 import { SocialIcon } from '../SocialIcons';
 import { getAspectRatioCategory, getAspectRatioLabel, getRecommendedZoomForAspect } from './utils';
+import { useIconPreviewStore, type IconPreviewShape } from '../../store/useIconPreviewStore';
 
 export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({
   alwaysExpanded = false,
 }) => {
   const state = useStudioEditorStore();
   const onChange = state.updateState;
+  const iconPreview = useIconPreviewStore();
 
   const [isAspectDropdownOpen, setIsAspectDropdownOpen] = useState(false);
   const [customWidthInput, setCustomWidthInput] = useState<string>(
@@ -325,6 +327,57 @@ export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({
           </div>
         )}
       </div>
+      {state.aspectRatio === 'app-icon' && (
+        <div className="space-y-3 border-t border-neutral-800 pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Preview Shape
+          </p>
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-neutral-800 bg-neutral-950 p-1">
+            {(
+              [
+                { shape: 'rounded', label: 'iOS / Rounded' },
+                { shape: 'circle', label: 'Circle' },
+                { shape: 'square', label: 'Square' },
+              ] as { shape: IconPreviewShape; label: string }[]
+            ).map(({ shape, label }) => (
+              <button
+                key={shape}
+                type="button"
+                aria-pressed={iconPreview.shape === shape}
+                onClick={() => iconPreview.setShape(shape)}
+                className={`rounded-lg px-1 py-2 text-[10px] font-semibold transition-colors ${iconPreview.shape === shape ? 'bg-pastel-pink/15 text-pastel-pink' : 'text-slate-400 hover:bg-neutral-800 hover:text-white'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+            <input
+              type="checkbox"
+              className="accent-pastel-pink"
+              checked={iconPreview.guides}
+              onChange={(event) => iconPreview.setGuides(event.target.checked)}
+            />
+            Show Icon Guides
+          </label>
+          <label
+            className={`flex items-center gap-2 text-xs text-slate-300 ${!iconPreview.guides ? 'opacity-50' : 'cursor-pointer'}`}
+          >
+            <input
+              type="checkbox"
+              className="accent-pastel-pink"
+              checked={iconPreview.construction}
+              disabled={!iconPreview.guides}
+              onChange={(event) => iconPreview.setConstruction(event.target.checked)}
+            />
+            Inner Square & Circles
+          </label>
+          <p className="text-[10px] leading-relaxed text-slate-500">
+            Preview only. Exports remain square and never include guides. The rounded mask
+            approximates an iOS icon.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
