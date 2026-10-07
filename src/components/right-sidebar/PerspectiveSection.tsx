@@ -13,6 +13,34 @@ export const PerspectiveSection: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'scaling' | 'tilt' | 'position'>('scaling');
 
+  const fitMockup = () => {
+    const canvas = document.getElementById('shotage-canvas');
+    const mockup = canvas?.querySelector<HTMLElement>('[data-video-export-mockup="1"]');
+    if (!canvas || !mockup || !mockup.offsetWidth || !mockup.offsetHeight) return;
+
+    // Use layout dimensions so viewport zoom and existing transforms do not affect the fit.
+    const paddingScale = Math.max(0.2, 1 - state.padding / 600);
+    // Contain the entire mockup within the artboard (not its padded content
+    // area), touching either its horizontal or vertical edges without cropping.
+    const zoom = Math.floor(
+      Math.min(canvas.clientWidth / mockup.offsetWidth, canvas.clientHeight / mockup.offsetHeight)
+        / paddingScale * 10000
+    ) / 100;
+    onChange({
+      zoom,
+      offsetX: 0,
+      offsetY: 0,
+      alignment: 'center',
+      mockupAnchorX: 0.5,
+      mockupAnchorY: 0.5,
+      rotateX: 0,
+      rotateY: 0,
+      skewX: 0,
+      skewY: 0,
+      slot1Rotate: 0,
+    });
+  };
+
   const updateMockupAnchor = (slot: 1 | 2, anchorX: number, anchorY: number) => {
     const element = document.querySelector<HTMLElement>(
       `[data-video-export-mockup="${slot}"]`
@@ -80,13 +108,23 @@ export const PerspectiveSection: React.FC = () => {
               <span className="font-mono text-slate-400">{state.zoom}%</span>
             </div>
             <StepperSlider
-              min={50}
-              max={200}
+              min={Math.min(50, state.zoom)}
+              max={Math.max(200, state.zoom)}
               step={1}
               value={state.zoom}
               onChange={(v) => onChange({ zoom: v })}
               accentColor="#ffafcc"
             />
+            {state.frameType === 'frameless' && state.layoutCount === 1 && (
+              <button
+                type="button"
+                onClick={fitMockup}
+                title="Center the whole mockup and enlarge it until one pair of edges touches the canvas, without cropping. Resets tilt and rotation."
+                className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 py-1.5 text-xs font-medium text-slate-200 hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                Fit to canvas
+              </button>
+            )}
           </div>
 
           {/* Slot 2 Zoom Level */}

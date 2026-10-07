@@ -12,6 +12,20 @@ import { SOCIAL_PLATFORMS } from '../components/SocialIcons';
 import { TECH_STACK_ITEMS } from '../components/TechStackIcons';
 
 describe('MCP design construction', () => {
+  it('preserves custom gradients and photo print settings through construction and validation', () => {
+    const customGradient = { angle: 135, stops: [
+      { color: '#ffafcc', position: 10 },
+      { color: '#cdb4db', position: 40 },
+      { color: '#a2d2ff', position: 90 },
+    ] };
+    const photoPrint = { variant: 'gallery', paperColor: '#fffefa', borderWidth: 28, caption: 'Shotage', date: '2026' };
+    const state = buildStudioState({ backgroundType: 'customGradient', customGradient, frameType: 'photo-print', photoPrint });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.customGradient).toEqual(customGradient);
+    expect(state.photoPrint).toEqual(photoPrint);
+    expect(() => validateMcpStudioState({ ...state, customGradient: { ...customGradient, stops: [...customGradient.stops, customGradient.stops[2]] } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, customGradient: { ...customGradient, stops: [...customGradient.stops].reverse() } })).toThrow();
+  });
   it('preserves and validates image fill animation fields', () => {
     const fill = { bgImage: 'https://example.com/image.png', bgImageZoom: 125, bgImageOffsetX: 10, bgImageOffsetY: -20, bgImageRepeat: false };
     const keyframes = [{ id: 'fill-start', timeSec: 0, bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0 }, { id: 'fill-end', timeSec: 2, bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 }];

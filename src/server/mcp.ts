@@ -81,6 +81,27 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
             backgroundType: MCP_BACKGROUND_TYPES,
             backgroundColor: '#RRGGBB',
             gradient: { color1: '#RRGGBB', color2: '#RRGGBB', angle: '0-360' },
+            customGradient: {
+              backgroundType: 'customGradient',
+              angle: '0-360 degrees (90 runs left to right)',
+              stops: [
+                { color: '#ffafcc', position: 0 },
+                { color: '#cdb4db', position: 50 },
+                { color: '#a2d2ff', position: 100 },
+              ],
+              rule: 'Independent of curated gradient. Supply 2 or 3 complete stops ordered by position (0-100%). Two stops default to left/right, three to left/center/right; adjust positions to control blend widths. Equal positions create a hard edge. Set customGradient on the root and each relevant stage snapshot.',
+            },
+            photoPrint: {
+              frameType: 'photo-print',
+              settingsField: 'photoPrint',
+              example: { variant: 'captioned', paperColor: '#fffefa', borderWidth: 12, caption: 'Made with Shotage', date: '' },
+              variants: ['clean', 'captioned', 'gallery'],
+              borderWidth: '0-80px; suggested 12 for clean/captioned, 28 for gallery',
+              rule: 'Use existing mockup image/video fields and transforms. Clean hides caption/date; captioned and gallery show optional caption (max 500 characters) and date/label (max 100). Preserve complete photoPrint settings in stage snapshots.',
+            },
+            mockupFit: {
+              rule: 'Fit to canvas is an editor-only action for frameType=frameless and layoutCount=1. There is no fit flag. To author the same result use centered offsetX/offsetY=0, alignment=center, anchor 0.5/0.5, zero rotateX/rotateY/skewX/skewY/slot1Rotate and an appropriate zoom. Contain the entire mockup without cropping; one pair of edges touches the canvas, with empty space on the other axis if aspect ratios differ.',
+            },
             animation: {
               isAnimationMode: 'boolean',
               durationSec: '1-60',
@@ -256,7 +277,8 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
         aspectRatio: z
           .enum(['16:9', '1:1', 'app-icon', '9:16', '4:3', '3:2', '3:4', '4:5', 'custom'])
           .optional(),
-        backgroundType: z.enum(['solid', 'gradient', 'flow', 'transparent']).optional(),
+        backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
+        customGradient: studioPatchSchema.shape.customGradient,
         backgroundColor: z.string().optional(),
         gradient: z
           .object({

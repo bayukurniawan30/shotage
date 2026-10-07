@@ -139,6 +139,8 @@ export interface ShapeLayer {
   pathData?: string;
   /** False for an open pen line; omitted on legacy filled vector shapes. */
   pathClosed?: boolean;
+  /** Font outlines use nonzero winding so overlapping glyph contours stay filled. */
+  pathFillRule?: 'evenodd' | 'nonzero';
   strokeWidth?: number;
   unitPathData?: string;
   viewBox?: string;
@@ -156,6 +158,8 @@ export interface ShapeLayer {
   height: number;
   depth?: number;
   borderRadius?: number;
+  /** Optional individual radii for basic rectangles and squares. */
+  cornerRadii?: { topLeft?: number; topRight?: number; bottomRight?: number; bottomLeft?: number };
   borderEnabled?: boolean;
   borderColor?: string;
   borderWidth?: number;
@@ -346,6 +350,7 @@ export type WatermarkSize = 'sm' | 'md' | 'lg';
 
 export type BackgroundType =
   | 'solid'
+  | 'customGradient'
   | 'gradient'
   | 'flow'
   | 'mist'
@@ -389,6 +394,7 @@ export type FrameType =
   | 'tablet'
   | 'polaroid'
   | 'polaroid-dark'
+  | 'photo-print'
   | 'instagram'
   | 'instagram-dark';
 
@@ -458,6 +464,13 @@ export interface StudioState {
   shadowOverlayPosition?: 'behind' | 'above';
   hideMockup: boolean;
   frameType: FrameType;
+  photoPrint?: {
+    variant: 'clean' | 'captioned' | 'gallery';
+    paperColor: string;
+    borderWidth: number;
+    caption: string;
+    date: string;
+  };
   codeSource: string;
   codeLanguage: CodeLanguage;
   codeTheme: CodeTheme;
@@ -473,6 +486,7 @@ export interface StudioState {
   urlText: string;
   secondUrlText: string;
   backgroundType: BackgroundType;
+  customGradient?: { angle: number; stops: { color: string; position: number }[] };
   wavePreset: string;
   meshPreset: string;
   shadeshifterPreset?: string;
@@ -664,6 +678,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shadowOverlayPosition: 'above',
   hideMockup: false,
   frameType: 'frameless',
+  photoPrint: { variant: 'clean', paperColor: '#fffefa', borderWidth: 12, caption: 'Quiet mornings, somewhere new.', date: '' },
   codeSource: `const createShot = (title: string) => {
   return {
     title,
@@ -689,6 +704,7 @@ createShot('Made with Shotage');`,
   sharedDesignName: null,
   sharedDesignPublisher: null,
   backgroundType: 'gradient',
+  customGradient: { angle: 90, stops: [{ color: '#ffafcc', position: 0 }, { color: '#a2d2ff', position: 100 }] },
   wavePreset: 'wave-1',
   meshPreset: 'mesh-1',
   shadeshifterPreset: 'shadeshifter-1',

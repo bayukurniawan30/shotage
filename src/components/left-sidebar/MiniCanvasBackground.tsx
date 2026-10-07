@@ -1,4 +1,5 @@
 import React from 'react';
+import { customGradientCss } from '../../utils/customGradient';
 import { useStudioEditorStore } from '../../store/useStudioStore';
 import { LINEAR_SWATCH_PRESETS } from '../../utils/linearSwatchPresets';
 import { MeshBackground } from '../MeshBackground';
@@ -17,7 +18,9 @@ export const MiniCanvasBackground: React.FC<{ className?: string }> = ({ classNa
 
   let content: React.ReactNode = null;
 
-  if (bgType === 'animatedGradient') {
+  if (bgType === 'customGradient') {
+    content = <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: customGradientCss(state.customGradient) }} />;
+  } else if (bgType === 'animatedGradient') {
     content = (
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <AnimatedGradientBackground

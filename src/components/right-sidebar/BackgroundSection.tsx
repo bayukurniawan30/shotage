@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CustomGradientControl } from './CustomGradientControl';
 import { useStudioEditorStore } from '../../store/useStudioStore';
 import {
   ChevronDown,
@@ -103,6 +104,9 @@ export const BackgroundSection: React.FC = () => {
         />
       </div>
 
+      {state.backgroundType === 'customGradient' && (
+        <CustomGradientControl value={state.customGradient} onChange={customGradient => onChange({ customGradient })} />
+      )}
       {state.backgroundType === 'animatedGradient' && (
         <div className="space-y-3 pt-1 border-t border-slate-800/60">
           <div className="flex items-center justify-between text-xs mb-1">

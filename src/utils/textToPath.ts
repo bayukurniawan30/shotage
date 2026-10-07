@@ -1,6 +1,49 @@
 import type { Font } from 'fontkit';
 import type { TextLayer, ShapeLayer } from '../types/studio';
-import { getStudioFont, loadStudioFont } from './fontLoader';
+import { getStudioFont, loadStudioFont, type StudioFont } from './fontLoader';
+
+/** Request a variant actually loaded by the editor, not a possibly nonexistent weight. */
+export function resolveOutlineFontVariant(entry: StudioFont, weight: number, italic: boolean) {
+  const [family, spec] = entry.googleFamily.split(':');
+  if (!spec) {
+    if (italic)
+      throw new Error('This font has no italic outlines. Turn off Italic before converting.');
+    return { family, weight: 400 };
+  }
+  const [axisText, values] = spec.split('@');
+  const axes = axisText.split(',');
+  const wi = axes.indexOf('wght');
+  const ii = axes.indexOf('ital');
+  const rows = values.split(';').map((row) => row.split(','));
+  const matching = rows.filter((row) => (ii < 0 ? !italic : Number(row[ii]) === Number(italic)));
+  if (!matching.length)
+    throw new Error('This font has no italic outlines. Turn off Italic before converting.');
+  const candidates = matching.map((row) => {
+    const bounds = wi < 0 ? [400] : row[wi].split('..').map(Number);
+    return { row, weight: Math.max(bounds[0], Math.min(bounds[1] ?? bounds[0], weight)) };
+  });
+  // CSS font-weight matching: above 500 searches heavier first; below 400 lighter first.
+  const rank = (w: number) =>
+    weight > 500
+      ? w >= weight
+        ? w - weight
+        : 2000 + weight - w
+      : weight < 400
+        ? w <= weight
+          ? weight - w
+          : 2000 + w - weight
+        : w >= weight && w <= 500
+          ? w - weight
+          : w < weight
+            ? 1000 + weight - w
+            : 2000 + w - 500;
+  candidates.sort((a, b) => rank(a.weight) - rank(b.weight));
+  const selected = candidates[0];
+  const tuple = selected.row.map((value, i) =>
+    i === wi ? String(selected.weight) : value.split('..')[0]
+  );
+  return { family: `${family}:${axisText}@${tuple.join(',')}`, weight: selected.weight };
+}
 
 export function textOutlineRestriction(layer: TextLayer): string | null {
   if (!layer.text.trim()) return 'Enter some text first.';
@@ -72,6 +115,7 @@ export function outlineText(
     id: `text-outline-${crypto.randomUUID()}`,
     shapeType: 'custom-path',
     pathClosed: true,
+    pathFillRule: 'nonzero',
     name: `${layer.name || layer.text} (Outline)`,
     pathData: commands.join(' '),
     unitPathData: unitCommands.join(' '),
@@ -113,12 +157,14 @@ export async function convertTextToPath(layer: TextLayer): Promise<ShapeLayer> {
   const width = element.offsetWidth;
   const height = element.offsetHeight;
   if (!width || !height) throw new Error('Unable to measure the text.');
-  const family = entry.name.replace(/ /g, '+');
-  const axis =
-    layer.fontStyle === 'italic' ? `ital,wght@1,${layer.fontWeight}` : `wght@${layer.fontWeight}`;
+  const variant = resolveOutlineFontVariant(
+    entry,
+    Number(layer.fontWeight),
+    layer.fontStyle === 'italic'
+  );
   // Never send the user's text to Google; only request the font family and variant.
   const response = await fetch(
-    `https://fonts.googleapis.com/css2?family=${family}:${axis}&display=swap`
+    `https://fonts.googleapis.com/css2?family=${variant.family}&display=swap`
   );
   if (!response.ok)
     throw new Error('Unable to load this font weight/style. Choose a supported variant.');
@@ -134,7 +180,7 @@ export async function convertTextToPath(layer: TextLayer): Promise<ShapeLayer> {
     if (!file.ok) throw new Error('Unable to download font outlines. Please try again.');
     let font = create(new Uint8Array(await file.arrayBuffer()) as Parameters<typeof create>[0]);
     if (!('layout' in font)) continue;
-    if (font.variationAxes?.wght) font = font.getVariation({ wght: Number(layer.fontWeight) });
+    if (font.variationAxes?.wght) font = font.getVariation({ wght: variant.weight });
     if (
       [...layer.text]
         .filter((c) => c !== '\n')

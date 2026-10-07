@@ -4,6 +4,7 @@ import {
   booleanOperationOnShapes,
   canBooleanOperateOnShape,
   parseSvgPathToRings,
+  nonzeroRingsToMultiPolygon,
 } from './shapeBoolean';
 
 function shape(overrides: Partial<ShapeLayer>): ShapeLayer {
@@ -23,6 +24,34 @@ function shape(overrides: Partial<ShapeLayer>): ShapeLayer {
 }
 
 describe('shape boolean operations', () => {
+  it('keeps overlapping font strokes solid instead of cutting out their junction', () => {
+    const rings = parseSvgPathToRings('M0 0 L100 0 L100 20 L0 20 Z M40 0 L60 0 L60 100 L40 100 Z');
+    const result = nonzeroRingsToMultiPolygon(rings);
+    const area = result.reduce(
+      (sum, poly) =>
+        sum +
+        poly.reduce((total, ring, index) => {
+          const a =
+            Math.abs(
+              ring.reduce((n, p, i) => {
+                const q = ring[(i + 1) % ring.length];
+                return n + p[0] * q[1] - q[0] * p[1];
+              }, 0)
+            ) / 2;
+          return total + (index === 0 ? a : -a);
+        }, 0),
+      0
+    );
+    expect(result).toHaveLength(1);
+    expect(area).toBe(3600);
+  });
+  it('preserves oppositely wound letter counters and fills nested same-winding contours', () => {
+    const outer = 'M0 0 L100 0 L100 100 L0 100 Z';
+    const hole = 'M20 20 L20 80 L80 80 L80 20 Z';
+    const same = 'M20 20 L80 20 L80 80 L20 80 Z';
+    expect(nonzeroRingsToMultiPolygon(parseSvgPathToRings(`${outer} ${hole}`))[0]).toHaveLength(2);
+    expect(nonzeroRingsToMultiPolygon(parseSvgPathToRings(`${outer} ${same}`))[0]).toHaveLength(1);
+  });
   it('supports valid pen paths but rejects vectors without usable path geometry', () => {
     expect(
       canBooleanOperateOnShape(

@@ -18,6 +18,7 @@ export const FRAME_LABELS: Record<string, string> = {
   macbook: 'MacBook Pro',
   tablet: 'Tablet',
   polaroid: 'Polaroid',
+  'photo-print': 'Photo Print',
   'polaroid-dark': 'Polaroid Dark',
   instagram: 'Instagram Light',
   'instagram-dark': 'Instagram Dark',

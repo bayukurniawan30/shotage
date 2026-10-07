@@ -1936,10 +1936,30 @@ export const ElementsSection: React.FC = () => {
                     onChange={(val) =>
                       state.updateShapeLayer(selectedShape.id, {
                         borderRadius: val,
+                        cornerRadii: undefined,
                       })
                     }
                     accentColor="#ffafcc"
                   />
+                  {(selectedShape.shapeType === 'rectangle' || selectedShape.shapeType === 'square') && (
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      {([
+                        ['topLeft', 'Top Left'], ['topRight', 'Top Right'],
+                        ['bottomLeft', 'Bottom Left'], ['bottomRight', 'Bottom Right'],
+                      ] as const).map(([corner, label]) => (
+                        <div key={corner}>
+                          <label className="block text-xs font-medium text-slate-300 mb-1">{label}</label>
+                          <StepperSlider variant="compact" unit="px" label={`${label} Radius`}
+                            min={0} max={200} step={1}
+                            value={selectedShape.cornerRadii?.[corner] ?? selectedShape.borderRadius ?? 8}
+                            onChange={value => state.updateShapeLayer(selectedShape.id, {
+                              cornerRadii: { ...selectedShape.cornerRadii, [corner]: value },
+                            })}
+                            accentColor="#ffafcc" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { Font } from 'fontkit';
 import type { TextLayer } from '../types/studio';
-import { outlineText, textOutlineRestriction } from './textToPath';
+import { outlineText, textOutlineRestriction, resolveOutlineFontVariant } from './textToPath';
+import { getStudioFont, GOOGLE_FONTS } from './fontLoader';
 import { ringsToMultiPolygon, parseSvgPathToRings, booleanOperationOnShapes } from './shapeBoolean';
 
 const text: TextLayer = {
@@ -36,9 +37,9 @@ const font = {
             { command: 'lineTo', args: [0, 700] },
             { command: 'closePath', args: [] },
             { command: 'moveTo', args: [100, 100] },
-            { command: 'lineTo', args: [500, 100] },
-            { command: 'lineTo', args: [500, 600] },
             { command: 'lineTo', args: [100, 600] },
+            { command: 'lineTo', args: [500, 600] },
+            { command: 'lineTo', args: [500, 100] },
             { command: 'closePath', args: [] },
           ],
         },
@@ -49,6 +50,27 @@ const font = {
 } as unknown as Font;
 
 describe('text outlines', () => {
+  it('uses supported font variants instead of requesting nonexistent weights', () => {
+    expect(resolveOutlineFontVariant(getStudioFont('Oswald')!, 900, false)).toEqual({
+      family: 'Oswald:wght@700',
+      weight: 700,
+    });
+    expect(resolveOutlineFontVariant(getStudioFont('Pacifico')!, 700, false)).toEqual({
+      family: 'Pacifico',
+      weight: 400,
+    });
+    expect(resolveOutlineFontVariant(getStudioFont('Dosis')!, 900, false)).toEqual({
+      family: 'Dosis:wght@800',
+      weight: 800,
+    });
+    expect(resolveOutlineFontVariant(getStudioFont('Lora')!, 800, true)).toEqual({
+      family: 'Lora:ital,wght@1,700',
+      weight: 700,
+    });
+    expect(() => resolveOutlineFontVariant(getStudioFont('Oswald')!, 700, true)).toThrow('italic');
+    for (const entry of GOOGLE_FONTS)
+      expect(resolveOutlineFontVariant(entry, 900, false).family).not.toContain('..');
+  });
   it('preserves box, position, rotation and styling', () => {
     const shape = outlineText({ ...text, rotation: 25 }, font, 60, 120);
     expect(shape).toMatchObject({

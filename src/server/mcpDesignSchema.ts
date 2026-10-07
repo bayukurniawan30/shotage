@@ -90,6 +90,7 @@ export const MCP_ASPECT_RATIOS = [
 ] as const;
 
 export const MCP_BACKGROUND_TYPES = [
+  'customGradient',
   'solid',
   'gradient',
   'flow',
@@ -124,6 +125,7 @@ export const MCP_FRAME_TYPES = [
   'tablet',
   'polaroid',
   'polaroid-dark',
+  'photo-print',
   'instagram',
   'instagram-dark',
 ] as const;
@@ -366,6 +368,7 @@ export const mcpShapeLayerInputSchema = z
     ]),
     pathData: z.string().optional(),
     pathClosed: z.boolean().optional(),
+    pathFillRule: z.enum(['evenodd', 'nonzero']).optional(),
     strokeWidth: finiteNumber.min(1).max(40).optional(),
     unitPathData: z.string().optional(),
     viewBox: z.string().optional(),
@@ -393,6 +396,14 @@ export const mcpShapeLayerInputSchema = z
     height: finiteNumber.positive().optional(),
     depth: finiteNumber.min(0).optional(),
     borderRadius: finiteNumber.min(0).optional(),
+    cornerRadii: z
+      .object({
+        topLeft: finiteNumber.min(0).optional(),
+        topRight: finiteNumber.min(0).optional(),
+        bottomRight: finiteNumber.min(0).optional(),
+        bottomLeft: finiteNumber.min(0).optional(),
+      })
+      .optional(),
     borderEnabled: z.boolean().optional(),
     borderColor: color.optional(),
     borderWidth: finiteNumber.min(0).optional(),
@@ -516,6 +527,11 @@ export const studioPatchSchema = z
     customWidth: finiteNumber.int().min(160).max(7680).optional(),
     customHeight: finiteNumber.int().min(160).max(7680).optional(),
     backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
+    customGradient: z.object({
+      angle: finiteNumber.min(0).max(360),
+      stops: z.array(z.object({ color, position: finiteNumber.min(0).max(100) })).min(2).max(3)
+        .refine(stops => stops.every((stop, index) => index === 0 || stop.position >= stops[index - 1].position), 'Gradient stops must be ordered by position'),
+    }).optional(),
     backgroundColor: color.optional(),
     bgPatternEnabled: z.boolean().optional(),
     bgPatternPreset: z.enum(PATTERN_PRESETS.map(({ id }) => id)).optional(),
@@ -528,6 +544,13 @@ export const studioPatchSchema = z
       .object({ color1: color, color2: color, angle: finiteNumber.min(0).max(360) })
       .optional(),
     frameType: z.enum(MCP_FRAME_TYPES).optional(),
+    photoPrint: z.object({
+      variant: z.enum(['clean', 'captioned', 'gallery']),
+      paperColor: color,
+      borderWidth: finiteNumber.min(0).max(80),
+      caption: z.string().max(500),
+      date: z.string().max(100),
+    }).optional(),
     layoutCount: z.union([z.literal(1), z.literal(2)]).optional(),
     codeSource: z.string().max(30_000).optional(),
     codeLanguage: z.enum(MCP_CODE_LANGUAGES).optional(),

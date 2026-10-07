@@ -4,6 +4,7 @@ import { useStudioEditorStore } from '../../store/useStudioStore';
 import { ChevronDown, Check, Expand03, XClose } from '@untitledui/icons';
 import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
+import { DEFAULT_PHOTO_PRINT } from '../frames/PhotoPrintFrame';
 import { clampCodeSource, CODE_LANGUAGES } from '../../utils/codeHighlight';
 import type { CodeLanguage, CodeTheme } from '../../types/studio';
 import { isDesktopApp } from '../../platform/runtime';
@@ -125,7 +126,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
               <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
                 {state.frameType === 'frameless'
                   ? 'Frameless'
-                  : state.frameType === 'code-window'
+                  : state.frameType === 'photo-print' ? 'Photo' : state.frameType === 'code-window'
                     ? 'Code'
                     : state.frameType.startsWith('instagram')
                       ? 'Instagram'
@@ -401,6 +402,28 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
 
             <div className="pt-2 border-t border-neutral-800/80">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                Photo Print
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ['clean', 'Clean Print', 12], ['captioned', 'Captioned', 12], ['gallery', 'Gallery Mat', 28],
+                ] as const).map(([variant, label, borderWidth]) => (
+                  <button key={variant} onClick={() => {
+                    onChange({ frameType: 'photo-print', photoPrint: { ...DEFAULT_PHOTO_PRINT, ...state.photoPrint, variant, borderWidth } });
+                    setIsFrameDropdownOpen(false);
+                  }} className={`flex flex-col gap-2 items-center p-2 rounded-lg border text-[10px] ${state.frameType === 'photo-print' && (state.photoPrint?.variant ?? 'clean') === variant ? 'border-pastel-pink bg-pastel-pink/10 text-pastel-pink' : 'border-neutral-800 text-slate-300 hover:border-neutral-600'}`}>
+                    <div className="w-full h-14 flex flex-col bg-[#fffefa]" style={{ padding: variant === 'gallery' ? 8 : 4 }}>
+                      <div className="flex-1 bg-gradient-to-br from-pastel-blue to-pastel-pink" />
+                      {variant !== 'clean' && <div className="h-1 w-3/4 bg-neutral-300 mt-1" />}
+                    </div>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-neutral-800/80">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
                 Polaroid
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -557,6 +580,35 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
       </div>
 
       {/* option to show system status bar for Samsung S21 */}
+      {state.frameType === 'photo-print' && (() => {
+        const options = { ...DEFAULT_PHOTO_PRINT, ...state.photoPrint };
+        const update = (changes: Partial<typeof options>) => onChange({ photoPrint: { ...options, ...changes } });
+        return <div className="space-y-3 border-t border-neutral-800 pt-3">
+          <div className="grid grid-cols-3 gap-1">
+            {(['clean', 'captioned', 'gallery'] as const).map(variant => <button key={variant}
+              onClick={() => update({ variant, borderWidth: variant === 'gallery' ? 28 : 12 })}
+              className={`rounded-lg py-2 text-[11px] border ${options.variant === variant ? 'border-pastel-pink bg-pastel-pink/10 text-pastel-pink' : 'border-neutral-800 text-slate-300'}`}>
+              {variant === 'clean' ? 'Clean' : variant === 'captioned' ? 'Captioned' : 'Gallery Mat'}
+            </button>)}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-xs text-slate-300 mb-1">Border Width</label>
+              <StepperSlider variant="compact" label="Photo Print Border Width" unit="px" min={0} max={80} step={1} value={options.borderWidth} onChange={borderWidth => update({ borderWidth })} />
+            </div>
+            <label className="block text-xs text-slate-300">Paper Color
+              <input aria-label="Photo Print Paper Color" type="color" value={options.paperColor} onChange={e => update({ paperColor: e.target.value })} className="block w-full h-8 bg-neutral-950 rounded border border-neutral-800 mt-1" />
+            </label>
+          </div>
+          {options.variant !== 'clean' && <>
+            <label className="block text-xs text-slate-300">Caption
+              <input value={options.caption} maxLength={500} onChange={e => update({ caption: e.target.value })} className="w-full mt-1 rounded-lg p-2 bg-neutral-950 border border-neutral-800 text-white" />
+            </label>
+            <label className="block text-xs text-slate-300">Date / Label (optional)
+              <input value={options.date} maxLength={100} placeholder="OCT 2026" onChange={e => update({ date: e.target.value })} className="w-full mt-1 rounded-lg p-2 bg-neutral-950 border border-neutral-800 text-white" />
+            </label>
+          </>}
+        </div>;
+      })()}
       {state.frameType === 'samsung-s21' && (
         <div className="pt-2 space-y-2 border-t border-neutral-800/80">
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">

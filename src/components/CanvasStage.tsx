@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { customGradientCss } from '../utils/customGradient';
+import { textOutlineBorderPath } from '../utils/textOutlineBorder';
+import { shapeCornerCss } from '../utils/shapeCorners';
 import { useStudioStore } from '../store/useStudioStore';
 import { useIconPreviewStore } from '../store/useIconPreviewStore';
 import { IconClipDefinition, IconConstructionGuides, iconPreviewClip } from './IconPreview';
 import { BrowserFrame } from './frames/BrowserFrame';
+import { PhotoPrintFrame } from './frames/PhotoPrintFrame';
 import { CodeFrame } from './frames/CodeFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
 import { VideoCanvasScreen } from './VideoCanvasScreen';
@@ -446,6 +450,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
   // Background style construction
   const getBackgroundStyle = () => {
+    if (state.backgroundType === 'customGradient') {
+      return { backgroundImage: customGradientCss(state.customGradient) };
+    }
     if (state.backgroundType === 'transparent') {
       return {
         background: 'transparent',
@@ -1820,7 +1827,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             case 'rectangle':
             case 'square':
             default:
-              return { borderRadius: `${shapeBorderRadius}px` };
+              return { borderRadius: shapeCornerCss(layer, shapeBorderRadius) };
           }
         };
 
@@ -2002,7 +2009,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   ? undefined
                   : layer.shapeType === 'circle' && !isSelected
                     ? '9999px'
-                    : `${shapeBorderRadius}px`,
+                    : shapeCornerCss(layer, shapeBorderRadius),
               clipPath: maskClipPath,
               WebkitClipPath: maskClipPath,
             }}
@@ -2019,7 +2026,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     id={svgResourceId('glass-clip', layer.id)}
                     clipPathUnits="objectBoundingBox"
                   >
-                    <path d={customUnitPath} fillRule="evenodd" />
+                    <path d={customUnitPath} fillRule={layer.pathFillRule ?? 'evenodd'} />
                   </clipPath>
                 </defs>
               </svg>
@@ -2054,7 +2061,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         ? undefined
                         : layer.shapeType === 'circle'
                           ? '9999px'
-                          : `${layer.borderRadius ?? 8}px`,
+                          : shapeCornerCss(layer, shapeBorderRadius),
                       overflow: !isPolygonOrMask ? 'hidden' : undefined,
                     }
                   : {}),
@@ -2087,6 +2094,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               {layer.shapeType === 'custom-path' &&
                 layer.pathData &&
                 (() => {
+                  const strokePath = layer.pathFillRule === 'nonzero' &&
+                    (hasBorder || (isGlass && layer.glassmorphismBorder !== false))
+                    ? textOutlineBorderPath(layer.pathData)
+                    : layer.pathData;
                   const zoom = (kfValues.bgImageZoom ?? layer.bgImageZoom ?? 100) / 100;
                   const imgW = shapeWidth * zoom;
                   const imgH = shapeHeight * zoom;
@@ -2126,8 +2137,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         />
                       )}
                       <defs>
-                        <clipPath id={svgResourceId('shape-clip', layer.id)} clipRule="evenodd">
-                          <path d={layer.pathData} fillRule="evenodd" />
+                        <clipPath id={svgResourceId('shape-clip', layer.id)} clipRule={layer.pathFillRule ?? 'evenodd'}>
+                          <path d={layer.pathData} fillRule={layer.pathFillRule ?? 'evenodd'} />
                         </clipPath>
                         {layer.gradient && (
                           <linearGradient
@@ -2164,7 +2175,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         layer.bgImageRepeat ? (
                           <path
                             d={layer.pathData}
-                            fillRule="evenodd"
+                            fillRule={layer.pathFillRule ?? 'evenodd'}
                             fill={`url(#${svgResourceId('shape-pattern', layer.id)})`}
                           />
                         ) : (
@@ -2182,7 +2193,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                       ) : !isGlass ? (
                         <path
                           d={layer.pathData}
-                          fillRule="evenodd"
+                          fillRule={layer.pathFillRule ?? 'evenodd'}
                           fill={
                             layer.gradient
                               ? `url(#${svgResourceId('shape-grad', layer.id)})`
@@ -2196,24 +2207,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                         isGlass &&
                         (hasBorder || layer.glassmorphismBorder !== false) && (
                           <path
-                            d={layer.pathData}
+                            d={strokePath}
                             fill="none"
                             stroke={hasBorder ? borderColor : 'rgba(255, 255, 255, 0.45)'}
                             strokeWidth={hasBorder ? borderWidth : 1.5}
                             vectorEffect="non-scaling-stroke"
-                            fillRule="evenodd"
+                            fillRule={layer.pathFillRule ?? 'evenodd'}
                           />
                         )}
 
                       {!isOpenPath && !isGlass && hasBorder && (
                         <path
-                          d={layer.pathData}
+                          d={strokePath}
                           fill="none"
                           stroke={borderColor}
                           strokeWidth={borderWidth}
                           vectorEffect="non-scaling-stroke"
                           strokeLinejoin="round"
-                          fillRule="evenodd"
+                          fillRule={layer.pathFillRule ?? 'evenodd'}
                         />
                       )}
                     </svg>
@@ -2272,7 +2283,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       borderRadius:
-                        layer.shapeType === 'circle' ? '9999px' : `${layer.borderRadius ?? 8}px`,
+                        layer.shapeType === 'circle' ? '9999px' : shapeCornerCss(layer, shapeBorderRadius),
                       boxShadow: `inset 0 0 0 ${borderWidth}px ${borderColor}`,
                     }}
                   />
@@ -2525,7 +2536,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               isFrameless ||
               state.frameType.startsWith('safari') ||
               state.frameType === 'chrome-dark' ||
-              state.frameType.startsWith('polaroid') ||
+              state.frameType === 'photo-print' || state.frameType.startsWith('polaroid') ||
               state.frameType.startsWith('instagram')
                 ? state.layoutCount === 2
                   ? '480px'
@@ -2535,7 +2546,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               isFrameless ||
               state.frameType.startsWith('safari') ||
               state.frameType === 'chrome-dark' ||
-              state.frameType.startsWith('polaroid') ||
+              state.frameType === 'photo-print' || state.frameType.startsWith('polaroid') ||
               state.frameType.startsWith('instagram')
                 ? state.layoutCount === 2
                   ? '280px'
@@ -2631,6 +2642,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       state.frameType === 'samsung-s21'
     ) {
       frameElement = <DeviceFrame type={state.frameType}>{content}</DeviceFrame>;
+    } else if (state.frameType === 'photo-print') {
+      frameElement = <PhotoPrintFrame settings={state.photoPrint}>{content}</PhotoPrintFrame>;
     } else if (state.frameType === 'polaroid' || state.frameType === 'polaroid-dark') {
       const isDark = state.frameType === 'polaroid-dark';
       frameElement = (
@@ -2779,7 +2792,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const shadowClass = getShadowClass();
     const currentStyle = state.framelessStyle || 'default';
     const computedRadius =
-      state.frameType === 'code-window'
+      state.frameType === 'photo-print' ? '0px' : state.frameType === 'code-window'
         ? '12px'
         : state.frameType.startsWith('instagram')
           ? '12px'

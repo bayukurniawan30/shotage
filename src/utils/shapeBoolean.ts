@@ -1,7 +1,37 @@
 import polygonClipping, { MultiPolygon, Polygon, Ring, Pair } from 'polygon-clipping';
 import { ShapeLayer } from '../types/studio';
+import { shapeCornerRadii } from './shapeCorners';
 
 export type BooleanOperation = 'union' | 'subtract' | 'intersect' | 'exclude';
+
+/** Partition overlapping contours by winding count, retaining every nonzero region.
+ * Unlike even-odd, two overlapping strokes in a composite font glyph are solid.
+ */
+export function nonzeroRingsToMultiPolygon(rings: Ring[]): MultiPolygon {
+  let regions: { geometry: MultiPolygon; winding: number }[] = [];
+  for (const ring of rings.filter((r) => r.length >= 4)) {
+    const area = ring.reduce((sum, p, i) => {
+      const q = ring[(i + 1) % ring.length];
+      return sum + p[0] * q[1] - q[0] * p[1];
+    }, 0);
+    if (!area) continue;
+    const direction = Math.sign(area);
+    const contour: MultiPolygon = [[ring]];
+    let remaining = contour;
+    const next: typeof regions = [];
+    for (const region of regions) {
+      const outside = polygonClipping.difference(region.geometry, contour);
+      const overlap = polygonClipping.intersection(region.geometry, contour);
+      if (outside.length) next.push({ geometry: outside, winding: region.winding });
+      if (overlap.length) next.push({ geometry: overlap, winding: region.winding + direction });
+      remaining = polygonClipping.difference(remaining, region.geometry);
+    }
+    if (remaining.length) next.push({ geometry: remaining, winding: direction });
+    regions = next;
+  }
+  const filled = regions.filter((r) => r.winding !== 0).map((r) => r.geometry);
+  return filled.length ? polygonClipping.union(filled[0], ...filled.slice(1)) : [];
+}
 
 /** Match SVG even-odd fill: nested contours are holes, not separate solid polygons. */
 export function ringsToMultiPolygon(rings: Ring[]): MultiPolygon {
@@ -69,7 +99,7 @@ export function canBooleanOperateOnShape(shape?: ShapeLayer | null): boolean {
 /**
  * Parses standard SVG path string into closed polygon rings with sampled Bezier curves.
  */
-export function parseSvgPathToRings(pathData: string): Ring[] {
+export function parseSvgPathToRings(pathData: string, curveSteps = 16): Ring[] {
   const rings: Ring[] = [];
   let currentRing: Pair[] = [];
 
@@ -162,7 +192,7 @@ export function parseSvgPathToRings(pathData: string): Ring[] {
           const endY = isRel ? curY + args[i + 5] : args[i + 5];
           i += 6;
 
-          const steps = 16;
+          const steps = curveSteps;
           const x0 = curX;
           const y0 = curY;
           for (let s = 1; s <= steps; s++) {
@@ -193,7 +223,7 @@ export function parseSvgPathToRings(pathData: string): Ring[] {
           const endY = isRel ? curY + args[i + 3] : args[i + 3];
           i += 4;
 
-          const steps = 16;
+          const steps = curveSteps;
           const x0 = curX;
           const y0 = curY;
           for (let s = 1; s <= steps; s++) {
@@ -413,7 +443,9 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
             return transformedRing;
           });
 
-          return ringsToMultiPolygon(worldRings);
+          return shape.pathFillRule === 'nonzero'
+            ? nonzeroRingsToMultiPolygon(worldRings)
+            : ringsToMultiPolygon(worldRings);
         }
       }
       break;
@@ -421,24 +453,24 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
 
     case 'rectangle':
     case 'square': {
-      const radius = Math.min(shape.borderRadius ?? 0, hw, hh);
-      if (radius > 1) {
+      const [tl, tr, br, bl] = shapeCornerRadii(shape);
+      if (Math.max(tl, tr, br, bl) > 0) {
         // Approximated rounded corners with 4 segments per quadrant
         const cornerSegments = 4;
-        const addArc = (cx: number, cy: number, startAngle: number) => {
+        const addArc = (cx: number, cy: number, startAngle: number, radius: number) => {
           for (let i = 0; i <= cornerSegments; i++) {
             const angle = startAngle + (i / cornerSegments) * (Math.PI / 2);
             localPoints.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
           }
         };
         // Top-right
-        addArc(hw - radius, -hh + radius, -Math.PI / 2);
+        addArc(hw - tr, -hh + tr, -Math.PI / 2, tr);
         // Bottom-right
-        addArc(hw - radius, hh - radius, 0);
+        addArc(hw - br, hh - br, 0, br);
         // Bottom-left
-        addArc(-hw + radius, hh - radius, Math.PI / 2);
+        addArc(-hw + bl, hh - bl, Math.PI / 2, bl);
         // Top-left
-        addArc(-hw + radius, -hh + radius, Math.PI);
+        addArc(-hw + tl, -hh + tl, Math.PI, tl);
       } else {
         localPoints.push([-hw, -hh]);
         localPoints.push([hw, -hh]);
@@ -583,6 +615,7 @@ export function booleanOperationOnShapes(
     id: `shape-boolean-${Date.now()}`,
     name: `${opLabels[operation]} (${shapes.map((s) => s.name || s.shapeType).join(' & ')})`,
     shapeType: 'custom-path',
+    pathFillRule: 'evenodd',
     pathData,
     unitPathData,
     viewBox,
@@ -592,6 +625,7 @@ export function booleanOperationOnShapes(
     y: centerY,
     rotation: 0,
     borderRadius: 0,
+    cornerRadii: undefined,
   };
 
   return mergedShape;

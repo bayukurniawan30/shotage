@@ -264,6 +264,13 @@ export const BACKGROUND_STYLE_OPTIONS: BackgroundStyleOption[] = [
     iconNode: <PhosphorIcons.GradientIcon className="w-4 h-4 text-pastel-green shrink-0" />,
   },
   {
+    id: 'customGradient',
+    label: 'Custom Gradient',
+    category: 'Colors & Gradients',
+    desc: 'Your colors, angle, and draggable stops',
+    iconNode: <PhosphorIcons.GradientIcon className="w-4 h-4 text-pastel-pink shrink-0" />,
+  },
+  {
     id: 'shadeshifter',
     label: 'Shadeshifter (Grainient)',
     category: 'Colors & Gradients',
