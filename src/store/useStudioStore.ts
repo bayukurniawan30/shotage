@@ -47,6 +47,11 @@ interface StudioStore extends StudioState {
   addSocialLayer: (platform?: import('../types/studio').SocialPlatform, handle?: string) => void;
   updateTextLayer: (id: string, updates: Partial<import('../types/studio').TextLayer>) => void;
   removeTextLayer: (id: string) => void;
+  replaceTextWithOutline: (
+    id: string,
+    expected: import('../types/studio').TextLayer,
+    shape: import('../types/studio').ShapeLayer
+  ) => boolean;
   duplicateTextLayer: (id: string) => void;
   explodeTextLayer: (id: string) => void;
   selectTextLayer: (id: string | null) => void;
@@ -272,7 +277,10 @@ function sampleLayerKeyframe(
   // Keep path positions, but do not bake its automatic orientation into rotation:
   // the renderer applies that orientation again during playback.
   return evaluateLayerKeyframes(
-    { ...layer, motionPath: layer.motionPath ? { ...layer.motionPath, autoOrient: false } : undefined },
+    {
+      ...layer,
+      motionPath: layer.motionPath ? { ...layer.motionPath, autoOrient: false } : undefined,
+    },
     timeSec,
     easing
   );
@@ -1023,7 +1031,9 @@ export const useStudioStore = create<StudioStore>()(
       updateTextLayer: (id, updates) =>
         set((state) => {
           const textLayers = state.textLayers.map((l) =>
-            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec, state.animationEasing) : l
+            l.id === id
+              ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec, state.animationEasing)
+              : l
           );
           const nextState = { ...state, textLayers };
           return {
@@ -1031,6 +1041,32 @@ export const useStudioStore = create<StudioStore>()(
             layerGroups: refreshGroupsContainingMember(nextState, { type: 'text', id }),
           };
         }),
+      replaceTextWithOutline: (id, expected, shape) => {
+        let replaced = false;
+        set((state) => {
+          if (
+            state.textLayers.find((l) => l.id === id) !== expected ||
+            state.layerGroups.some((g) =>
+              g.members.some((m) => m.type === 'text' && m.id === id)
+            ) ||
+            state.shapeLayers.some((s) => s.maskTarget?.type === 'text' && s.maskTarget.id === id)
+          )
+            return state;
+          replaced = true;
+          return {
+            textLayers: state.textLayers.filter((l) => l.id !== id),
+            shapeLayers: [...state.shapeLayers, shape],
+            layerOrder: state.layerOrder.map((l) =>
+              l.type === 'text' && l.id === id ? { type: 'shape' as const, id: shape.id } : l
+            ),
+            selectedTextLayerId: null,
+            selectedTextLayerIds: [],
+            selectedShapeId: shape.id,
+            selectedShapeIds: [shape.id],
+          };
+        });
+        return replaced;
+      },
       removeTextLayer: (id) =>
         set((state) => ({
           textLayers: state.textLayers.filter((l) => l.id !== id),
@@ -1238,7 +1274,9 @@ export const useStudioStore = create<StudioStore>()(
       updatePhosphorIconLayer: (id, updates) =>
         set((state) => {
           const phosphorIconLayers = (state.phosphorIconLayers || []).map((l) =>
-            l.id === id ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec, state.animationEasing) : l
+            l.id === id
+              ? syncKeyframesOnLayerUpdate(l, updates, state.currentTimeSec, state.animationEasing)
+              : l
           );
           const nextState = { ...state, phosphorIconLayers };
           return {
@@ -1349,7 +1387,9 @@ export const useStudioStore = create<StudioStore>()(
       updateCanvasElement: (id, updates) =>
         set((state) => {
           const canvasElements = (state.canvasElements || []).map((el) =>
-            el.id === id ? syncKeyframesOnLayerUpdate(el, updates, state.currentTimeSec, state.animationEasing) : el
+            el.id === id
+              ? syncKeyframesOnLayerUpdate(el, updates, state.currentTimeSec, state.animationEasing)
+              : el
           );
           const nextState = { ...state, canvasElements };
           return {
@@ -1433,12 +1473,12 @@ export const useStudioStore = create<StudioStore>()(
           const newShape: import('../types/studio').ShapeLayer = {
             id: newId,
             shapeType,
-            color: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? '#347ff5' : '#a2d2ff',
+            color:
+              shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? '#347ff5' : '#a2d2ff',
             ...dims[shapeType],
             depth: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 10 : undefined,
             borderRadius:
-              shapeType === 'square-3d' ||
-              shapeType === 'rectangle-3d'
+              shapeType === 'square-3d' || shapeType === 'rectangle-3d'
                 ? 20
                 : shapeType === 'square' || shapeType === 'rectangle'
                   ? 8
@@ -1458,9 +1498,11 @@ export const useStudioStore = create<StudioStore>()(
             anchorY: 0.5,
             position: 'above',
             shadow: shapeType === 'square-3d' || shapeType === 'rectangle-3d',
-            shadowOpacity: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 28 : undefined,
+            shadowOpacity:
+              shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 28 : undefined,
             shadowBlur: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 24 : undefined,
-            shadowOffsetY: shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 14 : undefined,
+            shadowOffsetY:
+              shapeType === 'square-3d' || shapeType === 'rectangle-3d' ? 14 : undefined,
             name:
               customProps?.name ||
               (shapeType === 'coolshape'
@@ -1469,7 +1511,7 @@ export const useStudioStore = create<StudioStore>()(
                   ? '3D Square'
                   : shapeType === 'rectangle-3d'
                     ? '3D Rectangle'
-                : shapeType),
+                    : shapeType),
             visible: true,
             locked: false,
             coolshapeType:
@@ -1517,7 +1559,9 @@ export const useStudioStore = create<StudioStore>()(
       updateShapeLayer: (id, updates) =>
         set((state) => {
           const shapeLayers = (state.shapeLayers || []).map((s) =>
-            s.id === id ? syncKeyframesOnLayerUpdate(s, updates, state.currentTimeSec, state.animationEasing) : s
+            s.id === id
+              ? syncKeyframesOnLayerUpdate(s, updates, state.currentTimeSec, state.animationEasing)
+              : s
           );
           const nextState = { ...state, shapeLayers };
           return {
@@ -1567,7 +1611,13 @@ export const useStudioStore = create<StudioStore>()(
         set((state) => {
           const mask = (state.shapeLayers || []).find((shape) => shape.id === id);
           if (!mask) return state;
-          if (mask.shapeType === 'coolshape' || mask.shapeType === 'square-3d' || mask.shapeType === 'rectangle-3d' || mask.pathClosed === false) return state;
+          if (
+            mask.shapeType === 'coolshape' ||
+            mask.shapeType === 'square-3d' ||
+            mask.shapeType === 'rectangle-3d' ||
+            mask.pathClosed === false
+          )
+            return state;
           if (target?.type === 'shape' && target.id === id) return state;
           const targetExists = !target
             ? true
@@ -1719,7 +1769,12 @@ export const useStudioStore = create<StudioStore>()(
           if (!current) return state;
           const nextGroups = (state.layerGroups || []).map((group) =>
             group.id === id
-              ? syncKeyframesOnLayerUpdate(group, updates, state.currentTimeSec, state.animationEasing)
+              ? syncKeyframesOnLayerUpdate(
+                  group,
+                  updates,
+                  state.currentTimeSec,
+                  state.animationEasing
+                )
               : group
           );
           if (!updates.position || updates.position === current.position) {
@@ -2246,7 +2301,8 @@ export const useStudioStore = create<StudioStore>()(
               targetLayer.pathClosed === false &&
               !!targetLayer.pathData
             )
-          ) return state;
+          )
+            return state;
           const currentMotions: LayerMotionBlock[] = targetLayer.motions
             ? [...targetLayer.motions]
             : [];

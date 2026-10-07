@@ -16,6 +16,7 @@ import { StepperSlider } from '../StepperSlider';
 import { OpacityBlurControls } from '../OpacityBlurControls';
 import { RotationControls } from '../RotationControls';
 import { Toggle } from '../Toggle';
+import { convertTextToPath, textOutlineRestriction } from '../../utils/textToPath';
 import {
   GRADIENT_PRESETS,
   parseColorAndAlpha,
@@ -25,6 +26,8 @@ import {
 export const TextSection: React.FC = () => {
   const state = useStudioEditorStore();
   const [showAllGradients, setShowAllGradients] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [outlineError, setOutlineError] = useState('');
   const [activeOption, setActiveOption] = useState<
     'size' | 'position' | 'rotation' | 'skew' | 'opacity'
   >('size');
@@ -186,6 +189,45 @@ export const TextSection: React.FC = () => {
             />
           </div>
 
+          <div className="space-y-2">
+            <button
+              disabled={converting || !!textOutlineRestriction(selectedLayer)}
+              title={
+                textOutlineRestriction(selectedLayer) ||
+                'Replace text with a vector outline. Undo restores editable text.'
+              }
+              onClick={async () => {
+                setConverting(true);
+                setOutlineError('');
+                try {
+                  const shape = await convertTextToPath(selectedLayer);
+                  if (!state.replaceTextWithOutline(selectedLayer.id, selectedLayer, shape))
+                    throw new Error(
+                      'Text changed or belongs to a group/mask. Ungroup/unmask it and try again.'
+                    );
+                } catch (error) {
+                  setOutlineError(
+                    error instanceof Error ? error.message : 'Unable to convert text.'
+                  );
+                } finally {
+                  setConverting(false);
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 p-2 text-xs text-pastel-blue disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <PhosphorIcons.BezierCurve className="w-4 h-4" />
+              {converting ? 'Converting…' : 'Convert Text to Path'}
+            </button>
+            <p className="text-[10px] text-neutral-400">
+              Creates a static vector shape for Union, Subtract and Intersect. Text will no longer
+              be editable; Undo restores it.
+            </p>
+            {outlineError && (
+              <p role="alert" className="text-xs text-red-300">
+                {outlineError}
+              </p>
+            )}
+          </div>
           {/* On-demand Google Font selector */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-300 mb-1">
@@ -703,7 +745,9 @@ export const TextSection: React.FC = () => {
                       variant="compact"
                       unit="%"
                       label="Image Fill Zoom"
-                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { bgImageZoom: val })}
+                      onChange={(val) =>
+                        state.updateTextLayer(selectedLayer.id, { bgImageZoom: val })
+                      }
                       accentColor="#ffafcc"
                     />
                   </div>
@@ -717,7 +761,9 @@ export const TextSection: React.FC = () => {
                       variant="compact"
                       unit="px"
                       label="Image Fill Offset X"
-                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { bgImageOffsetX: val })}
+                      onChange={(val) =>
+                        state.updateTextLayer(selectedLayer.id, { bgImageOffsetX: val })
+                      }
                       accentColor="#ffafcc"
                     />
                   </div>
@@ -731,7 +777,9 @@ export const TextSection: React.FC = () => {
                       variant="compact"
                       unit="px"
                       label="Image Fill Offset Y"
-                      onChange={(val) => state.updateTextLayer(selectedLayer.id, { bgImageOffsetY: val })}
+                      onChange={(val) =>
+                        state.updateTextLayer(selectedLayer.id, { bgImageOffsetY: val })
+                      }
                       accentColor="#ffafcc"
                     />
                   </div>
@@ -968,9 +1016,12 @@ export const TextSection: React.FC = () => {
 
               {/* Option: Rotation & 3D Tilt */}
               {activeOption === 'rotation' && (
-                <RotationControls rotation={selectedLayer.rotation ?? 0}
-                  pitch={selectedLayer.pitch ?? 0} yaw={selectedLayer.yaw ?? 0}
-                  onChange={(updates) => state.updateTextLayer(selectedLayer.id, updates)} />
+                <RotationControls
+                  rotation={selectedLayer.rotation ?? 0}
+                  pitch={selectedLayer.pitch ?? 0}
+                  yaw={selectedLayer.yaw ?? 0}
+                  onChange={(updates) => state.updateTextLayer(selectedLayer.id, updates)}
+                />
               )}
 
               {/* Option: Skew */}
@@ -1023,8 +1074,11 @@ export const TextSection: React.FC = () => {
               {/* Option: Opacity */}
               {activeOption === 'opacity' && (
                 <OpacityBlurControls
-                  opacity={selectedLayer.opacity ?? 100} blur={selectedLayer.blur ?? 0}
-                  onOpacityChange={(opacity) => state.updateTextLayer(selectedLayer.id, { opacity })}
+                  opacity={selectedLayer.opacity ?? 100}
+                  blur={selectedLayer.blur ?? 0}
+                  onOpacityChange={(opacity) =>
+                    state.updateTextLayer(selectedLayer.id, { opacity })
+                  }
                   onBlurChange={(blur) => state.updateTextLayer(selectedLayer.id, { blur })}
                 />
               )}
@@ -1098,7 +1152,9 @@ export const TextSection: React.FC = () => {
                     max={max}
                     step={1}
                     value={selectedLayer[key] ?? fallback}
-                    variant="compact" unit={unit} label={`Shadow ${label}`}
+                    variant="compact"
+                    unit={unit}
+                    label={`Shadow ${label}`}
                     onChange={(value) => state.updateTextLayer(selectedLayer.id, { [key]: value })}
                     accentColor="#ffafcc"
                   />

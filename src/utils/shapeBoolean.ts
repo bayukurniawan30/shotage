@@ -3,6 +3,48 @@ import { ShapeLayer } from '../types/studio';
 
 export type BooleanOperation = 'union' | 'subtract' | 'intersect' | 'exclude';
 
+/** Match SVG even-odd fill: nested contours are holes, not separate solid polygons. */
+export function ringsToMultiPolygon(rings: Ring[]): MultiPolygon {
+  const contains = (ring: Ring, point: Pair) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [x, y] = ring[i],
+        [px, py] = ring[j];
+      if (y > point[1] !== py > point[1] && point[0] < ((px - x) * (point[1] - y)) / (py - y) + x)
+        inside = !inside;
+    }
+    return inside;
+  };
+  const area = (r: Ring) =>
+    Math.abs(
+      r.reduce((sum, p, i) => {
+        const q = r[(i + 1) % r.length];
+        return sum + p[0] * q[1] - q[0] * p[1];
+      }, 0)
+    );
+  const sorted = rings.filter((r) => r.length >= 4).sort((a, b) => area(b) - area(a));
+  const depths: number[] = [],
+    owners: number[] = [];
+  const result: MultiPolygon = [];
+  sorted.forEach((r, i) => {
+    let parent = -1;
+    for (let j = i - 1; j >= 0; j--)
+      if (contains(sorted[j], r[0])) {
+        parent = j;
+        break;
+      }
+    depths[i] = parent < 0 ? 0 : depths[parent] + 1;
+    if (depths[i] % 2 === 0) {
+      owners[i] = result.length;
+      result.push([r]);
+    } else {
+      owners[i] = owners[parent];
+      result[owners[i]].push(r);
+    }
+  });
+  return result;
+}
+
 const BASIC_BOOLEAN_SHAPES = new Set<ShapeLayer['shapeType']>([
   'rectangle',
   'square',
@@ -127,15 +169,9 @@ export function parseSvgPathToRings(pathData: string): Ring[] {
             const t = s / steps;
             const mt = 1 - t;
             const px =
-              mt * mt * mt * x0 +
-              3 * mt * mt * t * cp1x +
-              3 * mt * t * t * cp2x +
-              t * t * t * endX;
+              mt * mt * mt * x0 + 3 * mt * mt * t * cp1x + 3 * mt * t * t * cp2x + t * t * t * endX;
             const py =
-              mt * mt * mt * y0 +
-              3 * mt * mt * t * cp1y +
-              3 * mt * t * t * cp2y +
-              t * t * t * endY;
+              mt * mt * mt * y0 + 3 * mt * mt * t * cp1y + 3 * mt * t * t * cp2y + t * t * t * endY;
             currentRing.push([Math.round(px * 100) / 100, Math.round(py * 100) / 100]);
           }
           lastControlX = cp2x;
@@ -164,15 +200,9 @@ export function parseSvgPathToRings(pathData: string): Ring[] {
             const t = s / steps;
             const mt = 1 - t;
             const px =
-              mt * mt * mt * x0 +
-              3 * mt * mt * t * cp1x +
-              3 * mt * t * t * cp2x +
-              t * t * t * endX;
+              mt * mt * mt * x0 + 3 * mt * mt * t * cp1x + 3 * mt * t * t * cp2x + t * t * t * endX;
             const py =
-              mt * mt * mt * y0 +
-              3 * mt * mt * t * cp1y +
-              3 * mt * t * t * cp2y +
-              t * t * t * endY;
+              mt * mt * mt * y0 + 3 * mt * mt * t * cp1y + 3 * mt * t * t * cp2y + t * t * t * endY;
             currentRing.push([Math.round(px * 100) / 100, Math.round(py * 100) / 100]);
           }
           lastControlX = cp2x;
@@ -305,7 +335,7 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
     case 'quote': {
       const pathStr =
         shape.shapeType === 'quote'
-          ? "M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"
+          ? 'M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z'
           : shape.pathData;
 
       if (pathStr) {
@@ -322,7 +352,10 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
             vbW = 24;
             vbH = 24;
           } else if (shape.viewBox) {
-            const parts = shape.viewBox.trim().split(/[\s,]+/).map(Number);
+            const parts = shape.viewBox
+              .trim()
+              .split(/[\s,]+/)
+              .map(Number);
             if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
               [vbMinX, vbMinY, vbW, vbH] = parts;
             }
@@ -380,10 +413,7 @@ export function getShapeWorldPolygon(shape: ShapeLayer): Polygon | MultiPolygon 
             return transformedRing;
           });
 
-          if (worldRings.length === 1) {
-            return [worldRings[0]];
-          }
-          return worldRings.map((r) => [r]) as MultiPolygon;
+          return ringsToMultiPolygon(worldRings);
         }
       }
       break;

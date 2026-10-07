@@ -52,6 +52,7 @@
     "@untitledui/icons": "^0.0.22",
     "coolshapes-react": "^1.0.1",
     "drizzle-orm": "^0.45.2",
+    "fontkit": "^2.0.4",
     "framer-motion": "^12.43.0",
     "hono": "^4.12.32",
     "html-to-image": "^1.11.13",
@@ -75,6 +76,7 @@
   "devDependencies": {
     "@hono/vite-dev-server": "^0.26.1",
     "@tauri-apps/cli": "^2",
+    "@types/fontkit": "^2.0.9",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
