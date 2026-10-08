@@ -19,13 +19,14 @@ export const FRAME_LABELS: Record<string, string> = {
   tablet: 'Tablet',
   polaroid: 'Polaroid',
   'photo-print': 'Photo Print',
+  'ticket-pass': 'Ticket / Pass',
   'polaroid-dark': 'Polaroid Dark',
   instagram: 'Instagram Light',
   'instagram-dark': 'Instagram Dark',
 };
 
 export const getAspectRatioCategory = (aspectRatio: string) => {
-  if (aspectRatio === 'app-icon') return 'App Icon';
+  if (['open-graph', 'app-icon', 'blog-cover'].includes(aspectRatio)) return 'Web & Sharing';
   if (aspectRatio === 'custom') return 'Custom';
   if (['auto', '16:9', '1:1', '9:16', '4:3', '3:2', '3:4', '5:4', '4:5'].includes(aspectRatio))
     return 'General';
@@ -40,6 +41,10 @@ export const getAspectRatioLabel = (
   customHeight?: number
 ) => {
   switch (aspectRatio) {
+    case 'open-graph':
+      return 'Open Graph (1200 × 630 px)';
+    case 'blog-cover':
+      return 'Blog Cover (1600 × 900 px)';
     case 'custom':
       return `Custom (${customWidth || 1280}x${customHeight || 720}px)`;
     case 'auto':
@@ -85,6 +90,7 @@ export const getRecommendedZoomForAspect = (
   customH?: number
 ) => {
   let ratioNum = 16 / 9;
+  if (aspectRatio === 'open-graph') return 80;
   if (aspectRatio === '1:1' || aspectRatio === 'ig-post' || aspectRatio === 'app-icon')
     ratioNum = 1;
   else if (aspectRatio === '9:16' || aspectRatio === 'ig-story') ratioNum = 9 / 16;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ImageEffectControl } from '../ImageEffectControl';
 import { useStudioEditorStore } from '../../store/useStudioStore';
 import { Copy01, Trash01, ChevronDown } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
@@ -1653,6 +1654,7 @@ export const ElementsSection: React.FC = () => {
                   </div>
 
                   {/* Pattern Repeat */}
+                  <ImageEffectControl value={selectedShape.imageEffect} imageSrc={selectedShape.bgImage} onChange={imageEffect => state.updateShapeLayer(selectedShape.id, { imageEffect })} />
                   <div>
                     <span className="block text-[11px] font-semibold text-slate-300 mb-1.5">
                       Pattern Repeat

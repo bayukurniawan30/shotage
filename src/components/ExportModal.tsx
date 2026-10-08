@@ -517,6 +517,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
   const imageCopyCost = getImageExportCost(state.exportScale);
   const customImageBaseSize = isIconPreset
     ? { width: 1024, height: 1024 }
+    : state.aspectRatio === 'open-graph'
+      ? { width: 1200, height: 630 }
+    : state.aspectRatio === 'blog-cover'
+      ? { width: 1600, height: 900 }
     : state.aspectRatio === 'custom'
       ? {
           width: Math.max(160, state.customWidth || 1280),
@@ -2509,7 +2513,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, canva
                 </p>
                 <p className="mt-0.5 text-[10px] text-slate-400">
                   {state.exportScale}× of your {customImageBaseSize!.width.toLocaleString()} ×{' '}
-                  {customImageBaseSize!.height.toLocaleString()} custom canvas.
+                  {customImageBaseSize!.height.toLocaleString()} canvas.
                 </p>
               </div>
             )}

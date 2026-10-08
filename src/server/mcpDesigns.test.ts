@@ -12,6 +12,28 @@ import { SOCIAL_PLATFORMS } from '../components/SocialIcons';
 import { TECH_STACK_ITEMS } from '../components/TechStackIcons';
 
 describe('MCP design construction', () => {
+  it.each(['open-graph', 'blog-cover'] as const)('supports the %s preset independently of custom canvas dimensions', aspectRatio => {
+    const state = buildStudioState({ aspectRatio });
+    expect(state.aspectRatio).toBe(aspectRatio);
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+  });
+  it('validates and preserves independent mockup and shape image effects', () => {
+    const effect = { preset: 'vintage' as const, intensity: 75 };
+    const state = buildStudioState({ imageEffect: effect, slot2ImageEffect: { preset: 'noir', intensity: 50 }, shapeLayers: [createShapeLayer({ shapeType: 'rectangle', bgImage: 'https://example.com/photo.png', imageEffect: effect }, 0)] });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.imageEffect).toEqual(effect);
+    expect(state.shapeLayers[0].imageEffect).toEqual(effect);
+    expect(() => validateMcpStudioState({ ...state, imageEffect: { preset: 'bad', intensity: 100 } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, imageEffect: { ...effect, intensity: 101 } })).toThrow();
+  });
+  it('preserves and validates Ticket / Pass frame settings', () => {
+    const ticketPass = { variant: 'digital', title: 'Creative pass', subtitle: 'Shotage', date: '2026', location: 'Online', stubLabel: 'ACCESS', serial: 'ST-01', paperColor: '#171719', textColor: '#ffffff', imageZoom: 150, imageOffsetX: 20, imageOffsetY: -15 };
+    const state = buildStudioState({ frameType: 'ticket-pass', ticketPass });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.ticketPass).toEqual(ticketPass);
+    expect(() => validateMcpStudioState({ ...state, ticketPass: { ...ticketPass, imageZoom: 301 } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, ticketPass: { ...ticketPass, variant: 'unsupported' } })).toThrow();
+  });
   it('preserves custom gradients and photo print settings through construction and validation', () => {
     const customGradient = { angle: 135, stops: [
       { color: '#ffafcc', position: 10 },

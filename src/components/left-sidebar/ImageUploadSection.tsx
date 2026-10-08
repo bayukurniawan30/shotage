@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ImageEffectControl } from '../ImageEffectControl';
 import { createPortal } from 'react-dom';
 import { useStudioEditorStore, useStudioStore } from '../../store/useStudioStore';
 import { UploadCloud01, XClose, Columns01, Copy02, Copy03, Divider } from '@untitledui/icons';
@@ -508,6 +509,8 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
       )}
 
       {/* Image Fit Setting */}
+      {state.imageSrc && state.mediaType !== 'video' && <ImageEffectControl value={state.imageEffect} imageSrc={state.imageSrc} label={state.layoutCount === 2 ? 'Image Effects · Slot 1' : 'Image Effects'} onChange={imageEffect => onChange({ imageEffect })} />}
+      {state.layoutCount === 2 && state.secondImageSrc && state.secondMediaType !== 'video' && <ImageEffectControl value={state.slot2ImageEffect} imageSrc={state.secondImageSrc} label="Image Effects · Slot 2" onChange={slot2ImageEffect => onChange({ slot2ImageEffect })} />}
       <div className="pt-2 border-t border-neutral-800/80">
         <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
           Image Fit

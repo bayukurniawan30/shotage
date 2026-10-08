@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { imageEffectFilter } from '../utils/imageEffects';
 import { customGradientCss } from '../utils/customGradient';
 import { textOutlineBorderPath } from '../utils/textOutlineBorder';
 import { shapeCornerCss } from '../utils/shapeCorners';
@@ -7,6 +8,7 @@ import { useIconPreviewStore } from '../store/useIconPreviewStore';
 import { IconClipDefinition, IconConstructionGuides, iconPreviewClip } from './IconPreview';
 import { BrowserFrame } from './frames/BrowserFrame';
 import { PhotoPrintFrame } from './frames/PhotoPrintFrame';
+import { TicketPassFrame, ticketMediaStyle } from './frames/TicketPassFrame';
 import { CodeFrame } from './frames/CodeFrame';
 import { DeviceFrame } from './frames/DeviceFrame';
 import { VideoCanvasScreen } from './VideoCanvasScreen';
@@ -414,6 +416,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   const getAspectRatioStyle = () => {
     const isDual = state.layoutCount === 2;
     switch (state.aspectRatio) {
+      case 'open-graph':
+        return 'aspect-[1200/630] w-[540px]';
+      case 'blog-cover':
+        return 'aspect-video w-[720px]';
       case '16:9':
       case 'yt-banner':
       case 'yt-thumbnail':
@@ -2035,7 +2041,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             <div
               className="w-full h-full relative"
               style={{
-                ...getGlassOrSolidBackground(),
+                ...(layer.bgImage && layer.shapeType !== 'custom-path' ? {} : getGlassOrSolidBackground()),
                 ...getShapeStyle(),
                 opacity: isGlass || is3DShape || isOpenPath ? 1 : (layer.opacity ?? 100) / 100,
                 filter: 'none',
@@ -2067,6 +2073,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   : {}),
               }}
             >
+              {layer.bgImage && layer.shapeType !== 'custom-path' && !is3DShape && layer.shapeType !== 'coolshape' && (
+                <div data-shape-image-fill="true" className="absolute inset-0 pointer-events-none" style={{
+                  ...getGlassOrSolidBackground(),
+                  borderRadius: 'inherit',
+                  clipPath: 'inherit',
+                  filter: imageEffectFilter(layer.imageEffect),
+                }} />
+              )}
               {is3DShape && (
                 <ExtrudedShape
                   width={shapeWidth}
@@ -2163,6 +2177,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                           >
                             <image
                               href={layer.bgImage}
+                              style={{ filter: imageEffectFilter(layer.imageEffect) }}
                               width={imgW}
                               height={imgH}
                               preserveAspectRatio="none"
@@ -2182,6 +2197,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                           <g clipPath={`url(#${svgResourceId('shape-clip', layer.id)})`}>
                             <image
                               href={layer.bgImage}
+                              style={{ filter: imageEffectFilter(layer.imageEffect) }}
                               x={imgX}
                               y={imgY}
                               width={imgW}
@@ -2313,6 +2329,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
   const canvasAspectRatio = (() => {
     switch (state.aspectRatio) {
+      case 'open-graph':
+        return '1200 / 630';
+      case 'blog-cover':
+        return '16 / 9';
       case '16:9':
       case 'yt-banner':
       case 'yt-thumbnail':
@@ -2357,6 +2377,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
     const imageStyle: React.CSSProperties = {
       borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
+      filter: imageEffectFilter(slotIndex === 2 ? state.slot2ImageEffect : state.imageEffect),
+      // Pan intrinsic media inside object-fit, not its already-cropped wrapper.
+      ...(state.frameType === 'ticket-pass' ? ticketMediaStyle(state.ticketPass) : {}),
     };
 
     const slotWidth = slotIndex === 2 ? state.secondImageWidth : state.imageWidth;
@@ -2642,6 +2665,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       state.frameType === 'samsung-s21'
     ) {
       frameElement = <DeviceFrame type={state.frameType}>{content}</DeviceFrame>;
+    } else if (state.frameType === 'ticket-pass') {
+      frameElement = <TicketPassFrame settings={state.ticketPass}>{content}</TicketPassFrame>;
     } else if (state.frameType === 'photo-print') {
       frameElement = <PhotoPrintFrame settings={state.photoPrint}>{content}</PhotoPrintFrame>;
     } else if (state.frameType === 'polaroid' || state.frameType === 'polaroid-dark') {
@@ -2792,7 +2817,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const shadowClass = getShadowClass();
     const currentStyle = state.framelessStyle || 'default';
     const computedRadius =
-      state.frameType === 'photo-print' ? '0px' : state.frameType === 'code-window'
+      state.frameType === 'ticket-pass' ? '18px' : state.frameType === 'photo-print' ? '0px' : state.frameType === 'code-window'
         ? '12px'
         : state.frameType.startsWith('instagram')
           ? '12px'
@@ -2932,9 +2957,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     }
 
     return (
-      <div className="relative group">
+      <div className="relative group" style={state.frameType === 'ticket-pass' ? { filter: getDesktopMockupShadow() } : undefined}>
         {/* Underlying shadow backing box with exact matching border-radius */}
-        {shadowClass && (
+        {shadowClass && state.frameType !== 'ticket-pass' && (
           <div
             data-mockup-shadow-backing="true"
             className={`absolute inset-0 pointer-events-none transition-all duration-200 ${shadowClass}`}
@@ -3378,6 +3403,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     } else if (ar === 'auto') {
       intrinsicW = isDual ? 1560 : 1200;
       intrinsicH = isDual ? 900 : 700;
+    } else if (ar === 'open-graph') {
+      intrinsicW = 540;
+      intrinsicH = 283.5;
+    } else if (ar === 'blog-cover') {
+      intrinsicW = 720;
+      intrinsicH = 405;
     } else if (ar === 'custom') {
       intrinsicW = (state.customWidth || 1280) * 0.45;
       intrinsicH = (state.customHeight || 720) * 0.45;

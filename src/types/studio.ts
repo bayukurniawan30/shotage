@@ -154,6 +154,7 @@ export interface ShapeLayer {
   bgImageOffsetX?: number;
   bgImageOffsetY?: number;
   bgImageRepeat?: boolean;
+  imageEffect?: import('../utils/imageEffects').ImageEffect;
   width: number;
   height: number;
   depth?: number;
@@ -395,6 +396,7 @@ export type FrameType =
   | 'polaroid'
   | 'polaroid-dark'
   | 'photo-print'
+  | 'ticket-pass'
   | 'instagram'
   | 'instagram-dark';
 
@@ -445,6 +447,8 @@ export interface StudioState {
   padding: number; // 0 to 120
   borderRadius: number; // 0 to 32
   imageFit?: 'cover' | 'contain' | 'fill';
+  imageEffect?: import('../utils/imageEffects').ImageEffect;
+  slot2ImageEffect?: import('../utils/imageEffects').ImageEffect;
   slabThickness?: number; // 0 to 60 (for 3D extrusion)
   slabColor?: string; // 3D extrusion edge color
   enableShine?: boolean;
@@ -470,6 +474,20 @@ export interface StudioState {
     borderWidth: number;
     caption: string;
     date: string;
+  };
+  ticketPass?: {
+    imageZoom?: number;
+    imageOffsetX?: number;
+    imageOffsetY?: number;
+    variant: 'event' | 'digital';
+    title: string;
+    subtitle: string;
+    date: string;
+    location: string;
+    stubLabel: string;
+    serial: string;
+    paperColor: string;
+    textColor: string;
   };
   codeSource: string;
   codeLanguage: CodeLanguage;
@@ -560,6 +578,8 @@ export interface StudioState {
     | 'ig-story'
     | 'yt-banner'
     | 'yt-thumbnail'
+    | 'open-graph'
+    | 'blog-cover'
     | 'yt-video'
     | 'custom';
   rotateX: number; // -30 to 30
@@ -658,6 +678,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   mediaType: 'image',
   layoutPreset: 'side-by-side',
   zoom: 100,
+  imageEffect: { preset: 'original', intensity: 100 },
+  slot2ImageEffect: { preset: 'original', intensity: 100 },
   slot2Zoom: 100,
   previewCanvasZoom: 100,
   rulersVisible: false,
@@ -678,6 +700,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   shadowOverlayPosition: 'above',
   hideMockup: false,
   frameType: 'frameless',
+  ticketPass: { variant: 'event', title: 'Create something worth showing.', subtitle: 'Shotage · Creative sessions', date: '24 OCT 2026 · 18:00', location: 'Bali, Indonesia', stubLabel: 'ADMIT ONE', serial: 'ST—00248', paperColor: '#fff9ee', textColor: '#222127' },
   photoPrint: { variant: 'clean', paperColor: '#fffefa', borderWidth: 12, caption: 'Quiet mornings, somewhere new.', date: '' },
   codeSource: `const createShot = (title: string) => {
   return {

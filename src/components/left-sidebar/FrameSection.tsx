@@ -5,6 +5,7 @@ import { ChevronDown, Check, Expand03, XClose } from '@untitledui/icons';
 import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
 import { DEFAULT_PHOTO_PRINT } from '../frames/PhotoPrintFrame';
+import { DEFAULT_TICKET_PASS } from '../frames/TicketPassFrame';
 import { clampCodeSource, CODE_LANGUAGES } from '../../utils/codeHighlight';
 import type { CodeLanguage, CodeTheme } from '../../types/studio';
 import { isDesktopApp } from '../../platform/runtime';
@@ -126,7 +127,7 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
               <span className="font-semibold text-[#a2d2ff] bg-[#a2d2ff]/10 px-2 py-0.5 rounded-md border border-[#a2d2ff]/30 text-[10px] tracking-wide uppercase">
                 {state.frameType === 'frameless'
                   ? 'Frameless'
-                  : state.frameType === 'photo-print' ? 'Photo' : state.frameType === 'code-window'
+                  : state.frameType === 'ticket-pass' ? 'Ticket' : state.frameType === 'photo-print' ? 'Photo' : state.frameType === 'code-window'
                     ? 'Code'
                     : state.frameType.startsWith('instagram')
                       ? 'Instagram'
@@ -402,6 +403,26 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
 
             <div className="pt-2 border-t border-neutral-800/80">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                Ticket / Pass
+              </label>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {(['event', 'digital'] as const).map(variant => <button key={variant} type="button"
+                  onClick={() => {
+                    const colors = variant === 'digital' ? { paperColor: '#171719', textColor: '#f8f8fa' } : { paperColor: '#fff9ee', textColor: '#222127' };
+                    onChange({ frameType: 'ticket-pass', ticketPass: { ...DEFAULT_TICKET_PASS, ...state.ticketPass, variant, ...colors } });
+                    setIsFrameDropdownOpen(false);
+                  }}
+                  className={`flex flex-col items-center gap-2 rounded-lg border p-2 text-[10px] cursor-pointer ${state.frameType === 'ticket-pass' && (state.ticketPass?.variant ?? 'event') === variant ? 'border-pastel-pink text-pastel-pink bg-pastel-pink/10' : 'border-neutral-800 text-slate-300 hover:border-neutral-600'}`}>
+                  <div className="h-16 w-full flex items-center justify-center">
+                    <div className={`rounded-md overflow-hidden flex ${variant === 'event' ? 'w-full h-12 bg-[#fff9ee]' : 'w-10 h-16 flex-col bg-neutral-900 border border-neutral-700'}`}>
+                      <div className="flex-1 p-2"><div className="h-1 w-3/4 bg-pastel-pink rounded mb-1" /><div className="h-full max-h-5 bg-gradient-to-br from-pastel-pink to-pastel-blue rounded-sm" /></div>
+                      <div className={variant === 'event' ? 'w-6 border-l border-dashed border-neutral-400' : 'h-3 border-t border-dashed border-neutral-600'} />
+                    </div>
+                  </div>
+                  {variant === 'event' ? 'Event Ticket' : 'Digital Pass'}
+                </button>)}
+              </div>
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
                 Photo Print
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -580,6 +601,46 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
       </div>
 
       {/* option to show system status bar for Samsung S21 */}
+      {state.frameType === 'ticket-pass' && (() => {
+        const options = { ...DEFAULT_TICKET_PASS, ...state.ticketPass };
+        const update = (changes: Partial<typeof options>) => onChange({ ticketPass: { ...options, ...changes } });
+        return <div className="space-y-3 border-t border-neutral-800 pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            {(['event', 'digital'] as const).map(variant => <button key={variant} type="button" onClick={() => update({ variant })}
+              className={`rounded-lg border py-2 text-[11px] cursor-pointer ${options.variant === variant ? 'border-pastel-pink text-pastel-pink bg-pastel-pink/10' : 'border-neutral-800 text-slate-300'}`}>
+              {variant === 'event' ? 'Event Ticket' : 'Digital Pass'}
+            </button>)}
+          </div>
+          {([
+            ['title', 'Title', 100], ['subtitle', 'Subtitle', 80], ['date', 'Date / Time', 60],
+            ['location', 'Location', 60], ['stubLabel', 'Stub Label', 30], ['serial', 'Ticket Number', 30],
+          ] as const).map(([key, label, maxLength]) => <label key={key} className="block text-xs text-slate-300">{label}
+            <input value={options[key]} maxLength={maxLength} onChange={event => update({ [key]: event.target.value })}
+              className="w-full mt-1 rounded-lg p-2 bg-neutral-950 border border-neutral-800 text-white" />
+          </label>)}
+          <div className="grid grid-cols-2 gap-3">
+            {([['paperColor', 'Paper Color'], ['textColor', 'Text Color']] as const).map(([key, label]) => <label key={key} className="text-xs text-slate-300">{label}
+              <input type="color" value={options[key]} onChange={event => update({ [key]: event.target.value })} className="block w-full h-8 mt-1 rounded border border-neutral-800 bg-neutral-950" />
+            </label>)}
+          </div>
+          <div className="border-t border-neutral-800 pt-3 space-y-2">
+            <p className="text-xs font-medium text-slate-300">Image Crop</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                ['imageZoom', 'Zoom', 50, 300, 100],
+                ['imageOffsetX', 'Offset X', -100, 100, 0],
+                ['imageOffsetY', 'Offset Y', -100, 100, 0],
+              ] as const).map(([key, label, min, max, fallback]) => <div key={key} className="min-w-0">
+                <label className="block text-[10px] text-slate-400 mb-1">{label}</label>
+                <StepperSlider variant="compact" label={`Ticket image ${label}`} unit="%" min={min} max={max} step={1} value={options[key] ?? fallback} onChange={value => update({ [key]: value })} />
+              </div>)}
+            </div>
+            <button type="button" onClick={() => update({ imageZoom: 100, imageOffsetX: 0, imageOffsetY: 0 })} className="text-[11px] text-pastel-pink hover:text-white cursor-pointer">Reset crop</button>
+            <p className="text-[10px] text-slate-500">Works with Image Fit. Use Cover to crop without empty space; zoom and offsets only move the image inside the ticket.</p>
+          </div>
+          <p className="text-[10px] text-slate-500">Barcode is decorative, not a scannable ticket.</p>
+        </div>;
+      })()}
       {state.frameType === 'photo-print' && (() => {
         const options = { ...DEFAULT_PHOTO_PRINT, ...state.photoPrint };
         const update = (changes: Partial<typeof options>) => onChange({ photoPrint: { ...options, ...changes } });

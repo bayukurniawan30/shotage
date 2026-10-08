@@ -143,7 +143,6 @@ export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({
                 {[
                   { id: 'auto', label: 'Auto', ratio: 'Auto', aspectClass: 'aspect-square' },
                   { id: '1:1', label: 'Square', ratio: '1:1', aspectClass: 'aspect-square' },
-                  { id: 'app-icon', label: 'App Icon', ratio: '1:1', aspectClass: 'aspect-square' },
                   { id: '4:3', label: 'Standard', ratio: '4:3', aspectClass: 'aspect-[4/3]' },
                   { id: '3:2', label: 'Classic', ratio: '3:2', aspectClass: 'aspect-[3/2]' },
                   { id: '5:4', label: 'Frame', ratio: '5:4', aspectClass: 'aspect-[5/4]' },
@@ -322,6 +321,26 @@ export const AspectSection: React.FC<{ alwaysExpanded?: boolean }> = ({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+            <div className="pt-3 border-t border-neutral-800/80">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">Web & Sharing</label>
+              <div className="grid grid-cols-3 gap-2 items-end">
+                {([
+                  { id: 'app-icon', label: 'App Icon', size: '1024 × 1024', ratio: '1:1', aspectClass: 'aspect-square' },
+                  { id: 'open-graph', label: 'OG Image', size: '1200 × 630', ratio: '1.91:1', aspectClass: 'aspect-[1200/630]' },
+                  { id: 'blog-cover', label: 'Blog Cover', size: '1600 × 900', ratio: '16:9', aspectClass: 'aspect-video' },
+                ] as const).map(item => <div key={item.id} className="min-w-0 flex flex-col items-center gap-1.5">
+                  <button type="button" aria-label={`${item.label}, ${item.size} pixels`} onClick={() => {
+                    const zoom = getRecommendedZoomForAspect(item.id);
+                    onChange({ aspectRatio: item.id, zoom, slot2Zoom: zoom, ...(item.id === 'app-icon' ? { customWidth: 1024, customHeight: 1024 } : {}) });
+                    setIsAspectDropdownOpen(false);
+                  }} className={`w-full ${item.aspectClass} rounded-lg border p-1 flex items-center justify-center text-[10px] font-mono cursor-pointer transition-colors ${state.aspectRatio === item.id ? 'border-pastel-blue bg-pastel-blue/20 text-pastel-blue' : 'border-neutral-800 bg-neutral-950 text-slate-300 hover:border-neutral-600'}`}>
+                    {item.ratio}
+                  </button>
+                  <span className="text-[11px] font-medium text-slate-400 text-center">{item.label}</span>
+                  <span className="text-[9px] font-mono text-slate-500 text-center">{item.size}</span>
+                </div>)}
               </div>
             </div>
           </div>

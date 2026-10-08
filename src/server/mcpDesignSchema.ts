@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IMAGE_EFFECT_PRESETS } from '../utils/imageEffects.js';
 import { GOOGLE_FONTS } from '../utils/fontLoader.js';
 import { PATTERN_PRESETS } from '../utils/patternPresets.js';
 import type { SocialPlatform } from '../types/studio.js';
@@ -69,6 +70,8 @@ export const MCP_PATTERN_REFERENCE = PATTERN_PRESETS.map(({ id, name }) => ({ id
 type JsonObject = Record<string, unknown>;
 
 export const MCP_ASPECT_RATIOS = [
+  'open-graph',
+  'blog-cover',
   'auto',
   '16:9',
   '1:1',
@@ -126,6 +129,7 @@ export const MCP_FRAME_TYPES = [
   'polaroid',
   'polaroid-dark',
   'photo-print',
+  'ticket-pass',
   'instagram',
   'instagram-dark',
 ] as const;
@@ -310,6 +314,7 @@ const animatedLayerFields = {
   motionPath: mcpMotionPathSchema.optional(),
 };
 
+const imageEffectSchema = z.object({ preset: z.enum(IMAGE_EFFECT_PRESETS), intensity: finiteNumber.min(0).max(100) });
 const imageFillFields = {
   bgImage: z.string().nullable().optional(),
   bgImageZoom: finiteNumber.min(10).max(400).optional(),
@@ -352,6 +357,7 @@ export const mcpTextLayerInputSchema = z
 
 export const mcpShapeLayerInputSchema = z
   .object({
+    imageEffect: imageEffectSchema.optional(),
     ...imageFillFields,
     id: z.string().min(1).optional(),
     shapeType: z.enum([
@@ -527,6 +533,8 @@ export const studioPatchSchema = z
     customWidth: finiteNumber.int().min(160).max(7680).optional(),
     customHeight: finiteNumber.int().min(160).max(7680).optional(),
     backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
+    imageEffect: imageEffectSchema.optional(),
+    slot2ImageEffect: imageEffectSchema.optional(),
     customGradient: z.object({
       angle: finiteNumber.min(0).max(360),
       stops: z.array(z.object({ color, position: finiteNumber.min(0).max(100) })).min(2).max(3)
@@ -544,6 +552,20 @@ export const studioPatchSchema = z
       .object({ color1: color, color2: color, angle: finiteNumber.min(0).max(360) })
       .optional(),
     frameType: z.enum(MCP_FRAME_TYPES).optional(),
+    ticketPass: z.object({
+      imageZoom: finiteNumber.min(50).max(300).optional(),
+      imageOffsetX: finiteNumber.min(-100).max(100).optional(),
+      imageOffsetY: finiteNumber.min(-100).max(100).optional(),
+      variant: z.enum(['event', 'digital']),
+      title: z.string().max(100),
+      subtitle: z.string().max(80),
+      date: z.string().max(60),
+      location: z.string().max(60),
+      stubLabel: z.string().max(30),
+      serial: z.string().max(30),
+      paperColor: color,
+      textColor: color,
+    }).optional(),
     photoPrint: z.object({
       variant: z.enum(['clean', 'captioned', 'gallery']),
       paperColor: color,

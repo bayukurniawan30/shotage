@@ -5,6 +5,21 @@ vi.mock('coolshapes-react', () => ({ Coolshape: () => null }));
 import { getStageSnapshot, useStudioStore } from './useStudioStore';
 
 describe('stage transition preview snapshots', () => {
+  it('preserves independent image effects per stage and clears them on reset', () => {
+    const effect = { preset: 'sepia' as const, intensity: 70 };
+    useStudioStore.getState().updateState({ imageEffect: effect, slot2ImageEffect: { preset: 'vivid', intensity: 40 } });
+    const id = useStudioStore.getState().addShapeLayer('rectangle', { bgImage: 'https://example.com/photo.png', imageEffect: effect });
+    useStudioStore.getState().addStage();
+    useStudioStore.getState().updateState({ imageEffect: { preset: 'noir', intensity: 100 } });
+    useStudioStore.getState().updateShapeLayer(id, { imageEffect: { preset: 'cool', intensity: 30 } });
+    useStudioStore.getState().selectStage(0);
+    expect(useStudioStore.getState().imageEffect).toEqual(effect);
+    expect(getStageSnapshot(useStudioStore.getState()).shapeLayers?.[0].imageEffect).toEqual(effect);
+    expect(useStudioStore.getState().slot2ImageEffect).toEqual({ preset: 'vivid', intensity: 40 });
+    useStudioStore.getState().resetAll();
+    expect(useStudioStore.getState().imageEffect?.preset).toBe('original');
+    expect(useStudioStore.getState().slot2ImageEffect?.preset).toBe('original');
+  });
   beforeEach(() => {
     useStudioStore.getState().resetAll();
   });

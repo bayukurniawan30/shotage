@@ -78,8 +78,16 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
         return ok({
           supportedFields: {
             aspectRatio: MCP_ASPECT_RATIOS,
+            openGraph: { aspectRatio: 'open-graph', dimensions: '1200 × 630 px', rule: 'Website link-preview preset. Image export at 1× is 1200×630; 2× is 2400×1260. No customWidth/customHeight needed.' },
+            blogCover: { aspectRatio: 'blog-cover', dimensions: '1600 × 900 px', rule: '16:9 blog/article cover preset. Image export at 1× is 1600×900. No custom dimensions needed; individual publishing sites may use other sizes.' },
             backgroundType: MCP_BACKGROUND_TYPES,
             backgroundColor: '#RRGGBB',
+            imageEffects: {
+              fields: 'imageEffect for the first mockup; slot2ImageEffect for the second; shapeLayers[].imageEffect for shape image fills',
+              presets: ['original', 'grayscale', 'sepia', 'vintage', 'vivid', 'noir', 'cool', 'warm'],
+              example: { preset: 'vintage', intensity: 75 },
+              rule: 'Intensity is 0-100. Non-destructive filters affect media only, not frames, text, borders or shadows. Preserve settings in stage snapshots. These are static effects, not keyframe properties.',
+            },
             gradient: { color1: '#RRGGBB', color2: '#RRGGBB', angle: '0-360' },
             customGradient: {
               backgroundType: 'customGradient',
@@ -101,6 +109,14 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
             },
             mockupFit: {
               rule: 'Fit to canvas is an editor-only action for frameType=frameless and layoutCount=1. There is no fit flag. To author the same result use centered offsetX/offsetY=0, alignment=center, anchor 0.5/0.5, zero rotateX/rotateY/skewX/skewY/slot1Rotate and an appropriate zoom. Contain the entire mockup without cropping; one pair of edges touches the canvas, with empty space on the other axis if aspect ratios differ.',
+            },
+            ticketPass: {
+              frameType: 'ticket-pass',
+              settingsField: 'ticketPass',
+              imageCrop: { imageZoom: '50-300%, default 100', imageOffsetX: '-100 to 100, default 0; positive aligns toward the original left edge', imageOffsetY: '-100 to 100, default 0; positive aligns toward the original top edge', rule: 'Offsets reposition the original media through object-position, not an already-cropped container. Use cover to reveal hidden image regions without moving the ticket. An axis with no overflow at 100% zoom has no crop to pan.' },
+              variants: ['event', 'digital'],
+              example: { variant: 'event', title: 'Create something worth showing.', subtitle: 'Shotage · Creative sessions', date: '24 OCT 2026 · 18:00', location: 'Bali, Indonesia', stubLabel: 'ADMIT ONE', serial: 'ST—00248', paperColor: '#fff9ee', textColor: '#222127' },
+              rule: 'Event is a landscape ticket with a side stub; digital is a portrait pass with a bottom stub. Uses existing mockup media and imageFit settings. Barcode is decorative, not functional. Preserve the complete ticketPass object in each stage snapshot.',
             },
             animation: {
               isAnimationMode: 'boolean',
@@ -275,10 +291,12 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
       inputSchema: {
         name: z.string().min(1).max(120),
         aspectRatio: z
-          .enum(['16:9', '1:1', 'app-icon', '9:16', '4:3', '3:2', '3:4', '4:5', 'custom'])
+          .enum(['16:9', '1:1', 'app-icon', 'open-graph', 'blog-cover', '9:16', '4:3', '3:2', '3:4', '4:5', 'custom'])
           .optional(),
         backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
         customGradient: studioPatchSchema.shape.customGradient,
+        imageEffect: studioPatchSchema.shape.imageEffect,
+        slot2ImageEffect: studioPatchSchema.shape.slot2ImageEffect,
         backgroundColor: z.string().optional(),
         gradient: z
           .object({
