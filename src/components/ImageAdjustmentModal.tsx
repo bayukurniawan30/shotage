@@ -6,15 +6,6 @@ import { cropGeometry, type ImageCrop } from '../utils/imageCrop';
 import { CroppedMockupImage } from './CroppedMockupImage';
 import { StepperSlider } from './StepperSlider';
 
-function originalRatioLabel(width: number, height: number) {
-  let divisor = width;
-  let remainder = height;
-  while (remainder) {
-    [divisor, remainder] = [remainder, divisor % remainder];
-  }
-  return `${width / (divisor || 1)}:${height / (divisor || 1)}`;
-}
-
 export function ImageAdjustmentModal() {
   const request = useImageAdjustmentStore((s) => s.request);
   useEffect(() => () => useImageAdjustmentStore.getState().setRequest(null), []);
@@ -226,11 +217,7 @@ function Adjustment({ request }: { request: ImageAdjustment }) {
                 <label className="block text-xs text-slate-400">Crop preset</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    [
-                      'Original',
-                      request.width / request.height,
-                      originalRatioLabel(request.width, request.height),
-                    ],
+                    ['Original', request.width / request.height, ''],
                     ['Square', 1, '1:1'],
                     ['Landscape', 16 / 9, '16:9'],
                     ['Portrait', 4 / 5, '4:5'],
@@ -243,7 +230,7 @@ function Adjustment({ request }: { request: ImageAdjustment }) {
                       onClick={() => reset(Number(ratio))}
                       className={`rounded-lg border px-2 py-2 text-xs cursor-pointer ${Math.abs(crop.ratio - Number(ratio)) < 0.001 ? 'border-pastel-pink text-pastel-pink bg-pastel-pink/10' : 'border-neutral-700'}`}
                     >
-                      {label} <span className="opacity-70">({ratioLabel})</span>
+                      {label} {ratioLabel && <span className="opacity-70">({ratioLabel})</span>}
                     </button>
                   ))}
                 </div>
