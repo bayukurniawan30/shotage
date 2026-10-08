@@ -447,6 +447,8 @@ export interface StudioState {
   padding: number; // 0 to 120
   borderRadius: number; // 0 to 32
   imageFit?: 'cover' | 'contain' | 'fill';
+  imageCrop?: import('../utils/imageCrop').ImageCrop | null;
+  slot2ImageCrop?: import('../utils/imageCrop').ImageCrop | null;
   imageEffect?: import('../utils/imageEffects').ImageEffect;
   slot2ImageEffect?: import('../utils/imageEffects').ImageEffect;
   slabThickness?: number; // 0 to 60 (for 3D extrusion)
@@ -679,6 +681,8 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   layoutPreset: 'side-by-side',
   zoom: 100,
   imageEffect: { preset: 'original', intensity: 100 },
+  imageCrop: null,
+  slot2ImageCrop: null,
   slot2ImageEffect: { preset: 'original', intensity: 100 },
   slot2Zoom: 100,
   previewCanvasZoom: 100,

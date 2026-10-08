@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shotage-v3';
+const CACHE_NAME = 'shotage-__BUILD_ID__';
 const ASSETS_TO_CACHE = [
   '/manifest.json',
   '/favicon.ico',
@@ -15,7 +15,11 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.skipWaiting();
+});
+
+// Existing sessions keep working until the user chooses Reload.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
@@ -23,7 +27,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name.startsWith('shotage-') && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })

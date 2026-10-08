@@ -13,6 +13,7 @@ src-tauri/icons/ios/
 build/
 out/
 public/assets/
+public/pwa-worker.js
 
 # Local database file
 local_db.json

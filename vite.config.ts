@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { cp } from 'node:fs/promises';
+import { pwaBuildPlugin } from './scripts/pwa-build';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      ...(!desktopBuild ? [pwaBuildPlugin()] : []),
 
       ...(desktopBuild
         ? [

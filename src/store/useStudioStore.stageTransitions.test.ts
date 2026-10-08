@@ -5,6 +5,19 @@ vi.mock('coolshapes-react', () => ({ Coolshape: () => null }));
 import { getStageSnapshot, useStudioStore } from './useStudioStore';
 
 describe('stage transition preview snapshots', () => {
+  it('preserves image framing per stage and clears it on restore or replacement', () => {
+    const crop = { ratio: 1, zoom: 2, x: .2, y: -.4 };
+    useStudioStore.getState().updateState({ imageCrop: crop, slot2ImageCrop: crop });
+    expect(getStageSnapshot(useStudioStore.getState()).imageCrop).toEqual(crop);
+    useStudioStore.getState().addStage();
+    useStudioStore.getState().updateState({ imageCrop: { ...crop, zoom: 3 } });
+    useStudioStore.getState().selectStage(0);
+    expect(useStudioStore.getState().imageCrop).toEqual(crop);
+    useStudioStore.getState().setImage('new.png', 'New', 800, 600);
+    expect(useStudioStore.getState().imageCrop).toBeNull();
+    useStudioStore.getState().resetAll();
+    expect(useStudioStore.getState().slot2ImageCrop).toBeNull();
+  });
   it('preserves independent image effects per stage and clears them on reset', () => {
     const effect = { preset: 'sepia' as const, intensity: 70 };
     useStudioStore.getState().updateState({ imageEffect: effect, slot2ImageEffect: { preset: 'vivid', intensity: 40 } });

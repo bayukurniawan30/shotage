@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { CroppedMockupImage } from './CroppedMockupImage';
+import { fixedCropFrame } from '../utils/imageCrop';
+import { adjustUploadedImage } from '../store/useImageAdjustmentStore';
 import { imageEffectFilter } from '../utils/imageEffects';
 import { customGradientCss } from '../utils/customGradient';
 import { textOutlineBorderPath } from '../utils/textOutlineBorder';
@@ -2368,10 +2371,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     slotIndex: 1 | 2 = 1
   ) => {
     const isFrameless = state.frameType === 'frameless';
+    const crop = slotIndex === 2 ? state.slot2ImageCrop : state.imageCrop;
+    const cropWidth = Math.min(slotIndex === 2 ? state.secondImageWidth || 600 : state.imageWidth || 600, state.layoutCount === 2 ? 360 : 600);
+    const useCrop = !!crop && (slotIndex === 2 ? state.secondMediaType : state.mediaType) !== 'video';
 
     const slotFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
         onUpload(e.target.files[0]);
+        e.target.value = '';
       }
     };
 
@@ -2473,9 +2480,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const content =
       imgSrc || placeholderSrc ? (
         <div
+          data-mockup-media-viewport="true"
           className="@container relative group overflow-hidden w-full h-full flex items-center justify-center"
           style={{
             borderRadius: isFrameless ? `${state.borderRadius}px` : undefined,
+            ...(useCrop && !fixedCropFrame(state.frameType) ? { width: cropWidth, height: cropWidth / crop!.ratio } : {}),
           }}
         >
           {isSlotVideo && imgSrc ? (
@@ -2490,6 +2499,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               }`}
               style={imageStyle}
             />
+          ) : useCrop && imgSrc ? (
+            <CroppedMockupImage src={imgSrc} name={imgName} width={slotIndex === 2 ? state.secondImageWidth || 1 : state.imageWidth || 1} height={slotIndex === 2 ? state.secondImageHeight || 1 : state.imageHeight || 1} crop={crop!} filter={imageEffectFilter(slotIndex === 2 ? state.slot2ImageEffect : state.imageEffect)} />
           ) : (
             <img
               data-export-mockup-image="true"
@@ -3006,12 +3017,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             const src = e.target.result as string;
             const img = new Image();
             img.onload = () => {
-              useStudioStore
-                .getState()
-                .setSecondImage(src, file.name, img.naturalWidth, img.naturalHeight, 'image');
+              adjustUploadedImage(src, file.name, img.naturalWidth, img.naturalHeight, 2);
             };
             img.onerror = () =>
-              useStudioStore.getState().setSecondImage(src, file.name, null, null, 'image');
+              alert('Unable to read this image. Please try another file.');
             img.src = src;
           }
         };

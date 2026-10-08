@@ -1,4 +1,6 @@
 import React, { lazy, Suspense, useRef, useEffect, useState } from 'react';
+import { ImageAdjustmentModal } from '../components/ImageAdjustmentModal';
+import { adjustUploadedImage } from '../store/useImageAdjustmentStore';
 import { getStageSnapshot, useStudioStore } from '../store/useStudioStore';
 import { CanvasStage } from '../components/CanvasStage';
 import { StageOverview, type StageOverviewHandle } from '../components/StageOverview';
@@ -724,9 +726,9 @@ export const Studio: React.FC = () => {
           // Capture natural dimensions so shared designs can render an aspect placeholder
           const img = new Image();
           img.onload = () => {
-            setImage(src, file.name, img.naturalWidth, img.naturalHeight, 'image');
+            adjustUploadedImage(src, file.name, img.naturalWidth, img.naturalHeight);
           };
-          img.onerror = () => setImage(src, file.name, null, null, 'image');
+          img.onerror = () => alert('Unable to read this image. Please try another file.');
           img.src = src;
         }
       };
@@ -1698,6 +1700,7 @@ export const Studio: React.FC = () => {
       )}
 
       {/* Export Options Modal */}
+      <ImageAdjustmentModal />
       {isExportModalOpen && (
         <Suspense fallback={null}>
           <ExportModal isOpen onClose={() => setIsExportModalOpen(false)} canvasRef={canvasRef} />

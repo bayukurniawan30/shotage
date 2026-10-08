@@ -159,6 +159,7 @@ app.get('/*', async (c, next) => {
     if (reqPath.startsWith('/assets/')) {
       headers['Cache-Control'] = 'public, max-age=31536000, immutable';
     }
+    if (reqPath === '/pwa-worker.js') headers['Cache-Control'] = 'no-cache';
 
     return c.body(content, 200, headers);
   }

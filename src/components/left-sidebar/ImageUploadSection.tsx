@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { adjustUploadedImage, reopenImageAdjustment } from '../../store/useImageAdjustmentStore';
 import { ImageEffectControl } from '../ImageEffectControl';
 import { createPortal } from 'react-dom';
 import { useStudioEditorStore, useStudioStore } from '../../store/useStudioStore';
@@ -19,6 +20,7 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       onImageUpload(e.target.files[0]);
+      e.target.value = '';
     }
   };
 
@@ -456,6 +458,7 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
               accept="image/*,video/*"
               onChange={(e) => {
                 const file = e.target.files?.[0];
+                e.target.value = '';
                 if (file) {
                   if (!isValidMediaFile(file)) {
                     alert('Invalid file format. Please upload an image or video.');
@@ -482,20 +485,10 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
                       const src = event.target.result as string;
                       const img = new Image();
                       img.onload = () => {
-                        useStudioStore
-                          .getState()
-                          .setSecondImage(
-                            src,
-                            file.name,
-                            img.naturalWidth,
-                            img.naturalHeight,
-                            'image'
-                          );
+                        adjustUploadedImage(src, file.name, img.naturalWidth, img.naturalHeight, 2);
                       };
                       img.onerror = () =>
-                        useStudioStore
-                          .getState()
-                          .setSecondImage(src, file.name, null, null, 'image');
+                        alert('Unable to read this image. Please try another file.');
                       img.src = src;
                     }
                   };
@@ -509,24 +502,29 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ onImageU
       )}
 
       {/* Image Fit Setting */}
+      {state.frameType !== 'code-window' && <div className="flex flex-wrap gap-2">
+        {state.imageSrc && state.mediaType !== 'video' && <button type="button" onClick={() => reopenImageAdjustment(1)} className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-pastel-pink cursor-pointer">Adjust Image{state.layoutCount === 2 ? ' · Slot 1' : ''}</button>}
+        {state.layoutCount === 2 && state.secondImageSrc && state.secondMediaType !== 'video' && <button type="button" onClick={() => reopenImageAdjustment(2)} className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-pastel-pink cursor-pointer">Adjust Image · Slot 2</button>}
+      </div>}
       {state.imageSrc && state.mediaType !== 'video' && <ImageEffectControl value={state.imageEffect} imageSrc={state.imageSrc} label={state.layoutCount === 2 ? 'Image Effects · Slot 1' : 'Image Effects'} onChange={imageEffect => onChange({ imageEffect })} />}
       {state.layoutCount === 2 && state.secondImageSrc && state.secondMediaType !== 'video' && <ImageEffectControl value={state.slot2ImageEffect} imageSrc={state.secondImageSrc} label="Image Effects · Slot 2" onChange={slot2ImageEffect => onChange({ slot2ImageEffect })} />}
       <div className="pt-2 border-t border-neutral-800/80">
         <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
           Image Fit
         </label>
+        {(state.imageCrop || state.slot2ImageCrop) && <p className="text-[10px] text-slate-400 mb-2">Custom framing active. Selecting Image Fit resets framing for both slots.</p>}
         <div className="grid grid-cols-3 gap-1.5">
           {[
             { id: 'cover', label: 'Cover', desc: 'Crop & Fill' },
             { id: 'contain', label: 'Contain', desc: 'Fit (No Crop)' },
             { id: 'fill', label: 'Fill', desc: 'Stretch' },
           ].map((fit) => {
-            const isSelected = (state.imageFit || 'cover') === fit.id;
+            const isSelected = !state.imageCrop && !state.slot2ImageCrop && (state.imageFit || 'cover') === fit.id;
             return (
               <button
                 key={fit.id}
                 type="button"
-                onClick={() => onChange({ imageFit: fit.id as any })}
+                onClick={() => onChange({ imageFit: fit.id as any, imageCrop: null, slot2ImageCrop: null })}
                 className={`py-2 px-1 text-xs rounded-xl border transition-all cursor-pointer flex flex-col items-center justify-center ${
                   isSelected
                     ? 'bg-[#a2d2ff]/20 border-[#a2d2ff] text-[#a2d2ff] font-bold shadow-xs'

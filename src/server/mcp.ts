@@ -82,6 +82,11 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
             blogCover: { aspectRatio: 'blog-cover', dimensions: '1600 × 900 px', rule: '16:9 blog/article cover preset. Image export at 1× is 1600×900. No custom dimensions needed; individual publishing sites may use other sizes.' },
             backgroundType: MCP_BACKGROUND_TYPES,
             backgroundColor: '#RRGGBB',
+            imageFraming: {
+              fields: 'imageCrop (slot 1), slot2ImageCrop (slot 2); null preserves legacy Image Fit',
+              example: { ratio: 1, zoom: 1.5, x: 0, y: 0 },
+              rule: 'Non-destructive image framing only, not video. Preserve original source URLs and natural dimensions. Ratio is width/height, zoom 1–4, offsets -1–1 (0 centered, positive moves image right/down). Fixed device and ticket image areas retain their frame proportions. Static, not keyframe properties. Preserve in complete stage snapshots.',
+            },
             imageEffects: {
               fields: 'imageEffect for the first mockup; slot2ImageEffect for the second; shapeLayers[].imageEffect for shape image fills',
               presets: ['original', 'grayscale', 'sepia', 'vintage', 'vivid', 'noir', 'cool', 'warm'],
@@ -296,6 +301,8 @@ function createServer(principal: McpPrincipal, requestUrl: string) {
         backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
         customGradient: studioPatchSchema.shape.customGradient,
         imageEffect: studioPatchSchema.shape.imageEffect,
+        imageCrop: studioPatchSchema.shape.imageCrop,
+        slot2ImageCrop: studioPatchSchema.shape.slot2ImageCrop,
         slot2ImageEffect: studioPatchSchema.shape.slot2ImageEffect,
         backgroundColor: z.string().optional(),
         gradient: z

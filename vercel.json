@@ -2,6 +2,12 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install",
+  "headers": [
+    {
+      "source": "/pwa-worker.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ],
   "functions": {
     "index.ts": {
       "includeFiles": "dist/**"

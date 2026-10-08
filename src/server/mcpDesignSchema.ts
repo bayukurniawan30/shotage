@@ -535,6 +535,8 @@ export const studioPatchSchema = z
     backgroundType: z.enum(MCP_BACKGROUND_TYPES).optional(),
     imageEffect: imageEffectSchema.optional(),
     slot2ImageEffect: imageEffectSchema.optional(),
+    imageCrop: z.object({ ratio: finiteNumber.min(0.2).max(5), zoom: finiteNumber.min(1).max(4), x: finiteNumber.min(-1).max(1), y: finiteNumber.min(-1).max(1) }).strict().nullable().optional(),
+    slot2ImageCrop: z.object({ ratio: finiteNumber.min(0.2).max(5), zoom: finiteNumber.min(1).max(4), x: finiteNumber.min(-1).max(1), y: finiteNumber.min(-1).max(1) }).strict().nullable().optional(),
     customGradient: z.object({
       angle: finiteNumber.min(0).max(360),
       stops: z.array(z.object({ color, position: finiteNumber.min(0).max(100) })).min(2).max(3)

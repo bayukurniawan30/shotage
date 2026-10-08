@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import './index.css';
 import { isDesktopApp } from './platform/runtime';
+import { registerPwa } from './pwa/register';
 
 const getInitialPage = () => {
   const el = document.getElementById('app');
@@ -56,32 +57,6 @@ createInertiaApp({
 
 if ('serviceWorker' in navigator && import.meta.env.PROD && !isDesktopApp()) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        // Check for updates on page launch
-        reg.update();
-
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Auto reload to apply fresh deployment
-                window.location.reload();
-              }
-            });
-          }
-        });
-      })
-      .catch((err) => console.error('Service Worker registration failed:', err));
-
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
-    });
+    void registerPwa().catch(err => console.error('Service Worker registration failed:', err));
   });
 }

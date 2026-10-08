@@ -484,6 +484,8 @@ export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     padding,
     borderRadius,
     imageFit,
+    imageCrop,
+    slot2ImageCrop,
     imageEffect,
     slot2ImageEffect,
     slabThickness,
@@ -628,6 +630,8 @@ export const getStageSnapshot = (state: StudioState): Partial<StudioState> => {
     borderRadius,
     slabThickness,
     imageFit,
+    imageCrop,
+    slot2ImageCrop,
     imageEffect,
     slot2ImageEffect,
     slabColor,
@@ -904,6 +908,7 @@ export const useStudioStore = create<StudioStore>()(
       setImage: (src, name, width, height, mediaType = 'image', duration) =>
         set((s) => ({
           imageSrc: src,
+          imageCrop: null,
           imageName: name,
           imageWidth: width,
           imageHeight: height,
@@ -916,6 +921,7 @@ export const useStudioStore = create<StudioStore>()(
       setSecondImage: (src, name, width, height, mediaType = 'image', duration) =>
         set({
           secondImageSrc: src,
+          slot2ImageCrop: null,
           secondImageName: name,
           secondImageWidth: width,
           secondImageHeight: height,

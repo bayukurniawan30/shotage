@@ -12,6 +12,14 @@ import { SOCIAL_PLATFORMS } from '../components/SocialIcons';
 import { TECH_STACK_ITEMS } from '../components/TechStackIcons';
 
 describe('MCP design construction', () => {
+  it('preserves and validates non-destructive image framing', () => {
+    const crop = { ratio: 1, zoom: 2, x: -.5, y: .25 };
+    const state = buildStudioState({ imageCrop: crop, slot2ImageCrop: null });
+    expect(state.imageCrop).toEqual(crop);
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(() => validateMcpStudioState({ ...state, imageCrop: { ...crop, zoom: 0 } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, imageCrop: { ...crop, x: 2 } })).toThrow();
+  });
   it.each(['open-graph', 'blog-cover'] as const)('supports the %s preset independently of custom canvas dimensions', aspectRatio => {
     const state = buildStudioState({ aspectRatio });
     expect(state.aspectRatio).toBe(aspectRatio);

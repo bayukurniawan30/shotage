@@ -6,6 +6,7 @@ import { StepperSlider } from '../StepperSlider';
 import { FRAME_LABELS } from './utils';
 import { DEFAULT_PHOTO_PRINT } from '../frames/PhotoPrintFrame';
 import { DEFAULT_TICKET_PASS } from '../frames/TicketPassFrame';
+import { reopenImageAdjustment } from '../../store/useImageAdjustmentStore';
 import { clampCodeSource, CODE_LANGUAGES } from '../../utils/codeHighlight';
 import type { CodeLanguage, CodeTheme } from '../../types/studio';
 import { isDesktopApp } from '../../platform/runtime';
@@ -624,19 +625,10 @@ export const FrameSection: React.FC<{ alwaysExpanded?: boolean }> = ({
             </label>)}
           </div>
           <div className="border-t border-neutral-800 pt-3 space-y-2">
-            <p className="text-xs font-medium text-slate-300">Image Crop</p>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                ['imageZoom', 'Zoom', 50, 300, 100],
-                ['imageOffsetX', 'Offset X', -100, 100, 0],
-                ['imageOffsetY', 'Offset Y', -100, 100, 0],
-              ] as const).map(([key, label, min, max, fallback]) => <div key={key} className="min-w-0">
-                <label className="block text-[10px] text-slate-400 mb-1">{label}</label>
-                <StepperSlider variant="compact" label={`Ticket image ${label}`} unit="%" min={min} max={max} step={1} value={options[key] ?? fallback} onChange={value => update({ [key]: value })} />
-              </div>)}
-            </div>
-            <button type="button" onClick={() => update({ imageZoom: 100, imageOffsetX: 0, imageOffsetY: 0 })} className="text-[11px] text-pastel-pink hover:text-white cursor-pointer">Reset crop</button>
-            <p className="text-[10px] text-slate-500">Works with Image Fit. Use Cover to crop without empty space; zoom and offsets only move the image inside the ticket.</p>
+            <p className="text-xs font-medium text-slate-300">Image framing</p>
+            {state.imageSrc && state.mediaType !== 'video' && <button type="button" onClick={() => reopenImageAdjustment(1)} className="text-xs text-pastel-pink cursor-pointer">Adjust Image · Slot 1</button>}
+            {state.layoutCount === 2 && state.secondImageSrc && state.secondMediaType !== 'video' && <button type="button" onClick={() => reopenImageAdjustment(2)} className="block text-xs text-pastel-pink cursor-pointer">Adjust Image · Slot 2</button>}
+            <p className="text-[10px] text-slate-500">Zoom and reposition the original image without changing the ticket proportions.</p>
           </div>
           <p className="text-[10px] text-slate-500">Barcode is decorative, not a scannable ticket.</p>
         </div>;
