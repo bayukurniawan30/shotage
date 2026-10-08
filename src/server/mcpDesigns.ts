@@ -10,7 +10,7 @@ import { validateMcpStudioState } from './mcpDesignSchema.js';
 
 type JsonObject = Record<string, unknown>;
 
-export const MCP_DESIGN_PLACEHOLDER = '/mcp-design-placeholder.svg';
+export const MCP_DESIGN_PLACEHOLDER = '/shotage-mcp.webp';
 
 function cmsConfig() {
   const apiKey = process.env.MORPHIC_API_KEY?.trim();

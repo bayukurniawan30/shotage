@@ -31,9 +31,9 @@ const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, ans
         </span>
       </button>
       <p
-        className="px-4 text-xs md:text-sm leading-relaxed text-slate-400 transition-all duration-300 ease-in-out overflow-hidden min-w-0"
+        className="px-4 text-xs md:text-sm leading-relaxed text-slate-400 transition-all duration-300 ease-in-out overflow-hidden min-w-0 whitespace-pre-line break-words"
         style={{
-          maxHeight: open ? '400px' : '0px',
+          maxHeight: open ? 'none' : '0px',
           paddingBottom: open ? '16px' : '0px',
           opacity: open ? 1 : 0,
           width: '100%',
@@ -55,7 +55,7 @@ const faqSections: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: 'Do I need an account?',
-        a: 'No. Everything runs in your browser — there is no sign-up, and your work never leaves your device.',
+        a: 'You can edit and preview without an account. Sign in to buy credits, use paid exports, save or share designs, and connect Shotage MCP. Editing and rendering run locally; sharing or saving a design uploads its content with your selected visibility.',
       },
       {
         q: 'Which browsers and devices are supported?',
@@ -72,7 +72,7 @@ const faqSections: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: 'Are my images stored on a server?',
-        a: 'No. Images are processed locally in your browser and are never uploaded to an external server.',
+        a: 'Images stay local while editing and exporting. When you explicitly save or share a design online, its content and media are uploaded so the design can be opened again. Private saved designs require the owner to sign in.',
       },
       {
         q: 'Can I use my own fonts or icons?',
@@ -115,6 +115,23 @@ const faqSections: { heading: string; items: { q: string; a: string }[] }[] = [
       {
         q: 'Why might my export look rough?',
         a: 'Export uses the current canvas resolution and animation settings. Set your canvas and aspect ratio to the target output before exporting for the best result.',
+      },
+    ],
+  },
+  {
+    heading: 'AI & MCP',
+    items: [
+      {
+        q: 'How do I connect Shotage MCP to my AI assistant?',
+        a: '1. Use an AI client that supports remote HTTP MCP servers with OAuth authentication. Availability depends on your client and plan.\n2. Open its MCP or connector settings and add a remote server named Shotage.\n3. Enter this server URL: https://shotage.studio/mcp\n4. Start the connection, sign in to your Shotage account, and review and approve the requested permissions. You do not need a Shotage API key.\n5. Enable the Shotage tools in your conversation and ask your assistant to create or edit a saved design. If the connection fails, confirm that your client supports remote MCP with OAuth, then try reconnecting.',
+      },
+      {
+        q: 'What can I create with Shotage MCP?',
+        a: 'Create private saved graphics and multi-stage animations, list and edit designs owned by your account, and open the returned Studio link to review the result. Supported features include editable layers, gradients, groups, masks, keyframes, and transitions. MCP does not control an already-open canvas or export a video for you. Designs stay private unless you explicitly request submission to Explore for review.',
+      },
+      {
+        q: 'What should I ask after connecting?',
+        a: 'Try: “Use Shotage to create a private 16:9 design with a pink-to-blue custom gradient and a headline saying Create something stunning. Load get_design_reference first, validate the design, save it, and return the Studio URL.” To edit a saved design, provide its Studio link and ask the assistant to keep the original unchanged if you want a new copy.',
       },
     ],
   },

@@ -13,7 +13,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         <img src="/shotage-logo-small.png" alt="Shotage Logo" className="w-5 h-5 rounded-md" />
         <span className="font-bold text-slate-200">Shotage Studio</span>
         <span className="text-slate-600">•</span>
-        <span>© {new Date().getFullYear()} Shotage — High-Resolution Screenshot Studio</span>
+        <span>© {new Date().getFullYear()} Shotage — High-Resolution Mockup Studio</span>
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-semibold">

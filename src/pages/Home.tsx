@@ -1423,8 +1423,9 @@ export const Home: React.FC = () => {
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
                   Enrich your mockups with 1,000+ Phosphor icons, tech logos (React, Next.js, Figma,
-                  GitHub), expressive 3D emojis, hand-drawn sketch arrows, and custom glassmorphic
-                  shapes to highlight product features effortlessly.
+                  GitHub), expressive 3D emojis, hand-drawn sketch arrows, and Coolshapes.
+                  Draw custom Vector Shapes and open Vector Lines with the pen tool, then style
+                  them to highlight product features effortlessly.
                 </p>
                 <div className="flex items-center gap-2 pt-1 flex-wrap text-[11px] text-slate-300 font-medium max-w-lg">
                   <span className="px-2.5 py-1 rounded-lg bg-neutral-900/90 border border-neutral-800 flex items-center gap-1.5 shadow-sm">
@@ -1437,6 +1438,12 @@ export const Home: React.FC = () => {
                     🔷 Geometric Shapes
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-neutral-900/90 border border-neutral-800 flex items-center gap-1.5 shadow-sm">
+                    ✦ Coolshapes
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-neutral-900/90 border border-neutral-800 flex items-center gap-1.5 shadow-sm">
+                    ✎ Vector Shapes & Lines
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-neutral-900/90 border border-neutral-800 flex items-center gap-1.5 shadow-sm">
                     🏷️ Tech & Social Badges
                   </span>
                 </div>
@@ -1447,6 +1454,86 @@ export const Home: React.FC = () => {
                   aria-hidden="true"
                 >
                   😎
+                </div>
+              </div>
+
+              {/* MCP: saved-design authoring, not live canvas control */}
+              <div className="md:col-span-2 p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl relative overflow-hidden space-y-5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="px-2.5 py-1 rounded-md bg-pastel-pink/20 text-pastel-pink font-bold text-[10px] uppercase">
+                    Connected Creativity
+                  </span>
+                  <PhosphorIcons.PlugsConnected className="w-6 h-6 text-pastel-pink" aria-hidden="true" />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-white">Your AI assistant. Your next design.</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+                    Connect a compatible AI assistant to Shotage through MCP (Model Context
+                    Protocol). Describe a graphic or multi-stage animation, create a private saved
+                    design, or refine an existing one with editable layers, keyframes, and transitions.
+                    Open the result in Studio to review and make it yours.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <PhosphorIcons.Sparkle className="w-4 h-4 text-pastel-pink shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-xs text-slate-200 leading-relaxed">
+                      “Create a product reveal with a pink-to-blue gradient, staggered headlines,
+                      and smooth transitions.”
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 border-t border-neutral-800 pt-3">
+                    <span>Describe</span><ArrowRight className="w-3 h-3" aria-hidden="true" />
+                    <span>Create & save</span><ArrowRight className="w-3 h-3" aria-hidden="true" />
+                    <span className="text-pastel-blue">Refine in Studio</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Requires sign-in and a connected MCP client. Works with saved designs, not live canvas control.
+                </p>
+              </div>
+
+              <div className="p-8 rounded-3xl bg-neutral-950/90 sm:bg-neutral-950/80 border border-neutral-800 backdrop-blur-sm sm:backdrop-blur-xl space-y-5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="px-2.5 py-1 rounded-md bg-pastel-blue/20 text-pastel-blue font-bold text-[10px] uppercase">
+                    Layers & Groups
+                  </span>
+                  <LayersThree01 className="w-5 h-5 text-pastel-blue" aria-hidden="true" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Every detail, in its place.</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Reorder, hide, or lock individual layers. Group related elements to move, resize,
+                  and animate them together, while keeping each element editable. Shape masks let
+                  you reveal content with precision.
+                </p>
+                <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-2 space-y-1" aria-hidden="true">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-pastel-pink/50 bg-pastel-pink/10 px-2 py-1.5">
+                    <PhosphorIcons.CaretDownIcon className="w-3 h-3 shrink-0 text-slate-500" />
+                    <PhosphorIcons.FolderIcon weight="fill" className="w-4 h-4 shrink-0 text-pastel-pink" />
+                    <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-200">Product reveal</span>
+                    <span className="text-[9px] font-mono text-slate-500">2</span>
+                    <PhosphorIcons.EyeIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                    <PhosphorIcons.LockOpenIcon className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                  </div>
+                  {[
+                    { name: 'Headline', icon: PhosphorIcons.TextTIcon, nested: true, locked: false },
+                    { name: 'Accent shape', icon: PhosphorIcons.SquareIcon, nested: true, locked: false },
+                    { name: 'Background', icon: PhosphorIcons.ImageIcon, nested: false, locked: true },
+                  ].map(({ name, icon: Icon, nested, locked }) => (
+                    <div key={name} className={`flex items-center gap-1 rounded-lg border border-neutral-800 bg-neutral-900 px-1.5 py-1.5 ${nested ? 'ml-3' : ''}`}>
+                      <PhosphorIcons.DotsSixVerticalIcon className="w-3 h-3 shrink-0 text-slate-600" />
+                      <Icon className="w-3.5 h-3.5 shrink-0 text-pastel-blue" />
+                      <span className="min-w-0 flex-1 truncate text-[10px] text-slate-300">{name}</span>
+                      <div className="flex items-center shrink-0 text-slate-500">
+                        <span className="p-1"><PhosphorIcons.EyeIcon className="w-3 h-3" /></span>
+                        <span className={`p-1 ${locked ? 'text-amber-300' : ''}`}>
+                          {locked ? <PhosphorIcons.LockSimpleIcon className="w-3 h-3" /> : <PhosphorIcons.LockSimpleOpenIcon className="w-3 h-3" />}
+                        </span>
+                        <span className="p-1"><PhosphorIcons.CopyIcon className="w-3 h-3" /></span>
+                        <span className="p-1"><PhosphorIcons.TrashIcon className="w-3 h-3" /></span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
