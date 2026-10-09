@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CroppedMockupImage } from './CroppedMockupImage';
+import { resizeRectangleEdge, type RectangleEdge } from '../utils/rectangleEdgeResize';
+import { SelectionCornerHandles, TransformModeButton, RectangleEdgeHandles } from './SelectionTransformControls';
 import { fixedCropFrame } from '../utils/imageCrop';
 import { adjustUploadedImage } from '../store/useImageAdjustmentStore';
 import { imageEffectFilter } from '../utils/imageEffects';
@@ -3159,6 +3161,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     scale: number;
   } | null>(null);
 
+  const [transformMode, setTransformMode] = useState<'resize' | 'rotate'>('resize');
+  const toggleTransformMode = () => setTransformMode(mode => mode === 'resize' ? 'rotate' : 'resize');
+
   // On-canvas direct element rotation state
   const [rotateDragItem, setRotateDragItem] = useState<{
     type: 'text' | 'phosphor' | 'element' | 'shape';
@@ -4214,6 +4219,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           })
         );
       } else if (resizeDragItem.type === 'shape') {
+        if (['t', 'b', 'l', 'r'].includes(corner)) {
+          const resized = resizeRectangleEdge({
+            width: resizeDragItem.initialWidth, height: resizeDragItem.initialHeight,
+            x: resizeDragItem.initialX, y: resizeDragItem.initialY,
+            rotation: resizeDragItem.rotation, anchorX: resizeDragItem.anchorX, anchorY: resizeDragItem.anchorY,
+          }, corner as RectangleEdge, deltaX, deltaY);
+          scheduleDragUpdate(() => state.updateShapeLayer(resizeDragItem.id, resized));
+          return;
+        }
         const isUniform =
           resizeDragItem.shapeType &&
           resizeDragItem.shapeType !== 'rectangle' &&
@@ -4469,24 +4483,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             />
             {!locked && (
               <>
-                {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
-                  <div
-                    key={corner}
-                    data-group-action="resize"
-                    data-corner={corner}
-                    title="Resize group proportionally"
-                    className={`absolute h-2.5 w-2.5 border border-pastel-pink bg-white shadow-sm hover:scale-125 transition-transform z-50 pointer-events-auto ${
-                      corner === 'tl'
-                        ? '-left-[5px] -top-[5px] cursor-nw-resize'
-                        : corner === 'tr'
-                          ? '-right-[5px] -top-[5px] cursor-ne-resize'
-                          : corner === 'bl'
-                            ? '-bottom-[5px] -left-[5px] cursor-sw-resize'
-                            : '-bottom-[5px] -right-[5px] cursor-se-resize'
-                    }`}
-                    style={{ transform: `scale(${inverseGroupScale})` }}
-                  />
-                ))}
+                <SelectionCornerHandles group mode={transformMode} style={{ transform: `scale(${inverseGroupScale})` }} />
 
                 <div
                   className="absolute top-full left-1/2 flex items-center gap-2 z-50 pointer-events-auto"
@@ -4496,13 +4493,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     transformOrigin: 'top center',
                   }}
                 >
-                  <div
-                    data-group-action="rotate"
-                    title="Rotate group"
-                    className="h-6 w-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
-                  >
-                    <PhosphorIcons.ArrowClockwiseIcon className="h-3.5 w-3.5 pointer-events-none" />
-                  </div>
+                  <TransformModeButton mode={transformMode} onToggle={toggleTransformMode} rotation={groupRotation} />
                   <button
                     type="button"
                     data-group-action="ungroup"
@@ -4667,44 +4658,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   </div>
                 </>
               )}
-              {/* 4 Corner Resize Handles - Crisp White Squares */}
-              <div
-                data-action="resize"
-                data-corner="tl"
-                title="Drag to resize"
-                className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-              <div
-                data-action="resize"
-                data-corner="tr"
-                title="Drag to resize"
-                className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-              <div
-                data-action="resize"
-                data-corner="bl"
-                title="Drag to resize"
-                className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-              <div
-                data-action="resize"
-                data-corner="br"
-                title="Drag to resize"
-                className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
+              <SelectionCornerHandles mode={transformMode} />
+              {transformMode === 'resize' && (layer.shapeType === 'rectangle' || layer.shapeType === 'rectangle-3d') && <RectangleEdgeHandles />}
 
               {/* Bottom Action Bar: Rotate & Delete buttons side-by-side */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto">
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-shapeRot}deg)` }}
-                  />
-                </div>
+                <TransformModeButton mode={transformMode} onToggle={toggleTransformMode} rotation={shapeRot} />
                 <div
                   data-action="delete"
                   title={
@@ -4774,36 +4733,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 height: `${elHeight}px`,
               }}
             >
-              {/* 4 Corner Resize Handles - Crisp White Squares */}
-              <div
-                data-action="resize"
-                data-corner="tl"
-                title="Drag to resize"
-                className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
-              />
-              <div
-                data-action="resize"
-                data-corner="tr"
-                title="Drag to resize"
-                className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
-              />
-              <div
-                data-action="resize"
-                data-corner="bl"
-                title="Drag to resize"
-                className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
-              />
-              <div
-                data-action="resize"
-                data-corner="br"
-                title="Drag to resize"
-                className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }}
-              />
-
+              <SelectionCornerHandles mode={transformMode} style={{ transform: `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` }} />
               {/* Bottom Action Bar: Rotate & Delete buttons side-by-side */}
               <div
                 className="absolute top-full left-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto"
@@ -4811,16 +4741,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   transform: `translateX(-50%) scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})`,
                 }}
               >
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-elRot}deg)` }}
-                  />
-                </div>
+                <TransformModeButton mode={transformMode} onToggle={toggleTransformMode} rotation={elRot} />
                 <div
                   data-action="delete"
                   title={
@@ -4894,44 +4815,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 height: `${iconSize}px`,
               }}
             >
-              {/* 4 Corner Resize Handles - Crisp White Squares */}
-              <div
-                data-action="resize"
-                data-corner="tl"
-                title="Drag to resize"
-                className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-              <div
-                data-action="resize"
-                data-corner="tr"
-                title="Drag to resize"
-                className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-              <div
-                data-action="resize"
-                data-corner="bl"
-                title="Drag to resize"
-                className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-              <div
-                data-action="resize"
-                data-corner="br"
-                title="Drag to resize"
-                className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-              />
-
+              <SelectionCornerHandles mode={transformMode} />
               {/* Bottom Action Bar: Rotate & Delete buttons side-by-side */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 flex items-center gap-2 z-50 pointer-events-auto">
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-iconRot}deg)` }}
-                  />
-                </div>
+                <TransformModeButton mode={transformMode} onToggle={toggleTransformMode} rotation={iconRot} />
                 <div
                   data-action="delete"
                   title={
@@ -5052,36 +4939,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   className="absolute top-0 bottom-0 right-0 bg-white shadow-[0_0_2px_rgba(0,0,0,0.6)]"
                   style={{ width: `${invScaleX}px` }}
                 />
-                {/* 4 Corner Resize Handles - Crisp White Squares (constant size) */}
-                <div
-                  data-action="resize"
-                  data-corner="tl"
-                  title="Drag to resize text"
-                  style={handleScaleStyle}
-                  className="resize-handle absolute -top-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-nw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                />
-                <div
-                  data-action="resize"
-                  data-corner="tr"
-                  title="Drag to resize text"
-                  style={handleScaleStyle}
-                  className="resize-handle absolute -top-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-ne-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                />
-                <div
-                  data-action="resize"
-                  data-corner="bl"
-                  title="Drag to resize text"
-                  style={handleScaleStyle}
-                  className="resize-handle absolute -bottom-[5px] -left-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-sw-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                />
-                <div
-                  data-action="resize"
-                  data-corner="br"
-                  title="Drag to resize text"
-                  style={handleScaleStyle}
-                  className="resize-handle absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-white border border-neutral-400 shadow-sm cursor-se-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
-                />
-
+              <SelectionCornerHandles mode={transformMode} style={handleScaleStyle} />
+                {transformMode === 'resize' && <>
                 {/* 4 Side Edge Handles - Crisp White Bars (constant size, for stretching X & Y) */}
                 <div
                   data-action="resize"
@@ -5119,6 +4978,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   }}
                   className="resize-handle absolute -right-[4px] top-1/2 w-1.5 h-4 bg-white border border-neutral-400 rounded-full shadow-sm cursor-ew-resize hover:scale-125 transition-transform z-50 pointer-events-auto"
                 />
+                </>}
               </div>
 
               {/* Invisible content that matches the exact text layer dimensions */}
@@ -5164,16 +5024,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   transformOrigin: 'top center',
                 }}
               >
-                <div
-                  data-action="rotate"
-                  title="Drag to rotate"
-                  className="rotate-handle w-6 h-6 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md border border-neutral-300 hover:border-neutral-400 hover:scale-110 cursor-grab active:cursor-grabbing transition-all"
-                >
-                  <PhosphorIcons.ArrowClockwiseIcon
-                    className="w-3.5 h-3.5 font-bold pointer-events-none"
-                    style={{ transform: `rotate(${-posRot}deg)` }}
-                  />
-                </div>
+                <TransformModeButton mode={transformMode} onToggle={toggleTransformMode} rotation={posRot} />
                 <div
                   data-action="delete"
                   title={

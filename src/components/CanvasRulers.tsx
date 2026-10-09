@@ -5,6 +5,7 @@ import {
   getRulerStep,
   guidePositionFromScreen,
   guidePositionToScreen,
+  snapGuideToCenter,
 } from '../utils/canvasGuides';
 
 interface CanvasRulersProps {
@@ -200,13 +201,19 @@ export const CanvasRulers = React.memo(function CanvasRulers({
     if (existing) captureRef.current.focus({ preventScroll: true });
   };
 
+  const draggedPosition = (event: React.PointerEvent, axis: CanvasGuide['axis'], offset: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    return snapGuideToCenter(pointerPosition(event, axis) + offset,
+      rect ? axis === 'vertical' ? rect.width : rect.height : 0);
+  };
+
   const moveGuide = (event: React.PointerEvent) => {
     const drag = dragRef.current;
     if (!drag || event.pointerId !== drag.pointerId) return;
     event.stopPropagation();
     setDraft({
       ...drag.guide,
-      position: pointerPosition(event, drag.guide.axis) + drag.grabOffset,
+      position: draggedPosition(event, drag.guide.axis, drag.grabOffset),
     });
   };
 
@@ -218,7 +225,7 @@ export const CanvasRulers = React.memo(function CanvasRulers({
       const viewport = rootRef.current!.getBoundingClientRect();
       const x = event.clientX - viewport.left;
       const y = event.clientY - viewport.top;
-      const position = pointerPosition(event, drag.guide.axis) + drag.grabOffset;
+      const position = draggedPosition(event, drag.guide.axis, drag.grabOffset);
       const returnedToRuler = x < RULER_SIZE || y < RULER_SIZE;
       const outside = x > viewport.width || y > viewport.height || position < 0 || position > 1;
       const latest = useStudioStore.getState().canvasGuides ?? EMPTY_GUIDES;

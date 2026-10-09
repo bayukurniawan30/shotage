@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ImageEffectControl } from '../ImageEffectControl';
+import { ImageFillUrlInput } from '../ImageFillUrlInput';
 import { useStudioEditorStore } from '../../store/useStudioStore';
 import { Copy01, Trash01, ChevronDown } from '@untitledui/icons';
 import * as PhosphorIcons from '@phosphor-icons/react';
@@ -1605,6 +1606,7 @@ export const ElementsSection: React.FC = () => {
                 )}
               </div>
 
+              <ImageFillUrlInput key={selectedShape.id} onApply={bgImage => state.updateShapeLayer(selectedShape.id, { bgImage })} />
               {/* Image Fill Adjustments */}
               {selectedShape.bgImage && (
                 <div className="space-y-2.5 animate-in fade-in duration-150">

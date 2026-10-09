@@ -1,5 +1,10 @@
 import type { CanvasGuide } from '../types/studio';
 
+/** Use screen pixels so the center magnet feels consistent at any canvas zoom. */
+export function snapGuideToCenter(position: number, screenSize: number, threshold = 8) {
+  return screenSize > 0 && Math.abs(position - 0.5) * screenSize <= threshold ? 0.5 : position;
+}
+
 export function guidePositionFromScreen(coordinate: number, origin: number, size: number) {
   return size > 0 ? (coordinate - origin) / size : 0;
 }

@@ -1,0 +1,443 @@
+import { describe, expect, it } from 'vitest';
+import { buildStudioState, createShapeLayer, createTextLayer } from '../mcpDesigns';
+import {
+  validateMcpStudioState,
+  mcpTextLayerInputSchema,
+  MCP_FONT_REFERENCE,
+  MCP_PATTERN_REFERENCE,
+  MCP_SOCIAL_PLATFORMS,
+  MCP_TECH_STACK_IDS,
+} from '../mcpDesignSchema';
+import { SOCIAL_PLATFORMS } from '../../components/SocialIcons';
+import { TECH_STACK_ITEMS } from '../../components/TechStackIcons';
+
+describe('MCP design construction', () => {
+  it('preserves and validates non-destructive image framing', () => {
+    const crop = { ratio: 1, zoom: 2, x: -.5, y: .25 };
+    const state = buildStudioState({ imageCrop: crop, slot2ImageCrop: null });
+    expect(state.imageCrop).toEqual(crop);
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(() => validateMcpStudioState({ ...state, imageCrop: { ...crop, zoom: 0 } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, imageCrop: { ...crop, x: 2 } })).toThrow();
+  });
+  it.each(['open-graph', 'blog-cover'] as const)('supports the %s preset independently of custom canvas dimensions', aspectRatio => {
+    const state = buildStudioState({ aspectRatio });
+    expect(state.aspectRatio).toBe(aspectRatio);
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+  });
+  it('validates and preserves independent mockup and shape image effects', () => {
+    const effect = { preset: 'vintage' as const, intensity: 75 };
+    const state = buildStudioState({ imageEffect: effect, slot2ImageEffect: { preset: 'noir', intensity: 50 }, shapeLayers: [createShapeLayer({ shapeType: 'rectangle', bgImage: 'https://example.com/photo.png', imageEffect: effect }, 0)] });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.imageEffect).toEqual(effect);
+    expect(state.shapeLayers[0].imageEffect).toEqual(effect);
+    expect(() => validateMcpStudioState({ ...state, imageEffect: { preset: 'bad', intensity: 100 } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, imageEffect: { ...effect, intensity: 101 } })).toThrow();
+  });
+  it('preserves and validates Ticket / Pass frame settings', () => {
+    const ticketPass = { variant: 'digital', title: 'Creative pass', subtitle: 'Shotage', date: '2026', location: 'Online', stubLabel: 'ACCESS', serial: 'ST-01', paperColor: '#171719', textColor: '#ffffff', imageZoom: 150, imageOffsetX: 20, imageOffsetY: -15 };
+    const state = buildStudioState({ frameType: 'ticket-pass', ticketPass });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.ticketPass).toEqual(ticketPass);
+    expect(() => validateMcpStudioState({ ...state, ticketPass: { ...ticketPass, imageZoom: 301 } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, ticketPass: { ...ticketPass, variant: 'unsupported' } })).toThrow();
+  });
+  it('preserves custom gradients and photo print settings through construction and validation', () => {
+    const customGradient = { angle: 135, stops: [
+      { color: '#ffafcc', position: 10 },
+      { color: '#cdb4db', position: 40 },
+      { color: '#a2d2ff', position: 90 },
+    ] };
+    const photoPrint = { variant: 'gallery', paperColor: '#fffefa', borderWidth: 28, caption: 'Shotage', date: '2026' };
+    const state = buildStudioState({ backgroundType: 'customGradient', customGradient, frameType: 'photo-print', photoPrint });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.customGradient).toEqual(customGradient);
+    expect(state.photoPrint).toEqual(photoPrint);
+    expect(() => validateMcpStudioState({ ...state, customGradient: { ...customGradient, stops: [...customGradient.stops, customGradient.stops[2]] } })).toThrow();
+    expect(() => validateMcpStudioState({ ...state, customGradient: { ...customGradient, stops: [...customGradient.stops].reverse() } })).toThrow();
+  });
+  it('preserves and validates image fill animation fields', () => {
+    const fill = { bgImage: 'https://example.com/image.png', bgImageZoom: 125, bgImageOffsetX: 10, bgImageOffsetY: -20, bgImageRepeat: false };
+    const keyframes = [{ id: 'fill-start', timeSec: 0, bgImageZoom: 100, bgImageOffsetX: 0, bgImageOffsetY: 0 }, { id: 'fill-end', timeSec: 2, bgImageZoom: 200, bgImageOffsetX: 80, bgImageOffsetY: -40 }];
+    const state = buildStudioState({ durationSec: 3, textLayers: [createTextLayer(mcpTextLayerInputSchema.parse({ text: 'Image', ...fill, keyframes }), 0)], shapeLayers: [createShapeLayer({ shapeType: 'rectangle', ...fill, keyframes }, 0)] });
+    expect(() => validateMcpStudioState({ ...state })).not.toThrow();
+    expect(state.textLayers[0]).toMatchObject({ ...fill, keyframes });
+    expect(state.shapeLayers[0]).toMatchObject({ ...fill, keyframes });
+    expect(() => validateMcpStudioState({ ...state, shapeLayers: [{ ...state.shapeLayers[0], keyframes: [{ ...keyframes[0], bgImageZoom: 0 }] }] })).toThrow();
+  });
+  it('merges nested state and clears volatile editor fields', () => {
+    const state = buildStudioState({
+      aspectRatio: '1:1',
+      gradient: { color1: '#111111', color2: '#eeeeee', angle: 45 },
+      isPlaying: true,
+      currentTimeSec: 8,
+    });
+    expect(state.aspectRatio).toBe('1:1');
+    expect(state.gradient).toEqual({ color1: '#111111', color2: '#eeeeee', angle: 45 });
+    expect(state.isPlaying).toBe(false);
+    expect(state.currentTimeSec).toBe(0);
+  });
+
+  it('builds editor-compatible text and shape defaults', () => {
+    expect(createTextLayer({ text: 'Hello' }, 0)).toMatchObject({
+      text: 'Hello',
+      fontFamily: 'Inter',
+      scaleX: 1,
+      scaleY: 1,
+    });
+    expect(createShapeLayer({ shapeType: 'circle' }, 0)).toMatchObject({
+      shapeType: 'circle',
+      width: 180,
+      height: 180,
+      borderWidth: 0,
+    });
+    expect(createShapeLayer({ shapeType: 'rectangle-3d' }, 0)).toMatchObject({
+      shapeType: 'rectangle-3d',
+      width: 180,
+      height: 120,
+      depth: 10,
+      borderRadius: 20,
+      rotation: 0,
+      pitch: 0,
+      yaw: 0,
+      skewX: 0,
+      skewY: 0,
+    });
+  });
+
+  it('exposes current fonts, patterns, social platforms and tech stack choices', () => {
+    expect(MCP_FONT_REFERENCE).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Croissant One' }),
+        expect.objectContaining({ name: 'Google Sans Code' }),
+        expect.objectContaining({ name: 'Ubuntu' }),
+      ])
+    );
+    expect(MCP_PATTERN_REFERENCE).toContainEqual({ id: 'pattern-9', name: 'Square Grid' });
+    expect([...MCP_SOCIAL_PLATFORMS].sort()).toEqual(SOCIAL_PLATFORMS.map(({ id }) => id).sort());
+    expect([...MCP_TECH_STACK_IDS].sort()).toEqual(TECH_STACK_ITEMS.map(({ id }) => id).sort());
+  });
+
+  it('accepts 500px text and social layer fields in shortcuts and saved states', () => {
+    const input = mcpTextLayerInputSchema.parse({
+      text: '@shotage',
+      fontFamily: 'Ubuntu',
+      fontSize: 500,
+      socialPlatform: 'instagram',
+      socialStyle: 'glass-dark',
+      iconColor: '#ffffff',
+      iconSize: 32,
+    });
+    const state = buildStudioState({ textLayers: [createTextLayer(input, 0)] });
+    expect(state.textLayers[0]).toMatchObject(input);
+    expect(() => mcpTextLayerInputSchema.parse({ ...input, fontSize: 501 })).toThrow();
+    expect(() =>
+      buildStudioState({
+        textLayers: [{ ...state.textLayers[0], socialPlatform: 'unknown' }],
+      })
+    ).toThrow(/socialPlatform/);
+  });
+
+  it('merges partial tech stacks and accepts patterns and normalized guides', () => {
+    const state = buildStudioState({
+      techStackConfig: { enabled: true, selectedIcons: ['react', 'vite'], size: 40 },
+      bgPatternEnabled: true,
+      bgPatternPreset: 'pattern-9',
+      bgPatternColor: '#ffffff',
+      bgPatternOpacity: 20,
+      rulersVisible: true,
+      canvasGuides: [{ id: 'safe-top', axis: 'horizontal', position: 0.08 }],
+    });
+    expect(state.techStackConfig).toMatchObject({
+      enabled: true,
+      selectedIcons: ['react', 'vite'],
+      size: 40,
+      gap: 12,
+    });
+    expect(state.canvasGuides).toHaveLength(1);
+    expect(() =>
+      buildStudioState({ canvasGuides: [] }, state as unknown as Record<string, unknown>)
+    ).not.toThrow();
+  });
+
+  it.each([
+    { techStackConfig: { selectedIcons: ['unknown'] } },
+    { techStackConfig: { size: 65 } },
+    { techStackConfig: { gap: -1 } },
+    { techStackConfig: { xOffset: 201 } },
+    { bgPatternPreset: 'unknown' },
+    { bgPatternOpacity: 101 },
+    { rulersVisible: 'yes' },
+    { canvasGuides: [{ id: 'guide', axis: 'diagonal', position: 0.5 }] },
+    { canvasGuides: [{ id: 'guide', axis: 'vertical', position: 1.1 }] },
+    {
+      canvasGuides: [
+        { id: 'duplicate', axis: 'vertical', position: 0.1 },
+        { id: 'duplicate', axis: 'horizontal', position: 0.2 },
+      ],
+    },
+  ])('rejects invalid newly documented settings: %j', (patch) => {
+    expect(() => buildStudioState(patch)).toThrow(/Invalid Shotage design/);
+    expect(() => buildStudioState({ stages: [patch] })).toThrow(/stages\[0\]/);
+  });
+
+  it('rejects Coolshape masks just like Studio', () => {
+    const text = createTextLayer({ id: 'target', text: 'Hello' }, 0);
+    const mask = createShapeLayer(
+      { shapeType: 'coolshape', maskTarget: { type: 'text', id: text.id } },
+      0
+    );
+    expect(() => buildStudioState({ textLayers: [text], shapeLayers: [mask] })).toThrow(
+      /Coolshape/
+    );
+  });
+
+  it('accepts 3D shape depth in a saved design', () => {
+    const state = buildStudioState({
+      shapeLayers: [createShapeLayer({ shapeType: 'square-3d', depth: 42 }, 0)],
+    });
+    expect(validateMcpStudioState(state as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
+  });
+
+  it('accepts draw-on only for an open vector path', () => {
+    const motion = { id: 'draw', preset: 'draw-on' as const, startTimeSec: 0, durationSec: 1.2 };
+    const openPath = createShapeLayer(
+      {
+        shapeType: 'custom-path',
+        pathClosed: false,
+        pathData: 'M 0 0 L 100 100',
+        motions: [motion],
+      },
+      0
+    );
+    const valid = buildStudioState({ shapeLayers: [openPath] });
+    expect(validateMcpStudioState(valid as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
+
+    expect(() =>
+      buildStudioState({
+        shapeLayers: [createShapeLayer({ shapeType: 'rectangle', motions: [motion] }, 0)],
+      })
+    ).toThrow(/requires an open vector path/);
+  });
+
+  it('rejects invalid duration and background values', () => {
+    expect(() => buildStudioState({ durationSec: 61 })).toThrow();
+    expect(() => buildStudioState({ backgroundType: 'unknown' })).toThrow();
+  });
+
+  it('accepts a single-slot source code frame and rejects dual-slot code frames', () => {
+    const state = buildStudioState({
+      frameType: 'code-window',
+      layoutCount: 1,
+      codeSource: 'const ready: boolean = true;',
+      codeLanguage: 'typescript',
+      codeTheme: 'dark',
+      codeWindowStyle: 'macos',
+      codeFilename: 'example.ts',
+      codeWindowWidth: 720,
+      codeWindowHeight: 420,
+      codeFontSize: 15,
+      codeLineNumbers: true,
+      codeWordWrap: false,
+    });
+
+    expect(validateMcpStudioState(state as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
+    expect(() => buildStudioState({ frameType: 'code-window', layoutCount: 2 })).toThrow(
+      /layoutCount must be 1/
+    );
+  });
+
+  it('accepts paths, custom easing, text staggering, masks, groups, blur, and transitions', () => {
+    const state = buildStudioState({
+      durationSec: 8,
+      isAnimationMode: true,
+      motionBlurEnabled: true,
+      motionBlurStrength: 65,
+      mockupAnchorX: 0.5,
+      mockupAnchorY: 0.75,
+      mockupMotionPath: { type: 's-curve', curvature: 0.2, autoOrient: false },
+      keyframes: [
+        {
+          id: 'mockup-start',
+          timeSec: 0,
+          rotateX: 4,
+          rotateY: -8,
+          zoom: 85,
+          offsetX: -120,
+          offsetY: 40,
+          easing: { type: 'cubic-bezier', x1: 0.16, y1: 1, x2: 0.3, y2: 1 },
+        },
+        {
+          id: 'mockup-end',
+          timeSec: 3,
+          rotateX: 0,
+          rotateY: 0,
+          zoom: 100,
+          offsetX: 0,
+          offsetY: 0,
+        },
+      ],
+      textLayers: [
+        createTextLayer(
+          {
+            id: 'headline',
+            text: 'Hello motion',
+            anchorX: 0.5,
+            anchorY: 0.5,
+            motions: [
+              {
+                id: 'headline-rise',
+                preset: 'text-rise',
+                startTimeSec: 0.2,
+                durationSec: 1.2,
+                textUnit: 'character',
+                textOrder: 'center',
+                staggerSec: 0.04,
+              },
+            ],
+            keyframes: [
+              {
+                id: 'headline-start',
+                timeSec: 0,
+                x: -200,
+                opacity: 0,
+                easing: { type: 'cubic-bezier', x1: 0.16, y1: 1, x2: 0.3, y2: 1 },
+              },
+              { id: 'headline-end', timeSec: 1.2, x: 0, opacity: 100 },
+            ],
+            motionPath: { type: 'arc-up', curvature: 0.25, autoOrient: false },
+          },
+          0
+        ),
+      ],
+      shapeLayers: [
+        createShapeLayer(
+          {
+            id: 'headline-mask',
+            shapeType: 'rectangle',
+            maskTarget: { type: 'text', id: 'headline' },
+          },
+          0
+        ),
+      ],
+      layerGroups: [
+        {
+          id: 'hero-group',
+          name: 'Hero',
+          members: [{ type: 'text', id: 'headline' }],
+          position: 'above',
+          originX: 0,
+          originY: 0,
+          x: 0,
+          y: 0,
+          width: 400,
+          height: 100,
+          scale: 1,
+          rotation: 0,
+          opacity: 100,
+          anchorX: 0.5,
+          anchorY: 0.5,
+        },
+      ],
+      layerOrder: [
+        { type: 'text', id: 'headline' },
+        { type: 'shape', id: 'headline-mask' },
+      ],
+      transitionOut: { type: 'crossfade', durationSec: 0.6, easing: 'ease-in-out' },
+    });
+
+    expect(validateMcpStudioState(state as unknown as Record<string, unknown>)).toEqual({
+      warnings: [],
+    });
+  });
+
+  it('reports precise paths for invalid advanced motion', () => {
+    expect(() =>
+      buildStudioState({
+        durationSec: 4,
+        textLayers: [
+          createTextLayer(
+            {
+              id: 'headline',
+              text: 'Bad timing',
+              keyframes: [
+                {
+                  id: 'late',
+                  timeSec: 5,
+                  easing: { type: 'cubic-bezier', x1: 2, y1: 0, x2: 0.3, y2: 1 },
+                },
+              ],
+              motionPath: { type: 's-curve', curvature: 0.4 },
+            },
+            0
+          ),
+        ],
+      })
+    ).toThrow(/studioState\.textLayers\[0\]\.keyframes\[0\]\.easing\.x1/);
+  });
+
+  it('requires enough mockup keyframes for each configured motion path', () => {
+    expect(() =>
+      buildStudioState({
+        slot2MockupMotionPath: { type: 'arc-down', curvature: 0.4 },
+        keyframes: [],
+      })
+    ).toThrow(/studioState\.slot2MockupMotionPath requires at least two mockup keyframes/);
+  });
+
+  it('rejects missing mask targets and duplicate group membership', () => {
+    expect(() =>
+      buildStudioState({
+        textLayers: [createTextLayer({ id: 'title', text: 'Title' }, 0)],
+        shapeLayers: [
+          createShapeLayer(
+            {
+              id: 'mask',
+              shapeType: 'rectangle',
+              maskTarget: { type: 'text', id: 'missing-title' },
+            },
+            0
+          ),
+        ],
+        layerGroups: [
+          {
+            id: 'group-a',
+            name: 'A',
+            members: [{ type: 'text', id: 'title' }],
+            position: 'above',
+            originX: 0,
+            originY: 0,
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            scale: 1,
+            rotation: 0,
+            opacity: 100,
+          },
+          {
+            id: 'group-b',
+            name: 'B',
+            members: [{ type: 'text', id: 'title' }],
+            position: 'above',
+            originX: 0,
+            originY: 0,
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            scale: 1,
+            rotation: 0,
+            opacity: 100,
+          },
+        ],
+      })
+    ).toThrow(/missing text:missing-title[\s\S]*repeats grouped layer text:title/);
+  });
+});
